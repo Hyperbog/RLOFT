@@ -10,6 +10,7 @@
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_raster_browser.hpp"
 #include "rloft_native/native_raster_colors.hpp"
+#include "rloft_native/native_palette_context.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -134,6 +135,7 @@ struct State {
     HWND palette_control{};
     HWND title_cursor_control{};
     unsigned palette_bank{12};
+    bool auto_palette{true};
     bool title_cursor_active{true};
     std::string browsed_archive{"RES0"};
     std::size_t browsed_record{};
@@ -225,8 +227,9 @@ void install(State& state,const fs::path& path) {
         state.browsed_record=state.cursor.res0_id;
         state.title_cursor_active=true;
         state.palette_bank=12;
+        state.auto_palette=true;
         if (state.palette_control)
-            SendMessageW(state.palette_control,CB_SETCURSEL,12,0);
+            SendMessageW(state.palette_control,CB_SETCURSEL,0,0);
         state.cursor_error=cursor_info;
         if (state.index_control)
             SetWindowTextW(state.index_control,
@@ -253,29 +256,65 @@ void install(State& state,const fs::path& path) {
 void browse(State& state, std::string archive, std::size_t index, int direction) {
     if (!state.media || !state.has_palette) return;
     try {
-        std::size_t actual = 0;
-        auto new_image = load_browser_preview(
-            *state.media,state.palette,archive,index,direction,actual);
-        state.cursor = std::move(new_image);
+        // Decode the original indexed resource ONCE, then select a scene-
+        // or callsite-appropriate palette. No RES archive-wide assumption.
+        const auto resource=direction==0 ?
+            rloft_native::load_native_raster_record(
+                *state.media,archive,index) :
+            rloft_native::seek_native_raster_record(
+                *state.media,archive,index,direction>0);
+        auto palette=state.palette;
+        unsigned bank=state.palette_bank;
+        std::wstring provenance=L"Manual COLORS bank " + std::to_wstring(bank);
+        if(state.auto_palette) {
+            const auto rule=rloft_native::resolve_native_palette(
+                resource.archive,resource.record_index);
+            if(rule.bank) {
+                bank=*rule.bank;
+                palette=rloft_native::decode_native_palette(
+                    state.media->read("COLORS"),bank);
+            }
+            const wchar_t* quality=L"UNRESOLVED";
+            switch(rule.evidence) {
+                case rloft_native::NativePaletteEvidence::ExactCallSite:
+                    quality=L"PROVEN ORIGINAL CALLSITE";break;
+                case rloft_native::NativePaletteEvidence::LevelContext:
+                    quality=L"ACTIVE LEVEL CONTEXT";break;
+                case rloft_native::NativePaletteEvidence::ContextualPreview:
+                    quality=L"CONTEXTUAL PREVIEW ONLY";break;
+                case rloft_native::NativePaletteEvidence::Unresolved:
+                    quality=L"UNRESOLVED — previous bank retained";break;
+            }
+            provenance=L"AUTO: " + std::wstring(quality) +
+                L"; " + unicode(rule.reason);
+        }
+        auto preview=make_raster_preview(
+            resource.raster,resource.record_index,palette);
+        state.cursor=std::move(preview);
+        state.palette=palette;
+        state.palette_bank=bank;
         state.title_cursor_active=false;
-        state.browsed_archive = std::move(archive);
-        state.browsed_record = actual;
-        state.cursor_error =
-            L"Decoded original " + unicode(state.browsed_archive) +
-            L" raster #" + std::to_wstring(actual) +
+        state.browsed_archive=resource.archive;
+        state.browsed_record=resource.record_index;
+        state.cursor_error=
+            L"Original " + unicode(state.browsed_archive) +
+            L" #" + std::to_wstring(state.browsed_record) +
             L" (" + std::to_wstring(state.cursor.width) +
-            L"x" + std::to_wstring(state.cursor.height) + L").";
-        if (state.index_control)
-            SetWindowTextW(state.index_control,std::to_wstring(actual).c_str());
-    } catch (const std::exception& error) {
+            L"x" + std::to_wstring(state.cursor.height) +
+            L"), COLORS " + std::to_wstring(bank) +
+            L". " + provenance + L".";
+        if(state.index_control)
+            SetWindowTextW(state.index_control,
+                           std::to_wstring(resource.record_index).c_str());
+    } catch(const std::exception& error) {
         state.cursor=NativeCursorPreview{};
         state.cursor_error=L"Original RES raster decode: "+unicode(error.what());
     }
     state.status=format_report(*state.media,state.audit) +
                  L"\r\n" + state.cursor_error + L"\r\n";
-    if (state.report_widget)
+    if(state.report_widget)
         SetWindowTextW(state.report_widget,state.status.c_str());
-    if (state.window)InvalidateRect(state.window,nullptr,TRUE);
+    if(state.window)InvalidateRect(state.window,nullptr,TRUE);
 }
 
 void change_palette(State& state, unsigned bank) {
@@ -293,9 +332,10 @@ void change_palette(State& state, unsigned bank) {
         }
         state.palette=selected;
         state.palette_bank=bank;
+        state.auto_palette=false;
         state.has_palette=true;
         state.cursor=std::move(preview);
-        state.cursor_error=L"Original indexed pixels with COLORS bank " +
+        state.cursor_error=L"MANUAL bank override. Original indexed pixels with COLORS bank " +
             std::to_wstring(bank) +
             (state.title_cursor_active ?
              L" and CODE.2 title cursor remap." : L" (raw RES indices).");
@@ -313,6 +353,13 @@ void change_palette(State& state, unsigned bank) {
 void show_title_cursor(State& state) {
     if (!state.media || !state.has_palette) return;
     try {
+        // Title cursor is an original CODE.2 menu callsite, not an unknown
+        // resource-level auto palette. In auto mode its scene bank is 12.
+        if(state.auto_palette && state.palette_bank!=12) {
+            state.palette=rloft_native::decode_native_palette(
+                state.media->read("COLORS"),12);
+            state.palette_bank=12;
+        }
         auto preview=make_cursor_preview(*state.media,state.palette);
         state.browsed_archive="RES0";
         state.browsed_record=preview.res0_id;
@@ -373,7 +420,8 @@ void draw(State& state,HDC dc) {
     RECT label{x,148,rect.right-18,186};
     SetTextColor(dc,RGB(241,207,137));
     const std::wstring palette_label=L"ORIGINAL COLORS BANK " +
-        std::to_wstring(state.palette_bank) + L" (DAC6 RGB)";
+        std::to_wstring(state.palette_bank) +
+        (state.auto_palette ? L" (AUTO CONTEXT)" : L" (MANUAL)") + L" DAC6";
     DrawTextW(dc,palette_label.c_str(),-1,&label,DT_SINGLELINE);
     if(state.has_palette) {
         constexpr int swatch=14;
@@ -505,6 +553,8 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                !state->previous_control||!state->next_control||
                !state->palette_control||!state->title_cursor_control)
                 return -1;
+            SendMessageW(state->palette_control,CB_ADDSTRING,0,
+                reinterpret_cast<LPARAM>(L"AUTO (source context)"));
             for(unsigned bank=0;bank<15;++bank) {
                 const std::wstring label=L"COLORS " + std::to_wstring(bank) +
                     (bank==8 ? L" · CODE.1" :
@@ -513,7 +563,7 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 SendMessageW(state->palette_control,CB_ADDSTRING,0,
                     reinterpret_cast<LPARAM>(label.c_str()));
             }
-            SendMessageW(state->palette_control,CB_SETCURSEL,12,0);
+            SendMessageW(state->palette_control,CB_SETCURSEL,0,0);
             for(const auto* archive : {
                 L"RES0", L"RES1", L"RES2", L"RES3", L"RES4",
                 L"RES5", L"RES6", L"RES7", L"RES8", L"RES10"
@@ -541,8 +591,16 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 HIWORD(wparam)==CBN_SELCHANGE) {
                 const auto selection=SendMessageW(
                     state->palette_control,CB_GETCURSEL,0,0);
-                if(selection>=0 && selection<15)
-                    change_palette(*state,static_cast<unsigned>(selection));
+                if(selection==0) {
+                    state->auto_palette=true;
+                    if(state->title_cursor_active)
+                        show_title_cursor(*state);
+                    else
+                        browse(*state,state->browsed_archive,
+                               state->browsed_record,0);
+                } else if(selection>0 && selection<=15) {
+                    change_palette(*state,static_cast<unsigned>(selection-1));
+                }
                 return 0;
             }
             if (LOWORD(wparam)==kTitleCursor &&
