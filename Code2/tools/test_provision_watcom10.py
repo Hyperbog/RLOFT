@@ -49,6 +49,26 @@ class ProvisionTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 extract_verified(p, target, verified={'sha256': ARCHIVE_SHA256})
 
+    def test_real_release_posix_relative_root_and_names(self):
+        entries = [('.', b'', 'dir'), ('./binnt', b'', 'dir'),
+                   ('./binnt/wcc386.exe', b'MZ-fixture', 'file')]
+        self.assertEqual(len(self.read_members(entries)), 2)
+        with tempfile.TemporaryDirectory() as d:
+            file = Path(d) / 'release.tar.gz'
+            file.write_bytes(archive(entries))
+            target = Path(d) / 'tools'
+            result = extract_verified(file, target, verified={'sha256': ARCHIVE_SHA256})
+            self.assertEqual(result['members'], 2)
+            self.assertEqual((target / 'binnt' / 'wcc386.exe').read_bytes(), b'MZ-fixture')
+
+    def test_dot_root_file_and_dotdot_aliases_rejected(self):
+        with self.assertRaisesRegex(ProvisionError, 'root may only'):
+            self.read_members([('.', b'bad', 'file')])
+        for name in ('./../evil', './binnt/../wrong', 'binnt/./tool'):
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ProvisionError, 'unsafe archive member'):
+                    self.read_members([(name,b'x','file')])
+
     def test_unverified_hash_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             file = Path(d)/'archive.tar.gz'

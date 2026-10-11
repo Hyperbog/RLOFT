@@ -45,12 +45,24 @@ def safe_members(tf: tarfile.TarFile) -> list[tarfile.TarInfo]:
         raise ProvisionError('archive member count exceeds safe extraction cap')
     total = 0
     seen: set[str] = set()
+    vetted: list[tarfile.TarInfo] = []
     for member in members:
         name = member.name
+        # Real decomp.me archive carries a harmless leading './' root
+        # directory. Ignore ONLY that root directory; never relax '..'.
+        if name in ('.', './'):
+            if not member.isdir():
+                raise ProvisionError('archive root may only be a directory')
+            continue
+        # Strip one conventional POSIX relative prefix so Windows path
+        # aliases are checked against the same canonical casefolded name.
+        normalized = name[2:] if name.startswith('./') else name
         # Never allow OS-specific drive paths, backslash escapes, or links.
-        p = PurePosixPath(name)
+        if any(x in ('.', '..', '') for x in normalized.rstrip('/').split('/')):
+            raise ProvisionError(f'unsafe archive member path: {name!r}')
+        p = PurePosixPath(normalized)
         parts = p.parts
-        if (not name or name.startswith(('/', '\\')) or '\\' in name
+        if (not normalized or normalized.startswith(('/', '\\')) or '\\' in normalized
                 or ':' in name or any(x in ('.', '..') for x in parts)
                 or any(re.search(r'[<>|?*\x00-\x1f]', x) for x in parts)
                 or not parts):
@@ -61,11 +73,12 @@ def safe_members(tf: tarfile.TarFile) -> list[tarfile.TarInfo]:
         seen.add(key)
         if not (member.isdir() or member.isfile()):
             raise ProvisionError('links and special archive members are not allowed')
+        vetted.append(member)
         if member.isfile():
             total += member.size
             if member.size < 0 or total > MAX_UNPACKED:
                 raise ProvisionError('archive exceeds unpacked size cap')
-    return members
+    return vetted
 
 
 def extract_verified(path: Path, destination: Path, *, verified: dict) -> dict:
