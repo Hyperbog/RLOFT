@@ -133,4 +133,22 @@ NativeType1Raster decode_native_type1_raster(
     return result;
 }
 
+NativeCursorResource load_native_default_cursor(const NativeMedia& source) {
+    const auto init = source.read("INIT");
+    if (init.size() < 2)
+        throw std::runtime_error("original INIT is too short for cursor ID");
+    const auto id = static_cast<std::size_t>(init[0]) |
+                    (static_cast<std::size_t>(init[1]) << 8U);
+    if (id > static_cast<std::size_t>(-1) - 0x2FU)
+        throw std::runtime_error("cursor RES0 ID overflow");
+    const auto res0_id = id + 0x2FU;
+    NativeResArchive archive(source.read("RES0"));
+    if (res0_id >= archive.entry_count())
+        throw std::runtime_error("original INIT cursor RES0 ID out of range");
+    NativeCursorResource output;
+    output.res0_id = res0_id;
+    output.image = decode_native_type1_raster(archive.entry(res0_id));
+    return output;
+}
+
 } // namespace rloft_native
