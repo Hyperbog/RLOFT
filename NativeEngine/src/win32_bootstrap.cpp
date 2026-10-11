@@ -101,7 +101,9 @@ void inspect(State& state, const rloft::GameSource& original) {
         [&original](std::string_view file) { return original.read(file); });
     state.signature_ok = report.minimum_media_present;
     state.media_kind = widen(rloft::to_string(original.kind()));
-    state.selected_folder = original.location().install_root.wstring();
+    // Registry/discovery and explicit paths can differ; the displayed
+    // provenance must identify the actual chosen backing media.
+    state.selected_folder = original.location().media_path.wstring();
     std::wostringstream out;
     out << L"Original installation (READ ONLY)\n"
         << L"Version/patch: UNVERIFIED\n"
@@ -226,9 +228,26 @@ int self_test() {
     State state;
     prepare_diagnostic(state);
     const auto id = rloft_native::frame_identity(state.diagnostic);
-    return state.bgra.size() == 320U * 400U * 4U &&
-           id.pixels_fnv1a64 != 0 && id.palette_fnv1a64 != 0
-           ? 0 : 1;
+    if (state.bgra.size() != 320U * 400U * 4U ||
+        id.pixels_fnv1a64 == 0 || id.palette_fnv1a64 == 0)
+        return 1;
+    // Validate the Windows-facing BGRA byte layout against the shared
+    // renderer-neutral CPU RGBA oracle, including alpha and end pixels.
+    rloft_native::CpuReferencePresenter reference;
+    reference.present(state.diagnostic);
+    const auto& rgba = reference.rgba();
+    for (std::size_t i = 0; i < rgba.size(); i += 4) {
+        if (state.bgra[i] != rgba[i + 2] ||
+            state.bgra[i + 1] != rgba[i + 1] ||
+            state.bgra[i + 2] != rgba[i] ||
+            state.bgra[i + 3] != 255)
+            return 2;
+    }
+    // Aspect arithmetic is a display-only calculation, not source mutation.
+    const auto aspect = rloft_native::fit_original_aspect(1024, 768);
+    return aspect.width == 1024 && aspect.height == 768 &&
+           rloft_native::frame_identity(state.diagnostic).pixels_fnv1a64 ==
+               id.pixels_fnv1a64 ? 0 : 3;
 }
 
 int run(HINSTANCE instance) {
@@ -259,8 +278,10 @@ int run(HINSTANCE instance) {
     window.hInstance = instance;
     window.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     window.lpszClassName = klass;
-    if (!RegisterClassW(&window) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+    if (!RegisterClassW(&window) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        if (SUCCEEDED(com)) CoUninitialize();
         return 2;
+    }
     HWND handle = CreateWindowExW(0, klass,
         L"Ravenloft Native Engine — Windows Bootstrap (not gameplay)",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
