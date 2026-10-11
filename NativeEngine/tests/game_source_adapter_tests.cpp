@@ -31,10 +31,21 @@ void check_fixture() {
         write_file(root / "RES4", {5, 6, 7});
         const auto source = rloft::GameSource::open(root);
         assert(source.kind() == rloft::GameSourceKind::LooseDirectory);
-        const auto vfs = rloft_native::bind_original_media(source);
+        auto vfs = rloft_native::bind_original_media(source);
         assert(vfs.read("init").provider == "original");
         assert(vfs.read("init").data == (std::vector<std::uint8_t>{2, 3}));
         assert(vfs.read("res4").data == (std::vector<std::uint8_t>{5, 6, 7}));
+        const auto mods = root / "mods";
+        fs::create_directory(mods);
+        write_file(mods / "RES4", {99, 98});
+        vfs.mount_directory("sample-mod", mods);
+        assert(vfs.read("res4").provider == "sample-mod");
+        assert(vfs.read("res4").data == (std::vector<std::uint8_t>{99, 98}));
+        assert(vfs.read("init").provider == "original");
+        assert(vfs.providers("RES4") ==
+               (std::vector<std::string>{"sample-mod", "original"}));
+        // The installed original media stays unmodified by mod overlays.
+        assert(source.read("RES4") == (std::vector<std::uint8_t>{5, 6, 7}));
         // This smoke test only targets real installed-media adapter semantics;
         // the synthetic files are never committed or confused with game data.
         assert(fs::file_size(root / "RES4") == 3);
