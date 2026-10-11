@@ -44,6 +44,10 @@ private:
     std::uint32_t user_offset_{};
     std::uint64_t physical_length_{};
 
+    // Original ISO files may live under a single game directory. Resolve
+    // unqualified DOS filenames by UNIQUE basename only; never silently
+    // choose between two equal leaf names in different folders.
+    [[nodiscard]] const File* find_record(std::string_view path) const;
     void index_loose(const std::filesystem::path& root);
     void index_iso(const std::filesystem::path& image);
     void index_iso_directory(std::uint32_t extent, std::uint32_t size,
