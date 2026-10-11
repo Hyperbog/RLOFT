@@ -24,7 +24,8 @@ add_library(rloft_native_assets STATIC
   src/native_type6_texture.cpp
   src/native_raster_browser.cpp
   src/native_raster_colors.cpp
-  src/native_palette_context.cpp)
+  src/native_palette_context.cpp
+  src/native_bank_system.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -35,6 +36,12 @@ function(native_warnings target)
   endif()
 endfunction()
 native_warnings(rloft_native_assets)
+
+# Single executable for all 11 active and optional 2 legacy original RES
+# archives. Source stays read-only; reports metadata JSON to stdout.
+add_executable(rloft_native_bank_audit src/native_bank_audit_main.cpp)
+target_link_libraries(rloft_native_bank_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_bank_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -90,6 +97,11 @@ add_executable(native_type6_texture_tests tests/native_type6_texture_tests.cpp)
 target_link_libraries(native_type6_texture_tests PRIVATE rloft_native_assets)
 native_warnings(native_type6_texture_tests)
 add_test(NAME native_type6_texture_tests COMMAND native_type6_texture_tests)
+
+add_executable(native_bank_system_tests tests/native_bank_system_tests.cpp)
+target_link_libraries(native_bank_system_tests PRIVATE rloft_native_assets)
+native_warnings(native_bank_system_tests)
+add_test(NAME native_bank_system_tests COMMAND native_bank_system_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
