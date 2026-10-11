@@ -53,6 +53,19 @@ def compare_witness(witness: dict, src_index: dict) -> dict:
     }
 
 
+def verify_source_index_freshness(src_index: dict, source_root: Path) -> None:
+    """Refuse source/assembly comparison with stale C++ SHA provenance."""
+    if src_index.get('schema') != sources.SCHEMA:
+        raise ValueError('source schema mismatch')
+    for meta in src_index.get('sources', []):
+        relative = Path(meta['path'])
+        if relative.is_absolute() or '..' in relative.parts:
+            raise ValueError('unsafe indexed source path')
+        current = (source_root / relative).read_bytes()
+        if sources.digest(current) != meta['sha256']:
+            raise ValueError('reconstructed source changed after index generation: '+str(relative))
+
+
 def compare_all(machine_report: dict, src_index: dict) -> dict:
     if machine_report.get('schema')!=original_cfg.SCHEMA or \
        machine_report.get('authority')!='authenticated_original_LE_bytes_independent_static_decode':
@@ -76,6 +89,7 @@ def main(argv=None) -> int:
     try:
         doc=json.loads(args.manifest.read_text())
         src=sources.read_index(args.index) if args.index else sources.build(args.source_root)
+        verify_source_index_freshness(src,args.source_root)
         machine=original_cfg.build(doc,args.original_root,source_index=src)
         report=compare_all(machine,src)
         args.output.parent.mkdir(parents=True,exist_ok=True)

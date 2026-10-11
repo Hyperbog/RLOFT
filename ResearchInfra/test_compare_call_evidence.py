@@ -34,5 +34,24 @@ class CallEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cmp.compare_all({'schema':'unknown','witnesses':[w]},src)
 
+    def test_reject_stale_original_source_index_and_traversal(self):
+        import tempfile
+        from pathlib import Path
+        from hashlib import sha256
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            (root/'Code2').mkdir()
+            content=b'original source'
+            (root/'Code2'/'Code2.cpp').write_bytes(content)
+            indexed={'schema':index.SCHEMA,'sources':[{
+                'path':'Code2/Code2.cpp','sha256':sha256(content).hexdigest()}]}
+            cmp.verify_source_index_freshness(indexed,root)
+            (root/'Code2'/'Code2.cpp').write_bytes(b'changed source')
+            with self.assertRaises(ValueError):
+                cmp.verify_source_index_freshness(indexed,root)
+            indexed['sources'][0]['path']='../CODE.2'
+            with self.assertRaises(ValueError):
+                cmp.verify_source_index_freshness(indexed,root)
+
 
 if __name__=='__main__':unittest.main()

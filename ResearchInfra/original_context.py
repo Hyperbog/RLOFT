@@ -93,6 +93,7 @@ def main(argv=None) -> int:
         registry=json.loads(args.registry.read_text())
         index=(source_index.read_index(args.source_index) if args.source_index else
                source_index.build(args.root))
+        compare_call_evidence.verify_source_index_freshness(index,args.root)
         cfg=original_cfg.build(m,args.original_root,source_index=index)
         p=packet(cfg,index,args.root,registry,args.key,args.max_chars,authenticated_original=True)
         args.output.parent.mkdir(parents=True,exist_ok=True)
