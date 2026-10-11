@@ -82,7 +82,7 @@ void guest(u32 address,u32 arg) noexcept {
 void initializers(code2::Machine& m) noexcept {
     // This executes the real reconstructed CODE.2 scheduler. Source directly
     // references the original 0x12720 table and invokes original guest addresses.
-    code2::function_395e2(m,current->init,m.cpu.edx);
+    code2::function_395e2(m,current->init,m.cpu.eax);
     stop("INITIALIZER_TABLE_EXHAUSTED");
 }
 void after_initializers(code2::Machine&) noexcept {
@@ -185,6 +185,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original) {
             "canonical SS initializer at 3A16E did not run");
     require(state.first_guest==0x3A2ADu,
             "original initializer tie order is not source-equivalent");
+    require(state.guest_arg==0xFFu,
+            "source 3561E MOV EAX,FFh / 395E7 MOV EDX,EAX contract mismatch");
     require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
             "test continued past an unimplemented original environment allocator");
     std::cout<<"CODE2_ORIGINAL_SOURCE_ENTRY=353A0\n"
