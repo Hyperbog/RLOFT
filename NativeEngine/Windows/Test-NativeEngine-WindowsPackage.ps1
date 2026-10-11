@@ -7,13 +7,19 @@ $expectedSource = "1111111111111111111111111111111111111111"
 $zipName = "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip"
 
 function Assert-VerificationExit([string]$ZipPath, [int]$Expected) {
-    # Use a fresh PowerShell process to test actual script exit status.
-    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $verifier -Archive $ZipPath -ExpectedSourceSha $expectedSource *>&1 | Out-Null
-    $exitStatus = $LASTEXITCODE
-    if ($Expected -eq 0 -and $exitStatus -ne 0) {
-        throw "Expected valid Windows bootstrap package to pass (exit $exitStatus)"
+    # In-process invocation preserves the verifier's fail-closed exception
+    # contract without masking expected negative stderr as test failures.
+    $accepted = $true
+    try {
+        & $verifier -Archive $ZipPath -ExpectedSourceSha $expectedSource | Out-Null
+    } catch {
+        $accepted = $false
+        if ($Expected -eq 0) { throw }
     }
-    if ($Expected -ne 0 -and $exitStatus -eq 0) {
+    if ($Expected -eq 0 -and -not $accepted) {
+        throw "Expected valid Windows bootstrap package to pass"
+    }
+    if ($Expected -ne 0 -and $accepted) {
         throw "Corrupted Windows bootstrap package incorrectly accepted"
     }
 }
