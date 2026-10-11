@@ -57,3 +57,19 @@ After the initial source audit, Windows CMake was tightened to require **Python 
 The release script also requires the relevant tracked `NativeEngine` and inherited `GameSource` files to be clean against Git HEAD before embedding a source-revision label. The ZIP verification is performed against the **final compressed archive and extracted file bytes**, not just the build directory.
 
 These are **source-level gates only** until Windows/MSVC compiles and executes them. The existing Linux CTest count cannot substitute for a green Windows build. [M-WIN-01 #12](https://github.com/Hyperbog/RLOFT/issues/12) remains open.
+
+## First authentic original-asset presentation proof (follow-on, not gameplay)
+
+The independent Win32 `rloft_native_bootstrap.exe` now links the *existing inherited, original-source-traced* `DemoV1/src/resource_assets.cpp` EH resource decoder as well as the `GameSource` install reader. [`NativeEngine/include/rloft_native/original_resource_preview.hpp`](include/rloft_native/original_resource_preview.hpp) implements one narrowly bounded source-backed diagnostic:
+
+- Read original `INIT` bytes 0–1 to select the original CODE.1/CODE.2 default cursor `RES0[INIT word + 0x2F]`.
+- Decode **EH type-1 raster** with the **existing certified** `ResArchive::decode_type1` implementation, not a second speculative decoder.
+- Read the actual 15-bank original `COLORS` file and palette index 12 used by the original CODE.2 startup/menu path.
+- Compose the decoded original cursor as a **centered diagnostic sample** in the immutable-format 320×400 indexed frame, skipping its original transparent index, then upload the shared CPU golden RGBA expansion to the Win32 GDI BGRA presenter. Source files are **read only**.
+- Show explicit UI caption "**Original RES0 cursor + palette12 — DIAGNOSTIC ONLY**". If absent/invalid, revert to the clearly labeled synthetic reference. Neither path is falsely called the original title/menu, normal game boot, or gameplay.
+
+[`NativeEngine/tests/original_resource_preview_tests.cpp`](tests/original_resource_preview_tests.cpp) generates a synthetic *original-format* 48-entry RES archive whose entry 47 is a valid 8×2 EH type-1 cursor. It opens this via the real inherited `GameSource`, decodes it through actual `resource_assets.cpp`, compares selected indexed pixels and palette-driven RGBA output, repeats to check deterministic pixel identity, and rejects a truncated COLORS bank. No copyrighted asset is embedded.
+
+The Windows GUI headless `--self-test-source-cursor <original-media>` now **requires** a successfully displayed original resource rather than merely a positive RES0/INIT/T installation signature. The existing Python end-to-end fixture builds disposable RES0/INIT/T/COLORS assets and checks the GUI strict mode succeeds, detects corruption with exit code 4, and leaves media SHA snapshots unchanged. The CMake fixture target is `native_original_resource_preview_tests`; the Windows packager now requires **at least 14** registered CTests and explicitly checks that this original decoder fixture is present.
+
+**Evidence classification:** Windows GUI/source integration **committed, not MSVC-compiled/tested**. Existing historical portable tests do not prove new Windows linker correctness or genuine Windows presentation. A genuine game installation needs its own protected-copy field test. Windows runner build remains undispatched because the connected GitHub integration does not expose workflow dispatch. The user authorized one Windows build; the direct workflow link remains https://github.com/Hyperbog/RLOFT/actions/workflows/native-engine-windows.yml .
