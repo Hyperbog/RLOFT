@@ -57,7 +57,16 @@ void test_folder_mounts() {
         assert((vfs.read("sub/item.res").data == std::vector<std::uint8_t>{4, 5}));
         assert(vfs.read("EMPTY").data.empty());
         assert(vfs.read("INIT").provider == "original" && source_reads == 1);
-        reject([&] { vfs.mount_directory("dup", bad); });
+        // On Windows/NTFS the two names refer to the SAME on-disk file:
+        // the second write overwrites the first. A physical directory
+        // cannot express a case-only collision there. Always exercise the
+        // virtual canonicalization guard with distinct map keys instead.
+        reject([&] { vfs.mount({"dup-canonical",
+                                 {{"DUP", {1}}, {"dup", {2}}}}); });
+        if (!fs::equivalent(bad / "DUP", bad / "dup")) {
+            // On case-sensitive filesystems there really ARE two files.
+            reject([&] { vfs.mount_directory("dup", bad); });
+        }
         reject([&] { vfs.mount_directory("two", one); });
         reject([&] { vfs.read("../res4"); });
         write(one / "SAVE.DAT", {22});
