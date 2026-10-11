@@ -463,8 +463,8 @@ void GameSource::set_runtime_root(const fs::path& profile_directory) {
 
 std::optional<fs::path> GameSource::runtime_file(
     std::string_view filename) const {
-    check_runtime_filename(filename);
     if (runtime_root_) {
+        check_runtime_filename(filename);
         // Never read original CHARS/GAME.OPT/SAVE.DAT in profile mode.
         const auto p = child_case_insensitive(*runtime_root_, filename);
         if (p && fs::is_regular_file(*p)) return p;
@@ -515,8 +515,8 @@ std::optional<std::vector<std::uint8_t>> GameSource::read_runtime(
 
 fs::path GameSource::runtime_output_path(
     std::string_view filename) const {
-    check_runtime_filename(filename);
     if (runtime_root_) {
+        check_runtime_filename(filename);
         if (const auto existing = runtime_file(filename)) return *existing;
         return *runtime_root_ / std::string(filename);
     }
