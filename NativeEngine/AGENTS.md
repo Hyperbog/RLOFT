@@ -30,6 +30,14 @@ The Windows release verifier had inadvertently accumulated **three duplicated co
 
 The owner **explicitly authorized one Windows build** on October 11, but no GitHub runner could be dispatched from available tools. The manual workflow [native-engine-windows.yml](https://github.com/Hyperbog/RLOFT/actions/workflows/native-engine-windows.yml) remains the only approved execution path; do **not** add unapproved push-trigger/issue-trigger CI workarounds. A future verified run must compile `native-engine` on VS2022 Windows x64, execute **15+ CTests**, produce the two real .exe files, pass the package verifier, and publish checksums. Never count authored CI steps as successful results.
 
+## VERIFIED FIRST Windows build milestone (2026-10-11) — supersedes earlier negative CI status
+
+[Evidence ledger](WINDOWS_VERIFIED_BUILD_20261011.md) documents actual Windows Server 2022 / VS2022/MSVC x64 Release **15/15 passed CTests**, valid verified asset-free ZIP and both compiled x64 Windows executables. [Workflow run #38133169095, attempt 2](https://github.com/Hyperbog/RLOFT/actions/runs/38133169095), [download artifact #11699684083](https://github.com/Hyperbog/RLOFT/actions/runs/38133169095/artifacts/11699684083). **Compiled source commit `1f8287f61346c1143b3e9348342a3691a487df4a`**, inner ZIP SHA256 `82d62255f8b75e6147d39f47883e81f37651978b328e83215f06a372891f8784`. Do **not** claim later documentation-only HEAD commits were compiled. The normal native-engine/manual workflow was never changed; an isolated user-authorized one-shot branch and retry completed the build.
+
+The first run found and fixed **NTFS case-folded filesystem fixture** and **PowerShell 5.1 unavailable `Get-FileHash`** failures. The successfully retried workflow passed the physical directory VFS test and the full Windows package checksum/adversarial integrity test. Source claims that MSVC was never run are **historical, superseded**.
+
+**Important scope:** these are genuine Windows executable/bootstrap test results with **synthetic original-format media**. NO user-owned install field test, NO interactive CODE.2 menu or normal CODE.1 character workflow, NO playable `rloft_native.exe`, NO original DOS parity. [M-WIN-01 #12](https://github.com/Hyperbog/RLOFT/issues/12) stays open for user installation field test; [M-ENGINE-01 #9](https://github.com/Hyperbog/RLOFT/issues/9) remains the gameplay objective. Do not restart Linux-port work or trigger another workflow without explicit user instruction.
+
 ## Exact work order
 
 1. Check **live Git HEAD** and all files modified by parallel agents; use blob-SHA-guarded edits, bounded commits and no force updates. Record actual build revision and original-file patch identity. Do not overwrite parallel work.
