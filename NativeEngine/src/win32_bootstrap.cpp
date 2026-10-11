@@ -351,8 +351,17 @@ int run(HINSTANCE instance) {
             State state;
             inspect(state, media);
             if (!state.signature_ok) return 3;
-            if (require_original_cursor && !state.showing_original_cursor)
-                return 4;
+            if (require_original_cursor) {
+                // Cursor extraction must remain testable even when the
+                // preferred full static menu is already displayed.
+                try {
+                    const auto cursor = rloft_native::make_source_cursor_preview(media);
+                    if (cursor.frame.pixels.size() != 320U * 400U)
+                        return 4;
+                } catch (const std::exception&) {
+                    return 4;
+                }
+            }
             if (require_original_menu && !state.showing_original_menu)
                 return 5;
             return 0;
