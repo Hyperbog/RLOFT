@@ -1,0 +1,37 @@
+name: "RLOFT independent contextual palette Windows x64 - authorized once"
+on:
+  push:
+    branches:
+      - native-palette-router-win64-20261011-once
+    paths:
+      - .github/workflows/native-palette-router-win64-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  contextual-original-asset-palette:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Checkout independent native-engine source only
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Set up Python for original-format fixtures
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build MSVC native game asset loader and require 13 tests
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish verified independent palette-aware Windows asset browser
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-CONTEXT-PALETTE-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
