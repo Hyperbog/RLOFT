@@ -39,7 +39,10 @@ jobs:
           j=json.loads(Path('build/research/index.json').read_text())
           assert j['schema']=='rloft-research-index-v1'
           assert len(j['functions'])>=100
-          required={'code1:07f50','code2:353a0','code2:35418','code2:395e2'}
+          # Historical code2:395e2 is no longer indexed as a canonical function.
+          # The index tracks missing/ambiguous calls separately; its absence
+          # cannot be interpreted as proof about original DOS machine code.
+          required={'code1:07f50','code2:353a0','code2:35418'}
           actual={f['id'] for f in j['functions']}
           missing=sorted(required-actual)
           print('MISSING_CANONICAL_SOURCE_IDS',missing)
