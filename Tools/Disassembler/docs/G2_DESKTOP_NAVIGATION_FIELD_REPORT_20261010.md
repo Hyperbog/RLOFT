@@ -1,5 +1,20 @@
 # DOSDis desktop original-MZ navigation field report: direct CALL, Hex Go, References
 
+**2026-10-11 build update:** Owner-authorized Windows desktop
+[Actions #44](https://github.com/Hyperbog/RLOFT/actions/runs/38143277116)
+**PASSED** three Windows .NET release builds with zero warnings/errors,
+both C# synthetic suites and the single Windows WPF preview
+publish/upload. Canonical code/test SHA
+`9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f` matches the
+temporary PR merge checkout's non-workflow code. Only Windows
+desktop artifact `11703189013`, ZIP SHA256
+`da73be2d543171f956307fa0eb51463e8528ad2f219154ee6b32bbcac55dc8f4`,
+was published. See [exact #44 build record](G2_DESKTOP_NAVIGATION_WINDOWS_BUILD_20261011_RUN44.md).
+The earlier “UNBUILT” wording below describes the status when this
+report was initially authored; it is superseded for **compilation and
+synthetic verification only**. **No actual WPF interaction regression
+has yet been performed on the new binary.**
+
 **Owner observation (2026-10-10 local date):** In Windows desktop
 build #43, the exact-original Dungeon Hack `CHECKSYS.EXE` loads,
 analyzes, displays disassembly and exports JSON. Three follow-up
