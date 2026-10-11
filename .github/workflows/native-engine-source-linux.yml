@@ -1,0 +1,49 @@
+name: Native Engine source-only Linux build and regression
+
+# Does not affect the owner's manual-only Windows release workflow.
+# Original licensed game media must never be fetched, uploaded or cached.
+on:
+  push:
+    branches: [native-engine]
+    paths:
+      - "NativeEngine/**"
+      - ".github/workflows/native-engine-source-linux.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-engine-source-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-only-compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact native source HEAD
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Show source identity and available compilers
+        run: |
+          git rev-parse HEAD
+          cmake --version
+          g++ --version
+      - name: Configure independent replacement engine, no original files
+        run: >
+          cmake -S NativeEngine -B build/native-source-ci
+          -DCMAKE_BUILD_TYPE=Debug
+          -DRLOFT_NATIVE_SOURCE_SHA=${{ github.sha }}
+      - name: Compile all portable native libraries, executables and regressions
+        run: cmake --build build/native-source-ci --parallel 2
+      - name: Run source-only NativeEngine CTest suite
+        run: ctest --test-dir build/native-source-ci --output-on-failure
+      - name: Check standalone payload auditor exists
+        run: test -x build/native-source-ci/rloft_native_payload_audit
+      - name: Assert no original media was added by source-only test
+        run: |
+          test ! -f build/native-source-ci/LEVELS.DAT
+          test ! -f build/native-source-ci/SINTAB
+          test ! -f build/native-source-ci/game.gog
