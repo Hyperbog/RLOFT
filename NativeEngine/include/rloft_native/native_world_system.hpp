@@ -49,7 +49,7 @@ struct NativeScaleBlock {
     std::uint32_t summed_step{};
 };
 
-struct NativeSyntabSystem {
+struct NativeSintabSystem {
     std::uint32_t scale_count{};
     std::uint32_t lookup_max{};
     std::uint32_t lookup_aux{};
@@ -63,12 +63,12 @@ struct NativeSyntabSystem {
 // lookup tables, 127 individual rasterizer microcode blocks and both
 // 129-entry descriptor tables. Validates code bounds but NEVER executes
 // original x86 machine code, which is unsafe and unnecessary on Win64.
-[[nodiscard]] NativeSyntabSystem decode_native_sintab(
+[[nodiscard]] NativeSintabSystem decode_native_sintab(
     const std::vector<std::uint8_t>& sintab);
 
 struct NativeWorldSystem {
     NativeLevelSystem world;
-    NativeSyntabSystem renderer_tables;
+    NativeSintabSystem renderer_tables;
 };
 
 // Opens user-owned, read-only LEVELS.DAT and SINTAB through NativeMedia,
