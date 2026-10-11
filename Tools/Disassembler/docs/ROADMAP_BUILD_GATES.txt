@@ -322,6 +322,48 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW USER GUI INTERACTION REQUEST (2026-10-11) — SOURCE ONLY:
+- Owner confirms previous Windows desktop #44 navigation fixes
+  work, and requests pressing Enter in Go To/Find to search;
+  searched address/byte must highlight in Disassembly, Hex
+  and References; clicking a single displayed hex byte CD
+  in e.g. 09 FF CD 21 should select that original byte
+  without requiring text-drag selection.
+- NEW source-only WPF and core code: Enter invokes existing
+  Go action; bounded 1-64 byte hex pattern search (CD,
+  CD 21, hex:46 04 CD 21) finds next match and wraps.
+  HexByteNavigation translates fixed-column raw and LE
+  displayed hex byte token spans to exact original physical
+  source offsets. No ASCII/whitespace/unbacked ?? mapping.
+- Hex TextBox remains read-only and drag-copyable; clicking
+  a real individual byte selects its pair and physical
+  source coordinate. Physical selection persists through
+  tab changes, highlights the exact substring of a real
+  instruction's original bytes and selects an ACTUAL matching
+  graph source/destination reference when one exists. If
+  a matched byte is undecoded data, Hex is displayed without
+  invented instruction/reference.
+- WPF selected-row visual styles and INotifyPropertyChanged
+  stable-reference AssemblyRow rows preserve disassembly
+  selection on changing byte highlights. No changes to
+  original game bytes, analysis engine, evidence gates,
+  exported private reports or LE-only SQLite schema.
+- Synthetic-only fixture cases for raw/LE rendered byte
+  mapping, click hit tests, nonzero file offsets,
+  unknown LE bytes, positive/negative hex grammar and
+  find-next/wrap are authored but NOT YET RUN.
+- PRIOR latest successful Windows desktop is Actions #44
+  code/test SHA 9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f,
+  BEFORE these additions. No new build authorization;
+  no new compiled artifact, smoke run or WPF interaction
+  acceptance for Enter/Find/byte highlight.
+- Next owner-authorized DESKTOP-ONLY Windows gate should
+  compile/test/publish a single WPF preview, then owner
+  checks Enter, byte click, drag copy, highlight in all
+  tabs, MZ/LE file coordinate mapping and unchanged
+  old call/ref/LE project workflow.
+- Exact handoff and owner GUI checklist:
+  docs/DESKTOP_BYTE_SEARCH_AND_HIGHLIGHT_20261011.md
 NEWEST WINDOWS DESKTOP BUILD #44 — OWNER-AUTHORIZED PASS:
 - https://github.com/Hyperbog/RLOFT/actions/runs/38143277116
 - Canonical source/test SHA 9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f,
@@ -1804,3 +1846,32 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   reference link click, plus one LE project UI regression.
   G2 independent original-byte accuracy and DOS runtime still PENDING.
 - Permanent #44 evidence: docs/G2_DESKTOP_NAVIGATION_WINDOWS_BUILD_20261011_RUN44.md.
+2026-10-11 | DESKTOP ENTER FIND + CLICKABLE HEX BYTES — SOURCE UNBUILT:
+- User confirms Windows #44 navigation improvements work.
+  Requests Enter-search, visible cross-tab search result
+  highlights, and individual clickable hex bytes while
+  retaining old drag-select/copy.
+- Created core HexByteNavigation parser for bounded
+  original-file-backed raw/LE hex token display.
+  Validates physical offset and optional LE object map;
+  unbacked cells, ASCII, address labels and whitespace
+  cannot become selectable original bytes. Added strict
+  hex byte-pattern grammar, next-find and wrap search.
+- WPF Enter Go/Find plus per-hex byte click hit testing
+  and physical selection, scroll-to-highlight,
+  disassembly selected row and exact Original bytes
+  substring highlighting, and matching graph reference
+  source/destination row highlight. Unknown source bytes
+  route to Hex without code fabrication.
+- Changed WPF AssemblyRow from mutable record to
+  stable-identity class with INotifyPropertyChanged,
+  preventing mutable highlight fields changing generated
+  record equality in the WPF selection model.
+- Synthetic-only test source added for byte-token
+  hit mapping, LE ?? exclusion, nonzero displayed file
+  offsets, exact hex grammar/invalid inputs, repeated
+  finds and no-match. No tests executed.
+- STATUS: SOURCE ONLY, not compiled, no preview ZIP,
+  no new CI invoked. Windows #44 remains latest successful
+  tested build. See desktop search/highlight handoff
+  docs/DESKTOP_BYTE_SEARCH_AND_HIGHLIGHT_20261011.md.
