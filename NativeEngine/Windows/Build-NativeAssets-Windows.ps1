@@ -27,7 +27,9 @@ try {
     & cmake --build $BuildDir --config Release --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Independent native asset MSVC build failed" }
     $exe = Join-Path $BuildDir "Release\rloft_native.exe"
+    $auditExe = Join-Path $BuildDir "Release\rloft_native_bank_audit.exe"
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Independent Windows executable missing" }
+    if (-not (Test-Path -LiteralPath $auditExe -PathType Leaf)) { throw "Whole-bank native audit executable missing" }
     $names = @(& ctest --test-dir $BuildDir -C Release -N)
     if ($LASTEXITCODE -ne 0) { throw "Cannot enumerate native CTests" }
     $display = $names -join [Environment]::NewLine
@@ -37,12 +39,12 @@ try {
         "native_renderer_evidence_contract_tests", "native_asset_engine_window_target",
         "native_raster_tests", "native_raster_browser_tests",
         "native_raster_colors_tests", "native_palette_context_tests",
-        "native_type6_texture_tests")) {
+        "native_type6_texture_tests", "native_bank_system_tests")) {
         if (-not $display.Contains($test)) { throw "Mandatory native asset CTest absent: $test" }
     }
     $count = [regex]::Match($display, 'Total Tests:\s*(\d+)')
-    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 14) {
-        throw "At least 14 independent asset CTests required"
+    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 15) {
+        throw "At least 15 independent asset CTests required"
     }
     & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows native asset CTests failed" }
@@ -52,15 +54,19 @@ try {
     if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
     [void](New-Item -ItemType Directory -Path $stage -Force)
     Copy-Item -LiteralPath $exe -Destination (Join-Path $stage "rloft_native.exe")
+    Copy-Item -LiteralPath $auditExe -Destination (Join-Path $stage "rloft_native_bank_audit.exe")
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "README-NATIVE-ASSETS.txt") -Destination (Join-Path $stage "README-NATIVE-ASSETS.txt")
     $binaryHash = Sha256File (Join-Path $stage "rloft_native.exe")
-    "$binaryHash  rloft_native.exe" | Set-Content -Encoding ascii (Join-Path $stage "SHA256SUMS.txt")
+    $auditHash = Sha256File (Join-Path $stage "rloft_native_bank_audit.exe")
+    @("$binaryHash  rloft_native.exe",
+      "$auditHash  rloft_native_bank_audit.exe") |
+      Set-Content -Encoding ascii (Join-Path $stage "SHA256SUMS.txt")
     [ordered]@{
         product = "RLOFT independent native replacement engine - asset layer"
         source_branch = "native-engine"
         source_commit = $sha
         build = "MSVC x64 Release"
-        engine_stage = "NATIVE_ASSET_LOADING"
+        engine_stage = "ALL_RES_BANKS_TYPED"
         gameplay_verified = $false
         original_assets_included = $false
         full_extraction_required = $false
@@ -72,7 +78,7 @@ try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
     try {
-        $expected = @("rloft_native.exe", "README-NATIVE-ASSETS.txt",
+        $expected = @("rloft_native.exe", "rloft_native_bank_audit.exe", "README-NATIVE-ASSETS.txt",
                       "SHA256SUMS.txt", "build-provenance.json")
         if ($archive.Entries.Count -ne $expected.Count) {
             throw "Native asset preview ZIP has extra or missing files"
@@ -92,6 +98,17 @@ try {
         if ($packedHash -cne $binaryHash) {
             throw "Native asset executable ZIP SHA256 mismatch"
         }
+        $auditBinary = $archive.GetEntry("rloft_native_bank_audit.exe")
+        if ($null -eq $auditBinary) { throw "Whole-bank audit executable missing from ZIP" }
+        $stream = $auditBinary.Open()
+        $shaAlg = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $packedAuditHash = [BitConverter]::ToString(
+                $shaAlg.ComputeHash($stream)).Replace("-","").ToLowerInvariant()
+        } finally { $shaAlg.Dispose(); $stream.Dispose() }
+        if ($packedAuditHash -cne $auditHash) {
+            throw "Native all-bank audit binary ZIP SHA256 mismatch"
+        }
     } finally { $archive.Dispose() }
     $zipHash = Sha256File $zip
     "$zipHash  $name.zip" | Set-Content -Encoding ascii "$zip.sha256"
@@ -99,6 +116,7 @@ try {
     Write-Host "Source SHA: $sha"
     Write-Host "Tests: PASS"
     Write-Host "EXE SHA256: $binaryHash"
+    Write-Host "AUDIT_EXE SHA256: $auditHash"
     Write-Host "ZIP SHA256: $zipHash"
     Write-Host "Original-game field verification: PENDING"
 } finally { Pop-Location }
