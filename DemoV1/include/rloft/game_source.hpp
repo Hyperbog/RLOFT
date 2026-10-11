@@ -50,6 +50,11 @@ public:
 
     [[nodiscard]] bool contains(std::string_view filename) const;
     [[nodiscard]] std::vector<std::uint8_t> read(std::string_view filename) const;
+    // Optional, explicit independent writable profile for the standalone
+    // native engine. When set, read_runtime and runtime_output_path NEVER
+    // fall back to installed CHARS/SAVE.DAT/GAME.OPT or sibling files.
+    // DemoV1 never opts into this mode and retains its existing behavior.
+    void set_runtime_root(const std::filesystem::path& profile_directory);
     [[nodiscard]] std::optional<std::filesystem::path> runtime_file(
         std::string_view filename) const;
     [[nodiscard]] std::optional<std::vector<std::uint8_t>> read_runtime(
@@ -60,6 +65,7 @@ public:
 private:
     LocatedGame located_{};
     std::unique_ptr<Iso9660Image> iso_{};
+    std::optional<std::filesystem::path> runtime_root_{};
 };
 
 [[nodiscard]] std::string_view to_string(GameSourceKind kind) noexcept;
