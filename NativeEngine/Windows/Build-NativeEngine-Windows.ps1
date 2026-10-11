@@ -44,6 +44,27 @@ try {
     if ($smoke.ExitCode -ne 0) { throw "Windows GUI bootstrap self-test failed: $($smoke.ExitCode)" }
     & $inspector --help
     if ($LASTEXITCODE -ne 0) { throw "Windows install inspector self-test failed" }
+    # Do not allow CMake feature detection to silently omit essential
+    # Windows/media/archive gates while still returning CTest success.
+    $registered = @(& ctest --test-dir $BuildDir -C Release -N)
+    if ($LASTEXITCODE -ne 0) { throw "Could not enumerate Windows CTests" }
+    $listed = $registered -join [Environment]::NewLine
+    $essentialTests = @(
+        "native_win32_bootstrap_headless_contract",
+        "native_win32_bootstrap_original_media_contract",
+        "native_windows_package_integrity_contract",
+        "native_install_probe_cli_fixture_tests",
+        "native_game_source_adapter_tests"
+    )
+    foreach ($required in $essentialTests) {
+        if (-not $listed.Contains($required)) {
+            throw "Missing mandatory Windows CTest: $required"
+        }
+    }
+    $countMatch = [regex]::Match($listed, 'Total Tests:\s*(\d+)')
+    if (-not $countMatch.Success -or [int]$countMatch.Groups[1].Value -lt 13) {
+        throw "NativeEngine Windows release requires at least 13 registered CTests"
+    }
     # There is intentionally no release "skip tests" switch.
     & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows CTest suite failed" }
