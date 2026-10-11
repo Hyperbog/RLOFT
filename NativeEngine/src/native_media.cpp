@@ -290,16 +290,29 @@ void NativeMedia::index_iso_directory(std::uint32_t extent, std::uint32_t size,
     }
 }
 
-bool NativeMedia::contains(std::string_view name) const {
+const NativeMedia::File* NativeMedia::find_record(std::string_view name) const {
     const auto key = native_asset_key(name);
-    return files_.find(key) != files_.end();
+    if (const auto it = files_.find(key); it != files_.end()) return &it->second;
+    if (key.find('/') != std::string::npos) return nullptr;
+    const File* match = nullptr;
+    for (const auto& pair : files_) {
+        const auto slash = pair.first.find_last_of('/');
+        if (slash != std::string::npos && pair.first.substr(slash + 1) == key) {
+            if (match != nullptr) return nullptr; // ambiguous basename
+            match = &pair.second;
+        }
+    }
+    return match;
+}
+
+bool NativeMedia::contains(std::string_view name) const {
+    return find_record(name) != nullptr;
 }
 
 std::vector<std::uint8_t> NativeMedia::read(std::string_view name) const {
-    const auto key = native_asset_key(name);
-    const auto it = files_.find(key);
-    if (it == files_.end()) throw std::runtime_error("original asset not found: " + key);
-    const auto& file = it->second;
+    const auto* selected = find_record(name);
+    if (!selected) throw std::runtime_error("original asset missing or ambiguous");
+    const auto& file = *selected;
     if (file.size > kMaxAssetBytes)
         throw std::runtime_error("requested original file exceeds 256 MiB limit");
     if (file.iso) return iso_read(file.extent, file.size);
