@@ -2,6 +2,21 @@
 # and NO copyrighted assets; proves the package verifier fails closed.
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+
+function Get-RloftFileSha256([string]$Path) {
+    # PowerShell 5.1 on some GitHub images does not autoload
+    # Microsoft.PowerShell.Utility/Get-FileHash from a CTest child.
+    # Use the .NET SHA256 implementation present in both PS5.1 and pwsh.
+    $stream = [System.IO.File]::OpenRead($Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [System.BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
 $verifier = Join-Path $PSScriptRoot "Verify-NativeEngine-WindowsPackage.ps1"
 $expectedSource = "1111111111111111111111111111111111111111"
 $zipName = "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip"
@@ -26,7 +41,7 @@ function Assert-VerificationExit([string]$ZipPath, [int]$Expected) {
 function Package([string]$Stage, [string]$ZipPath) {
     if (Test-Path -LiteralPath $ZipPath) { Remove-Item -LiteralPath $ZipPath -Force }
     Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $ZipPath
-    $zipHash = (Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $zipHash = (Get-RloftFileSha256 -Path $ZipPath)
     "$zipHash  $zipName" | Set-Content -Encoding ascii "$ZipPath.sha256"
 }
 $folder = Join-Path ([IO.Path]::GetTempPath()) ("rloft-zip-fixture-" + [Guid]::NewGuid().ToString("N"))
@@ -48,7 +63,7 @@ try {
     }
     $metadata | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $stage "build-provenance.json")
     $binaryChecksums = foreach ($name in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
-        $hash = (Get-FileHash -LiteralPath (Join-Path $stage $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $hash = (Get-RloftFileSha256 -Path (Join-Path $stage $name))
         "$hash  $name"
     }
     $binaryChecksums | Set-Content -Encoding ascii (Join-Path $stage "SHA256SUMS.txt")
