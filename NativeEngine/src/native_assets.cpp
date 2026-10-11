@@ -78,8 +78,15 @@ NativeAssetReport inspect_native_assets(const NativeMedia& media) {
             result.checks.push_back(std::move(item));
             continue;
         }
+        // Original ISO directory layouts can locate DOS resources under
+        // one subfolder. Match the same unique leaf that NativeMedia reads.
         const auto info = std::find_if(all.begin(), all.end(),
-            [name](const NativeAssetInfo& entry) { return entry.path == name; });
+            [name](const NativeAssetInfo& entry) {
+                if (entry.path == name) return true;
+                const auto slash = entry.path.find_last_of('/');
+                return slash != std::string::npos &&
+                       entry.path.substr(slash + 1) == name;
+            });
         if (info != all.end()) item.bytes = info->size;
         try {
             const std::string key(name);
