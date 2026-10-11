@@ -41,7 +41,7 @@ The independently decoded original startup \`35418..3562E\` contains **167 stati
 - \`35623 → 395E2\` — original initializer dispatch, known EAX=FF contract.
 - \`3562A → 39589\` — post-initializer launcher.
 
-The original scheduler \`395E2..3962C\` has an indirect \`CALL EAX\` at \`395FF\`, and its companion termination scheduler \`3962D..3967B\` also contains an indirect \`CALL EAX\`. A source-only C++ direct call graph cannot resolve these dynamic callbacks by itself. Other independently decoded direct calls anchor environment \`3A2AD\` to \`37B42\`, \`30D30\` and \`37C45\`. These are precise *follow-up dependency candidates*, not proofs that host adapters behave as DOS.
+The original scheduler \`395E2..3962C\` has an indirect \`CALL EAX\` at \`3961F\`, and its companion termination scheduler \`3962D..3967B\` contains a separate indirect \`CALL EAX\` at \`3966F\`. A source-only C++ direct call graph cannot resolve these dynamic callbacks by itself. Other independently decoded direct calls anchor environment \`3A2AD\` to \`37B42\`, \`30D30\` and \`37C45\`. These are precise *follow-up dependency candidates*, not proofs that host adapters behave as DOS.
 
 ## Cross-project link and ABI gap analysis
 
