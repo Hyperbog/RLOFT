@@ -401,7 +401,43 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 WS_CHILD|WS_VISIBLE|WS_VSCROLL|ES_MULTILINE|ES_READONLY|
                 ES_AUTOVSCROLL,24,132,640,500,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kResults)),instance,nullptr);
-            if(!state->button||!state->report_widget)return -1;
+            state->archive_control=CreateWindowExW(0,L"COMBOBOX",nullptr,
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_DROPDOWNLIST|WS_VSCROLL,
+                800,453,97,220,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kArchiveSelect)),
+                instance,nullptr);
+            state->index_control=CreateWindowExW(WS_EX_CLIENTEDGE,L"EDIT",L"0",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|ES_NUMBER|ES_AUTOHSCROLL,
+                906,453,72,26,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kRasterIndex)),
+                instance,nullptr);
+            state->go_control=CreateWindowExW(0,L"BUTTON",L"Go",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                980,453,56,26,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kRasterGo)),
+                instance,nullptr);
+            state->previous_control=CreateWindowExW(0,L"BUTTON",L"Previous",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                800,486,114,26,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kRasterPrevious)),
+                instance,nullptr);
+            state->next_control=CreateWindowExW(0,L"BUTTON",L"Next image",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                925,486,114,26,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kRasterNext)),
+                instance,nullptr);
+            if(!state->button||!state->report_widget||!state->archive_control||
+               !state->index_control||!state->go_control||
+               !state->previous_control||!state->next_control)
+                return -1;
+            for(const auto* archive : {
+                L"RES0", L"RES1", L"RES2", L"RES3", L"RES4",
+                L"RES5", L"RES6", L"RES7", L"RES8", L"RES10"
+            }) {
+                SendMessageW(state->archive_control,CB_ADDSTRING,0,
+                             reinterpret_cast<LPARAM>(archive));
+            }
+            SendMessageW(state->archive_control,CB_SETCURSEL,0,0);
             return 0;
         }
         case WM_SIZE:
@@ -414,6 +450,58 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 } catch(const std::exception& error) {
                     state->status=L"Install dialog failed: "+unicode(error.what());
                     SetWindowTextW(state->report_widget,state->status.c_str());
+                }
+                return 0;
+            }
+            if (LOWORD(wparam)==kRasterGo &&
+                HIWORD(wparam)==BN_CLICKED) {
+                if (state->media && state->has_palette) {
+                    try {
+                        wchar_t record_text[32]{};
+                        GetWindowTextW(state->index_control,record_text,32);
+                        const std::wstring input(record_text);
+                        std::size_t position=0;
+                        const auto id=std::stoull(input,&position,10);
+                        if (input.empty()||position!=input.size())
+                            throw std::invalid_argument("raster ID must be numeric");
+                        browse(*state,state->browsed_archive,
+                               static_cast<std::size_t>(id),0);
+                    } catch(const std::exception& error) {
+                        state->status=format_report(*state->media,state->audit) +
+                            L"\r\nInvalid raster ID: " + unicode(error.what());
+                        SetWindowTextW(state->report_widget,state->status.c_str());
+                    }
+                }
+                return 0;
+            }
+            if ((LOWORD(wparam)==kRasterPrevious ||
+                 LOWORD(wparam)==kRasterNext) &&
+                 HIWORD(wparam)==BN_CLICKED) {
+                if (state->media && state->has_palette) {
+                    browse(*state,state->browsed_archive,
+                        state->browsed_record,
+                        LOWORD(wparam)==kRasterNext ? 1 : -1);
+                }
+                return 0;
+            }
+            if (LOWORD(wparam)==kArchiveSelect &&
+                HIWORD(wparam)==CBN_SELCHANGE) {
+                if(state->media && state->has_palette) {
+                    wchar_t name[16]{};
+                    const auto selected=SendMessageW(
+                        state->archive_control,CB_GETCURSEL,0,0);
+                    if (selected>=0) {
+                        SendMessageW(state->archive_control,CB_GETLBTEXT,
+                            static_cast<WPARAM>(selected),
+                            reinterpret_cast<LPARAM>(name));
+                        const std::wstring wide(name);
+                        const std::string archive(wide.begin(),wide.end());
+                        state->browsed_archive=archive;
+                        state->browsed_record=0;
+                        browse(*state,archive,0,0);
+                        if(state->cursor.bgra.empty())
+                            browse(*state,archive,0,1);
+                    }
                 }
                 return 0;
             }
