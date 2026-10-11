@@ -319,17 +319,23 @@ int run(HINSTANCE instance) {
         LocalFree(argv);
         return self_test();
     }
-    if (argc == 3 && std::wstring_view(argv[1]) == L"--self-test-install") {
-        // Noninteractive Windows CI gate: validate the GUI's real reader +
-        // State inventory path with synthetic loose/ISO installations. Never
-        // create a window, modify original media or display error dialogs.
+    if (argc == 3 &&
+        (std::wstring_view(argv[1]) == L"--self-test-install" ||
+         std::wstring_view(argv[1]) == L"--self-test-source-cursor")) {
+        // Exercise the exact GUI media/presenter boundary without opening a
+        // window; stricter cursor mode asserts genuine original RES0 decode.
+        const bool require_original_cursor =
+            std::wstring_view(argv[1]) == L"--self-test-source-cursor";
         const auto media_path = std::filesystem::path(argv[2]);
         LocalFree(argv);
         try {
             const auto media = rloft::GameSource::open(media_path);
             State state;
             inspect(state, media);
-            return state.signature_ok ? 0 : 3;
+            if (!state.signature_ok) return 3;
+            if (require_original_cursor && !state.showing_original_cursor)
+                return 4;
+            return 0;
         } catch (...) {
             return 2;
         }
