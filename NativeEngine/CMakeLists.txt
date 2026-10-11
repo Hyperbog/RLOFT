@@ -144,8 +144,14 @@ if(WIN32)
     "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\""
     UNICODE _UNICODE)
   if(MSVC)
-    target_compile_options(rloft_native_bootstrap PRIVATE /W4 /permissive-)
+    target_compile_options(rloft_native_bootstrap PRIVATE /W4 /permissive- /utf-8)
   endif()
   add_test(NAME native_win32_bootstrap_headless_contract
     COMMAND rloft_native_bootstrap --self-test)
+  # Package QA runs only under real Windows PowerShell; no Linux analogue.
+  find_program(RLOFT_NATIVE_WINDOWS_POWERSHELL NAMES powershell.exe REQUIRED)
+  add_test(NAME native_windows_package_integrity_contract
+    COMMAND "${RLOFT_NATIVE_WINDOWS_POWERSHELL}"
+      -NoProfile -ExecutionPolicy Bypass
+      -File "${CMAKE_CURRENT_SOURCE_DIR}/Windows/Test-NativeEngine-WindowsPackage.ps1")
 endif()
