@@ -8,6 +8,7 @@ on:
       - 'AGENTS.md'
       - 'Code1/Code1.cpp'
       - 'Code1/RESIDUAL_LEDGER.md'
+      - 'Code1/verify_b01a_overlapping_stosb.py'
       - 'Code2/Code2.cpp'
       - '.github/workflows/research-infrastructure.yml'
   workflow_dispatch:
@@ -72,5 +73,6 @@ jobs:
             ResearchInfra/compare_call_evidence.py
             ResearchInfra/index.py
             Code1/RESIDUAL_LEDGER.md
+            Code1/verify_b01a_overlapping_stosb.py
           if-no-files-found: error
           retention-days: 7
