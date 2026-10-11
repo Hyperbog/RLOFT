@@ -5,8 +5,9 @@
 #define NOMINMAX
 #include <windows.h>
 #include <shellapi.h>
-#include <shlobj.h>
+#include <shobjidl.h>
 #include <objbase.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <array>
@@ -44,20 +45,36 @@ std::wstring widen(std::string_view source) {
 }
 
 std::optional<std::filesystem::path> browse_install(HWND owner) {
-    BROWSEINFOW info{};
-    info.hwndOwner = owner;
-    info.lpszTitle = L"Select your original Ravenloft: Strahd's Possession installation";
-    info.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-    PIDLIST_ABSOLUTE id = SHBrowseForFolderW(&info);
-    if (!id) return std::nullopt;
-    // Legacy SHGetPathFromIDListW has MAX_PATH output contract. Limit this
-    // folder picker to the standard path buffer; command-line --install
-    // supports paths supplied through the native Unicode filesystem API.
-    std::array<wchar_t, MAX_PATH> pathname{};
-    const bool ok = SHGetPathFromIDListW(id, pathname.data()) != FALSE;
-    CoTaskMemFree(id);
-    if (!ok) return std::nullopt;
-    return std::filesystem::path(pathname.data());
+    // Vista+ Common Item Dialog: modern native folder picker; unlike
+    // SHGetPathFromIDListW it does not truncate at MAX_PATH.
+    Microsoft::WRL::ComPtr<IFileOpenDialog> dialog;
+    const HRESULT created = CoCreateInstance(
+        CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(dialog.GetAddressOf()));
+    if (FAILED(created))
+        throw std::runtime_error("Windows folder picker initialization failed");
+    DWORD options = 0;
+    if (FAILED(dialog->GetOptions(&options)) ||
+        FAILED(dialog->SetOptions(options | FOS_PICKFOLDERS |
+                                  FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST)) ||
+        FAILED(dialog->SetTitle(
+            L"Select your original Ravenloft: Strahd's Possession installation")))
+        throw std::runtime_error("Windows folder picker configuration failed");
+    const HRESULT shown = dialog->Show(owner);
+    if (shown == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+        return std::nullopt;
+    if (FAILED(shown))
+        throw std::runtime_error("Windows folder picker failed");
+    Microsoft::WRL::ComPtr<IShellItem> selected;
+    if (FAILED(dialog->GetResult(selected.GetAddressOf())))
+        throw std::runtime_error("Windows folder picker returned no location");
+    PWSTR selected_path = nullptr;
+    if (FAILED(selected->GetDisplayName(SIGDN_FILESYSPATH, &selected_path)) ||
+        !selected_path)
+        throw std::runtime_error("Selected installation has no filesystem path");
+    const std::filesystem::path location(selected_path);
+    CoTaskMemFree(selected_path);
+    return location;
 }
 
 struct State final {
