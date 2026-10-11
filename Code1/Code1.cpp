@@ -2062,7 +2062,7 @@ void function_afd8(LowGraphics13Boundary&b,u32 rec,u8 value)noexcept{const u32 p
 // AFEE..B019: formatter wrapper. EDE7 returns emitted count; NUL is stored at dst+count.
 void function_afee(LowGraphics13Boundary&b,u32 dst,u32 fmt,u32 vararg_cursor)noexcept{const u32 n=b.format_ede7?b.format_ede7(dst,fmt,vararg_cursor):0u;lg13w8(b,dst+n,0u);}static_assert(0xB01Au-0xAFEEu==44u);
 // B01A..B054: append NUL-terminated source to destination, copying words exactly but semantically equivalent byte-for-byte.
-[[nodiscard]]u32 function_b01a(LowGraphics13Boundary&b,u32 dst,u32 src)noexcept{u32 end=dst;while(lg13r8(b,end)!=0u)++end;for(;;){const u16 ax=lg13r16(b,src);src+=2u;if(static_cast<u8>(ax)==0u)break;lg13w16(b,end,ax);end+=2u;if(static_cast<u8>(ax>>8)==0u)break;}return dst;}static_assert(0xB055u-0xB01Au==59u);
+[[nodiscard]]u32 function_b01a(LowGraphics13Boundary&b,u32 dst,u32 src)noexcept{u32 end=dst;while(lg13r8(b,end)!=0u)++end;for(;;){const u16 ax=lg13r16(b,src);src+=2u;if(static_cast<u8>(ax)==0u){lg13w8(b,end,0u);break;}lg13w16(b,end,ax);end+=2u;if(static_cast<u8>(ax>>8)==0u)break;}return dst;}static_assert(0xB055u-0xB01Au==59u);
 // B055..B05F are eleven zero bytes.
 
 // B060..B0F5: load the fixed 10-byte path descriptor at 030Ch into 2B98.
