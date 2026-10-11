@@ -17,6 +17,12 @@ try {
     if ($LASTEXITCODE -ne 0 -or $sha -notmatch '^[0-9a-f]{40}$') {
         throw "Cannot determine exact checked-out Git revision."
     }
+    # The embedded SHA must describe the tracked game/engine source,
+    # not silently conceal uncommitted local modifications.
+    & git diff --quiet HEAD -- NativeEngine DemoV1/src/game_source.cpp DemoV1/include/rloft/game_source.hpp
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tracked native engine or inherited GameSource files are dirty; commit them before producing a SHA-identified package."
+    }
     Write-Host "NativeEngine source checkout: $sha"
     & cmake -S NativeEngine -B $BuildDir -G "Visual Studio 17 2022" -A x64 "-DRLOFT_NATIVE_SOURCE_SHA=$sha"
     if ($LASTEXITCODE -ne 0) { throw "Windows x64 CMake configure failed" }
