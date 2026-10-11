@@ -322,6 +322,32 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW USER FIELD BUG — WPF ORIGINAL MZ NAVIGATION (SOURCE FIX UNBUILT):
+- Owner's #43 GUI confirms real CHECKSYS MZ decode/Analyze/JSON
+  export but found assembly double-click on 0000:0025 call 017Dh
+  inert, Hexadecimal Go visually stationary, and References limited
+  to a few per-selected-instruction edges. Owner explicitly confirms
+  EXISTING References double-click destination navigation works.
+- Root causes are missing AssemblyGrid double-click binding,
+  Hex Go's dependence on SelectionChanged without scroll/offset
+  feedback and per-instruction-only reference binding.
+- NEW canonical SOURCE-ONLY changes: explicit graph-edge direct
+  target navigation (call/branch/taken branch, no indirect/far
+  guessing); typed MZ CS:IP navigation and arbitrary backed hex
+  mapping with visible physical offset and scroll reset; complete
+  candidate edge list default with optional selected-row filter,
+  preserving working reference destination links. Reset stale
+  reference list after LE project without saved analysis.
+- Source-only synthetic regressions assert direct/taken target
+  choice and rejection of unresolved, ambiguous and foreign-segment
+  destinations; NOT EXECUTED. No WPF GUI build or CI dispatched.
+- Original physical mapping: E8 55 01 at 0000:0025 -> file+0x225;
+  candidate direct destination 0000:017D -> file+0x37D.
+- Next separately authorized Windows DESKTOP-ONLY build should
+  compile WPF/core/persistence + both C# smoke suites and publish
+  a single desktop artifact, then owner tests disassembly
+  double-click, Hex Go and all/selected references plus LE controls.
+- Exact handoff: docs/G2_DESKTOP_NAVIGATION_FIELD_REPORT_20261010.md.
 LATEST WINDOWS DESKTOP-ONLY BUILD/REGRESSION VERIFIED:
 - Owner-authorized WPF win-x64 build #43 SUCCESS, original-free
   smoke/project synthetic tests both PASS, 0 build warnings/errors.
@@ -1709,3 +1735,24 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   work, CS:IP navigation is correct; LE GUI project/export unaffected.
   No claim of complete G2 accuracy. Details:
   docs/G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md.
+2026-10-10 | WINDOWS DOSDIS NAVIGATION GUI FEEDBACK — SOURCE-ONLY FIX:
+- Owner's original CHECKSYS #43 screenshot/export passes the
+  early 16-bit MZ GUI milestone, but real navigation exposes three
+  previously uncovered user workflow failures; see source-bound
+  field report G2_DESKTOP_NAVIGATION_FIELD_REPORT_20261010.md.
+- Added Dos16Navigation.DirectTarget: graph-only unique resolved
+  direct CALL, unconditional branch and conditional taken branch.
+  Reject foreign-segment, indirect, speculative return and
+  ambiguous targets. Synthetic positive/negative fixtures authored.
+- Bound disassembly DataGrid double-click to resolved graph call
+  destinations. Hex Go now honors backed arbitrary 16-bit MZ bytes,
+  source physical offsets and explicit first-row/scroll reset,
+  even when the AssemblyGrid row is unchanged.
+- References defaults to all edges + source/destination/kind/
+  evidence; selected-instruction checkbox restores prior scope.
+  Existing reference double-click behavior preserved; no false
+  target resolution. LE project reopen clears stale reference list.
+- STATUS: SOURCE ONLY. No compiled test, no original-game GUI
+  interaction on this new source. Prior Windows #43 remains last
+  compiled build at SHA 244718cc7f86ba7ee2815cfc1df2d27f9be271b0;
+  canonical GitHub Actions remains workflow_dispatch-only.
