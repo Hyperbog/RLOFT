@@ -50,7 +50,6 @@ std::optional<std::filesystem::path> browse_install(HWND owner) {
     info.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
     PIDLIST_ABSOLUTE id = SHBrowseForFolderW(&info);
     if (!id) return std::nullopt;
-    std::array<wchar_t, 32768> result{};
     // Legacy SHGetPathFromIDListW has MAX_PATH output contract. Limit this
     // folder picker to the standard path buffer; command-line --install
     // supports paths supplied through the native Unicode filesystem API.
