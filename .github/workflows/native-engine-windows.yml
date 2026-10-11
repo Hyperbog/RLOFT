@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   build-windows-x64:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    # Pin VS2022 to match the explicit CMake Visual Studio 17 2022 generator.
     timeout-minutes: 40
     steps:
       - name: Check out native-engine source (not demo-v1)
