@@ -79,7 +79,7 @@ NativeRasterRecord seek_native_raster_record(
     // advance/retreat through the *real* archive's original record IDs.
     if (forward) {
         if (from_index >= count || from_index == count - 1)
-            throw std::out_of_range("no later supported original graphics record");
+            throw std::out_of_range(unsupported_message(archive_name_safe));
         for (std::size_t index = from_index + 1; index < count; ++index) {
             const auto entry = archive.entry(index);
             const auto type=browsable_type(entry,archive_name_safe);
@@ -93,7 +93,7 @@ NativeRasterRecord seek_native_raster_record(
         }
     } else {
         if (from_index == 0 || from_index > count)
-            throw std::out_of_range("no preceding supported original graphics record");
+            throw std::out_of_range(unsupported_message(archive_name_safe));
         for (auto index = from_index; index-- > 0;) {
             const auto entry = archive.entry(index);
             const auto type=browsable_type(entry,archive_name_safe);
