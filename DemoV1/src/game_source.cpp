@@ -1,3 +1,4 @@
+#include <cwctype>
 #include "rloft/game_source.hpp"
 
 #include <algorithm>
@@ -403,8 +404,72 @@ std::vector<std::uint8_t> GameSource::read(
     return bytes;
 }
 
+namespace {
+
+// Runtime names in the existing original DOS interface are flat filenames,
+// not freely constructed filesystem paths. Reject unsafe names in the
+// sandboxed and inherited modes alike.
+void check_runtime_filename(std::string_view filename) {
+    if (filename.empty() || filename.size() > 128 ||
+        filename == "." || filename == "..") {
+        throw std::invalid_argument("invalid original runtime filename");
+    }
+    for (const auto c : filename) {
+        const auto u = static_cast<unsigned char>(c);
+        if (!((u >= 'A' && u <= 'Z') || (u >= 'a' && u <= 'z') ||
+              (u >= '0' && u <= '9') || c == '_' || c == '-' || c == '.')) {
+            throw std::invalid_argument("unsafe original runtime filename");
+        }
+    }
+}
+
+bool path_contains(const fs::path& parent, const fs::path& child) {
+    auto p = parent.begin();
+    auto c = child.begin();
+    for (; p != parent.end(); ++p, ++c) {
+        if (c == child.end()) return false;
+#ifdef _WIN32
+        std::wstring a = p->wstring(), b = c->wstring();
+        std::transform(a.begin(), a.end(), a.begin(),
+                       [](wchar_t x) { return std::towlower(x); });
+        std::transform(b.begin(), b.end(), b.begin(),
+                       [](wchar_t x) { return std::towlower(x); });
+        if (a != b) return false;
+#else
+        if (*p != *c) return false;
+#endif
+    }
+    return true;
+}
+
+} // namespace
+
+void GameSource::set_runtime_root(const fs::path& profile_directory) {
+    if (profile_directory.empty() || !profile_directory.is_absolute())
+        throw std::invalid_argument("native profile directory must be absolute");
+    std::error_code ec;
+    const auto profile = fs::weakly_canonical(profile_directory, ec);
+    if (ec) throw std::runtime_error("cannot canonicalize native profile directory");
+    const auto install = fs::weakly_canonical(located_.install_root, ec);
+    if (ec) throw std::runtime_error("cannot canonicalize original install");
+    // Profile must be independent: not inside install or enclosing install.
+    if (path_contains(install, profile) || path_contains(profile, install))
+        throw std::invalid_argument("native profile overlaps original install");
+    fs::create_directories(profile, ec);
+    if (ec || !fs::is_directory(profile))
+        throw std::runtime_error("cannot create independent native profile");
+    runtime_root_ = profile;
+}
+
 std::optional<fs::path> GameSource::runtime_file(
     std::string_view filename) const {
+    check_runtime_filename(filename);
+    if (runtime_root_) {
+        // Never read original CHARS/GAME.OPT/SAVE.DAT in profile mode.
+        const auto p = child_case_insensitive(*runtime_root_, filename);
+        if (p && fs::is_regular_file(*p)) return p;
+        return std::nullopt;
+    }
     for (const auto& root :
          {located_.install_root, located_.install_root / "RLOFT"}) {
         if (auto p = child_case_insensitive(root, filename);
@@ -450,6 +515,11 @@ std::optional<std::vector<std::uint8_t>> GameSource::read_runtime(
 
 fs::path GameSource::runtime_output_path(
     std::string_view filename) const {
+    check_runtime_filename(filename);
+    if (runtime_root_) {
+        if (const auto existing = runtime_file(filename)) return *existing;
+        return *runtime_root_ / std::string(filename);
+    }
     if (const auto existing = runtime_file(filename)) {
         return *existing;
     }
