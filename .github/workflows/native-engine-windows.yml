@@ -1,0 +1,48 @@
+name: Native Engine Windows x64 bootstrap (manual)
+
+# Independent Windows-only workstream. No push/PR/Linux triggers.
+# The default-branch copy makes the Run workflow button discoverable.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-engine-windows-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out native-engine source (not demo-v1)
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Install Python for native CTest fixtures
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact source revision
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          Write-Host "Native Engine Windows checkout: $sha"
+          if ($sha -notmatch '^[0-9a-f]{40}$') { throw "Invalid source SHA" }
+      - name: MSVC x64 Release build, all native CTests and asset-free ZIP
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeEngine-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish independent Windows bootstrap, inspector and SHA-256
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-BOOTSTRAP
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
