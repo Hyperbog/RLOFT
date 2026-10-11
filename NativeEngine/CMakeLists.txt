@@ -163,7 +163,8 @@ if(WIN32)
   add_executable(rloft_native_bootstrap WIN32
     src/win32_bootstrap.cpp
     ../DemoV1/src/game_source.cpp
-    ../DemoV1/src/resource_assets.cpp)
+    ../DemoV1/src/resource_assets.cpp
+    ../DemoV1/src/startup_presenter.cpp)
   target_include_directories(rloft_native_bootstrap PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
   target_link_libraries(rloft_native_bootstrap PRIVATE
