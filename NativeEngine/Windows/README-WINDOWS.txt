@@ -51,8 +51,12 @@ Known limitations:
   * No original save/load or gameplay execution in this bootstrap.
   * Installer detection/version inventory is partial; no patch-version
     equivalence has been certified.
-  * Folder chooser follows the classic Windows shell path limitations.
-    Command-line --install supports native Unicode filesystem paths.
+  * Folder selection uses the modern Windows Common Item Dialog, with
+    native Unicode paths rather than the classic MAX_PATH-limited picker.
+  * Automated quality assurance also exercises a noninteractive
+    --self-test-install <path> path; this is diagnostic-only, not gameplay.
+  * Every distributed archive must pass the independent SHA-256,
+    exact-source-provenance and asset-free allowlist validation.
 
 Source:
   https://github.com/Hyperbog/RLOFT/tree/native-engine/NativeEngine
