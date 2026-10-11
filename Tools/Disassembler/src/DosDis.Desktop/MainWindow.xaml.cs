@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Windows.Input;
 using System.Windows;
 using System.Windows.Controls;
 using DosDis.Core;
@@ -29,6 +30,13 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _analysisCancellation;
     private readonly FileDialogPreferences _filePreferences = new();
     private string? _openedBinaryPath;
+    private IReadOnlyList<HexByteToken> _hexByteTokens = Array.Empty<HexByteToken>();
+    private int? _highlightedFileOffset;
+    private int _highlightedByteLength = 1;
+    private string? _lastByteSearch;
+    private int _lastByteMatchOffset = -1;
+    private System.Windows.Point? _hexMouseDownPosition;
+    private bool _suppressAutomaticHexRefresh;
 
     private void Trace(DiagnosticStage stage, int? objectNumber = null,
         uint? objectOffset = null, int? instructionCount = null)
@@ -47,6 +55,11 @@ public partial class MainWindow : Window
         CancelAnalysisButton.IsEnabled = false;
         ExportAnalysisButton.IsEnabled = false;
         ExportDiagnosticButton.IsEnabled = true;
+        // The read-only TextBox consumes mouse-up while implementing drag
+        // selection. Listen even when handled so a normal click can select
+        // an individual byte without breaking drag-to-copy behavior.
+        HexView.AddHandler(System.Windows.UIElement.MouseLeftButtonUpEvent,
+            new MouseButtonEventHandler(HexView_MouseLeftButtonUp), true);
     }
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
@@ -147,6 +160,11 @@ public partial class MainWindow : Window
                 : _mzImage is not null ? DiagnosticStage.FileOpenedMz : DiagnosticStage.FileOpenedRaw);
             _graph = null;
             _mzGraph = null;
+            _highlightedFileOffset = null;
+            _highlightedByteLength = 1;
+            _lastByteSearch = null;
+            _lastByteMatchOffset = -1;
+            _hexByteTokens = Array.Empty<HexByteToken>();
             ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
             _allReferences = Array.Empty<ReferenceRow>();
@@ -405,6 +423,7 @@ public partial class MainWindow : Window
         NoteEditor.Text = string.Empty;
         SelectedAddressText.Text = "Select an instruction";
         HexView.Text = string.Empty;
+        _hexByteTokens = Array.Empty<HexByteToken>();
         HexLocationText.Text = "No physical file position selected";
     }
 
@@ -428,10 +447,13 @@ public partial class MainWindow : Window
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
         RefreshReferences();
-        if (_mzImage is not null)
-            RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
-        else
-            RenderHex(new FlowAddress(row.Object, row.Offset));
+        if (!_suppressAutomaticHexRefresh)
+        {
+            if (_mzImage is not null)
+                RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
+            else
+                RenderHex(new FlowAddress(row.Object, row.Offset));
+        }
         _commentRevision = 0;
         NoteEditor.Text = string.Empty;
         if (_project != null && _mzImage is null)
@@ -515,10 +537,16 @@ public partial class MainWindow : Window
     {
         HexLocationText.Text = location;
         HexView.Text = preview;
+        _hexByteTokens = HexByteNavigation.MapRenderedBytes(preview, (number, offset) =>
+        {
+            long? mapped = _image?.ToFileOffset(number, offset);
+            return mapped is >= 0 and <= int.MaxValue ? checked((int)mapped.Value) : null;
+        });
         // A WPF TextBox can retain its old vertical position when
         // text is replaced; ensure Go shows the requested first row.
         HexView.CaretIndex = 0;
         HexView.ScrollToHome();
+        HighlightVisibleHexByte();
     }
 
     private void RenderMzHex(Dos16Address address)
