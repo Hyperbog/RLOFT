@@ -29,3 +29,13 @@ else()
   target_compile_options(native_game_source_adapter_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
 endif()
 add_test(NAME native_game_source_adapter_tests COMMAND native_game_source_adapter_tests)
+
+# CPU golden output for future GPU backend readback equality, not a DOS CRT.
+add_executable(native_cpu_reference_presenter_tests tests/cpu_reference_presenter_tests.cpp)
+target_link_libraries(native_cpu_reference_presenter_tests PRIVATE rloft_native_contracts)
+if(MSVC)
+  target_compile_options(native_cpu_reference_presenter_tests PRIVATE /W4 /UNDEBUG)
+else()
+  target_compile_options(native_cpu_reference_presenter_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+endif()
+add_test(NAME native_cpu_reference_presenter_tests COMMAND native_cpu_reference_presenter_tests)
