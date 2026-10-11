@@ -130,6 +130,9 @@ bool verify_image(const std::vector<std::uint8_t>& e, bool font,
     require(!validate_exact(EH1),"EH2 font cannot have inert raster");
     require(image.frames==128 && image.width==8,
             "EH2 font glyph count or width inconsistent");
+    // A valid EH2 is a renderable font, not an inert legacy raster.
+    // Falling off this bool function was undefined behavior (GCC SIGILL).
+    return false;
 }
 
 void verify_wordcode(const std::vector<std::uint8_t>& e) {
