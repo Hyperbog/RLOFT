@@ -20,7 +20,8 @@ add_library(rloft_native_assets STATIC
   src/native_media.cpp
   src/native_assets.cpp
   src/native_raster.cpp
-  src/native_raster_browser.cpp)
+  src/native_raster_browser.cpp
+  src/native_raster_colors.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -71,6 +72,11 @@ add_executable(native_raster_browser_tests tests/native_raster_browser_tests.cpp
 target_link_libraries(native_raster_browser_tests PRIVATE rloft_native_assets)
 native_warnings(native_raster_browser_tests)
 add_test(NAME native_raster_browser_tests COMMAND native_raster_browser_tests)
+
+add_executable(native_raster_colors_tests tests/native_raster_colors_tests.cpp)
+target_link_libraries(native_raster_colors_tests PRIVATE rloft_native_assets)
+native_warnings(native_raster_colors_tests)
+add_test(NAME native_raster_colors_tests COMMAND native_raster_colors_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
