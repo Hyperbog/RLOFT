@@ -6,6 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <utility>
 
 namespace rloft_native {
 namespace {
