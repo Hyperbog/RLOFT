@@ -85,3 +85,9 @@ executable has been built and an opt-in trace captured:
 
 This is an offline internal diagnostic, not a command-line
 implementation of the desktop game, and changes no native controls.
+
+## 2026-10-11 Capture completeness and classification guard
+
+The source-only trace analyzer now reports `capture_state` as `finished`, `missing_finish`, or `event_limit_reached`. The native `DevSessionTrace` logger writes a `session.finish` marker on orderly shutdown but silently stops appending after 16,384 events. A missing finish is **not** proof that no extended keys occurred later; hitting the logger limit can truncate observations. `trace_record_count` counts all emitted records, not just keyboard observations.
+
+Validation checks monotonically increasing event sequence numbers across the **whole file**, rejects records appearing after `session.finish`, and rejects self-contradictory keyboard metadata (e.g., an extended event reported as a single nonextended candidate). These are diagnostic capture integrity checks, not DOS IRQ parity. The existing Python test now has **10 cases**, passed locally, including the actual logger event limit and ordinary versus interrupted shutdown. Output still contains aggregate counts and the first unresolved sequence number only; it does not print typed text or scan-code sequences.

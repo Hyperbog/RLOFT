@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-11 Win32 scan-trace completeness and truncation guard
+
+The read-only Win32 scan analyzer now distinguishes orderly `session.finish` from missing-finish and 16,384-record event-limit captures. It validates all logged sequence numbers (not only keyboard records), rejects observation metadata contradictions and will not present an incomplete capture as evidence that E0/E1 or key-repeat problems are absent. Its existing Python regression expanded from 4 to **10 passing local tests**. Reports remain aggregate-only and unrelated to gameplay input. No Windows Full CI, original DOS input parity or M-PLAY-01 acceptance. [Audit](WIN32_SCAN_OBSERVATION_20261011.md).
+
 ## 2026-10-11 Keyboard trace blocker-report tool
 
 Opt-in Windows developer trace now has an offline, source-only aggregate report `tools/summarize_win32_scan_trace.py`. It summarizes Win32 scan candidate/unresolved counts and the first unresolved event sequence without emitting typed text or scan sequences. Four Python unit tests passed locally; one source-only CTest is registered. This supplies reproducible keyboard-bridge failure triage after a Windows field trace. It does NOT establish source-to-DOS IRQ translation, Windows Full acceptance or M-PLAY-01 gameplay readiness. [Diagnostic audit](WIN32_SCAN_OBSERVATION_20261011.md).
