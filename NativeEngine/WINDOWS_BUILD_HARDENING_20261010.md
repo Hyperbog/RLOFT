@@ -84,3 +84,43 @@ The Windows GUI headless `--self-test-source-cursor <original-media>` now **requ
 - A previously identified fidelity error was corrected: in inherited EH type-1 rasters, transparency key `0xFF` **disables** key-based transparency. The original cursor preview now treats indexed pixel `0xFF` as drawable in that case, matching `IndexedFramebuffer::draw_frame`, and its dedicated C++ regression tests that case. Windows autodiscovery errors also now remain in the desktop UI instead of aborting the application; the user can choose another install.
 
 **Verification state:** changes are committed and source-wired, **not compiled/tested by MSVC or an actual Windows UI runner**. No original media, COPYRIGHT assets, playable-game claim, binary artifact or Linux-specific compatibility work was added. The normal-game menu and party creation remain distinct future execution goals; the static menu preview alone is **not game progress**.
+
+## October 11 release blocker: corrupted PowerShell verifier replaced
+
+A source-level build audit discovered that the committed
+`NativeEngine/Windows/Verify-NativeEngine-WindowsPackage.ps1` was **invalid**:
+earlier edits had accidentally duplicated the archive verifier body several
+times and left truncated `-cmatch` expressions. A Windows release depending
+on that checker could not reliably pass its mandatory package-integrity step.
+
+The verifier was **replaced in full** rather than incrementally patched:
+
+1. Verify the ZIP filename and exact sidecar SHA-256 **before** opening it.
+2. Inspect exactly five whitelisted *flat* ZIP entry names and reject other
+   names, traversal/subdirectories, duplicate entries and oversize files
+   before extraction.
+3. Extract only the five validated entries from the **same open ZIP** into an
+   isolated disposable verification directory.
+4. Require the expected 40-hex Git source SHA, `native-engine` branch,
+   `MSVC x64 Release`, `test_outcome=PASS`, `game_playable=false` and
+   `original_assets_included=false`.
+5. Recalculate SHA-256 independently for each extracted Windows executable
+   against its own exact-name SHA256SUMS record.
+6. Close the ZIP object and remove the disposable extraction even on failure.
+
+The Windows PowerShell regression was expanded from its original positive
+fixture and two adversarial cases to **four negative cases**: corrupted
+archive-sidecar SHA; recomputed, correctly checksummed archive containing
+an unapproved `OBJECTS.DAT`; falsified `game_playable=true` release
+manifest; and modified embedded EXE bytes with a recomputed outer archive SHA
+but stale executable SHA. The fixtures contain **dummy synthetic bytes only**.
+
+**Verification limits:** I checked the live GitHub blob hashes, that only
+one checker body remains, and balanced structural delimiters in the source.
+I **did not** run PowerShell under Windows, assert a successful CTest, or
+verify a production ZIP. Actual MSVC/Windows runner execution remains the
+acceptance gate. There is no Windows SDK/MinGW/Wine/PowerShell toolchain in
+the current container, and GitHub's connected workflow actions expose no
+new workflow dispatch operation; the owner's explicit permission to build
+does not itself launch a workflow. The manually registered workflow remains
+available from GitHub Actions. No Linux compatibility work was undertaken.
