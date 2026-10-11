@@ -410,8 +410,24 @@ int run(HINSTANCE instance) {
         if (SUCCEEDED(com)) CoUninitialize();
         return 2;
     }
-    if (initial) choose(state, *initial);
-    else if (auto found = rloft::GameSource::auto_locate()) inspect(state, *found);
+    if (initial) {
+        choose(state, *initial);
+    } else {
+        // Auto-located GOG/Steam media can be incomplete, corrupt or
+        // concurrently removed. Keep the picker accessible instead of
+        // terminating the desktop shell on an original-source exception.
+        try {
+            if (auto found = rloft::GameSource::auto_locate())
+                choose(state, found->location().media_path);
+        } catch (const std::exception& error) {
+            state.signature_ok = false;
+            prepare_diagnostic(state);
+            state.status = L"Automatic original-media discovery failed:\n" +
+                           widen(error.what()) +
+                           L"\nChoose a different installation folder.";
+            InvalidateRect(handle, nullptr, TRUE);
+        }
+    }
     ShowWindow(handle, SW_SHOW);
     UpdateWindow(handle);
     MSG message{};
