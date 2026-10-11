@@ -66,11 +66,11 @@ try {
 
     # Case 3: metadata falsely reporting a playable game must fail even
     # if the attacker correctly updates the outer archive hash.
-    $metadata.game_playable = $true
+    $metadata['game_playable'] = $true
     $metadata | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $stage "build-provenance.json")
     Package $stage $archive
     Assert-VerificationExit $archive 1
-    $metadata.game_playable = $false
+    $metadata['game_playable'] = $false
     $metadata | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $stage "build-provenance.json")
 
     # Case 4: changed executable bytes with stale binary checksum must
