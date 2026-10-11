@@ -5,9 +5,10 @@
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
+#include <utility>
 
 namespace rloft_native {
-std::vector<std::uint8_t> native_lzss4k(
+NativeLzssResult native_lzss4k_decode(
     const std::uint8_t* compressed, std::size_t length,
     std::size_t wanted) {
     std::array<int, 4096> history{};
@@ -55,6 +56,11 @@ std::vector<std::uint8_t> native_lzss4k(
             }
         }
     }
-    return decoded;
+    return {std::move(decoded),input};
+}
+
+std::vector<std::uint8_t> native_lzss4k(
+    const std::uint8_t* compressed, std::size_t length, std::size_t wanted) {
+    return native_lzss4k_decode(compressed,length,wanted).bytes;
 }
 } // namespace rloft_native
