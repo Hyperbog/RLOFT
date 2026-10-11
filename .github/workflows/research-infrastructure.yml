@@ -39,7 +39,11 @@ jobs:
           j=json.loads(Path('build/research/index.json').read_text())
           assert j['schema']=='rloft-research-index-v1'
           assert len(j['functions'])>=100
-          assert {f['id'] for f in j['functions']} >= {'code1:07f50','code2:353a0','code2:35418','code2:395e2'}
+          required={'code1:07f50','code2:353a0','code2:35418','code2:395e2'}
+          actual={f['id'] for f in j['functions']}
+          missing=sorted(required-actual)
+          print('MISSING_CANONICAL_SOURCE_IDS',missing)
+          assert not missing, f'Canonical source IDs missing: {missing}'
           assert j['authority']=='source_structure_only_not_original_binary_or_DOS_acceptance'
           w=json.loads(Path('build/research/workflow_context.json').read_text())
           assert w['target']=='code2:35418'
