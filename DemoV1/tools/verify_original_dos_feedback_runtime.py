@@ -50,6 +50,21 @@ def audit_original(path:Path)->None:
     for at,target in CALLS.items():
         assert obj[at]==0xE8 and at+5+struct.unpack_from('<i',obj,at+1)[0]==target,hex(at)
     assert obj[0x30B18]==obj[0x31217]==0xC3
+    # Immutable source: 89 DWORD entries F590..F6F3, then RNG F6F4.
+    # Validate the ENTIRE table and literal original-key witnesses.
+    mapping=b[0x75F24+0xF590:0x75F24+0xF6F4]
+    assert len(mapping)==356
+    assert hashlib.sha256(mapping).hexdigest()==(
+        'fb179b786f755ff0efb0fbdc639ca738fcb6f74a05719103cdd08490b1fe024f')
+    values=struct.unpack('<89I',mapping)
+    assert values[0]==0
+    for scan,expected in {1:0x1b,0xe:8,0x1c:13,0x39:32,
+                          0x47:0x147,0x48:0x148,0x58:0x158}.items():
+        assert values[scan]==expected,hex(scan)
+    assert b[0x75F24+0xF6F4:0x75F24+0xF6F4+4]==bytes((1,0,0,0))
+    assert b[0x75F24+0xF572]==0
+    print('ORIGINAL_PASS: F590 89-entry original keymap, boundary and seed')
+
     print('ORIGINAL_PASS: CODE.2 identity, 3 source spans, 16 windows, 2 E8 edges')
 
 def audit_repo()->None:
@@ -61,7 +76,7 @@ def audit_repo()->None:
     assert 'NAME original_dos_feedback_runtime_tests' in cm
     assert 'NAME original_dos_feedback_binary_contract_tests' in cm
     assert 'src/original_dos_feedback_runtime.cpp' in cm
-    for term in ('poll_30aec','print_311e8'):
+    for term in ('poll_30aec','print_311e8','capture_initial_f590_from_code2'):
         assert term in h and term in src and term in test
     for term in ('F572','F590','F0C8','311E8','AH=09','source-only','not wired'):
         assert term in audit,term

@@ -69,3 +69,28 @@ the current-revision Windows Full build and matched original-DOS
 playthrough are **not accepted**. No native renderer changes,
 invented callback target, CI run, or readiness-score increase
 are asserted by this bounded implementation.
+
+## Original CODE.2 keymap captured from installed assets
+
+The original `CODE.2` is the controlling asset. The DGROUP `F590`
+keymap occupies **89 little-endian DWORD entries**, original file byte
+range `0x854B4..0x85617`, directly followed by the independent
+`F6F4` RNG seed DWORD. Original 356-byte table SHA-256:
+`fb179b786f755ff0efb0fbdc639ca738fcb6f74a05719103cdd08490b1fe024f`.
+The original `30AEC` loads its index from unsigned BYTE `F572`,
+then loads `F590[index]` as a DWORD, without bounds checking.
+
+The native `capture_initial_f590_from_code2` loads these 89 DWORDs
+from the **caller-supplied installed CODE.2 bytes** using the pinned
+original layout, without hardcoding a translated keyboard map. It also
+captures the initial `F572` byte. The loader rejects different
+file sizes; it does **not** cryptographically authenticate every byte
+of the supplied executable. The accompanying optional original-file
+Python verifier authenticates the full CODE.2 SHA and complete table.
+The native source-only test exercises all 89 decoded entries, byte
+order, initial key state, and unsupported file-size rejection.
+
+This is a real native installation-media decoding seam, **not wired**
+to Win32 keyboard scan input yet. Original 307xx hardware scan/IRQ
+semantics, live keyboard layout, DOS selector handling and modded
+CODE.2 variants must be resolved before normal-play event routing.

@@ -16,6 +16,15 @@ struct OriginalDosInputState final {
 
 class OriginalDosFeedbackRuntimeModel final {
 public:
+    // Read the original 89 DWORD keyboard translations from the
+    // supplied original CODE.2 install asset's known LE/DGROUP layout.
+    // Source-file SHA must be verified externally: this is a byte
+    // decoder, not a universal patch/EXE format detector.
+    // F590[0..88] occupies file offsets 0x854B4..0x85617;
+    // F6F4 begins the next unrelated DWORD global.
+    [[nodiscard]] static OriginalDosInputState
+    capture_initial_f590_from_code2(const std::vector<std::uint8_t>& code2_file);
+
     // CODE.2 30AEC: while F572==0 invoke 2F868 (which can invoke F0C8),
     // then use BYTE[F572] as the DWORD index at F590 and clear F572.
     // The injected render callback may update the input or mapping state.

@@ -9,6 +9,37 @@
 #include <vector>
 
 int main() {
+    // Native runtime loads the keyboard map from CODE.2, not an
+    // invented Win32 virtual-key table or hardcoded English layout.
+    // The source-only test uses synthetic bytes at the authenticated
+    // original offsets; original media is only consumed externally.
+    std::vector<std::uint8_t> synthetic_code2(558689U,0U);
+    constexpr std::size_t kMapAt=0x75F24U+0xF590U;
+    constexpr std::size_t kKeyAt=0x75F24U+0xF572U;
+    for(std::size_t i=0U;i<89U;++i) {
+        const auto word=static_cast<std::uint32_t>(
+            0x01020000U | static_cast<std::uint32_t>(i));
+        for(std::size_t b=0U;b<4U;++b)
+            synthetic_code2[kMapAt+4U*i+b]=
+                static_cast<std::uint8_t>(word>>(8U*b));
+    }
+    synthetic_code2[kKeyAt]=0x48U;
+    auto observed=
+        rloft::OriginalDosFeedbackRuntimeModel::capture_initial_f590_from_code2(
+            synthetic_code2);
+    assert(observed.pending_f572==0x48U);
+    assert(observed.mapping_f590.size()==89U);
+    assert(observed.mapping_f590.front()==0x01020000U);
+    assert(observed.mapping_f590[0x48U]==0x01020048U);
+    assert(observed.mapping_f590.back()==0x01020058U);
+    synthetic_code2.resize(558688U);
+    bool rejected_version=false;
+    try {
+        (void)rloft::OriginalDosFeedbackRuntimeModel::
+            capture_initial_f590_from_code2(synthetic_code2);
+    }catch(const std::invalid_argument&) {rejected_version=true;}
+    assert(rejected_version);
+
     using rloft::OriginalDosFeedbackRuntimeModel;
     using rloft::OriginalDosInputState;
     using Bytes=std::vector<std::uint8_t>;
