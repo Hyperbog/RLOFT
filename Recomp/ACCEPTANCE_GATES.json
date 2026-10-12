@@ -29,7 +29,7 @@
       "scope": "DOS/4GW memory, heap growth and DPMI selector lifecycle is implemented without test-only allocations",
       "accepted": false,
       "evidence": "",
-      "limitation": "Partial host DPMI 0006/0100/0101/0501-0503, DOS 48/49/4A, and original CODE.1/2 source-backed heap paths verified at Windows #96 (46/46); R04 remains blocked by original CODE.2 39A8A resize and 39A2C release through live services, continuous startup without seeded arena, CODE.1 full source free-list, DOS/4GW selector/limit parity and original DOS differential evidence. See R04_CROSS_THREAD_COMMIT_AUDIT_20261012.md"
+      "limitation": "Live host-backed original CODE.1 and CODE.2 DPMI/DOS memory services, 0006 selectors, CODE.2 39A8A 0503 relocation and byte-corrected 39A2C 0502 automatic reclamation verified in Windows #98 (46/46). R04 remains open: continuous original CODE.2 startup still seeds synthetic arena, CODE.1 DB5B source free-list/complete DOS/4GW ownership and original DOS memory parity not established. See R04_CODE2_SOURCE_HEAP_RELOCATION_RECLAMATION_20261012.md"
     },
     {
       "id": "R05",
