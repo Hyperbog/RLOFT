@@ -1,5 +1,9 @@
 # NativeEngine — Active developer/agent instructions
 
+## Native Alpha 0.5: Windows original LEVELS.DAT preview bridge — 2026-10-12
+
+[Source and acceptance checklist](ALPHA_WORLD_PREVIEW_WINDOWS_20261012.md): `rloft_native.exe` now has an explicit original-file-backed **Explore LEVELS.DAT (preview)** entry after the user selects owned GOG/DOS media. The new Win32 window consumes the independent source-validated world runtime, 32 maps, and proven collision categories; W/A/S/D/arrows navigate the existing **provisional host** raycast. Its screen **must display** that the camera, synthetic colors and projection are not original CODE.2 rendering. Original file writes and player save changes are prohibited. This is a pragmatic Alpha 0.5 shell for original camera/draw-scheduler integration, **not** the gameplay engine or a rebranded Level22-only demo. No additional reconstruction-only tests were authored. Exact current-source Windows MSVC build and real GOG field check are **pending**; do not cite earlier 29/29 Linux or previous GUI Windows CI as covering this new integration.
+
 ## CONTROLLING CODE.2 400-record ordering and non-NPC scene-stage checkpoint — 2026-10-12
 
 [Original class-one/class-two stage and source-byte audit](ORIGINAL_CODE2_NON_NPC_SCENE_STAGING_20261012.md):
