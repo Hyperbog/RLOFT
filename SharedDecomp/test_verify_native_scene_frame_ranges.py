@@ -62,7 +62,10 @@ class AuthoredFrameRangeOriginalDifferentialTests(unittest.TestCase):
         obj[4+0x58*0x41+0x2a]=2
         changed["OBJECTS.DAT"]=bytes(obj)
         result=self.check(media=changed)
-        self.assertTrue(any(d["field"]=="bounded_resource_slots"
+        self.assertEqual(result["status"],"DIFFERENT")
+        # The report intentionally caps the first 32 discrepancies. Its
+        # 32 per-level hashes precede the changed slot-total field.
+        self.assertTrue(any(d["field"]=="per_level_frame_ranges_sha256/22"
                             for d in result["differences"]))
 
     def test_original_init_variant_range_overrun_rejected(self):
