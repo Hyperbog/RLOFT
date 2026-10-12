@@ -171,6 +171,68 @@ void cd97_write16(u16 selector,u32 offset,u16 value) noexcept {
         s.bad_cd97_access=true;
     else s.source_cd97_saved_ds=true;
 }
+// Original FCE8 source constructors can opt into actual source allocator
+// dispatch. No native malloc allocation is substituted for Watcom 104E0.
+u32 source_cd97_extend_break(u32 target) noexcept;
+u32 cd97_guest_allocate(u32 requested) noexcept {
+    auto& s=*current;
+    code1::HeapCoreBoundaries h{};
+    h.read32=&heap_read32;
+    h.write32=&heap_write32;
+    code1::HeapGrowthBoundaries g{};
+    g.extend_10dd7=&source_cd97_extend_break;
+    g.free_db5b=&heap_source_db5b;
+    u32 p=code1::function_104e0(h,requested,0x30B8u);
+    if(!p) {
+        if(code1::function_10aa9(s.machine,h,g,requested)!=1u) {
+            s.bad_cd97_access=true;
+            return 0u;
+        }
+        p=code1::function_104e0(h,requested,0x30B8u);
+    }
+    if(!p || p>=s.dgroup.size() || s.bad_heap_access)
+        s.bad_cd97_access=true;
+    else ++s.source_constructor_allocs;
+    return p;
+}
+u32 cd97_alloc_node8() noexcept {
+    ++current->source_nodes;
+    return cd97_guest_allocate(8u);
+}
+void cd97_guest_write32(u32 address,u32 value) noexcept {
+    auto& s=*current;
+    // CODE.1's original FD6E argv strings can place dwords at
+    // unaligned offsets. Source heap *metadata* is still aligned.
+    if(address>s.dgroup.size() || s.dgroup.size()-address<4u) {
+        s.bad_cd97_access=true;
+        return;
+    }
+    code1::store_le32(s.dgroup.data()+address,value);
+}
+u32 cd97_tokenize_empty(u32 src,u32,u32* end) noexcept {
+    auto& s=*current;
+    if(!end || src>=s.dgroup.size()) {
+        s.bad_cd97_access=true;
+        return 0u;
+    }
+    // Delegate lexical decisions to the reconstructed CODE.1 FE21
+    // scanner. This opt-in fixture has an empty PSP argument tail.
+    u8* limit=nullptr;
+    const u32 argc=code1::function_fe21(s.dgroup.data()+src,nullptr,&limit);
+    if(argc!=0u || !limit || limit!=s.dgroup.data()+src)
+        s.bad_cd97_access=true;
+    *end=src+static_cast<u32>(limit-(s.dgroup.data()+src));
+    return argc;
+}
+void cd97_guest_copy(u32 destination,u32 source,u32 count) noexcept {
+    auto& s=*current;
+    if(destination>s.dgroup.size() || count>s.dgroup.size()-destination ||
+       source>s.dgroup.size() || count>s.dgroup.size()-source) {
+        s.bad_cd97_access=true;
+        return;
+    }
+    std::memmove(s.dgroup.data()+destination,s.dgroup.data()+source,count);
+}
 void cd97_ctor_boundary(u32 addr) noexcept {
     auto& s=*current;
     if(s.source_ctor_calls>=s.source_ctor_targets.size()) {
@@ -178,6 +240,22 @@ void cd97_ctor_boundary(u32 addr) noexcept {
         return;
     }
     s.source_ctor_targets[s.source_ctor_calls++]=addr;
+    if(s.mode!=Mode::ExtenderCd97Constructors)return;
+    if(addr==0x10E81u) {
+        code1::RuntimeIoBoundaries b{};
+        b.alloc_node8=&cd97_alloc_node8;
+        b.write32=&cd97_guest_write32;
+        code1::function_10e81(s.machine,b);
+    } else if(addr==0x10438u)
+        code1::function_10438(s.machine);
+    else if(addr==0xFD6Eu) {
+        code1::ArgvBuildBoundaries b{};
+        b.tokenize_fe21=&cd97_tokenize_empty;
+        b.alloc_dac9=&cd97_guest_allocate;
+        b.copy_d9ee=&cd97_guest_copy;
+        b.write32=&cd97_guest_write32;
+        code1::function_fd6e(s.machine,b);
+    } else s.bad_cd97_access=true;
 }
 u32 cd97_stack_probe() noexcept {return 0u;}
 void cd97_source_10d1c() noexcept {
