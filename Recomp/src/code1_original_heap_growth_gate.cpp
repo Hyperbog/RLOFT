@@ -74,12 +74,18 @@ int main() {
         gb.free_db5b=&observe_original_free;
         need(session.memory.allocation_count()==0u,
              "CODE.1 heap started from synthetic preseeded arena");
+        const u32 rejected=code1::function_109c1(
+            session.machine,hb,gb,
+            rloft_recomp::DpmiLinearMemory::kBudget+1u);
+        need(rejected==0u && session.memory.allocation_count()==0u &&
+             code1::load_le32(session.dgroup.data()+0x8e74u)==0u,
+             "original 109C1 OOM path mutated heap");
         const u32 result=code1::function_10aa9(
             session.machine,hb,gb,0x300u);
         need(result==1u,"original CODE.1 10AA9 failed to grow the heap");
         need(!session.invalid_memory && !session.invalid_free,
              "original heap touched unmapped guest memory");
-        need(session.allocations==1u && session.releases==0u &&
+        need(session.allocations==2u && session.releases==0u &&
              session.return_to_free_list==1u,
              "original growth did not traverse 109C1 and free-list callback");
         need(session.memory.allocation_count()==1u,
@@ -103,17 +109,21 @@ int main() {
         need(session.last_free_pointer==raw+0x10u &&
              heap_read(session.last_free_pointer-4u)>0u,
              "original 10AA9 did not publish new free allocation");
-        // The final lifecycle release here is test cleanup; it is NOT
-        // evidence that original CODE.1 heap eviction has run.
-        need(!session.memory.release(handle).carry,
-             "DPMI host-backed cleanup failed");
-        need(session.memory.allocation_count()==0u,
-             "DPMI block leaked at end of source execution");
+        // Original CODE.1 107CB now owns the 0502 release, not host test cleanup.
+        code1::function_107cb(session.machine,hb);
+        need(session.releases==1u && !session.invalid_free &&
+             !session.invalid_memory,
+             "original 107CB failed to release host DPMI allocation");
+        need(session.memory.allocation_count()==0u &&
+             session.memory.block(handle)==nullptr &&
+             code1::load_le32(session.dgroup.data()+0x8e74u)==0u,
+             "source 107CB left a stale guest arena or handle");
         active=nullptr;
         std::cout<<"ORIGINAL_CODE1_SOURCE_10AA9_109C1_1069B=EXECUTED\n"
                     "DPMI_0501_HOST_ALLOCATION=YES\n"
                     "SOURCE_HEAP_ARENA_PRESEEDED=NO\n"
-                    "DPMI_0502_SOURCE_FREE=NOT_YET\n"
+                    "DPMI_0502_SOURCE_FREE=EXECUTED\n"
+                    "ORIGINAL_CODE1_109C1_OOM_REJECTED=YES\\n"
                     "ORIGINAL_DOS_PARITY=NO\n"
                     "GAME_BOOTED=NO\n";
         return 0;
