@@ -28,6 +28,7 @@ struct Session {
     code2::Runtime111Boundary entry{};
     code2::Application46Boundary game{};
     code2::Application69Boundary game_audio{};
+    code2::Runtime126Boundary dos_irq{};
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
@@ -43,6 +44,8 @@ struct Session {
     bool arena_seeded=false;
     unsigned getenv_calls=0, atoi_calls=0, audio_init_calls=0, far_install_calls=0;
     u32 active_sound_base=0, active_sound_count=0, far_target=0;
+    u8 vector_number=0; u16 vector_selector=0; u32 vector_handler=0;
+    unsigned dos_vector_callbacks=0; bool observe_vector_only=false;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -254,15 +257,29 @@ code2::s32 original_atoi(u32 text) noexcept {
     ++current->atoi_calls;
     return static_cast<code2::s32>(code2::function_35349(current->machine,text));
 }
-// 2F2EC's first guest-visible side effects execute for real: source AUDIO
-// global initialization. Its first external dependency is original 375FE's
-// far callback/interrupt installation; no fake BIOS or IRQ is installed.
-void stop_before_original_far_install(u32 target,u16 selector) noexcept {
+// Original 375FE selects two different interrupt installation mechanisms
+// depending on the DOS extender mode; actual installation remains a STOP.
+void original_vector_install(u8 vector,u16 selector,u32 handler) noexcept {
+    ++current->dos_vector_callbacks;
+    current->vector_number=vector;
+    current->vector_selector=selector;
+    current->vector_handler=handler;
+    if(!current->observe_vector_only)
+        stop("STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE");
+}
+void original_far_install(u32 target,u16 selector) noexcept {
     ++current->far_install_calls;
     current->far_target=target;
     if(target!=0x2F2E0u || selector!=current->machine.cpu.cs)
         stop("ORIGINAL_375FE_FAR_INSTALL_CONTRACT_CHANGED");
-    stop("STOP_BEFORE_DOS_FAR_CALLBACK_INSTALL_375FE");
+    const u32 guest_extender=code2::load_le32(
+        current->machine.data+0x105FCu);
+    // Execute the *canonical reconstructed function_375fe*, including its
+    // original mode-dependent vector/selector dispatch; fail closed at the
+    // actual DOS vector write rather than before this source routine.
+    (void)code2::function_375fe(current->dos_irq,target,selector,
+                                static_cast<u8>(guest_extender));
+    stop("ORIGINAL_375FE_RETURNED_WITHOUT_VECTOR_INSTALL");
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -488,6 +505,29 @@ void environment_alloc_failure_probe() {
              <<"FAILED_ALLOCATION_INJECTED=YES\n"
              <<"DOS_HEAP_PARITY=NO\n";
 }
+// Exhaustively execute the original 375FE mode switch (all 256 byte modes).
+// This is a source-branch oracle, NOT real DOS IVT/interrupt installation.
+void interrupt_vector_matrix_probe() {
+    Session state;
+    state.observe_vector_only=true;
+    state.dos_irq.install_interrupt=&original_vector_install;
+    current=&state;
+    for(unsigned mode=0;mode<256;mode++) {
+        state.dos_vector_callbacks=0;
+        state.vector_number=0;state.vector_selector=0;state.vector_handler=0;
+        const u32 result=code2::function_375fe(
+            state.dos_irq,0x2F2E0u,0x17u,static_cast<u8>(mode));
+        const bool extended=(mode>=2u && mode<=6u);
+        require(result==0u && state.dos_vector_callbacks==1u &&
+                state.vector_number==(extended?6u:0x24u) &&
+                state.vector_selector==(extended?0x24u:0u) &&
+                state.vector_handler==0x37642u,
+                "original 375FE vector choice differs from CODE.2");
+    }
+    current=nullptr;
+    std::cout<<"ORIGINAL_375FE_MODE_SWITCH=256/256 PASS\n"
+             <<"DOS_VECTOR_INSTALLED=NO\nORIGINAL_DOS_PARITY=NO\n";
+}
 void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool extended,bool execute_application=false,
          GameConfig game_config=GameConfig::Unset) {
@@ -536,7 +576,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game.call_352ee=&original_getenv;
     state.game.call_35349=&original_atoi;
     state.game.call_2f2ec=&original_audio_init;
-    state.game_audio.call_375fe_far=&stop_before_original_far_install;
+    state.game_audio.call_375fe_far=&original_far_install;
+    state.dos_irq.install_interrupt=&original_vector_install;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
     state.startup.read_segment8=&seg8;
@@ -591,7 +632,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "default test unexpectedly passed original allocator boundary");
     }else{
         const char* required_stop=execute_application
-            ? "STOP_BEFORE_DOS_FAR_CALLBACK_INSTALL_375FE"
+            ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
             : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
         if(state.completed_initializers!=4u ||
            state.stop_reason!=std::string(required_stop)) {
@@ -671,6 +712,14 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.atoi_calls==expected_conversions &&
                     state.audio_init_calls==1u && state.far_install_calls==1u &&
                     state.far_target==0x2F2E0u &&
+                    state.dos_vector_callbacks==1u &&
+                    state.vector_handler==0x37642u &&
+                    state.vector_number==
+                        (code2::load_le32(state.data.data()+0x105FCu)>=2u &&
+                         code2::load_le32(state.data.data()+0x105FCu)<=6u
+                             ? 6u:0x24u) &&
+                    state.vector_selector==
+                        (state.vector_number==6u?0x24u:0u) &&
                     state.active_sound_base==0x1130u &&
                     state.active_sound_count==0x0Bu,
                     "real CODE.2 getenv/atoi/resource/ISR callback chain differs");
@@ -706,7 +755,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
 }
 int main(int argc,char**argv) {
     try {
-        bool extended=false,termination=false,arena_probe=false,failure_probe=false;
+        bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -715,7 +764,7 @@ int main(int argc,char**argv) {
             if(mode=="--through-initializers" || mode=="--termination-probe" ||
                mode=="--arena-roundtrip-probe" || mode=="--env-rollback-probe" ||
                mode=="--enter-game" || mode=="--enter-game-config" ||
-               mode=="--enter-game-signed-wrap") {
+               mode=="--enter-game-signed-wrap" || mode=="--vector-mode-matrix") {
                 execute_application=(mode=="--enter-game" ||
                     mode=="--enter-game-config" || mode=="--enter-game-signed-wrap");
                 if(mode=="--enter-game-config")game_config=GameConfig::Overrides;
@@ -724,12 +773,16 @@ int main(int argc,char**argv) {
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
                 failure_probe=(mode=="--env-rollback-probe");
+                vector_matrix=(mode=="--vector-mode-matrix");
                 original_index=2;
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
-        if(arena_probe || failure_probe) {
+                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+        if(vector_matrix) {
+            require(argc==original_index,"vector-mode probe does not use original data");
+            interrupt_vector_matrix_probe();
+        }else if(arena_probe || failure_probe) {
             require(argc==original_index,"allocator probes use synthetic-only guest memory");
             if(arena_probe)arena_split_coalesce_probe();
             else environment_alloc_failure_probe();
