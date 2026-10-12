@@ -128,7 +128,7 @@ event cursor `7FEC` from `14024+EBX`, repeatedly calls
 `15534` until its result is nonzero, restores `7FEC` and
 updates the next deadline using `14028+EBX`.
 
-**Independently proven indirect dispatch:** source `15534` checks
+**Independently proven 42-way indirect dispatch:** source `15534` checks
 `BYTE[8101]`, reads a **16-bit** script opcode from
 `WORD[13020+2*7FEC]`, increments `7FEC`, and performs an
 unsigned `cmp ax,0x29`. Opcodes `0..41` dispatch through

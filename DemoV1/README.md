@@ -18,6 +18,14 @@ This is the active project entry point. Historical development updates have been
 
 The latest native source includes a read-only, provenance-checked source `22220/FF50` field projection. It does **not** yet use partial-depth calculations for gameplay rendering. Original `F790` stack-local text pre-read and callback identity have been synchronized from the verified decompilation branch; this is a **source correction**, not a passing end-to-end game test.
 
+**October 11 follow-up:** [Windows Full #659](FULL_WINDOWS_BUILD_CHECKPOINT_20261011_RUN659.md)
+compiled the full Windows C++ solution but ended at **243/245 CTests**
+because two source-only checks required an omitted `42-way` audit phrase.
+The source documentation was corrected after the failed run; **no new
+Windows artifact was published or post-fix Windows rebuild authorized**.
+The previously accepted #658 binary remains the only accepted packaged
+Windows baseline. Original DOS and full gameplay parity are unchanged.
+
 ## Current player field-test checkpoint
 
 **[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; current Windows Full compilation and independent DOS parity gates are unchanged. No build is dispatched by creating this checkpoint.
