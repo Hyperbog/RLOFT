@@ -972,8 +972,8 @@ public partial class MainWindow : Window
             // Hex Go can inspect ANY originally backed byte without
             // inventing a code boundary or requiring a graph row.
             RenderMzHex(address);
-            if (_highlightedFileOffset is { } fileOffset)
-                SelectPhysicalBytes(fileOffset, 1);
+            if (_highlightedFileOffset is { } hexFileOffset)
+                SelectPhysicalBytes(hexFileOffset, 1);
             Trace(DiagnosticStage.Navigation);
             StatusText.Text = $"MZ CS:IP {cs:X4}:{ip:X4} mapped to physical original-file bytes.";
             return;
