@@ -1,5 +1,35 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## R04 source-backed DOS fallback — Windows #122 (2026-10-12)
+
+[Canonical Windows #122](https://github.com/Hyperbog/RLOFT/actions/runs/38287503152)
+passed **55/55 CTests** at source
+`2dacfa6caaa3d18856612d1d961f9091cf7f1046`.
+Four new opt-in continuous original CODE.2 source startup tests
+execute **353A0→35418→395E2** through game entry **20608**, argc=1
+sound initialization and mouse reset, after original `39C7B` selects
+DOS AH=48h fallback for a deliberately rejected DPMI 0501 request.
+Tracked conventional DOS paragraph pages are physically isolated
+from static LE DGROUP. The original source creates all heap arenas,
+and the host validates DOS probe/request/49h release, ownership and
+free-list metadata. Earlier live DPMI startup modes remain independently
+green.
+
+CODE.1 `DB5B→10590` source free-list split/coalesce and original
+`107CB` DPMI/DOS reclamation were also independently verified at
+[Windows #117](https://github.com/Hyperbog/RLOFT/actions/runs/38271837071)
+(51/51). The earlier pending wording below is historical.
+
+[Detailed checkpoint and remaining gaps](R04_CODE2_CONTINUOUS_DOS48_FALLBACK_20261012.md).
+
+**R04 is still OPEN: overall recompilation 3/12 = 25.00%.**
+The continuous CODE.2 alternate `39E1C` source-selected DS-break
+mode, cross-CODE.1/CODE.2 unified DOS/DPMI descriptor lifetimes, and
+independently captured original-DOS/4GW memory observations are not
+yet implemented or verified. These source CTests do not constitute
+DOS runtime parity or a playable game.
+
+
 
 ## Latest R04 CODE.1 source free-list checkpoint (2026-10-12)
 
