@@ -30,10 +30,24 @@ endforeach()
 add_executable(rloft_dos_readonly_files_test src/test_dos_readonly_files.cpp)
 set_target_properties(rloft_dos_readonly_files_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+# Stateful DOS conventional memory / selector transport, independently tested.
+add_executable(rloft_dpmi_dos_memory_test src/test_dpmi_dos_memory.cpp)
+set_target_properties(rloft_dpmi_dos_memory_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 include(CTest)
 if(BUILD_TESTING)
     add_test(NAME canonical_host_readonly_dos_file_service_contract
         COMMAND rloft_dos_readonly_files_test)
+    add_test(NAME canonical_dpmi_dos_memory_selector_lifecycle
+        COMMAND rloft_dpmi_dos_memory_test)
+    # Execute actual compiled CODE.2 30D80->30D52->33B44 DPMI 0100
+    # with host-owned allocation state, stopping at external INT31 0300.
+    add_test(NAME canonical_code2_original_dpmi_dos_allocation_via_host
+        COMMAND rloft_code2_startup_gate --mouse-dpmi-to-real-mode)
+    # The source 33B44->30DE8->30D52 frees the tracked live selector
+    # after a clearly synthetic INT31 0300 no-driver response.
+    add_test(NAME canonical_code2_original_dpmi_selector_release_via_host
+        COMMAND rloft_code2_startup_gate --mouse-dpmi-to-disk-query)
     # Asset-free integration: a generated 59-byte noncommercial SOUND.CFG.
     # Actual compiled CODE.2 37E77/37E99/38106/380F8 invokes the
     # read-only host DOS service. DOS memory, vectors and mouse are fixtures.
