@@ -128,7 +128,6 @@ std::vector<std::uint8_t> synthetic_res3(){
     res.insert(res.end(),eh.begin(),eh.end());
     return res;
 }
-}
 int main(){
     const auto media=archive();
     const auto sprites=NativeResArchive(synthetic_res3());
