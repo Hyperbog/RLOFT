@@ -234,4 +234,54 @@ int main(){
         0,0,{invalid_wall,sprite},untouched));});
     assert(undrawn.cell(0,1,0).word==original_cell);
     assert(untouched.planes_sha256()==prior);
+    // Stress the exact accepted 320-command bounded draw budget.
+    // The native batch must remain atomic even when the last command
+    // fails after 319 successful original-resource texture strips.
+    std::vector<NativeSceneDrawCommand> full_budget(320,wall);
+    for(unsigned i=0;i<320;++i)
+        full_budget[i].wall.viewport_column=i;
+    NativeWorldRuntime stress_world(level_data);
+    NativeIndexedVgaPlanes stress_video;
+    const auto base=stress_video.planes_sha256();
+    const auto initial_word=stress_world.cell(0,1,0).word;
+    auto late_invalid=full_budget;
+    late_invalid.back().wall.viewport_column=320;
+    rejects([&]{static_cast<void>(compose_native_source_scene_rgb6(
+        stress_world,material,media,sprites,sintab,masks,palettes,colors,
+        0,0,late_invalid,stress_video));});
+    assert(stress_video.planes_sha256()==base);
+    assert(stress_world.cell(0,1,0).word==initial_word);
+    auto valid_budget=compose_native_source_scene_rgb6(
+        stress_world,material,media,sprites,sintab,masks,palettes,colors,
+        0,0,full_budget,stress_video);
+    assert(valid_budget.ordered_commands==320);
+    assert(valid_budget.wall_commands==320);
+    assert(valid_budget.sprite_commands==0);
+    assert(valid_budget.texture_source_reads==320U*128U);
+    assert(valid_budget.indexed_plane_writes==320U*128U);
+    assert((stress_world.cell(0,1,0).word&0x0440U)==0x0440U);
+    assert(stress_video.planes_sha256()==valid_budget.final_four_plane_sha256);
+    // The original separate page-one aperture must retain page-zero
+    // pixels and support both original CODE.2 VGA display heights.
+    NativeWorldRuntime page_world(level_data);
+    NativeIndexedVgaPlanes page_video;
+    const auto page_render=compose_native_source_scene_rgb6(
+        page_world,material,media,sprites,sintab,masks,palettes,colors,
+        0,1,{wall},page_video,200);
+    assert(page_render.scanout.width==320 &&
+           page_render.scanout.height==200);
+    assert(page_render.indexed_plane_writes==128);
+    assert(page_video.indexed_pixel(9,64,0)==0);
+    assert(page_video.indexed_pixel(9,64,1)==126);
+    assert(page_video.planes_sha256()!=base);
+    // Unsupported command counts must reject without world or VGA
+    // mutation, rather than silently truncate scene emission.
+    std::vector<NativeSceneDrawCommand> oversized(321,wall);
+    const auto page_hash=page_video.planes_sha256();
+    const auto page_word=page_world.cell(0,1,0).word;
+    rejects([&]{static_cast<void>(compose_native_source_scene_rgb6(
+        page_world,material,media,sprites,sintab,masks,palettes,colors,
+        0,1,oversized,page_video));});
+    assert(page_video.planes_sha256()==page_hash);
+    assert(page_world.cell(0,1,0).word==page_word);
 }
