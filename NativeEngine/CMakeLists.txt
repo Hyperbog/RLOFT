@@ -31,6 +31,7 @@ add_library(rloft_native_assets STATIC
   src/native_world_fingerprints.cpp
   src/native_world_runtime.cpp
   src/native_scene_view.cpp
+  src/native_probe_original_textures.cpp
   src/native_type7_scene_shape.cpp
   src/native_scene_instances.cpp
   src/native_sintab_raster.cpp
@@ -75,6 +76,14 @@ add_executable(rloft_native_world_runtime_audit src/native_world_runtime_audit_m
 target_link_libraries(rloft_native_world_runtime_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_world_runtime_audit)
 # Original-topology-backed host first-person view PROBE (not DOS renderer).
+# Read-only, authentic original LEVELS/RES4/COLORS whole-scene smoke CLI.
+# Used by one-time owner-original Windows alpha field acceptance; it does
+# NOT assert the original DOS raycaster or a playable game.
+add_executable(rloft_native_original_preview_audit
+  src/native_original_preview_audit_main.cpp)
+target_link_libraries(rloft_native_original_preview_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_original_preview_audit)
+
 add_executable(rloft_native_scene_probe src/native_scene_probe_main.cpp)
 target_link_libraries(rloft_native_scene_probe PRIVATE rloft_native_assets)
 native_warnings(rloft_native_scene_probe)
