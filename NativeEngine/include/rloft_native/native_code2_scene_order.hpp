@@ -7,8 +7,8 @@
 
 namespace rloft_native {
 
-// CODE.2 2C294 emits 22-byte scene records into the active 0x1130-byte
-// double buffer. This type describes the staged records, NOT original
+// CODE.2 2C294 emits 22-byte scene records into the active 0x2260-byte
+// selected buffer (400 records), of which 2C2AF initially clears 0x1130 bytes. This type describes the staged records, NOT original
 // live camera, NPC animation, or automatic RES3 frame selection.
 using NativeCode2SceneRecord22=std::array<std::uint8_t,22>;
 
