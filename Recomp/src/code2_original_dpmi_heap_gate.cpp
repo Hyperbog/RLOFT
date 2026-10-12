@@ -24,7 +24,7 @@ struct Session {
     code2::Runtime39d4dBoundary growth{};
     code2::Runtime129Boundary heap{};
     bool bad=false;
-    unsigned grow_calls=0, free_calls=0;
+    unsigned grow_calls=0, free_calls=0, resize_calls=0, release_calls=0;
     Session():memory(guest.data(),guest.size()) {
         machine.data=guest.data();
     }
@@ -57,7 +57,16 @@ code2::Runtime142Boundary::Dpmi0501Result allocate(u32 bytes) noexcept {
             static_cast<u16>(r.handle)};
 }
 void release_block(u32 handle) noexcept {
+    ++active->release_calls;
     if(active->memory.release(handle).carry)active->bad=true;
+}
+code2::Runtime39a8aBoundary::Dpmi0503Result resize_source_block(
+        u32 bytes,u16 old_hi,u16 old_lo) noexcept {
+    ++active->resize_calls;
+    const u32 old=(static_cast<u32>(old_hi)<<16u)|old_lo;
+    const auto r=active->memory.resize(old,bytes);
+    return {r.carry,r.linear,static_cast<u16>(r.handle>>16u),
+            static_cast<u16>(r.handle)};
 }
 u32 source_39c7b(u32 bytes) noexcept {
     return code2::function_39c7b(active->machine,active->dpmi,bytes);
@@ -96,6 +105,11 @@ void free_from_chain(u32 root,u32 payload) noexcept {
         }
     }
     active->bad=true;
+}
+void release_resized_tail(u32 payload) noexcept {
+    // Only the arena-list lookup is host-owned. Allocation splitting,
+    // free-list insertion and coalescing run real 398E0 source.
+    free_from_chain(0x12624u,payload);
 }
 void configure(Session& s) {
     active=&s;
@@ -178,9 +192,74 @@ void test() {
                "CODE2_UNIFIED_GUEST_PAGE_MAPPING=YES\n"
                "R04_ACCEPTED=NO\n";
 }
+// R04: exact CODE.2 original DPMI 0503 and 0502 heap-lifetime path.
+// This is a second isolated stateful guest, with no fabricated arena nodes.
+void test_source_resize_and_reclamation() {
+    Session s;
+    configure(s);
+    const u32 original_payload=code2::function_37b42(s.heap,60u);
+    check(original_payload!=0u && s.memory.allocation_count()==1u,
+          "original CODE.2 source did not establish initial resize arena");
+    const u32 old_node=read(0x12624u);
+    const u32 old_arena=old_node+0x2Cu;
+    const u32 old_base=s.owned[0].second,old_handle=s.owned[0].first;
+    check(original_payload==old_arena+4u &&
+          read(old_node+0x18u)==1u &&
+          read(old_base)==old_handle,
+          "39A8A source precondition must be a single allocated block");
+    s.guest[original_payload+12u]=0xA6u;
+    s.guest[original_payload+13u]=0xB7u;
+
+    code2::Runtime141Boundary cleanup{};
+    cleanup.release_dpmi_block=&release_block;
+    code2::Runtime39a8aBoundary resizing{};
+    resizing.cleanup=&cleanup;
+    resizing.dpmi_resize=&resize_source_block;
+    resizing.release_payload=&release_resized_tail;
+    const u32 new_arena=code2::function_39a8a(
+        s.machine,resizing,old_arena,0x1800u);
+    const u32 new_node=read(0x12624u);
+    check(new_arena!=0u && new_node!=old_node &&
+          new_arena==new_node+0x2Cu &&
+          s.resize_calls==1u && s.release_calls==0u &&
+          s.memory.allocation_count()==1u &&
+          s.memory.block(old_handle)==nullptr &&
+          s.memory.translate(old_base,1u)==nullptr,
+          "original 39A8A did not relocate and retire DPMI 0503 owner");
+    const u32 new_base=new_node-8u;
+    const u32 new_handle=read(new_base);
+    const auto* owned=s.memory.block(new_handle);
+    check(owned && owned->linear==new_base &&
+          owned->committed==0x3000u &&
+          s.memory.translate(new_base,0x3000u)==s.guest.data()+new_base &&
+          read(new_base+4u)==0u &&
+          read(new_node+0x18u)==1u,
+          "original 39A8A new arena/source metadata not backed by host 0503");
+    check(s.guest[new_arena+4u+12u]==0xA6u &&
+          s.guest[new_arena+4u+13u]==0xB7u &&
+          s.free_calls==1u && !s.bad,
+          "original 39A8A relocation lost user bytes or failed tail free");
+    const u32 marker=new_arena+4u+12u;
+    check(s.memory.translate(marker,1u)==s.guest.data()+marker,
+          "relocated 39A8A user bytes not visible to DPMI provider");
+    code2::function_37c37(s.heap,new_arena+4u);
+    check(s.free_calls==2u && read(new_node+0x18u)==0u &&
+          !s.bad,"original 398E0 failed to coalesce resized heap");
+    code2::function_39a2c(s.machine,cleanup);
+    check(s.release_calls==1u &&
+          s.memory.allocation_count()==0u &&
+          s.memory.translate(new_base,1u)==nullptr &&
+          read(0x12624u)==0u && !s.bad,
+          "original CODE.2 39A2C failed to reclaim whole DPMI heap");
+    active=nullptr;
+    std::cout<<"CODE2_SOURCE_39A8A_DPMI_0503_RELOCATION=PASS\\n"
+               "CODE2_SOURCE_39A2C_DPMI_0502_RECLAMATION=PASS\\n"
+               "CODE2_HEAP_RELOCATION_WITHOUT_PRESEEDED_ARENA=YES\\n"
+               "R04_ACCEPTED=NO\\n";
+}
 } // namespace
 int main() {
-    try{test();return 0;}
+    try{test();test_source_resize_and_reclamation();return 0;}
     catch(const std::exception& e) {
         std::cerr<<"CODE2_ORIGINAL_HEAP_GATE_FAIL: "<<e.what()<<'\n';
         return 1;
