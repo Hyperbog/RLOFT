@@ -74,3 +74,31 @@ The CODE.2 static LE table resolver independently authenticated an otherwise eas
 The canonical CODE.2 startup and stand-alone arena/rollback probes now execute reconstructed **`37B42 → 39838`** block selection, splitting and linked-list metadata, plus **`37C37 → 398E0`** free/coalescing. The original-byte verified `37BC2 MOV EAX,EDI` request-ABI discrepancy was fixed (raw seven-byte requests produce 12-byte arena blocks rather than 16). Test-only memory still seeds one bounded guest arena and explicitly injects one failure; neither test models DOS/DPMI allocation. [Detailed evidence and exact branch sync](CODE2_ORIGINAL_ARENA_CLOSURE_20261011.md).
 
 [Canonical Windows source compile/link CTest #38190078813](https://github.com/Hyperbog/RLOFT/actions/runs/38190078813) passed **7/7** on `16a2ca0f93adb2e90403e1e45995edccbc22bd72`. The original `20608` game application code is still **not executed**; DOS runtime parity and native game boot are not established.
+
+## 2026-10-11 canonical original game-main execution (new integration)
+
+The existing source gate previously stopped *before* the original application
+`CODE.2:20608`. Three new Windows CTests execute the actual compiled
+`353A0→35418→395E2→39589→20608→20440→2F2EC` path, using the four
+original callback initializers and the existing bounded DOS service/allocator
+fixture. The original 20608 game-state writes, actual 352EE getenv lookup,
+39526 case comparator, 35349 decimal parser and first original 2F2EC
+audio/resource initialization writes are all exercised. The source stops at
+the **real original DOS/4GW 375FE far callback installation boundary**;
+it does not fabricate a successful interrupt or continue pretending to
+boot gameplay. A default path, configured original environment and
+negative/overflow variant are separately asserted.
+
+Run:
+```powershell
+ctest --test-dir build/recomp -C Debug --output-on-failure
+.\build\recomp\Debug\rloft_code2_startup_gate.exe --enter-game "C:\RLOFT\CODE.2"
+python Recomp/tools/verify_original_game_entry_oracle.py "C:\RLOFT\CODE.2"
+```
+
+Original source spans and actual owner-provided binary settings were
+independently hashed and authenticated. See
+[the original game-entry integration audit](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md).
+**No full DOS game boot, visual gameplay or native-engine milestone is
+claimed.** The new source's Windows CTest result is only accepted after
+a passing run tied to its exact checkout.
