@@ -1149,6 +1149,7 @@ int main(int argc,char**argv) {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false,advance_to_sound_file=false,
              sound_no_arguments=false,advance_to_mouse=false;
+        MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
         if(argc>=2) {
@@ -1163,8 +1164,12 @@ int main(int argc,char**argv) {
                mode=="--to-mouse-reset" ||
                mode=="--to-mouse-reset-configured" ||
                mode=="--to-mouse-reset-no-args" ||
-               mode=="--to-mouse-reset-no-args-configured") {
-                advance_to_mouse=(mode=="--to-mouse-reset" ||
+               mode=="--to-mouse-reset-no-args-configured" ||
+               mode=="--mouse-present-to-memory" ||
+               mode=="--mouse-absent-to-warning") {
+                advance_to_mouse=(mode=="--mouse-present-to-memory" ||
+                    mode=="--mouse-absent-to-warning" ||
+                    mode=="--to-mouse-reset" ||
                     mode=="--to-mouse-reset-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
@@ -1187,6 +1192,8 @@ int main(int argc,char**argv) {
                    mode=="--to-mouse-reset-no-args-configured")
                     game_config=GameConfig::Overrides;
                 if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
+                if(mode=="--mouse-present-to-memory")mouse_branch=MouseResetBranch::Present;
+                if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
@@ -1212,7 +1219,8 @@ int main(int argc,char**argv) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
             else run(fixture,false,extended,execute_application,game_config,
-                     advance_to_sound_file,sound_no_arguments,advance_to_mouse);
+                     advance_to_sound_file,sound_no_arguments,advance_to_mouse,
+                     nullptr,mouse_branch);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
@@ -1228,7 +1236,7 @@ int main(int argc,char**argv) {
             if(termination)termination_probe(image,true);
             else run(image,true,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,
-                     advance_to_mouse,sound_ptr);
+                     advance_to_mouse,sound_ptr,mouse_branch);
         }
         return 0;
     } catch(const std::exception& e) {
