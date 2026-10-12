@@ -7,13 +7,16 @@ add_executable(rloft_recomp_link_gate
     src/code2_compilation_unit.cpp
     src/original_le_image.cpp
     src/link_gate_main.cpp)
+add_executable(rloft_code1_startup_gate
+    src/original_le_image.cpp
+    src/code1_startup_gate.cpp)
 add_executable(rloft_code2_startup_gate
     src/original_le_image.cpp
     src/code2_startup_gate.cpp)
 add_executable(rloft_original_image_gate
     src/original_le_image.cpp
     src/original_image_gate.cpp)
-foreach(target IN ITEMS rloft_recomp_link_gate rloft_original_image_gate rloft_code2_startup_gate)
+foreach(target IN ITEMS rloft_recomp_link_gate rloft_original_image_gate rloft_code1_startup_gate rloft_code2_startup_gate)
     set_target_properties(${target} PROPERTIES
         CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     if(MSVC)
@@ -37,6 +40,12 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME canonical_reconstruction_compiles_links_and_runs COMMAND rloft_recomp_link_gate)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
+    add_test(NAME canonical_code1_startup_to_first_original_dos_version
+        COMMAND rloft_code1_startup_gate --stop-before-version)
+    add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
+        COMMAND rloft_code1_startup_gate --dos6-to-ff00)
+    add_test(NAME canonical_code1_original_extender_marker_via_ccde_resize
+        COMMAND rloft_code1_startup_gate --extender-to-resize)
     add_test(NAME canonical_code2_startup_to_first_original_initializer COMMAND rloft_code2_startup_gate)
     add_test(NAME canonical_code2_all_four_initializers_to_game_entry_boundary COMMAND rloft_code2_startup_gate --through-initializers)
     # Executes the complete original canonical 353A0 startup and all four
