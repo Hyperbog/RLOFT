@@ -1,5 +1,36 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## CONTROLLING native persistent-world milestone — actual original 32-level runtime verified on Linux
+
+[Compiled source and full 32-level normal-collision evidence](ACTUAL_ORIGINAL_RUNTIME_32_LEVELS_VERIFIED_20261011.md).
+At exact native source `20543d8fd3a6c61aad7c886d6d1699f1fbf07005`,
+[Linux CI #38186427291](https://github.com/Hyperbog/RLOFT/actions/runs/38186427291)
+passed **17/17 portable CTests**. New `NativeWorldRuntime` keeps 32 level
+states, mutable 16-bit cell/automap and original ten-byte control records,
+source-hash-bound snapshots, evidence-backed ordinary/dynamic collision,
+kind-1 animation tick and bounded renderer-input marked-cell inventories.
+The **actual compiled GitHub Linux runtime auditor** was independently
+checked against the owner's original `LEVELS.DAT`, and exact source-level
+control/normal-collision outcomes match all **115584 cells** (87983
+normally passable, 26857 ordinary blocked, 744 special blocked; 745 special
+centers, 324 kind-1 dynamic records). Python independently reproduced the
+**full retained-world source SHA-256**
+`a8232782ff8654f9b6c6651300b3fbb2235e58d2fadf61fe2221e11dbbc8bdcd`,
+including cells, controls, A/B/C records, all event slots, automap and
+annotations. Canonical `SharedDecomp/verify_native_world_runtime.py`
+adds reusable cross-language gates, with [research CI
+#38186651456](https://github.com/Hyperbog/RLOFT/actions/runs/38186651456)
+**124/124 source-only tests passing**.
+
+**Completion boundary:** fully decoded original world + native
+state/collision/animation primitives YES; **not** proven player traversal,
+original raycaster, graphics projection/occlusion, event VM, actor AI, save
+compatibility, Windows/MSVC current build, or playable full game. The
+Windows release workflow remains manual-only. Keep separate `demo-v1`
+out of independent native runtime linkage. Next priority: first-person
+ray traversal/RES3-SINTAB/EH6 renderer and the authenticated original
+event/movement behavior, not additional generic JSON audit tools.
+
 ## CONTROLLING SOURCE-ONLY MILESTONE — actual NativeEngine byte round-trip VERIFIED on Linux (2026-10-11)
 
 **Exact compiled C++ source:** `4676ebf50668480512861c9fd981d6e36402da82`.
