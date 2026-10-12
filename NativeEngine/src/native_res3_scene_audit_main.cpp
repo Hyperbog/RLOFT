@@ -1,6 +1,8 @@
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_sha256.hpp"
+#include "rloft_native/native_world_payload.hpp"
+#include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_type7_scene_shape.hpp"
 
 #include <exception>
@@ -20,6 +22,10 @@ int run(const std::filesystem::path& original_install) {
         const auto objects=media.read("OBJECTS.DAT");
         const auto definitions=rloft_native::decode_native_scene_definitions(
             corpus.banks,npcs,objects);
+        const auto levels=media.read("LEVELS.DAT");
+        const auto world=rloft_native::decode_native_world_payload(levels);
+        const auto instances=rloft_native::derive_native_authored_scene_instances(
+            world,definitions);
         // Read-only metadata; this does not export 4,234 decoded shapes
         // or the original compressed bytes. The hashes pin the inputs.
         auto json=rloft_native::native_res3_scene_corpus_json(corpus);
@@ -43,6 +49,18 @@ int run(const std::filesystem::path& original_install) {
               std::to_string(definitions.max_npc_local_base);
         json+=",\"max_object_allocation_end\":"+
               std::to_string(definitions.max_object_allocation_end);
+        json+=",\"original_levels_sha256\":\""+
+              rloft_native::native_sha256_hex(levels)+"\"";
+        json+=",\"authored_npc_instances\":"+
+              std::to_string(instances.original_npc_instances);
+        json+=",\"authored_placed_instances\":"+
+              std::to_string(instances.original_placed_instances);
+        json+=",\"authored_loose_instances\":"+
+              std::to_string(instances.original_loose_instances);
+        json+=",\"legacy_object_type_aliases\":"+
+              std::to_string(instances.original_legacy_object_aliases);
+        json+=",\"compact_scene_instance_source_sha256\":\""+
+              instances.original_compact_families_sha256+"\"";
         json+="}\n";
         std::cout<<json;
         return 0;

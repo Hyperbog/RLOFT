@@ -151,3 +151,61 @@ Git blob \`8bcae74169185139b08138a16814558879f6370d\`
 branch, but has not been materialized into this local runtime or
 executed through the new decoder. C++ end-to-end RES3 acceptance
 remains open.
+
+
+## Original compact world instance → RES3 source-base bridge
+
+A new \`NativeAuthoredSceneDirectory\` extracts the three actual
+11-byte \`LEVELS.DAT\` world families without modifying original bytes:
+
+\`\`\`text
++0x00 uint16 original definition type
++0x02 int16  x whole cell
++0x04 uint16 x fixed fraction
++0x06 int16  y whole cell
++0x08 uint16 y fixed fraction
++0x0A uint8  original compact state/facing
+\`\`\`
+
+For every authored instance, the decoder retains source level, family
+index, archive type, CODE.2-normalized runtime type, signed 16.16
+position, source cell coordinates and the **definition-linked BASE
+RES3 ID**. The original three instance families have distinct
+scene-source namespaces:
+
+- A: NPC/creature family, class 0 via \`NPCS.DAT[type].shape_base\`.
+  Only here is compact byte +0x0A low three bits explicitly interpreted
+  as initial actor facing, as proved in original CODE.2.
+- B: placed/fixture family, class 1 via
+  \`INIT.descriptor[type].local_shape_base\`. Its original byte +0x0A
+  remains raw until its live scene-variant semantics are chosen.
+- C: loose/pickable-item family, class 2 via
+  \`OBJECTS.DAT[type].local_shape_base\`. The CODE.2 archive-conversion
+  alias **0x54 → 0x58** is applied for its runtime type/index but the
+  original 0x54 compact type is preserved; all other type IDs remain
+  unchanged. No class-3 ephemeral object is invented from these
+  original three serialized families.
+
+The original-source corpus has **1,258 family-A**, **4,324 family-B**
+and **622 family-C** authored baseline records: **6,204 original scene
+instances** across 32 levels. The actual provided original level
+records were independently examined locally and all type IDs and
+coordinates lie within the proved original NPC/descriptor/object
+definition domains and original map bounds. One legacy family-C
+record uses the 0x54→0x58 alias, on level 10.
+
+This bridge does **not** pick view/animation subframes, draw a scene,
+interpret the original event VM, create 22-byte runtime structures or
+transfer gameplay AI from DemoV1. The source-digest-bound
+\`native_marked_scene_instance_candidates\` function filters authored
+instances only by **explicit current-view bit 0x0040** in the mutable
+native world; it deliberately does not simulate the original
+occlusion, multi-pass depth sorting or NPC update steps.
+
+The single read-only full-corpus command
+\`rloft_native_res3_scene_audit\` will now validate INIT, RES3,
+NPCS.DAT, OBJECTS.DAT and LEVELS.DAT together, emitting aggregate
+original scene counts, source fingerprints, 4-source bank partition,
+EH7 descriptor stats, and the number of preserved legacy aliases.
+Authentic RES3 execution on that compiled program is pending local
+availability, not silently represented by synthetic tests.

@@ -31,7 +31,8 @@ add_library(rloft_native_assets STATIC
   src/native_world_fingerprints.cpp
   src/native_world_runtime.cpp
   src/native_scene_view.cpp
-  src/native_type7_scene_shape.cpp)
+  src/native_type7_scene_shape.cpp
+  src/native_scene_instances.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -156,6 +157,11 @@ add_executable(native_type7_scene_shape_tests tests/native_type7_scene_shape_tes
 target_link_libraries(native_type7_scene_shape_tests PRIVATE rloft_native_assets)
 native_warnings(native_type7_scene_shape_tests)
 add_test(NAME native_type7_scene_shape_tests COMMAND native_type7_scene_shape_tests)
+
+add_executable(native_scene_instances_tests tests/native_scene_instances_tests.cpp)
+target_link_libraries(native_scene_instances_tests PRIVATE rloft_native_assets)
+native_warnings(native_scene_instances_tests)
+add_test(NAME native_scene_instances_tests COMMAND native_scene_instances_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
