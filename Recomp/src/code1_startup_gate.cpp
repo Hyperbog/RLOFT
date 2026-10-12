@@ -3,6 +3,7 @@
 // There are no fake screen/menu/character-creation results here.
 #include "../../Code1/Code1.cpp"
 #include "original_le_image.h"
+#include "extender_data_break.hpp"
 #include <csetjmp>
 #include <cstdint>
 #include <fstream>
@@ -14,7 +15,7 @@
 
 namespace {
 using u8=std::uint8_t;using u16=std::uint16_t;using u32=std::uint32_t;
-enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize };
+enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize, ExtenderHostResize };
 struct Session {
     std::jmp_buf escape{};
     std::vector<u8> dgroup;
@@ -22,6 +23,7 @@ struct Session {
     unsigned int21_calls=0;
     u32 original_stack=0x9E90u;
     Mode mode=Mode::BeforeVersion;
+    rloft_recomp::ExtenderDataBreak host_break{0x30u,code1::kDataObjectVirtualSize};
     const char* boundary="NONE";
     bool dos6_branch=false,extender_branch=false;
 };
@@ -56,10 +58,23 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
            (m.cpu.eax&0xFFFFu)==0xFF00u &&
            s.dos6_branch)
             halt("STOP_BEFORE_CODE1_DOS_INT21_FF00");
-        if(s.mode==Mode::ExtenderToResize &&
+        if((s.mode==Mode::ExtenderToResize ||
+            s.mode==Mode::ExtenderHostResize) &&
            ((m.cpu.eax>>8)&0xFFu)==0x4Au &&
-           s.extender_branch)
-            halt("STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE");
+           s.extender_branch) {
+            if(s.mode==Mode::ExtenderToResize)
+                halt("STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE");
+            // Source CCDE rounds the high-water mark to 4 KiB and passes
+            // BX in 4 KiB units, with ES=DS, not the DOS PSP segment.
+            if(m.cpu.es!=0x30u || (m.cpu.ebx&0xFFFFu)!=10u)
+                halt("ORIGINAL_CODE1_EXTENDER_AH4A_ABI_CHANGED");
+            const auto resized=s.host_break.resize(
+                m.cpu.es,static_cast<u16>(m.cpu.ebx),s.dgroup);
+            if(resized.carry)
+                halt("HOST_CODE1_EXTENDER_AH4A_RESIZE_FAILED");
+            m.data=s.dgroup.data();
+            return;
+        }
         halt("CODE1_UNEXPECTED_SECOND_DOS_SERVICE");
     }
     halt("CODE1_UNEXPECTED_THIRD_DOS_SERVICE");
@@ -108,9 +123,13 @@ void execute(Mode mode,const std::vector<u8>* original) {
             (void)code1::translate_cd50_cd96(s.machine);
         } else if(branch==code1::StartupPath::FallThroughCcde) {
             s.extender_branch=true;
-            if(mode!=Mode::ExtenderToResize)
+            if(mode!=Mode::ExtenderToResize &&
+               mode!=Mode::ExtenderHostResize)
                 halt("CODE1_STARTUP_EXTENDER_BRANCH_CHANGED");
-            (void)code1::translate_ccde_cd16(s.machine,0x5000u);
+            (void)code1::translate_ccde_cd16(
+                s.machine,mode==Mode::ExtenderHostResize?0xA000u:0x5000u);
+            if(mode==Mode::ExtenderHostResize)
+                halt("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE");
         } else halt("CODE1_ORIGINAL_ENTRY_BRANCH_INVALID");
         halt("CODE1_SOURCE_RETURNED_BEFORE_EXPECTED_DOS_BOUNDARY");
     }
@@ -119,6 +138,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
         "STOP_BEFORE_CODE1_DOS_INT21_AH30_VERSION":
         mode==Mode::Dos6ToFf00?
         "STOP_BEFORE_CODE1_DOS_INT21_FF00":
+        mode==Mode::ExtenderHostResize?
+        "STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE":
         "STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE";
     assert_true(s.boundary==std::string(expected),"CODE1 DOS entry boundary incorrect");
     assert_true(s.int21_calls==(mode==Mode::BeforeVersion?1u:2u),
@@ -130,6 +151,12 @@ void execute(Mode mode,const std::vector<u8>* original) {
     if(mode!=Mode::BeforeVersion)
         assert_true(s.dgroup[0x5326u]==6u && s.dgroup[0x5327u]==22u,
                     "original CC1C DOS major/minor publication differs");
+    if(mode==Mode::ExtenderHostResize)
+        assert_true(s.host_break.successful_resizes()==1u &&
+                    s.dgroup.size()==0xA000u &&
+                    code1::load_le32(s.dgroup.data()+0x52f0u)==0xA000u &&
+                    s.machine.cpu.es==0x30u,
+                    "original CODE.1 CCDE host-backed 4KiB resize mismatch");
     std::cout<<"ORIGINAL_CODE1_SOURCE_ENTRY=CC1C\n"
              <<"SOURCE_BRANCH="<<(mode==Mode::BeforeVersion?"FIRST_DOS_INTERRUPT":
                       mode==Mode::Dos6ToFf00?"CD17_TO_CD50":"CCDE")<<"\n"
@@ -148,6 +175,7 @@ int main(int argc,char** argv) {
             const std::string cmd(argv[1]);
             if(cmd=="--dos6-to-ff00") {mode=Mode::Dos6ToFf00;index=2;}
             else if(cmd=="--extender-to-resize") {mode=Mode::ExtenderToResize;index=2;}
+            else if(cmd=="--extender-host-resize") {mode=Mode::ExtenderHostResize;index=2;}
             else if(cmd=="--stop-before-version") {index=2;}
         }
         assert_true(argc==index || argc==index+1,
