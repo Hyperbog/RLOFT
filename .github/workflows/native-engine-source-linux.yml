@@ -59,6 +59,7 @@ jobs:
             build/native-source-ci/rloft_native_world_runtime_audit
             build/native-source-ci/rloft_native_scene_probe
             build/native-source-ci/rloft_native_res3_scene_audit
+            build/native-source-ci/rloft_native_scene_instances_audit
           if-no-files-found: error
           retention-days: 7
       - name: Check native payload and persistent world runtime auditors exist
@@ -67,6 +68,7 @@ jobs:
           test -x build/native-source-ci/rloft_native_world_runtime_audit
           test -x build/native-source-ci/rloft_native_scene_probe
           test -x build/native-source-ci/rloft_native_res3_scene_audit
+          test -x build/native-source-ci/rloft_native_scene_instances_audit
       - name: Assert no original media was added by source-only test
         run: |
           test ! -f build/native-source-ci/LEVELS.DAT

@@ -72,6 +72,12 @@ native_warnings(rloft_native_scene_probe)
 add_executable(rloft_native_res3_scene_audit src/native_res3_scene_audit_main.cpp)
 target_link_libraries(rloft_native_res3_scene_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_res3_scene_audit)
+# Source-only original authored family A/B/C scene-instance resolver.
+# May run with the known 4234-count RES3 bank shape when original RES3 bytes
+# are not locally available, and reports that reduced evidence explicitly.
+add_executable(rloft_native_scene_instances_audit src/native_scene_instances_audit_main.cpp)
+target_link_libraries(rloft_native_scene_instances_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_scene_instances_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
