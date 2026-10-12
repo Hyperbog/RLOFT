@@ -16,6 +16,12 @@ SPANS = {
     (0x395E2, 0x3962D): "4372327a1ecb72c421622e01ebc4cab18320202d60e5afc3a8aef6c39268e410",
     (0x3A16E, 0x3A176): "74746f375879b05d7aadc4187242c99b7d25fb421f1fc0838ecd09bafb068f5c",
     (0x3A2AD, 0x3A38A): "02856358bd8ddcf0da443beeaf6075fc791d33dad995e97b6cee847084cc26f6",
+    (0x3A1B3, 0x3A2AD): "295974dbdf1b3a0994b765cbe78bf2269747ef5a65b7931a0cd5b5eafdc8b6e8",
+    (0x3968E, 0x39752): "405b8d6871e820a7d8191df7f56818f68d3e2e9acc0a724f81c857fba0634c74",
+    (0x39752, 0x39837): "65a82679dd6bd7fba5d3bb3c38183732817da3a0d5e924af7de8409da0d1617e",
+    (0x37B42, 0x37C37): "f5e4e045387d36c2d8615cd13d6f9e11bfea4c14c60672607e5b9a13446d4737",
+    (0x39589, 0x395E2): "4d01c84b06650061922e0f5406c5c18225ab3984583f9a96aba138a7a8cef038",
+    (0x3A38A, 0x3A395): "7e62ec735424ad532845ef46794017a8ea470bb8b115dd89020ef44624cdbf51",
 }
 EXPECTED_INITIALIZERS = (0x3968E, 0x3A1B3, 0x3A2AD, 0x3A16E)
 
@@ -47,12 +53,22 @@ def verify(image: bytes) -> dict[str, int]:
         if flags != 0 or priority != 0x20 or target != EXPECTED_INITIALIZERS[i]:
             raise ValueError(f"original initializer table entry {i} differs")
         observed.append((priority, -i, target))
+    # Five 26-byte stream descriptors are loaded from the original data object.
+    # The sixth record terminates source function_3a1b3's initialization loop.
+    streams = tuple(struct.unpack_from("<I", image, DATA_START + 0xF6FC + i*0x1A + 0x0C)[0]
+                    for i in range(6))
+    if streams != (1, 2, 2, 3, 2, 0):
+        raise ValueError(f"original initialized stream descriptor table changed: {streams!r}")
+    # Arena and environment argv outputs are runtime state, originally zero.
+    if image[DATA_START+0x12688:DATA_START+0x12690] != bytes(8):
+        raise ValueError("original CODE.2 environment pointer table is not initially zero")
     winner = min(observed)[2]  # Later record replaces earlier equal priority.
     if winner != 0x3A16E:
         raise ValueError("first initializer violates original equal-priority tie rule")
     return {"verified_spans": len(SPANS), "verified_opcodes": len(windows),
             "callback_table_entries": len(observed), "first_initializer": winner,
-            "next_unresolved_initializer": 0x3A2AD}
+            "next_unresolved_initializer": 0x3A2AD,
+            "verified_original_stream_descriptors": len(streams) - 1}
 
 
 def main() -> int:
