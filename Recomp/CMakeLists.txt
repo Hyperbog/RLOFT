@@ -31,6 +31,9 @@ if(BUILD_TESTING)
         add_test(NAME canonical_original_media_matrix_contract
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_media_matrix.py")
+        add_test(NAME canonical_recomp_progress_major_gate_score
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_recomp_progress.py")
     endif()
     add_test(NAME canonical_reconstruction_compiles_links_and_runs COMMAND rloft_recomp_link_gate)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
@@ -83,6 +86,10 @@ if(BUILD_TESTING)
     # 311E8 warning boundary. Neither branch invents DOS runtime success.
     add_test(NAME canonical_code2_mouse_present_source_to_real_dos_memory_boundary
         COMMAND rloft_code2_startup_gate --mouse-present-to-memory)
+    # Source-backed original DPMI success receipt (explicit TEST-ONLY result)
+    # then original 33AA0 real-mode INT33 simulation wrapper to DPMI 0300.
+    add_test(NAME canonical_code2_source_dpmi_0100_to_actual_33aa0_bridge
+        COMMAND rloft_code2_startup_gate --mouse-present-to-real-mode)
     add_test(NAME canonical_code2_mouse_absent_source_to_real_dos_warning_boundary
         COMMAND rloft_code2_startup_gate --mouse-absent-to-warning)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
