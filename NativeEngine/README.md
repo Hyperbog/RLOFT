@@ -1,5 +1,10 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Native Alpha 0.5: interactive original LEVELS.DAT preview (2026-10-12)
+
+[Native Windows world-preview integration and field acceptance](ALPHA_WORLD_PREVIEW_WINDOWS_20261012.md):
+the independent `rloft_native.exe` source now offers **Explore LEVELS.DAT (preview)** after selecting an original GOG or DOS installation. It opens a separate resizable 320×200 *host-provisional* first-person view, reads all 32 original maps, uses their source-backed collision/passability for W/A/S/D and arrow-key navigation, and supports PageUp/PageDown level switching. The supplied original `LEVELS.DAT` was smoke-checked for potential passable spawn cells on every map. Original media and saves are read-only. **The current-head Win64 executable has not been compiled or user-tested yet; this is not a downloadable Alpha 1 or original DOS renderer.** The provisional output uses synthetic colors, not the independently verified original EH6/EH7 framebuffer compositor. The priority is now bringing original camera/ray/call scheduling into this working host shell; do not relabel it as faithful gameplay.
+
 ## Original CODE.2 scene staging and 400-record sorting — 2026-10-12
 
 [Detailed class-one/class-two staging and original-media proof](ORIGINAL_CODE2_NON_NPC_SCENE_STAGING_20261012.md):
