@@ -1494,7 +1494,7 @@ int main(int argc,char**argv) {
             // Read a separate expected 59-byte snapshot solely for checking
             // original compiled source's DGROUP writes. Actual AH=3D/3F/3E
             // callbacks use ReadOnlyDosFiles, not this copy.
-            const auto expected=read_file((root/"SOUND.CFG").string());
+            const auto expected=read_file((root/"SOUND.CFG").string().c_str());
             require(expected.size()==59u,"host SOUND.CFG must contain 59 bytes");
             run(synthetic_image(),false,true,true,GameConfig::Unset,
                 true,false,true,&expected,MouseResetBranch::Stop,&root);
