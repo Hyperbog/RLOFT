@@ -110,7 +110,9 @@ int main() {
                 "large file end seek");
         eq_seek(files.seek(large.ax,0x7fffffff,0),false,0x7fffffffu,
                 "valid large seek rejected");
-        eq_seek(files.seek(large.ax,0x7fffffff,1),true,1u,
+        eq_seek(files.seek(large.ax,0x7fffffff,1),false,0xFFFFFFFEu,
+                "32-bit maximum positioning rejected");
+        eq_seek(files.seek(large.ax,2,1),true,1u,
                 "guest position wrap accepted");
         eq(files.close(large.ax),false,0,"large file close failed");
         eq_seek(files.seek(large.ax,0,0),true,6u,"closed seek handle");
