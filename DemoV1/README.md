@@ -10,7 +10,7 @@ This is the active project entry point. Historical development updates have been
 The owner has retired the standalone Level 22 demo as a player-facing
 checkpoint. The existing code already contains the CINE00/CINE12 intros,
 DreamForge/SSI sequence, title/menu animation and CODE.1 character creation.
-The new packaged `Play-Original-Intro.cmd` uses the real original media,
+The [verified #661 package](FRONTEND_RESTORATION_BUILD_661_20261011.md) includes `Play-Original-Intro.cmd` and uses owned original media,
 forces the existing front end even when CHARS exists, and **does not modify
 CHARS/SAVE.DAT or enter the incomplete Level 22 renderer**. The unfinished
 title-menu options are explicitly reported as such. This is a native
@@ -25,7 +25,7 @@ longer distributed. Automatic Windows Full CI is authorized on public
 | Gate | Evidence / current limit |
 | --- | --- |
 | Original executable | `CODE.1` / `CODE.2` reconstructed and byte-accounted; **not exhaustively semantically verified**, and post-accounting corrections remain possible |
-| Native Windows Full build | [#660](https://github.com/Hyperbog/RLOFT/actions/runs/38192487862) **245/245 CTests passed** on exact source `5b0b00e8`; Windows ZIP/EXE SHA-256 verified and committed. This is not DOS gameplay parity. |
+| Native Windows Full build | [#661](https://github.com/Hyperbog/RLOFT/actions/runs/38194351208) **246/246 CTests passed** on exact source `66046988`; [intro-and-character-creation artifact](FRONTEND_RESTORATION_BUILD_661_20261011.md) verified. This is not original DOS or end-to-end campaign parity. |
 | Current source test catalog | Run the [read-only preflight](tools/research_preflight.py) for current CMake declarations; source registration and passing Windows CTest are separate gates. |
 | Level 22 viewport | Original `RES4[655]` full-open ground confirmed in 64/64 native capture frames; source-accurate partial clipping and DOS framebuffer equivalence remain pending |
 | Original DOS acceptance | No accepted full indexed-frame/palette/IRQ/RNG/complete-game parity; do not infer fidelity from synthetic tests or a successful native build |
