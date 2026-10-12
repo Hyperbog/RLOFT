@@ -1042,15 +1042,32 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                         if(state.data[base+0x3Bu+i]!=state.audio_file_fixture[i])
                             untouched_file_bytes_match=false;
                     }
-                    require(state.audio_published_flags==0x41u &&
-                            state.audio_descriptor_flags==0u &&
-                            state.dos_file_reads==1u &&
-                            state.dos_file_closes==1u &&
-                            state.audio_file_cursor==59u &&
-                            state.mouse_reset_calls==1u &&
-                            state.data[base+0x64u]==1u &&
-                            state.data[base+0x66u]==1u &&
-                            untouched_file_bytes_match,
+                    const bool mouse_source_ok=
+                        state.audio_published_flags==0x41u &&
+                        state.audio_descriptor_flags==0u &&
+                        state.dos_file_reads==1u &&
+                        state.dos_file_closes==1u &&
+                        state.audio_file_cursor==59u &&
+                        state.mouse_reset_calls==1u &&
+                        state.data[base+0x64u]==1u &&
+                        state.data[base+0x66u]==1u &&
+                        untouched_file_bytes_match;
+                    if(!mouse_source_ok) {
+                        std::cerr<<"ORIGINAL_MOUSE_BOUNDARY_DIAGNOSTIC"
+                                 <<" stop="<<state.stop_reason
+                                 <<" descriptor_flags=0x"<<std::hex
+                                 <<state.audio_published_flags
+                                 <<" final_flags="<<state.audio_descriptor_flags
+                                 <<" loaded_base="<<base<<std::dec
+                                 <<" reads="<<state.dos_file_reads
+                                 <<" closes="<<state.dos_file_closes
+                                 <<" cursor="<<state.audio_file_cursor
+                                 <<" mouse="<<state.mouse_reset_calls
+                                 <<" overwrites64="<<unsigned(state.data[base+0x64u])
+                                 <<" overwrites66="<<unsigned(state.data[base+0x66u])
+                                 <<" other_bytes="<<untouched_file_bytes_match<<'\n';
+                    }
+                    require(mouse_source_ok,
                             "original 37E99/312EC/38106/312DC/380F8/33B44 source chain differs");
                 }
             }
