@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -15,6 +16,15 @@ namespace rloft_recomp {
 struct DosFileResult {
     bool carry;
     std::uint16_t ax;
+};
+// DOS INT 21h AH=42h: carry-clear returns DX:AX, carry-set AX=error.
+struct DosSeekResult {
+    bool carry;
+    std::uint16_t ax;
+    std::uint16_t dx;
+    std::uint32_t offset() const noexcept {
+        return (static_cast<std::uint32_t>(dx)<<16u)|ax;
+    }
 };
 
 class ReadOnlyDosFiles {
@@ -57,7 +67,7 @@ public:
         if(files_.count(handle)!=0u)return {true,4u};
         std::ifstream file(match,std::ios::in|std::ios::binary);
         if(!file.is_open())return {true,5u};
-        files_.emplace(handle,std::move(file));
+        files_.emplace(handle,OpenFile{std::move(file),0u});
         return {false,handle};
     }
 
@@ -69,12 +79,48 @@ public:
         if(count>0xFFFFu)return {true,1u}; // invalid function/unsupported count
         if(count && destination==nullptr)return {true,5u};
         if(!count)return {false,0u};
-        auto& file=it->second;
+        auto& opened=it->second;
+        if(count>std::numeric_limits<std::uint32_t>::max()-opened.cursor)
+            return {true,1u}; // constrained 32-bit guest position
+        auto& file=opened.stream;
+        // Clear EOF/fail status before every positioned read. The explicit
+        // guest cursor also makes seek-after-EOF independent of host iostream
+        // recovery behavior and preserves independent DOS handles.
+        file.clear();
+        file.seekg(static_cast<std::streamoff>(opened.cursor),std::ios::beg);
+        if(file.fail())return {true,5u};
         file.read(reinterpret_cast<char*>(destination),
                   static_cast<std::streamsize>(count));
         const auto actual=file.gcount();
         if(file.bad() || actual<0)return {true,5u};
+        opened.cursor+=static_cast<std::uint32_t>(actual);
         return {false,static_cast<std::uint16_t>(actual)};
+    }
+
+    // Signed CX:DX relative displacement. AL=0 start, 1 current, 2 end.
+    // No writes occur; seeking beyond EOF is allowed, just as on DOS files.
+    DosSeekResult seek(std::uint16_t handle,std::int32_t displacement,
+                       std::uint8_t origin) {
+        const auto it=files_.find(handle);
+        if(it==files_.end())return {true,6u,0u};
+        if(origin>2u)return {true,1u,0u};
+        std::int64_t base=0;
+        if(origin==1u)base=it->second.cursor;
+        if(origin==2u) {
+            auto& file=it->second.stream;
+            file.clear();
+            file.seekg(0,std::ios::end);
+            if(file.fail())return {true,5u,0u};
+            const auto end=file.tellg();
+            if(end<0)return {true,5u,0u};
+            base=static_cast<std::int64_t>(end);
+        }
+        const auto target=base+static_cast<std::int64_t>(displacement);
+        if(target<0 || target>std::numeric_limits<std::uint32_t>::max())
+            return {true,1u,0u};
+        it->second.cursor=static_cast<std::uint32_t>(target);
+        return {false,static_cast<std::uint16_t>(target&0xFFFFu),
+                static_cast<std::uint16_t>((target>>16u)&0xFFFFu)};
     }
 
     DosFileResult close(std::uint16_t handle) {
@@ -82,9 +128,9 @@ public:
         if(it==files_.end())return {true,6u};
         // A successful EOF read leaves failbit/eofbit set; that is not
         // a failed DOS AH=3Eh close. Clear prior read status first.
-        it->second.clear();
-        it->second.close();
-        const bool failed=it->second.fail();
+        it->second.stream.clear();
+        it->second.stream.close();
+        const bool failed=it->second.stream.fail();
         files_.erase(it);
         return failed?DosFileResult{true,5u}:DosFileResult{false,0u};
     }
@@ -120,7 +166,8 @@ private:
             return false;
         return true;
     }
+    struct OpenFile {std::ifstream stream; std::uint32_t cursor;};
     std::filesystem::path root_;
-    std::map<std::uint16_t,std::ifstream> files_;
+    std::map<std::uint16_t,OpenFile> files_;
 };
 } // namespace rloft_recomp
