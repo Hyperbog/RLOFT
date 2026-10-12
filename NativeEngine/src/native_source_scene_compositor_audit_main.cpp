@@ -50,14 +50,14 @@ int run(const std::filesystem::path& root){
         wall.wall.original_palette_shade=5;
         wall.wall.projection.live_x_255f0=0x20000U;
         wall.wall.projection.direction_x_255f8=0x8000U;
-        wall.wall.projection.height_numerator_255e0=0x8000U;
+        wall.wall.projection.height_numerator_255e0=0x10000U;
         sprite.kind=rloft_native::NativeSceneDrawKind::Sprite;
         sprite.sprite.original_res3_id=0;
         sprite.sprite.original_sintab_scale=126;
         sprite.sprite.source_column=0;
         sprite.sprite.viewport_start_x=9;
         sprite.sprite.destination_width=3;
-        sprite.sprite.renderer_row=64;
+        sprite.sprite.renderer_row=0;
         sprite.sprite.original_ecx_lookup=0;
         // Original CODE.2 live view-order/camera are not assumed here.
         rloft_native::NativeIndexedVgaPlanes video;
@@ -70,11 +70,15 @@ int run(const std::filesystem::path& root){
             reverse_world,catalogue,res4,res3,sintab,masks,palette,colors,
             0,0,{sprite,wall},reverse_video);
         if(forward.ordered_commands!=2 || forward.wall_commands!=1 ||
-           forward.sprite_commands!=1 || forward.texture_source_reads!=128 ||
+           forward.sprite_commands!=1 || forward.texture_source_reads!=256 ||
            forward.scanout.bank!=4 || forward.scanout.rgb6.size()!=384000 ||
            reverse.scanout.rgb6.size()!=384000 ||
            (world.cell(0,5,0).word&0x0440U)!=0x0440U)
             throw std::runtime_error("original frame compositor accounting mismatch");
+        if(forward.final_four_plane_sha256==reverse.final_four_plane_sha256 ||
+           forward.scanout.rgb6_sha256==reverse.scanout.rgb6_sha256)
+            throw std::runtime_error(
+                "original sample did not distinguish foreground/source draw order");
         // Fail closed on a late invalid source; no visibility or pixel writes
         // may reach the original world/video after an aborted composite.
         auto fail_world=rloft_native::NativeWorldRuntime(source);
