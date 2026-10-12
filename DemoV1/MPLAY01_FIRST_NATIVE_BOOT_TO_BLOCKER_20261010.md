@@ -38,6 +38,32 @@ This checkpoint is an observation and defect-triage gate. The separate project c
 4. Only for an independent diagnostic run, launch bundled `Diagnose-Level22.cmd`; it uses `--explore-level22 --dev-inspect --dev-interact --dev-trace` and, after exit, packages the session beneath `%TEMP%\\RLOFT-Demo-Diagnostics`. Its world/progression results must be labeled **developer shortcut**, not ordinary gameplay.
 5. Stop at the first repeatable blocking issue; submit the evidence before any unverified workaround or forced level transition.
 
+## Offline integrity verification of the native trace
+
+The read-only [diagnostic ZIP/folder validator](tools/audit_mplay01_trace.py)
+cross-checks source revision, manifest format and recorder limits, sequential
+events and finish counts, frame/marker metadata, exact 320x400 indexed bytes,
+6-bit palette bytes, both recorded FNV-1a 64-bit hashes, and existence of
+draw-order/marker-recent evidence. ZIP members are inspected **without extraction**
+and rejected on path traversal, duplicate paths, unsafe symlinks or oversized
+declared content. A session lacking `session.finish` is reported as interrupted,
+not passed. A wrong revision, corrupted frame or contradictory count fails closed.
+
+```sh
+python DemoV1/tools/audit_mplay01_trace.py "path/to/session.zip" --expected-sha FULL_40_HEX_BUILD_SHA
+python DemoV1/tools/test_mplay01_trace_audit.py
+```
+
+Use the **compiled executable's** embedded SHA/packaged build-source-sha.txt,
+not today's branch HEAD, when supplying `--expected-sha`. Reports contain
+only aggregate screen/error-stage counts and last native frame location; no
+game saves, captured keystrokes or installation paths are emitted. This check
+is **not a normal-play acceptance**, even if the diagnostic was taken during a
+normal launch with `--dev-trace`; provenance says native preview, not DOS.
+M-PLAY-01 still requires a genuine no-shortcut field attempt and the actual
+first blocking defect. Authored offline tests do not constitute a newly built
+Windows binary.
+
 ## First playthrough report (copy for each tested binary)
 
 ```text

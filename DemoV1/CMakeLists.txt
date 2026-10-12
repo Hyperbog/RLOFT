@@ -82,6 +82,12 @@ if(Python3_Interpreter_FOUND)
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_win32_scan_trace_summary.py")
     # Win32 hardware scan metadata is developer-only and does not
     # dispatch the original CODE.2 IRQ from ordinary gameplay.
+    # Offline M-PLAY-01 diagnostic integrity regression; no owned game media,
+    # native input mutation, Windows build dispatch or DOS acceptance.
+    add_test(
+        NAME mplay01_trace_integrity_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_mplay01_trace_audit.py")
     add_test(
         NAME win32_scan_observation_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
