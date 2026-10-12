@@ -312,6 +312,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
         require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
                 "default test unexpectedly passed original allocator boundary");
     }else{
+        if(state.completed_initializers!=4u ||
+           state.stop_reason!=std::string("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608")) {
+            std::cerr<<"EXTENDED_STARTUP_DIAGNOSTIC stop="<<state.stop_reason
+                     <<" completed="<<state.completed_initializers
+                     <<" allocations="<<state.allocation_calls
+                     <<" stream_nodes="<<state.stream_nodes
+                     <<" env_copies="<<state.env_copies
+                     <<" argv_init="<<state.argv_initializations
+                     <<" game_argc="<<state.game_argc
+                     <<" last_guest=0x"<<std::hex<<state.first_guest<<std::dec<<'\n';
+        }
         require(state.completed_initializers==4u &&
                 state.stop_reason==std::string("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608"),
                 "not all four original initializer functions executed before game entry");
