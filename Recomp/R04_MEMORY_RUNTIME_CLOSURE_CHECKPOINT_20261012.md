@@ -75,9 +75,12 @@ standard DOS `AH=4Ah` paragraph contract.
   **41/41 CTests passed**, including original CODE.1 DPMI
   allocate/grow/resize/free, DOS-memory fallback, and DOS paragraph
   provider.
-- Extender source and provider CTests were added afterward; consult
-  the latest `recomp-source-link-gate.yml` run for their verification.
-  **Do not count unverified CTest registrations as passes.**
+- [Windows #81](https://github.com/Hyperbog/RLOFT/actions/runs/38245588733):
+  **43/43 CTests passed** at source SHA
+  `875617f4b6a47dcbb48bc209eeb0abfa2d2b4075`, including the
+  original CODE.1 `CCDE` source-backed 4 KiB host resize and separate
+  extender memory contract. No commercial media is bundled.
+  **Passing tests do not satisfy the remaining R04 conditions.**
 
 Build commands (asset-free Windows CI):
 
