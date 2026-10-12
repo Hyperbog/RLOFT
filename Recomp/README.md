@@ -38,6 +38,32 @@ fingerprinting research.
 This project is strictly separate from `demo-v1` and `native-engine`. Do not
 invoke their full Windows build workflows from this target.
 
+## 2026-10-12 verified canonical recompilation expansion
+
+[Windows build #41](https://github.com/Hyperbog/RLOFT/actions/runs/38207402256):
+**31/31 CTests passed** at exact tested source
+`fbbc7ae61c6793d41264275a2a1115a941962533`; latest compiled
+developer tools include a fourth `rloft_code1_startup_gate` executable
+and an extended `rloft_code2_startup_gate`.
+
+The actual CODE.1 source `CC1C` startup now executes to its original
+DOS version boundary, the `CD17 -> CD50` DOS AX=FF00h request and the
+`CCDE` DOS AH=4Ah resize boundary (three explicit fixture-controlled
+branches). Actual reconstructed CODE.2 runtime additionally executes
+DPMI `0101h` release, mouse X/Y range `33D18/33D38`, and can
+return from original `2F2EC` into `20440 -> 202F0 -> 35286`,
+stopping before DOS `INT21h AH=36h` disk-free inquiry. The CODE.2
+authenticated-media runner has **19 distinct source-execution modes**.
+These are bounded source-execution witnesses, not actual DOS hardware
+implementations or game boot.
+
+The accepted major milestone score remains **3/12 = 25.00%**. The
+remaining 9 milestones cover actual DOS/DPMI service providers, original
+character-creation handoff, original graphics/sound/input and full
+gameplay behavior and DOS parity.
+
+[Complete source-test/evidence checkpoint](CANONICAL_CODE1_CODE2_STARTUP_CHECKPOINT_20261012.md).
+
 ## Measured recompilation progress — 25.0% (3 / 12 accepted gates)
 
 The canonical recompilation percentage is now measured using
