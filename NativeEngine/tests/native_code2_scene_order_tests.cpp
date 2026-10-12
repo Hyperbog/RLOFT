@@ -60,9 +60,9 @@ int main(){
     verify({0});
     verify({100,20,20,0,0x7cff});
     verify({0x7cff,0,0x7cfe,0x7cff,1,1});
-    verify(std::vector<unsigned>(200,0));
-    std::vector<unsigned> reverse(200);
-    for(unsigned i=0;i<200;++i)reverse[i]=199-i;
+    verify(std::vector<unsigned>(400,0));
+    std::vector<unsigned> reverse(400);
+    for(unsigned i=0;i<400;++i)reverse[i]=399-i;
     verify(reverse);
     // Regression at 0x7D00: source MIN initial value would not select
     // this record; never silently synthesize a choice.
@@ -71,5 +71,5 @@ int main(){
     rejects([]{static_cast<void>(order_native_code2_scene_records_2c3f1(
         {record(0xffff,0)}));});
     rejects([]{static_cast<void>(order_native_code2_scene_records_2c3f1(
-        std::vector<NativeCode2SceneRecord22>(201,record(0,0))));});
+        std::vector<NativeCode2SceneRecord22>(401,record(0,0))));});
 }
