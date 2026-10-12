@@ -91,7 +91,10 @@ class Res3Type7DifferentialTests(unittest.TestCase):
     def test_modified_source_header_detected(self):
         altered=bytearray(self.res)
         off=struct.unpack_from("<I",altered,4)[0]
-        altered[off+7+16]=42
+        # Synthetic EH7 stores eight literal bytes per control flag:
+        # edit original decoded-body padding byte +16 (valid/unreferenced),
+        # not compressed byte +16 (which would mutate a pointer).
+        altered[off+7+1+2*9]=42
         result=self.check(source=bytes(altered))
         self.assertEqual(result["status"],"DIFFERENT")
         fields={d["field"] for d in result["differences"]}
