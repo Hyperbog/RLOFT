@@ -14,7 +14,7 @@ struct Session {
     rloft_recomp::DpmiLinearMemory memory;
     std::vector<u8> dgroup;
     code1::Machine machine{};
-    bool invalid_memory=false, invalid_free=false;
+    bool invalid_memory=false, invalid_free=false, invalid_dispatch=false;
     unsigned allocations=0, resizes=0, releases=0, return_to_free_list=0;
     u32 last_free_pointer=0;
 };
@@ -22,21 +22,37 @@ thread_local Session* active=nullptr;
 void need(bool yes,const char* reason) {
     if(!yes)throw std::runtime_error(reason);
 }
-u32 heap_read(u32 guest) {
-    u8* ptr=active->memory.translate(guest,4);
-    if(!ptr || (guest&3u)!=0u) {
+// Original 10590/104E0 use BOTH static DGROUP heap roots at 30B8
+// and host-owned dynamic DPMI linear pages. They must share this boundary.
+u8* heap_word(u32 guest) {
+    if((guest&3u)!=0u) { active->invalid_memory=true; return nullptr; }
+    if(guest<active->dgroup.size()) {
+        if(active->dgroup.size()-guest>=4u)
+            return active->dgroup.data()+guest;
         active->invalid_memory=true;
-        return 0;
+        return nullptr;
     }
-    return code1::load_le32(ptr);
+    u8* ptr=active->memory.translate(guest,4u);
+    if(!ptr)active->invalid_memory=true;
+    return ptr;
+}
+u32 heap_read(u32 guest) {
+    u8* p=heap_word(guest);
+    return p?code1::load_le32(p):0u;
 }
 void heap_write(u32 guest,u32 value) {
-    u8* ptr=active->memory.translate(guest,4);
-    if(!ptr || (guest&3u)!=0u) {
-        active->invalid_memory=true;
-        return;
-    }
-    code1::store_le32(ptr,value);
+    u8* p=heap_word(guest);
+    if(p)code1::store_le32(p,value);
+}
+// These are the four original CODE.1 image DGROUP words, at 30C0,
+// 30C8, 30D8 and 30DC, verified against original CODE.1 object 2.
+// The asset-free test initializes only these static list roots.
+void original_heap_roots(Session& s) {
+    u8* d=s.dgroup.data();
+    code1::store_le32(d+0x30c0u,0x30d4u);
+    code1::store_le32(d+0x30c8u,0xffffffffu);
+    code1::store_le32(d+0x30d8u,0x30d4u);
+    code1::store_le32(d+0x30dcu,0x30d4u);
 }
 code1::DpmiBlockResult linear_allocate(u32 bytes) {
     ++active->allocations;
@@ -52,18 +68,37 @@ void linear_free(u32 handle) {
     ++active->releases;
     if(active->memory.release(handle).carry)active->invalid_free=true;
 }
+void source_free_10590(u32 guest_ptr,std::uint16_t ds,u32 arena) {
+    if(ds!=active->machine.cpu.ds || arena!=0x30b8u) {
+        active->invalid_dispatch=true;
+        return;
+    }
+    code1::HeapCoreBoundaries hb{};
+    hb.read32=&heap_read;
+    hb.write32=&heap_write;
+    code1::function_10590(hb,guest_ptr,arena);
+}
+void source_clear_8e78(u32 address,u8 value) {
+    if(address!=0x8e78u || address>=active->dgroup.size()) {
+        active->invalid_dispatch=true;
+        return;
+    }
+    active->dgroup[address]=value;
+}
 void observe_original_free(u32 guest_ptr) {
     ++active->return_to_free_list;
     active->last_free_pointer=guest_ptr;
-    if(guest_ptr<4u || !active->memory.translate(guest_ptr-4u,4)) {
+    if(guest_ptr<4u || !active->memory.translate(guest_ptr-4u,4u)) {
         active->invalid_memory=true;
         return;
     }
-    // The original source 10AA9 marks its new block allocated before
-    // calling DB5B. The DB5B/free-list adapter remains test-only here.
-    // Model only its released-bit contract, so original 107CB can reclaim
-    // the genuinely host-backed arena. Full DB5B linkage is still R04 work.
-    heap_write(guest_ptr-4u,heap_read(guest_ptr-4u)&~1u);
+    // Invoke the reconstructed original DB5B wrapper and 10590 free core,
+    // not a test-authored allocated-bit clear.
+    code1::AllocBoundary ab{};
+    ab.ds=active->machine.cpu.ds;
+    ab.call_10590=&source_free_10590;
+    ab.write_linear8=&source_clear_8e78;
+    code1::function_db5b(ab,guest_ptr);
 }
 }
 int main() {
@@ -72,6 +107,7 @@ int main() {
         session.dgroup.assign(code1::kDataObjectVirtualSize,0u);
         session.machine.data=session.dgroup.data();
         session.machine.cpu.ds=0x30u;
+        original_heap_roots(session);
         active=&session;
         // Source 10AA9 requires the near-heap growth enable flag; mode 1
         // denotes the DOS/4GW-backed original runtime branch.
@@ -95,8 +131,9 @@ int main() {
         const u32 result=code1::function_10aa9(
             session.machine,hb,gb,0x300u);
         need(result==1u,"original CODE.1 10AA9 failed to grow the heap");
-        need(!session.invalid_memory && !session.invalid_free,
-             "original heap touched unmapped guest memory");
+        need(!session.invalid_memory && !session.invalid_free &&
+             !session.invalid_dispatch,
+             "original heap touched unmapped memory or wrong DS/arena");
         need(session.allocations==2u && session.releases==0u &&
              session.return_to_free_list==1u,
              "original growth did not traverse 109C1 and free-list callback");
@@ -119,8 +156,24 @@ int main() {
              heap_read(raw)==0x0fe4u,
              "original 1069B free-list arena or size mismatch");
         need(session.last_free_pointer==raw+0x10u &&
-             heap_read(session.last_free_pointer-4u)>0u,
-             "original 10AA9 did not publish new free allocation");
+             heap_read(session.last_free_pointer-4u)==0x0fd8u &&
+             heap_read(0x30c0u)==arena+0x20u &&
+             heap_read(0x30d8u)==arena+0x20u &&
+             heap_read(0x30dcu)==arena+0x20u &&
+             heap_read(arena+0x24u)==0x30d4u &&
+             heap_read(arena+0x28u)==0x30d4u,
+             "original DB5B/10590 did not build its circular free list");
+        // Allocate via the original 104E0 split, then DB5B/10590 must
+        // merge the adjacent free blocks before source 107CB can reclaim.
+        const u32 allocated=code1::function_104e0(hb,0x80u,0x30b8u);
+        need(allocated==arena+0x24u &&
+             (heap_read(allocated-4u)&1u)!=0u,
+             "original CODE.1 104E0 did not split source free block");
+        observe_original_free(allocated);
+        need(heap_read(arena+0x20u)==0x0fd8u &&
+             heap_read(0x30c0u)==arena+0x20u &&
+             heap_read(0x30d0u)==1u,
+             "original DB5B/10590 did not coalesce adjacent free blocks");
         // Original CODE.1 107CB now owns the 0502 release, not host test cleanup.
         code1::function_107cb(session.machine,hb);
         need(session.releases==1u && !session.invalid_free &&
@@ -128,16 +181,21 @@ int main() {
              "original 107CB failed to release host DPMI allocation");
         need(session.memory.allocation_count()==0u &&
              session.memory.block(handle)==nullptr &&
-             code1::load_le32(session.dgroup.data()+0x8e74u)==0u,
-             "source 107CB left a stale guest arena or handle");
+             code1::load_le32(session.dgroup.data()+0x8e74u)==0u &&
+             heap_read(0x30c0u)==0x30d4u &&
+             heap_read(0x30d8u)==0x30d4u &&
+             heap_read(0x30dcu)==0x30d4u &&
+             heap_read(0x30d0u)==0u,
+             "source 107CB left a stale guest arena or free-list node");
 
-        // Original 1083F requires an allocated terminal block. The source
-        // free-list callback is still a test observer, so only the terminal
-        // used bit is installed as an explicit bounded test precondition.
+        // The original 1083F requires an allocated terminal block.
+        // Construct it by calling the compiled original 104E0 core, not
+        // by manually setting the used bit as a test precondition.
         Session resizing;
         resizing.dgroup.assign(code1::kDataObjectVirtualSize,0u);
         resizing.machine.data=resizing.dgroup.data();
         resizing.machine.cpu.ds=0x30u;
+        original_heap_roots(resizing);
         code1::store_le32(resizing.dgroup.data()+0x55ccu,1u);
         resizing.dgroup[0x531eu]=1u;
         active=&resizing;
@@ -149,7 +207,11 @@ int main() {
         const u32 old_handle=heap_read(before);
         need(heap_read(before+0x14u)==0x0fe4u,
              "resize setup source arena size changed");
-        heap_write(before+0x20u,heap_read(before+0x20u)|1u);
+        const u32 terminal=code1::function_104e0(hb,0x0fd0u,0x30b8u);
+        need(terminal==before+0x24u &&
+             heap_read(before+0x20u)==0x0fd9u &&
+             heap_read(0x30dc)==0x30d4u,
+             "source 104E0 failed to consume whole terminal free block");
         const u32 relocated=code1::function_1083f(
             resizing.machine,hb,growth,before+0x20u,0x1200u);
         const u32 after=code1::load_le32(resizing.dgroup.data()+0x8e74u);
@@ -165,6 +227,7 @@ int main() {
              (heap_read(after+0x20u)&1u)==1u,
              "source 1083F did not rebuild relocated arena");
         need(!resizing.invalid_memory && !resizing.invalid_free &&
+             !resizing.invalid_dispatch &&
              resizing.return_to_free_list==2u,
              "source 1083F guest accesses or tail release invalid");
         need(!resizing.memory.release(new_handle).carry,
@@ -172,6 +235,7 @@ int main() {
         active=nullptr;
         std::cout<<"ORIGINAL_CODE1_SOURCE_10AA9_109C1_1069B=EXECUTED\n"
                     "DPMI_0501_HOST_ALLOCATION=YES\n"
+                    "ORIGINAL_CODE1_DB5B_10590_SPLIT_COALESCE=EXECUTED\n"
                     "SOURCE_HEAP_ARENA_PRESEEDED=NO\n"
                     "DPMI_0502_SOURCE_FREE=EXECUTED_AND_SOURCE_1083F_0503_RELOCATED\n"
                     "ORIGINAL_CODE1_109C1_OOM_REJECTED=YES\\n"
