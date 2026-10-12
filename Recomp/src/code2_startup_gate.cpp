@@ -608,7 +608,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 state.stop_reason==std::string(required_stop),
                 "original initializer to game-entry/ISR-install source path differs");
         const u32 expected_env_size=game_config==GameConfig::Unset?7u:
-            game_config==GameConfig::Overrides?44u:49u;
+            game_config==GameConfig::Overrides?44u:50u;
         require(state.env_copies==expected_env_size &&
                 state.argv_initializations==1u,
                 "original environment or argv initializer did not run");
