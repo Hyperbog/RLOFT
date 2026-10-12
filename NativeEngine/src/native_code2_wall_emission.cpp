@@ -129,4 +129,24 @@ NativeWorldSurfaceDraw draw_native_code2_wall_record_column(
         r.source_texture_column,viewport_x,height,shade,page,working_top,
         pixels,neighbor);
 }
+NativeCode2ProjectedWallDraw draw_native_code2_wall_record_projected_35730(
+    const NativeWorldRuntime& world,
+    const NativeWorldMaterialCatalogue& materials,
+    const NativeResArchive& res4,
+    const NativeCode2WallRecord& record,
+    const NativeCode2ProjectionRegisters& projection_state,
+    unsigned slot,unsigned viewport_x,std::uint8_t palette_shade,
+    unsigned page,unsigned region_top,
+    NativeIndexedVgaPlanes& target,
+    std::optional<NativeCardinal> neighboring_direction) {
+    const auto projected=project_native_code2_wall_height_35730(projection_state);
+    const auto height=unsigned(projected.original_return_word);
+    require(height>0 && height<=256U,
+            "original CODE.2 projected wall height outside currently supported 256-line raster domain");
+    auto raster=draw_native_code2_wall_record_column(
+        world,materials,res4,record,slot,viewport_x,height,
+        palette_shade,page,region_top,target,neighboring_direction);
+    return {projected,std::move(raster),false};
+}
+
 } // namespace rloft_native

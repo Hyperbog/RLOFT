@@ -110,6 +110,27 @@ int main(){
         world,dir,resource,reflected_a,1,13,128,2,0,0,output);
     assert(second.selected_original_res4_id==1 && second.raster.plane_writes==128);
     assert(output.indexed_pixel(13,64)==174); // 50+(42*3)-2
+    // Original 35730 wall-height arithmetic can now drive the real
+    // source-selected texture sampler; projection arguments are explicit.
+    NativeCode2ProjectionRegisters projection;
+    projection.live_x_255f0=0x20000U;
+    projection.direction_x_255f8=0x8000U;
+    projection.height_numerator_255e0=0x10000U;
+    const auto projected=draw_native_code2_wall_record_projected_35730(
+        world,dir,resource,reflected_a,0,projection,14,2,0,0,output);
+    assert(projected.projection.source_depth==0x10000U);
+    assert(projected.projection.original_return_word==256);
+    assert(projected.raster.raster.source_texel_reads==256);
+    assert(projected.raster.raster.plane_writes==256);
+    assert(projected.raster.selected_original_res4_id==0);
+    assert(output.indexed_pixel(14,0)==124);
+    assert(output.indexed_pixel(14,1)==124);
+    assert(output.indexed_pixel(14,2)==125);
+    const auto projected_safe=output.planes_sha256();
+    projection.live_x_255f0=0; // original 35730 near clamp -> >256
+    rejects([&]{static_cast<void>(draw_native_code2_wall_record_projected_35730(
+        world,dir,resource,reflected_a,1,projection,15,2,0,0,output));});
+    assert(output.planes_sha256()==projected_safe);
     const auto prior=output.planes_sha256();
     rejects([&]{static_cast<void>(draw_native_code2_wall_record_column(
         world,dir,resource,reflected_a,2,14,128,2,0,0,output));});

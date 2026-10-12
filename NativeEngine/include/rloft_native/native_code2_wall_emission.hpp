@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rloft_native/native_world_materials.hpp"
+#include "rloft_native/native_code2_projection.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -74,6 +75,30 @@ struct NativeCode2WallRecord {
     unsigned source_word_slot,
     unsigned viewport_x,unsigned projected_height,
     std::uint8_t shade,unsigned page,unsigned working_region_top_row,
+    NativeIndexedVgaPlanes& target,
+    std::optional<NativeCardinal> neighboring_direction=std::nullopt);
+
+// Compose original CODE.2 35730's calculated wall height directly
+// into the source-verified 32F8C/33124 RES4 column path. View-plane
+// x, shade and source-word slot remain caller-controlled and explicit.
+// A clipped value outside the currently safe 1..256 source sampler
+// domain is rejected, never silently clamped to a guessed DOS frame.
+struct NativeCode2ProjectedWallDraw {
+    NativeCode2WallHeight projection{};
+    NativeWorldSurfaceDraw raster{};
+    bool original_runtime_raycaster_verified{false};
+};
+[[nodiscard]] NativeCode2ProjectedWallDraw
+draw_native_code2_wall_record_projected_35730(
+    const NativeWorldRuntime& world,
+    const NativeWorldMaterialCatalogue& materials,
+    const NativeResArchive& res4,
+    const NativeCode2WallRecord& record,
+    const NativeCode2ProjectionRegisters& projection_state,
+    unsigned original_resource_word_slot,
+    unsigned viewport_x,
+    std::uint8_t palette_shade,
+    unsigned page,unsigned region_top,
     NativeIndexedVgaPlanes& target,
     std::optional<NativeCardinal> neighboring_direction=std::nullopt);
 
