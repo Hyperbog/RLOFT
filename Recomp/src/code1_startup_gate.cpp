@@ -143,6 +143,182 @@ void source_heap_post_extender_handoff(bool original_loaded) {
        heap_read32(0x30C0u)!=0x30D4u || s.bad_heap_access)
         throw std::runtime_error("CODE.1 original 107CB leaked heap after CCDE");
 }
+// The following source-backed callbacks continue original CODE.1 CD97
+// through the actual FCE8 prioritized runtime dispatcher and FC98 launch
+// trampoline. Guest constructors are explicitly STOP/CANDIDATE boundaries;
+// they are not silently replaced with successful gameplay calls.
+u8 cd97_read8(u16 selector,u32 offset) noexcept {
+    auto& s=*current;
+    const std::array<u8,256>* bytes=selector==0x24u?
+        &s.source_psp:(selector==0x2Cu?&s.source_env:nullptr);
+    if(!bytes||offset>=bytes->size()) {
+        s.bad_cd97_access=true;
+        return 0u;
+    }
+    return (*bytes)[offset];
+}
+u32 cd97_read32(u16 selector,u32 offset) noexcept {
+    u32 result=0u;
+    for(u32 i=0;i<4u;++i)
+        result|=static_cast<u32>(cd97_read8(selector,offset+i))<<(i*8u);
+    return result;
+}
+void cd97_write16(u16 selector,u32 offset,u16 value) noexcept {
+    auto& s=*current;
+    if(selector!=0x30u || offset!=0xCC90u || value!=0x30u)
+        s.bad_cd97_access=true;
+    else s.source_cd97_saved_ds=true;
+}
+void cd97_ctor_boundary(u32 addr) noexcept {
+    auto& s=*current;
+    if(s.source_ctor_calls>=s.source_ctor_targets.size()) {
+        s.bad_cd97_access=true;
+        return;
+    }
+    s.source_ctor_targets[s.source_ctor_calls++]=addr;
+}
+u32 cd97_stack_probe() noexcept {return 0u;}
+void cd97_source_10d1c() noexcept {
+    code1::function_10d1c(current->machine);
+}
+code1::s32 cd97_game_entry_boundary(u32,u32) noexcept {
+    ++current->source_main_calls;
+    return 0;
+}
+void cd97_exit_boundary(code1::s32) noexcept {
+    ++current->source_exit_calls;
+}
+void cd97_runtime_call(u32 target) noexcept {
+    auto& s=*current;
+    ++s.source_runtime_calls;
+    if(target==0xFCE8u) {
+        code1::RuntimeTailBoundaries b{};
+        b.call_guest_near=&cd97_ctor_boundary;
+        code1::function_fce8(s.machine,b);
+    } else if(target==0xFC98u) {
+        code1::LaunchBoundaries b{};
+        b.stack_probe_1042d=&cd97_stack_probe;
+        b.init_10d1c=&cd97_source_10d1c;
+        b.main_508c=&cd97_game_entry_boundary;
+        b.exit_cbf0=&cd97_exit_boundary;
+        code1::function_fc98(s.machine,b);
+    } else s.bad_cd97_access=true;
+}
+void source_cd97_followup(bool original_loaded) {
+    auto& s=*current;
+    // These values are verified against the owner's original object-2
+    // bytes: 55CC=1, 55D0=0x10 and three six-byte FCE8 ctor records.
+    // The synthetic asset-free fixture encodes only this bounded evidence.
+    const auto verify_or_initialize=[&](u32 offset,u32 value) {
+        if(original_loaded) {
+            if(code1::load_le32(s.dgroup.data()+offset)!=value)
+                throw std::runtime_error("authentic CODE.1 runtime table differs");
+        } else code1::store_le32(s.dgroup.data()+offset,value);
+    };
+    verify_or_initialize(0x55CCu,1u);
+    verify_or_initialize(0x55D0u,0x10u);
+    for(unsigned i=0;i<3u;++i) {
+        const u32 addr=0x55E0u+i*6u;
+        if(original_loaded) {
+            if(s.dgroup[addr]!=0u || s.dgroup[addr+1u]!=0x20u)
+                throw std::runtime_error("authentic CODE.1 ctor priority differs");
+        } else {
+            s.dgroup[addr]=0u;
+            s.dgroup[addr+1u]=0x20u;
+        }
+        verify_or_initialize(addr+2u,
+            i==0u?0xFD6Eu:i==1u?0x10438u:0x10E81u);
+    }
+    s.source_psp[0x80u]=0u; // owner-controlled empty PSP command tail
+    s.source_env[0u]=0u; s.source_env[1u]=0u;
+    s.source_env[4u]=0u; // empty environment and executable-path tail
+    code1::StartupRegs12 regs{};
+    regs.eax=s.machine.cpu.eax;
+    regs.ebx=s.machine.cpu.ebx;
+    regs.ecx=s.machine.cpu.ecx;
+    regs.esi=s.machine.cpu.esi;
+    regs.edi=s.machine.cpu.edi;
+    regs.esp=s.machine.cpu.esp;
+    regs.ds=s.machine.cpu.ds;
+    regs.es=s.machine.cpu.es;
+    if(static_cast<u8>(regs.eax)!=2u)
+        throw std::runtime_error("CODE.1 CCDE did not derive Phar Lap mode 2 from ASCII BL");
+    code1::Startup12Boundary b{};
+    b.read8=&cd97_read8;
+    b.read32=&cd97_read32;
+    b.write16=&cd97_write16;
+    b.runtime_call=&cd97_runtime_call;
+    code1::function_cd97(s.machine,b,regs);
+    if(s.dgroup[0x531Eu]!=2u ||
+       code1::load_le32(s.dgroup.data()+0x55CCu)!=1u ||
+       code1::load_le32(s.dgroup.data()+0x55D0u)!=0x8000u ||
+       code1::load_le16(s.dgroup.data()+0x5324u)!=0x2Cu ||
+       s.source_runtime_calls!=2u || s.source_ctor_calls!=3u ||
+       s.source_ctor_targets[0]!=0x10E81u ||
+       s.source_ctor_targets[1]!=0x10438u ||
+       s.source_ctor_targets[2]!=0xFD6Eu ||
+       s.source_main_calls!=1u || s.source_exit_calls!=1u ||
+       !s.source_cd97_saved_ds || s.bad_cd97_access)
+        throw std::runtime_error("CODE.1 CD97/FCE8/FC98 startup state differs");
+}
+bool source_cd97_resize_break(u32 pages) noexcept {
+    auto& s=*current;
+    if(pages==0u || pages>0xFFFFu) {
+        s.bad_heap_access=true;
+        return false;
+    }
+    const auto r=s.host_break.resize(0x30u,static_cast<u16>(pages),s.dgroup);
+    if(r.carry)return false;
+    s.machine.data=s.dgroup.data();
+    ++s.source_break_calls;
+    return true;
+}
+u32 source_cd97_extend_break(u32 target) noexcept {
+    code1::FileBoundaries files{};
+    code1::RuntimeIoBoundaries io{};
+    io.resize_break_other=&source_cd97_resize_break;
+    return code1::function_10dd7(current->machine,files,io,target);
+}
+void source_break_heap_followup(bool original_loaded) {
+    auto& s=*current;
+    // CODE.1 CD97 itself publishes the true mode=2. The FCE8 ctor
+    // dispatcher and FC98 source initializer produce min_heap=0x8000.
+    if(s.dgroup[0x531Eu]!=2u ||
+       code1::load_le32(s.dgroup.data()+0x55D0u)!=0x8000u ||
+       code1::load_le32(s.dgroup.data()+0x52F0u)!=0xA000u)
+        throw std::runtime_error("CODE.1 source break heap startup preconditions differ");
+    const auto root=[&](u32 off,u32 original_value) {
+        if(original_loaded) {
+            if(code1::load_le32(s.dgroup.data()+off)!=original_value)
+                throw std::runtime_error("authenticated CODE.1 free-list roots differ");
+        } else code1::store_le32(s.dgroup.data()+off,original_value);
+    };
+    root(0x30C0u,0x30D4u);
+    root(0x30C8u,0xFFFFFFFFu);
+    root(0x30D8u,0x30D4u);
+    root(0x30DCu,0x30D4u);
+    code1::HeapCoreBoundaries hb{};
+    hb.read32=&heap_read32;
+    hb.write32=&heap_write32;
+    code1::HeapGrowthBoundaries gb{};
+    gb.extend_10dd7=&source_cd97_extend_break;
+    gb.free_db5b=&heap_source_db5b;
+    if(code1::function_10aa9(s.machine,hb,gb,0x300u)!=1u ||
+       s.source_break_calls!=1u || s.dgroup.size()!=0x12000u ||
+       code1::load_le32(s.dgroup.data()+0x52F0u)!=0x12000u ||
+       s.source_0501!=0u || s.source_heap.allocation_count()!=0u ||
+       s.source_db5b!=1u || s.bad_heap_access)
+        throw std::runtime_error("CODE.1 natural mode2 10AA9 failed to extend DS break");
+    const u32 payload=code1::function_104e0(hb,0x80u,0x30B8u);
+    if(!payload || payload<0xA000u || payload>=0x12000u ||
+       !(heap_read32(payload-4u)&1u))
+        throw std::runtime_error("CODE.1 source 104E0 mode2 allocation failed");
+    heap_source_db5b(payload);
+    if(s.source_db5b!=2u || s.source_0502!=0u ||
+       code1::load_le32(s.dgroup.data()+0x8E74u)!=0u ||
+       s.bad_heap_access)
+        throw std::runtime_error("CODE.1 source 10590 mode2 break free failed");
+}
 [[noreturn]] void halt(const char* reason) noexcept {
     current->boundary=reason;
     std::longjmp(current->escape,1);
