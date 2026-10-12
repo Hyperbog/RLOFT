@@ -27502,8 +27502,12 @@ struct Runtime126Boundary {
 };
 
 // 375FE..37641: preserve the extender-mode split used when installing the bridge.
-[[nodiscard]] u32 function_375fe(Runtime126Boundary& b,u32 old_offset,u16 old_selector,u8 extender_mode) noexcept {
-    (void)old_offset; (void)old_selector;
+[[nodiscard]] u32 function_375fe(Machine& m,Runtime126Boundary& b,u32 old_offset,u16 old_selector,u8 extender_mode) noexcept {
+    // Original 37607/3760C explicitly save the previous far callback
+    // into DGROUP 105F2 (offset) and 105F6 (selector) *before* INT 21h.
+    // Original 3761E reads the extender selector mode from DGROUP 12662.
+    store_le32(dg(m,0x105F2u),old_offset);
+    store_le16(dg(m,0x105F6u),old_selector);
     if(b.install_interrupt){
         if(extender_mode>=2u && extender_mode<=6u)b.install_interrupt(0x06u,0x24u,0x37642u);
         else b.install_interrupt(0x24u,0u,0x37642u);
