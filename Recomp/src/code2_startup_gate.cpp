@@ -1795,6 +1795,8 @@ int main(int argc,char**argv) {
                mode=="--enter-game-host-dpmi" ||
                mode=="--through-initializers-host-dos-fallback" ||
                mode=="--enter-game-host-dos-fallback" ||
+               mode=="--to-sound-config-no-args-host-dos-fallback" ||
+               mode=="--to-mouse-reset-host-dos-fallback" ||
                mode=="--to-mouse-reset-host-dpmi-heap" ||
                mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                mode=="--to-sound-config-no-args" ||
@@ -1814,7 +1816,8 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-y-range" ||
                mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
-                advance_to_mouse=(mode=="--to-mouse-reset-host-dpmi-heap" ||
+                advance_to_mouse=(mode=="--to-mouse-reset-host-dos-fallback" ||
+                    mode=="--to-mouse-reset-host-dpmi-heap" ||
                     mode=="--to-mouse-reset-host-file" ||
                     mode=="--to-mouse-reset-host-multifile" ||
                     mode=="--mouse-no-driver-to-dpmi-free" ||
@@ -1830,19 +1833,23 @@ int main(int argc,char**argv) {
                     mode=="--to-mouse-reset-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
-                advance_to_sound_file=(mode=="--to-sound-config-no-args-host-dpmi-heap" ||
+                advance_to_sound_file=(mode=="--to-sound-config-no-args-host-dos-fallback" ||
+                    mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                     mode=="--to-sound-config" ||
                     mode=="--to-sound-config-configured" ||
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
                     advance_to_mouse);
-                sound_no_arguments=(mode=="--to-sound-config-no-args-host-dpmi-heap" ||
+                sound_no_arguments=(mode=="--to-sound-config-no-args-host-dos-fallback" ||
+                    mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
                 host_dos_fallback=(mode=="--through-initializers-host-dos-fallback" ||
-                                   mode=="--enter-game-host-dos-fallback");
+                                   mode=="--enter-game-host-dos-fallback" ||
+                                   mode=="--to-sound-config-no-args-host-dos-fallback" ||
+                                   mode=="--to-mouse-reset-host-dos-fallback");
                 host_source_heap=(host_dos_fallback ||
                                   mode=="--to-mouse-reset-host-dpmi-heap" ||
                                   mode=="--to-sound-config-no-args-host-dpmi-heap" ||
