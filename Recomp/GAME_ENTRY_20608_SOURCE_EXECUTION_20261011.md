@@ -84,6 +84,65 @@ path, that callback instead stops immediately before changing the host
 DOS/IVT vectors. This new test asserts all branches of the original
 8-bit mode selector, not game startup parity.
 
+## Actual original CODE.2 argc/argv and DOS-mode correction (authoritative)
+
+Windows canonical build **#22**, commit `4c10427ed1d73e7d2c9ad1b96db9e3e1f939ed0d`,
+passed **15/15 CTests**. Earlier builds #20/#21 failed because the
+integrator incorrectly assumed `2F2EC` always called checked allocator
+`3104C`. The actual original CODE.2 branch depends on
+**`[105FC] = argc`**, populated by the original Watcom `3968E`
+argv initializer:
+
+- **argc = 1, no extra DOS argument:** original `2F2EC` executes
+  `3104C -> 37B34 -> 37B42 -> 39838` to allocate its 0x100-byte
+  audio state and then `30D30 -> 379D0` to clear it.
+- **argc = 2, numeric DOS argument:** original `2F2EC` takes
+  `3968E`'s argv[1], invokes **real `35349` decimal conversion**,
+  and uses that external DOS4GW device descriptor pointer directly.
+  It does NOT execute checked allocation or memset on this branch.
+  The supplied fixture address `186496` (0x2D880) is **test-only
+  external DOS memory**, not a claim about the real original game.
+
+Original `375FE` accesses a *different* variable, byte
+**DGROUP 12662h**, written by the actual DOS runtime as the
+extender-vector mode. Byte-for-byte original disassembly:
+`37607: A3 F2 05 01 00` saves old far offset to **105F2h**,
+`3760C: 66 89 15 F6 05 01 00` saves its selector to **105F6h**,
+and `3761E: A0 62 26 01 00` reads the DOS mode from **12662h**.
+The previous canonical `function_375fe` silently discarded the saved
+far pointer. This was a **real decompilation semantic bug** and
+has been corrected in `Code2/Code2.cpp`, with a full 256-value
+source-execution matrix checking both selection and DGROUP writes.
+
+Original DOS PSP fixture entry is now genuinely parsed through
+`353A0 -> 35418 -> 3968E`, tested with zero or one numeric
+argument, then passed into original `20608 -> 20440 -> 2F2EC`.
+Two configured-environment alternatives yield **four distinct original
+audio startup scenarios**. Every scenario uses the same compiled original
+sources, and the old original source-linked tests are preserved.
+
+### Newest execution boundary: original DOS AH=3Dh
+
+Subsequent integration executes the complete original source route
+`312A0 -> 37E77 -> 37E99`, including the original
+`mode=0x200` read-open and zero access/share mask. The bridge now
+stops at the *actual external DOS AH=3Dh open service*, rather than
+stopping before the original `37E77` file routine. In the
+`312A0` wrapper original x86 pushes only `(path, 0x200)`;
+`37E77` reads an additional inherited stack slot. In read-only mode
+`0x200`, the source `37E99` does not consume the extra
+create-only parameter; a test-only sentinel is passed explicitly rather
+than fabricating an original value. No on-disk original media or real
+DOS handles are accessed in CI. A real file-service/guest handle bridge
+is the next missing requirement.
+
+Independent
+`verify_original_game_entry_oracle.py` now checks **17 complete
+CODE.2 code spans**, exact original `375FE` side-effect instruction
+windows and `sound.cfg` data-name bytes against the original
+558,689-byte file; missing owner media is never silently considered a
+passing DOS comparison.
+
 ## Beyond interrupt installation: canonical audio setup to sound.cfg open
 
 Two additional genuine-source integration paths, `--to-sound-config` and
