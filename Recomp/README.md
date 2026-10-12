@@ -1,5 +1,33 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Current R04 checkpoint — continuous original CODE.2 host DPMI heap (2026-10-12)
+
+[Windows #106](https://github.com/Hyperbog/RLOFT/actions/runs/38257869955)
+**50/50 CTests passed** at exact source SHA
+`d09522858ebcc3b8ba659251f37973642252f116`.
+Four opt-in original-source startup integration tests now reach the
+four original CODE.2 initializers, `20608` game entry, argc=1 sound
+initialization, and the mouse-reset stop boundary using **a live
+unseeded host DPMI 0501-backed heap**. Original reconstructed
+`37B42/39D4D/39C7B/39BBC/39838/398E0` owns its arena structures;
+the host supplies tracked guest pages and source-bound dispatch.
+The original `35418` extender handshake invokes a host `0006`
+selector base lookup, and reconstructed `3A395` enables the heap
+through a host-initiated source call.
+
+The original DOS version, extender-presence result, PSP/environment,
+interrupts, mouse and hardware remain **bounded fixtures**. This is
+neither a playable game nor full DOS/4GW memory parity. Older fixed
+fixture heap tests remain separate.
+
+[Full R04 continuous-startup audit](R04_CODE2_CONTINUOUS_HOST_DPMI_STARTUP_20261012.md).
+
+**R04 remains UNACCEPTED; recompilation is 3/12 = 25.00%.**
+Next: complete CODE.1 `DB5B` free-list integration, CODE.2
+`39E1C` and DOS fallback, cross-runtime descriptor ownership,
+and original-DOS comparison. Continue R04 before other milestones.
+
+
 ## Current R04 focus: verified original CODE.2 0503/0502 lifecycle (2026-10-12)
 
 [Windows source gate #98](https://github.com/Hyperbog/RLOFT/actions/runs/38254878225)
