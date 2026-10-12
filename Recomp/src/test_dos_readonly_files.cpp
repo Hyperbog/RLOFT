@@ -18,6 +18,10 @@ void need(bool yes,const char* msg) {
 void eq(DosFileResult x,bool carry,unsigned ax,const char* msg) {
     need(x.carry==carry && x.ax==ax,msg);
 }
+void eq_seek(rloft_recomp::DosSeekResult x,bool carry,
+             std::uint32_t result,const char* msg) {
+    need(x.carry==carry && (carry?x.ax==result:x.offset()==result),msg);
+}
 struct TemporaryDirectory {
     fs::path p;
     TemporaryDirectory() {
@@ -38,6 +42,11 @@ int main() {
          need(f.good(),"cannot create fixture");
          f.write(reinterpret_cast<const char*>(source.data()),source.size());
          need(f.good(),"cannot write fixture");}
+        {std::ofstream f(tmp.p/"BIG.BIN",std::ios::binary);
+         need(f.good(),"cannot create large fixture");
+         for(unsigned i=0;i<0x10040u;++i)
+             f.put(static_cast<char>(i&0xFFu));
+         need(f.good(),"cannot write large fixture");}
         ReadOnlyDosFiles files(tmp.p);
         eq(files.open("subdir\\SOUND.CFG",0),true,3,"traversal accepted");
         eq(files.open("../SOUND.CFG",0),true,3,"parent traversal accepted");
@@ -68,6 +77,43 @@ int main() {
         eq(files.read(b.ax,nullptr,1),true,5,"null output accepted");
         eq(files.read(b.ax,buf.data(),65536),true,1,"oversized CX accepted");
         eq(files.read(999,buf.data(),1),true,6,"invalid read handle");
+
+        eq_seek(files.seek(a.ax,0,1),false,59u,"position after EOF");
+        eq_seek(files.seek(a.ax,-42,1),false,17u,"signed current seek");
+        eq(files.read(a.ax,buf.data(),42),false,42,"re-read after EOF");
+        need(std::equal(buf.begin(),buf.begin()+42,source.begin()+17),
+             "seek after EOF recovered incorrect bytes");
+        eq_seek(files.seek(a.ax,-1,2),false,58u,"end-relative seek");
+        eq(files.read(a.ax,buf.data(),3),false,1,"read partial at EOF");
+        need(buf[0]==source[58],"last byte after end seek differs");
+        eq_seek(files.seek(a.ax,70,0),false,70u,"seek beyond EOF");
+        eq(files.read(a.ax,buf.data(),1),false,0,"seek past EOF read");
+        eq_seek(files.seek(a.ax,0,0),false,0u,"rewind file");
+        eq(files.read(a.ax,buf.data(),1),false,1,"rewind recovered read");
+        need(buf[0]==source[0],"rewind byte differs");
+        eq_seek(files.seek(a.ax,-1,0),true,1u,"negative absolute position");
+        eq_seek(files.seek(a.ax,-1,3),true,1u,"invalid origin");
+        eq_seek(files.seek(a.ax,-10000,1),true,1u,"negative current position");
+        eq_seek(files.seek(999,0,0),true,6u,"invalid seek handle");
+        eq_seek(files.seek(a.ax,0,1),false,1u,"rejected seek altered cursor");
+        eq_seek(files.seek(b.ax,0,1),false,59u,"second cursor changed");
+        const auto large=files.open("big.bin",0);
+        need(!large.carry && large.ax==7u,"large file handle assignment");
+        eq_seek(files.seek(large.ax,0x10000,0),false,0x10000u,
+                "64KiB offset seek high word");
+        eq(files.read(large.ax,buf.data(),8),false,8,"large positioned read");
+        for(unsigned i=0;i<8;++i)
+            need(buf[i]==static_cast<std::uint8_t>(i),"large file content");
+        eq_seek(files.seek(large.ax,-8,1),false,0x10000u,
+                "large file current seek");
+        eq_seek(files.seek(large.ax,-0x40,2),false,0x10000u,
+                "large file end seek");
+        eq_seek(files.seek(large.ax,0x7fffffff,0),false,0x7fffffffu,
+                "valid large seek rejected");
+        eq_seek(files.seek(large.ax,0x7fffffff,1),true,1u,
+                "guest position wrap accepted");
+        eq(files.close(large.ax),false,0,"large file close failed");
+        eq_seek(files.seek(large.ax,0,0),true,6u,"closed seek handle");
         eq(files.close(a.ax),false,0,"valid close");
         eq(files.close(a.ax),true,6,"double close accepted");
         eq(files.close(b.ax),false,0,"second close failed");
@@ -77,7 +123,7 @@ int main() {
          f.read(reinterpret_cast<char*>(unchanged.data()),unchanged.size());
          need(f.gcount()==59,"host file length changed");}
         need(source==unchanged,"DOS read-only provider modified source file");
-        std::cout<<"HOST_DOS_RO_SERVICE=AH3D_AH3F_AH3E\n"
+        std::cout<<"HOST_DOS_RO_SERVICE=AH3D_AH3F_AH3E_AH42\n"
                    "HOST_DOS_READ_ONLY=YES\n"
                    "HOST_DOS_INPUT_UNMODIFIED=YES\n"
                    "SOURCE_GAME_BOOT=NO\n"
