@@ -237,4 +237,8 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --through-initializers-host-dpmi)
     add_test(NAME canonical_code2_startup_game_entry_unseeded_host_dpmi_heap
         COMMAND rloft_code2_startup_gate --enter-game-host-dpmi)
+    add_test(NAME canonical_code2_startup_sound_no_args_unseeded_host_dpmi_heap
+        COMMAND rloft_code2_startup_gate --to-sound-config-no-args-host-dpmi-heap)
+    add_test(NAME canonical_code2_startup_mouse_reset_unseeded_host_dpmi_heap
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-host-dpmi-heap)
 endif()
