@@ -176,6 +176,8 @@ void cd97_write16(u16 selector,u32 offset,u16 value) noexcept {
 u32 source_cd97_extend_break(u32 target) noexcept;
 u32 cd97_guest_allocate(u32 requested) noexcept {
     auto& s=*current;
+    std::cerr<<"R04_CD97_ALLOC_ENTER req="<<requested
+             <<" prior="<<s.source_constructor_allocs<<std::endl;
     code1::HeapCoreBoundaries h{};
     h.read32=&heap_read32;
     h.write32=&heap_write32;
@@ -183,12 +185,17 @@ u32 cd97_guest_allocate(u32 requested) noexcept {
     g.extend_10dd7=&source_cd97_extend_break;
     g.free_db5b=&heap_source_db5b;
     u32 p=code1::function_104e0(h,requested,0x30B8u);
+    std::cerr<<"R04_CD97_FIRST_FIT_RESULT="<<p<<std::endl;
     if(!p) {
+        std::cerr<<"R04_CD97_GROW_BEGIN="<<requested<<std::endl;
         if(code1::function_10aa9(s.machine,h,g,requested)!=1u) {
             s.bad_cd97_access=true;
             return 0u;
         }
+        std::cerr<<"R04_CD97_GROW_END break="
+                 <<s.dgroup.size()<<std::endl;
         p=code1::function_104e0(h,requested,0x30B8u);
+        std::cerr<<"R04_CD97_RETRY_FIT_RESULT="<<p<<std::endl;
     }
     if(!p || p>=s.dgroup.size() || s.bad_heap_access)
         s.bad_cd97_access=true;
@@ -241,6 +248,8 @@ void cd97_ctor_boundary(u32 addr) noexcept {
     }
     s.source_ctor_targets[s.source_ctor_calls++]=addr;
     if(s.mode!=Mode::ExtenderCd97Constructors)return;
+    std::cerr<<"R04_CD97_CTOR_ENTER="<<std::hex<<addr
+             <<std::dec<<std::endl;
     if(addr==0x10E81u) {
         code1::RuntimeIoBoundaries b{};
         b.alloc_node8=&cd97_alloc_node8;
@@ -256,6 +265,8 @@ void cd97_ctor_boundary(u32 addr) noexcept {
         b.write32=&cd97_guest_write32;
         code1::function_fd6e(s.machine,b);
     } else s.bad_cd97_access=true;
+    std::cerr<<"R04_CD97_CTOR_EXIT="<<std::hex<<addr
+             <<std::dec<<std::endl;
 }
 u32 cd97_stack_probe() noexcept {return 0u;}
 void cd97_source_10d1c() noexcept {
