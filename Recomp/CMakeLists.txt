@@ -78,6 +78,13 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --to-mouse-reset-no-args)
     add_test(NAME canonical_code2_configured_no_argv_sound_source_to_mouse_reset
         COMMAND rloft_code2_startup_gate --to-mouse-reset-no-args-configured)
+    # Run real CODE.2 33B44 with explicitly simulated INT33 results:
+    # present => source 30D80 DOS-memory boundary, absent => source
+    # 311E8 warning boundary. Neither branch invents DOS runtime success.
+    add_test(NAME canonical_code2_mouse_present_source_to_real_dos_memory_boundary
+        COMMAND rloft_code2_startup_gate --mouse-present-to-memory)
+    add_test(NAME canonical_code2_mouse_absent_source_to_real_dos_warning_boundary
+        COMMAND rloft_code2_startup_gate --mouse-absent-to-warning)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
     add_test(NAME canonical_code2_original_arena_split_coalesce_reuse COMMAND rloft_code2_startup_gate --arena-roundtrip-probe)
     add_test(NAME canonical_code2_env_allocation_failure_frees_original_arena_block COMMAND rloft_code2_startup_gate --env-rollback-probe)

@@ -27,6 +27,8 @@ SOURCE_MODES=(
     ("mouse-configured", "--to-mouse-reset-configured", "STOP_BEFORE_DOS_INT33_MOUSE_RESET"),
     ("mouse-no-args", "--to-mouse-reset-no-args", "STOP_BEFORE_DOS_INT33_MOUSE_RESET"),
     ("mouse-configured-no-args", "--to-mouse-reset-no-args-configured", "STOP_BEFORE_DOS_INT33_MOUSE_RESET"),
+    ("mouse-present-source", "--mouse-present-to-memory", "STOP_BEFORE_DOS_30D80_MOUSE_MEMORY"),
+    ("mouse-absent-source", "--mouse-absent-to-warning", "STOP_BEFORE_DOS_311E8_MOUSE_WARNING"),
 )
 def digest(path, expected, label):
     data=path.read_bytes()
@@ -36,7 +38,7 @@ def digest(path, expected, label):
     return {"sha256":found, "size":len(data)}
 def execute(exe, mode, code2, sound=None, timeout=120):
     cmd=[str(exe), mode, str(code2)]
-    if sound is not None and mode.startswith("--to-mouse-reset"):
+    if sound is not None and mode.startswith(("--to-mouse-reset","--mouse-")):
         cmd.append(str(sound))
     r=subprocess.run(cmd,capture_output=True,text=True,timeout=timeout)
     return {
@@ -65,7 +67,7 @@ def main(argv=None):
     cases=[]
     for label,mode,expect in SOURCE_MODES:
         case=execute(args.exe,mode,args.code2,args.sound_cfg)
-        expected_media="ORIGINAL_FILE" if args.sound_cfg and mode.startswith("--to-mouse-reset") else "SYNTHETIC_FIXTURE"
+        expected_media="ORIGINAL_FILE" if args.sound_cfg and mode.startswith(("--to-mouse-reset","--mouse-")) else "SYNTHETIC_FIXTURE"
         case["name"]=label
         case["passed"]=(case["returncode"]==0
                        and case["reported_boundary"]==expect
