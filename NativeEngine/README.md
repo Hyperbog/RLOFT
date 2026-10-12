@@ -1,5 +1,18 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Original CODE.2 2C3F1 scene draw-order source checkpoint (2026-10-12)
+
+[Exact original-byte selection and bounded native regression](ORIGINAL_CODE2_SCENE_RECORD_ORDER_20261012.md):
+the active 22-byte scene-record buffer now has an independently
+source-audited, original-order minimum projected-size selection helper,
+including stable ties, 0x7D high-byte visited mark, and draw-index
+annotations. Local isolated C++17 tests pass; a new CMake CTest is
+registered but **current-head Windows/Linux CI is not yet verified**.
+This helper consumes **caller-authored scene records**. Original
+2B6D0..2C22E scene generation, automatic camera/depth inputs, type
+dispatch, EH7 call scheduling and actual DOS frame parity remain open.
+The previous 29/29 Linux suite applies only to its cited earlier SHA.
+
 ## CONTROLLING original mixed EH6+EH7 four-plane RGB6 compositing gate — 2026-10-12
 
 [Verified first full 320x400 DAC6 frame from authentic wall and sprite resources](ACTUAL_ORIGINAL_MIXED_EH6_EH7_RGB6_COMPOSITOR_20261012.md). NativeEngine exact source **0783c7f802ebd350c7ee5fa730b234729d58ff99**, [Linux source-only Actions #38272329991](https://github.com/Hyperbog/RLOFT/actions/runs/38272329991) **29/29 CTests PASS**. The engine now composes the original LEVELS/RES4/CODE.2 wall projector and original RES3/SINTAB/CODE.2 EH7 VGA source paths in explicitly caller-chosen order, converts through CODE.2 level COLORS palette to 320x400 DAC6 RGB6, and atomically commits both world visibility and four-plane VGA state. The actual CI-compiled binary was run locally on original CODE.2/LEVELS.DAT/RES3/RES4/SINTAB/COLORS/INIT: 2 ordered wall/sprite calls, 256 wall texels, 1 EH7 source read, **268 VGA plane writes**, 4 complete indexed/RGB6 order-sensitive framebuffer hashes. Another independent Python original-byte decoder matched **all 4/4 full-frame hashes, ZERO differences**, and original-data rollback was validated. All original files remain private; no copyrighted data shipped or committed.
