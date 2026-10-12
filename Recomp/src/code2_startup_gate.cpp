@@ -267,8 +267,7 @@ u32 host_heap_dos_selector_base(u16 selector) noexcept {
         stop("SOURCE_HEAP_DOS_SELECTOR_UNOWNED");
     return kHostDosAlias+physical;
 }
-bool host_heap_owned(u32 linear,std::size_t size) noexcept {
-    auto& s=*current;
+bool host_heap_owned(Session& s,u32 linear,std::size_t size) noexcept {
     if(linear>s.data.size() || size>s.data.size()-linear)return false;
     if(s.source_dos_fallback) {
         if(linear<kHostDosAlias || !s.dos_heap_memory)return false;
@@ -277,6 +276,9 @@ bool host_heap_owned(u32 linear,std::size_t size) noexcept {
     }
     return s.dpmi_linear_memory &&
            s.dpmi_linear_memory->translate(linear,size)==s.data.data()+linear;
+}
+bool host_heap_owned(u32 linear,std::size_t size) noexcept {
+    return host_heap_owned(*current,linear,size);
 }
 u32 host_heap_39c7b(u32 n) noexcept {
     return code2::function_39c7b(current->machine,current->heap_provider,n);
@@ -1410,13 +1412,13 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         const u32 table=code2::load_le32(state.data.data()+0x12688u);
         const u32 expected_env_entries=game_config==GameConfig::Unset?1u:5u;
         require((source_host_heap?
-                    host_heap_owned(table,4u):
+                    host_heap_owned(state,table,4u):
                     (table>=0x2C000u && table<0x2D500u)) &&
                 code2::load_le32(state.data.data()+table+4u*expected_env_entries)==0u,
                 "original environment pointer-table terminator differs");
         const u32 item=code2::load_le32(state.data.data()+table);
         require((source_host_heap?
-                    host_heap_owned(item,7u):
+                    host_heap_owned(state,item,7u):
                     (item>=0x2C000u && item<0x2D500u)) &&
                 std::memcmp(state.data.data()+item,"no87=1",7)==0,
                 "original environment string was not copied by 3A2AD");
@@ -1453,7 +1455,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
             require(argv1==0u,"original argc=1 must terminate argv");
         } else {
             require((source_host_heap?
-                        host_heap_owned(argv1,7u):
+                        host_heap_owned(state,argv1,7u):
                         (argv1>=0x2C000u && argv1<0x2D500u)) &&
                     std::memcmp(state.data.data()+argv1,
                                 advance_to_sound_file?"186496":"/?",
@@ -1535,7 +1537,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                             state.checked_fill_calls==1u &&
                             state.audio_atoi_calls==0u &&
                             (source_host_heap?
-                                host_heap_owned(env,0x101u):
+                                host_heap_owned(state,env,0x101u):
                                 (env>=state.arena_start+0x0Au &&
                                  env<state.arena_end-0x100u)) &&
                             rd32(env-4u)==0x12345678u &&
@@ -1653,7 +1655,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     code2::load_le32(state.data.data()+freeptr+8u)==sentinel &&
                     code2::load_le32(state.data.data()+sentinel+4u)==freeptr &&
                     code2::load_le32(state.data.data()+sentinel+8u)==freeptr &&
-                    host_heap_owned(freeptr,12u),
+                    host_heap_owned(state,freeptr,12u),
                     "original 39BBC/39838 DPMI free-list metadata differs");
         } else {
         require(state.arena_seeded &&
@@ -1740,7 +1742,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                      state.dpmi_linear_memory->allocation_count()==0u):
                     (state.host_heap_allocs>=1u &&
                      state.dpmi_linear_memory->allocation_count()>=1u)) &&
-                host_heap_owned(code2::load_le32(
+                host_heap_owned(state,code2::load_le32(
                        state.data.data()+0x12624u)+0x2Cu,4u) &&
                 state.host_heap_releases==0u,
                 "initializer source did not establish tracked DPMI/DOS heap");
