@@ -231,12 +231,64 @@ rloft_recomp::OriginalLeImage synthetic_image() {
     for(std::size_t i=0;i<stream_flags.size();++i)
         code2::store_le32(img.objects[1].raw.data()+0xF6FCu+i*0x1Au+0xCu,
                           stream_flags[i]);
+    // Original shutdown table at 12738 has five physical bytes and one LE
+    // zero-fill byte; the original callback address is therefore 3A228.
+    img.objects[1].raw[0x12738u]=0u;
+    img.objects[1].raw[0x12739u]=0x20u;
+    code2::store_le32(img.objects[1].raw.data()+0x1273Au,0x3A228u);
     return img;
 }
 std::vector<u8> read_file(const char* name) {
     std::ifstream file(name,std::ios::binary);
     require(bool(file),"cannot open original CODE.2");
     return {std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
+}
+void terminator_exit() noexcept {
+    stop("STOP_BEFORE_DOS_EXIT_3A63E");
+}
+void unexpected_terminator_close(u32,u32) noexcept {
+    stop("TERMINATION_STREAM_CLOSE_REQUIRES_HOST_SERVICES");
+}
+void termination_guest(u32 target,u32 arg) noexcept {
+    if(target!=0x3A228u || arg!=0xFF00u)
+        stop("ORIGINAL_TERMINATION_CALLBACK_UNEXPECTED");
+    current->first_guest=target;
+    current->guest_arg=arg;
+    code2::Runtime3a1b3Boundary bounds{};
+    bounds.close_3a689=&unexpected_terminator_close;
+    bounds.exit_3a63e=&terminator_exit;
+    // A zeroed guest stream list tests the no-open-stream exit path only.
+    code2::function_3a228(current->machine,bounds);
+    stop("TERMINATION_GUEST_RETURNED_WITHOUT_EXIT");
+}
+void termination_probe(const rloft_recomp::OriginalLeImage& img,bool original) {
+    require(img.objects.size()==2 &&
+            img.objects[1].raw.size()==0x2DD10u,
+            "CODE.2 termination data object unavailable");
+    Session s;
+    s.data=img.objects[1].raw;
+    s.machine.data=s.data.data();
+    require(code2::load_le32(s.data.data()+0x2BCF0u)==0u,
+            "termination probe requires original zero-initialized stream list");
+    require(s.data[0x12738u]==0u && s.data[0x12739u]==0x20u &&
+            code2::load_le32(s.data.data()+0x1273Au)==0x3A228u,
+            "authentic original termination table value missing");
+    s.init.call_guest=&termination_guest;
+    current=&s;
+    if(setjmp(s.escape)==0) {
+        code2::function_3962d(s.machine,s.init,0u,0xFFu);
+        stop("ORIGINAL_TERMINATION_SCHEDULER_RETURNED_WITHOUT_EXIT");
+    }
+    current=nullptr;
+    require(s.stop_reason==std::string("STOP_BEFORE_DOS_EXIT_3A63E") &&
+            s.first_guest==0x3A228u && s.guest_arg==0xFF00u,
+            "original CODE.2 3962D to 3A228 source termination edge failed");
+    std::cout<<"ORIGINAL_TERMINATION_SCHEDULER=3962D\\n"
+             <<"ORIGINAL_ZERO_FILLED_CALLBACK_TABLE=12738..1273D\\n"
+             <<"EXECUTED_TERMINATION_HANDLER=3A228\\n"
+             <<"DOS_EXIT_BOUNDARY_3A63E=STOPPED_BEFORE_OS\\n"
+             <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\\n"
+             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\\n';
 }
 void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
     require(img.objects.size()==2 && img.entry_object==1 &&
@@ -371,19 +423,28 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
 }
 int main(int argc,char**argv) {
     try {
-        bool extended=false;
+        bool extended=false,termination=false;
         int original_index=1;
-        if(argc>=2 && std::string(argv[1])=="--through-initializers") {
-            extended=true;
-            original_index=2;
+        if(argc>=2) {
+            const std::string mode(argv[1]);
+            if(mode=="--through-initializers" || mode=="--termination-probe") {
+                extended=(mode=="--through-initializers");
+                termination=(mode=="--termination-probe");
+                original_index=2;
+            }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers] [CODE.2]");
-        if(argc==original_index)run(synthetic_image(),false,extended);
-        else {
+                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe] [CODE.2]");
+        if(argc==original_index) {
+            const auto fixture=synthetic_image();
+            if(termination)termination_probe(fixture,false);
+            else run(fixture,false,extended);
+        }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
-            run(rloft_recomp::OriginalLeImage::parse(b),true,extended);
+            const auto image=rloft_recomp::OriginalLeImage::parse(b);
+            if(termination)termination_probe(image,true);
+            else run(image,true,extended);
         }
         return 0;
     } catch(const std::exception& e) {
