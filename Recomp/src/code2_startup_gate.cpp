@@ -283,12 +283,12 @@ void termination_probe(const rloft_recomp::OriginalLeImage& img,bool original) {
     require(s.stop_reason==std::string("STOP_BEFORE_DOS_EXIT_3A63E") &&
             s.first_guest==0x3A228u && s.guest_arg==0xFF00u,
             "original CODE.2 3962D to 3A228 source termination edge failed");
-    std::cout<<"ORIGINAL_TERMINATION_SCHEDULER=3962D\\n"
-             <<"ORIGINAL_ZERO_FILLED_CALLBACK_TABLE=12738..1273D\\n"
-             <<"EXECUTED_TERMINATION_HANDLER=3A228\\n"
-             <<"DOS_EXIT_BOUNDARY_3A63E=STOPPED_BEFORE_OS\\n"
-             <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\\n"
-             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\\n';
+    std::cout<<"ORIGINAL_TERMINATION_SCHEDULER=3962D\n"
+             <<"ORIGINAL_ZERO_FILLED_CALLBACK_TABLE=12738..1273D\n"
+             <<"EXECUTED_TERMINATION_HANDLER=3A228\n"
+             <<"DOS_EXIT_BOUNDARY_3A63E=STOPPED_BEFORE_OS\n"
+             <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\n"
+             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\n';
 }
 void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
     require(img.objects.size()==2 && img.entry_object==1 &&
