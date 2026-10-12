@@ -58,6 +58,18 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --to-sound-config-no-args)
     add_test(NAME canonical_code2_configured_no_argv_audio_checked_allocator
         COMMAND rloft_code2_startup_gate --to-sound-config-no-args-configured)
+    # TEST-ONLY read-only 59-byte DOS fixture, then full original compiled
+    # 37E99 descriptor publication, 312EC->38106 binary file read,
+    # 312DC->380F8 close, 2F2EC flags and source 33B44. Halt on actual
+    # external INT 33h mouse reset; no synthetic "mouse installed" outcome.
+    add_test(NAME canonical_code2_original_sound_source_to_mouse_reset
+        COMMAND rloft_code2_startup_gate --to-mouse-reset)
+    add_test(NAME canonical_code2_configured_sound_source_to_mouse_reset
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-configured)
+    add_test(NAME canonical_code2_no_argv_sound_source_to_mouse_reset
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-no-args)
+    add_test(NAME canonical_code2_configured_no_argv_sound_source_to_mouse_reset
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-no-args-configured)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
     add_test(NAME canonical_code2_original_arena_split_coalesce_reuse COMMAND rloft_code2_startup_gate --arena-roundtrip-probe)
     add_test(NAME canonical_code2_env_allocation_failure_frees_original_arena_block COMMAND rloft_code2_startup_gate --env-rollback-probe)
