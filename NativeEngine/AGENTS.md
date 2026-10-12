@@ -1,5 +1,13 @@
 # NativeEngine — Active developer/agent instructions
 
+## CONTROLLING RES3 full-original EH7 corpus milestone — 4,234/4,234 source shapes
+
+[Full authenticated original RES3 validation chapter](ACTUAL_ORIGINAL_RES3_EH7_4234_VERIFIED_20261011.md). The owner-provided RES+OTHER.zip now supplies the complete authentic RES3, confirmed by SHA256 and Git blob identity against DnD-Classics/MASTER. Exact compiled native source **5b50e948b526f54f70c10d6cb5020d09ca13caa0**, [Actions #38192524579](https://github.com/Hyperbog/RLOFT/actions/runs/38192524579) **20/20 portable CTests passed**. That exact GitHub-built C++ executable was run locally against ALL **4,234 original EH7** shape entries: **4,234/4,234 LZSS/geometry/pointer/descriptor decodes passed**. An independent Python decoder confirmed 4,234/4,234 compressed source SHA256 and 4,234/4,234 decoded-body SHA256, **38,106/38,106 per-shape typed fields with ZERO differences**; 123,294 unique referenced column lists and 278,085 raster descriptor occurrences. The complete source is 7,600,070 decoded bytes. No original bytes were committed to Git or uploaded to CI.
+
+Canonical independent source verifier SharedDecomp/verify_native_res3_type7.py at code1-decompilation SHA **e24e8b2587fbbd068fd48ffc856ca5489af34ff2**, [research Actions #38192758031](https://github.com/Hyperbog/RLOFT/actions/runs/38192758031) **149/149 original-free tests passed**.
+
+**Exact completion boundary:** original RES3 4,234-entry native format decoder/data identity VERIFIED; original renderer color/shape projection/frame parity, EH7 SINTAB rasterizer behavior, CODE.2 view subframes, authentic EH6 texture/palette rendering, actor/event gameplay and current Windows/MSVC demo NOT verified. Next work is the source-proved portable renderer and DOS reference frame trace, **not** more source-file acquisition. The original Windows release workflow remains owner-manual. Keep independent DemoV1 game runtime unlinked.
+
 ## CONTROLLING authored scene-source milestone — 6,204/6,204 authentic original source bases
 
 [Original-world source instance verification chapter](ACTUAL_ORIGINAL_SCENE_6204_RESOLVED_20261011.md).
