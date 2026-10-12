@@ -329,6 +329,14 @@ void source_cd97_followup(bool original_loaded) {
             i==0u?0xFD6Eu:i==1u?0x10438u:0x10E81u);
     }
     if(s.mode==Mode::ExtenderCd97Constructors) {
+        // These four static root words belong to the authenticated
+        // CODE.1 LE data object. They precede the first genuine FCE8
+        // constructor allocation and must not be left zero by an
+        // otherwise empty asset-free DGROUP fixture.
+        verify_or_initialize(0x30C0u,0x30D4u);
+        verify_or_initialize(0x30C8u,0xFFFFFFFFu);
+        verify_or_initialize(0x30D8u,0x30D4u);
+        verify_or_initialize(0x30DCu,0x30D4u);
         // Five nonzero original static DOS stdio stream flag records
         // 539C..5404, and the terminal zero stream at 541E.
         constexpr u32 flags[6]={1u,2u,2u,3u,2u,0u};
