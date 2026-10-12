@@ -5,6 +5,7 @@
 #include "../../Code2/Code2.cpp"
 #include "original_le_image.h"
 #include "dos_readonly_files.hpp"
+#include "dpmi_dos_memory.hpp"
 #include <algorithm>
 #include <array>
 #include <csetjmp>
@@ -82,6 +83,8 @@ struct Session {
     // Optional genuine host file I/O. Existing DOS/mouse/vector fixtures
     // remain explicit; this is not a complete DOS runtime.
     std::unique_ptr<rloft_recomp::ReadOnlyDosFiles> host_files;
+    // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
+    std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -474,7 +477,19 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
             stop("ORIGINAL_DPMI_0100_REQUEST_CHANGED");
         if(!wants_synthetic_mouse_dpmi_allocation())
             stop("STOP_BEFORE_DOS_INT31_0100_ALLOCATION");
-        // Fixture response, NOT an actual 0x0100h DOS allocation.
+
+        if(current->dpmi_dos_memory) {
+            const auto result=current->dpmi_dos_memory->allocate(
+                static_cast<u16>(code2::load_le32(in+4u)));
+            if(result.carry)stop("HOST_DPMI_0100_DOS_MEMORY_EXHAUSTED");
+            // Source 30D52 register-context ABI: low AX -> byte 0,
+            // low DX -> +0C, carry flag -> +18.
+            code2::store_le32(out,result.ax);
+            code2::store_le16(out+0x0Cu,result.dx);
+            out[0x18u]=0u;
+            return 0u;
+        }
+        // Legacy opt-in fixture retained for differential test continuity.
         code2::store_le32(out,0x2D60u);
         code2::store_le16(out+0x0Cu,0x0060u);
         out[0x18u]=0u;
@@ -492,7 +507,15 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
            current->mouse_branch!=MouseResetBranch::RangeY &&
            current->mouse_branch!=MouseResetBranch::DiskSpace)
             stop("ORIGINAL_DPMI_0101_UNEXPECTED_RELEASE");
-        // Explicit fixture: successful release of the earlier fake block.
+
+        if(current->dpmi_dos_memory) {
+            const auto result=current->dpmi_dos_memory->release(
+                code2::load_le16(in+0x0Cu));
+            if(result.carry)stop("HOST_DPMI_0101_INVALID_SELECTOR");
+            out[0x18u]=0u;
+            return 0u;
+        }
+        // Legacy opt-in fixture, not the real tracked DPMI service.
         out[0x18u]=0u;
         return 0u;
     }
@@ -907,7 +930,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool advance_to_mouse=false,
          const std::vector<u8>* original_sound_cfg=nullptr,
          MouseResetBranch mouse_branch=MouseResetBranch::Stop,
-         const std::filesystem::path* host_root=nullptr) {
+         const std::filesystem::path* host_root=nullptr,
+         bool use_host_dpmi=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -919,6 +943,13 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.advance_to_sound_file=advance_to_sound_file;
     state.advance_to_mouse=advance_to_mouse;
     state.mouse_branch=mouse_branch;
+    if(use_host_dpmi) {
+        require(advance_to_mouse &&
+                (mouse_branch==MouseResetBranch::MemoryHandoff ||
+                 mouse_branch==MouseResetBranch::DiskSpace),
+                "host DPMI 0100/0101 requires original mouse source path");
+        state.dpmi_dos_memory=std::make_unique<rloft_recomp::DpmiDosMemory>();
+    }
     if(host_root) {
         require(advance_to_mouse && original_sound_cfg!=nullptr,
                 "host DOS file mode needs explicit 59-byte comparison input");
@@ -1401,6 +1432,15 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                    original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
     if(host_root)require(state.host_files->open_handles()==0u,
                          "host DOS descriptors remained open");
+    if(use_host_dpmi) {
+        require(state.dpmi_dos_memory->allocation_count()==
+                (mouse_branch==MouseResetBranch::MemoryHandoff?1u:0u),
+                "actual DOS-memory descriptor state differs after original code");
+        std::cout<<"HOST_DPMI_DOS_MEMORY_0100=TRACKED_SERVICE\\n"
+                    "HOST_DPMI_DOS_MEMORY_0101="
+                 <<(mouse_branch==MouseResetBranch::DiskSpace?
+                    "RELEASED":"NOT_REACHED")<<"\\n";
+    }
 
 }
 }
@@ -1409,7 +1449,7 @@ int main(int argc,char**argv) {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false,advance_to_sound_file=false,
              sound_no_arguments=false,advance_to_mouse=false,
-             host_sound_file=false;
+             host_sound_file=false,host_dpmi=false;
         MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -1427,6 +1467,8 @@ int main(int argc,char**argv) {
                mode=="--to-mouse-reset-configured" ||
                mode=="--to-mouse-reset-no-args" ||
                mode=="--to-mouse-reset-no-args-configured" ||
+               mode=="--mouse-dpmi-to-real-mode" ||
+               mode=="--mouse-dpmi-to-disk-query" ||
                mode=="--mouse-present-to-memory" ||
                mode=="--mouse-present-to-real-mode" ||
                mode=="--mouse-no-driver-to-dpmi-free" ||
@@ -1439,6 +1481,8 @@ int main(int argc,char**argv) {
                     mode=="--mouse-no-driver-to-x-range" ||
                     mode=="--mouse-no-driver-to-y-range" ||
                     mode=="--mouse-no-driver-to-disk-query" ||
+                    mode=="--mouse-dpmi-to-real-mode" ||
+                    mode=="--mouse-dpmi-to-disk-query" ||
                     mode=="--mouse-present-to-real-mode" ||
                     mode=="--mouse-present-to-memory" ||
                     mode=="--mouse-absent-to-warning" ||
@@ -1466,11 +1510,15 @@ int main(int argc,char**argv) {
                     game_config=GameConfig::Overrides;
                 if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
                 if(mode=="--mouse-present-to-memory")mouse_branch=MouseResetBranch::Present;
-                if(mode=="--mouse-present-to-real-mode")mouse_branch=MouseResetBranch::MemoryHandoff;
+                if(mode=="--mouse-present-to-real-mode" ||
+                   mode=="--mouse-dpmi-to-real-mode")mouse_branch=MouseResetBranch::MemoryHandoff;
                 if(mode=="--mouse-no-driver-to-dpmi-free")mouse_branch=MouseResetBranch::FreeBoundary;
                 if(mode=="--mouse-no-driver-to-x-range")mouse_branch=MouseResetBranch::RangeX;
                 if(mode=="--mouse-no-driver-to-y-range")mouse_branch=MouseResetBranch::RangeY;
-                if(mode=="--mouse-no-driver-to-disk-query")mouse_branch=MouseResetBranch::DiskSpace;
+                if(mode=="--mouse-no-driver-to-disk-query" ||
+                   mode=="--mouse-dpmi-to-disk-query")mouse_branch=MouseResetBranch::DiskSpace;
+                host_dpmi=(mode=="--mouse-dpmi-to-real-mode" ||
+                           mode=="--mouse-dpmi-to-disk-query");
                 if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
                 host_sound_file=(mode=="--to-mouse-reset-host-file");
                 extended=(mode=="--through-initializers" || execute_application);
@@ -1510,7 +1558,7 @@ int main(int argc,char**argv) {
             if(termination)termination_probe(fixture,false);
             else run(fixture,false,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,advance_to_mouse,
-                     nullptr,mouse_branch);
+                     nullptr,mouse_branch,nullptr,host_dpmi);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
@@ -1526,7 +1574,7 @@ int main(int argc,char**argv) {
             if(termination)termination_probe(image,true);
             else run(image,true,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,
-                     advance_to_mouse,sound_ptr,mouse_branch);
+                     advance_to_mouse,sound_ptr,mouse_branch,nullptr,host_dpmi);
         }
         return 0;
     } catch(const std::exception& e) {
