@@ -1,5 +1,35 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## CONTROLLING authored scene-source milestone — 6,204/6,204 authentic original source bases
+
+[Original-world source instance verification chapter](ACTUAL_ORIGINAL_SCENE_6204_RESOLVED_20261011.md).
+NativeEngine source \`5bffd3a3e53a06842d27fbe5c63d574acbc9babd\`
+compiled with [Linux Actions #38191784044](https://github.com/Hyperbog/RLOFT/actions/runs/38191784044)
+**20/20 CTests passing**; shared research source
+\`47cc267de4ca5ea250c8cc9082f1a0dc189811e8\`
+passed [source-only Actions #38192139467](https://github.com/Hyperbog/RLOFT/actions/runs/38192139467)
+**139/139 regressions**. The real original \`INIT\` (exact Git-blob
+verified from DnD-Classics/MASTER), plus original \`LEVELS.DAT\`,
+\`NPCS.DAT\`, \`OBJECTS.DAT\`, was read locally by **the actual
+GitHub-built native C++ executable**. Independent Python produced
+**32/32 exact matching per-level resolved-source SHA256** and the
+entire original-source scene-candidate digest:
+\`aeb7e334ba23bc114d5444617451495c4bda238d772343f597a9e3b1755d348c\`.
+This verifies 1,258 NPC + 4,324 placed + 622 loose original world
+records, their CODE.2 source-class-resolved RES3 **BASE** IDs,
+positions, and the single original type 0x54→0x58 item alias.
+
+The C++ native EH7 display-list decoder and INIT four-bank source
+catalog are compiled and synthetic CTest-verified, but **actual original
+RES3 content has not yet been passed through that new binary**; RES3
+is present in DnD-Classics Git but not local test media. That complete
+4,234-entry live decoder run is the next exact-file acceptance gate.
+Neither original view/animation subframe nor SINTAB x86 rasterized
+pixels are verified. The host raycast diagnostic must not be called
+the finished DOS engine. Do not link DemoV1 game runtime, commit
+original payload data, or trigger manual-only Windows release workflow
+without owner authorization.
+
 ## CONTROLLING verified native scene view/resource-header milestone — 288/288 original sections (2026-10-11)
 
 [Evidence chapter](ACTUAL_SCENE_HEADER_288_AND_PROBE_20261011.md).
