@@ -84,6 +84,48 @@ path, that callback instead stops immediately before changing the host
 DOS/IVT vectors. This new test asserts all branches of the original
 8-bit mode selector, not game startup parity.
 
+## Original DOS file OPEN/READ/CLOSE source execution to INT 33h
+
+A fourth substantial integration goes beyond the formerly external
+DOS file-open boundary. New `--to-mouse-reset`,
+`--to-mouse-reset-configured`, `--to-mouse-reset-no-args` and
+`--to-mouse-reset-no-args-configured` exercise the authentic
+`CODE.2` source path from 353A0 through the real sound-file
+open/read/close wrappers and into real original mouse-reset function
+`33B44`:
+
+```text
+2F2EC -> 312A0 -> 37E77 -> 37E99
+                      -> TEST DOS AH=3D open returns handle 5
+        -> 312EC -> 38106 original binary read of 0x3B (59) bytes
+                      -> TEST DOS AH=3F read into guest DGROUP buffer
+        -> 312DC -> 380F8 original descriptor close
+                      -> TEST DOS AH=3E close
+        -> original 2F2EC env+64/env+66 state bytes become 1
+        -> 33B44 original mouse-reset/prerequisite routine
+                      -> STOP at actual DOS INT 33h mouse reset
+```
+
+**The 59 file bytes are explicitly synthetic, not the game's original
+SOUND.CFG**. The test-only DOS adapter accepts exactly the original
+`sound.cfg` path and read-only mode `0x200`, creates a synthetic
+handle 5, records the exact descriptor flags published by real
+`37E99` (expected `0x41` for this binary read),
+and copies a deterministic 59-byte buffer through genuine
+`38106`. The source `380F8` performs its actual close wrapper,
+and the test adapter verifies one read/one close without opening any
+host file. Both original `argc=1` checked-allocator path and
+`argc=2` argv-pointer path, with default/configured environment,
+are covered. Original `33B44` is entered; at its first mouse-reset
+interrupt, execution **stops fail-closed**. No synthetic installed mouse
+or host interrupt is supplied, no visual game is claimed.
+
+This is a bounded original-source implementation milestone.
+The separate next acceptance is an actual read-only DOS/Watcom file
+service backed by user-owned original SOUND.CFG plus original runtime
+graphics/resource and mouse behavior. Windows CTest must pass on the
+specific source SHA before accepting this extension.
+
 ## Actual original CODE.2 argc/argv and DOS-mode correction (authoritative)
 
 Windows canonical build **#22**, commit `4c10427ed1d73e7d2c9ad1b96db9e3e1f939ed0d`,
