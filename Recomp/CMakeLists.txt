@@ -25,8 +25,15 @@ foreach(target IN ITEMS rloft_recomp_link_gate rloft_original_image_gate rloft_c
         target_compile_options(${target} PRIVATE -O0 -Wall -Wextra -Wpedantic)
     endif()
 endforeach()
+# Constrained host-backed DOS read-only file transport, tested independently
+# before binding it to canonical reconstructed game callbacks.
+add_executable(rloft_dos_readonly_files_test src/test_dos_readonly_files.cpp)
+set_target_properties(rloft_dos_readonly_files_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 include(CTest)
 if(BUILD_TESTING)
+    add_test(NAME canonical_host_readonly_dos_file_service_contract
+        COMMAND rloft_dos_readonly_files_test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         # Pure standard-library tests. Validate authenticated-media
