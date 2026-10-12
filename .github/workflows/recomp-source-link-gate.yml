@@ -35,11 +35,31 @@ jobs:
       - name: Execute compiled reconstruction leaf and entry-boundary tests
         shell: pwsh
         run: ctest --test-dir build/recomp -C Debug --output-on-failure
-      - name: Retain the source-linked test executable for inspection
+      - name: Stamp exact canonical source and engineering status
+        if: success()
+        shell: pwsh
+        run: |
+          Set-Content -Path build/recomp/Debug/build-source-sha.txt -Value "${{ github.sha }}"
+          @(
+            'Ravenloft: Strahds Possession - canonical DOS source recompilation'
+            'This is an original CODE.1/CODE.2 engineering test build, NOT a playable game.'
+            'The source executables link and execute the reconstructed original code.'
+            'Run rloft_code2_startup_gate.exe --to-mouse-reset to test actual CODE.2 startup through original DOS mouse reset, using test-only DOS environment/file fixtures.'
+            'Run rloft_code2_startup_gate.exe --to-mouse-reset-no-args for the source-backed allocator branch.'
+            'Run rloft_original_image_gate.exe CODE.1 CODE.2 to verify personally owned original files.'
+            'The currently unresolved boundary is original DOS INT 33h mouse behavior, with real service/media parity still to be implemented.'
+            'No commercial original game media are included in this artifact.'
+          ) | Set-Content -Path build/recomp/Debug/README-RECOMP.txt
+      - name: Publish all three canonical source executables and source SHA
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: reconstructed-code1-code2-link-gate-${{ github.run_number }}
-          path: build/recomp/Debug/rloft_recomp_link_gate.exe
+          name: RLOFT-Canonical-Recomp-Windows-${{ github.run_number }}
+          path: |
+            build/recomp/Debug/rloft_recomp_link_gate.exe
+            build/recomp/Debug/rloft_code2_startup_gate.exe
+            build/recomp/Debug/rloft_original_image_gate.exe
+            build/recomp/Debug/build-source-sha.txt
+            build/recomp/Debug/README-RECOMP.txt
           if-no-files-found: error
           retention-days: 7

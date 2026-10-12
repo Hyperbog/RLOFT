@@ -201,3 +201,34 @@ execute *compiled canonical CODE.2 source*, not the native engine.
 The new four CTests and their binary integration are separate
 from the previous 15/15 green checkpoint until CI confirms the
 exact new checkout.
+
+## 2026-10-11 compiled original SOURCE file-read and DOS mouse boundary — VERIFIED
+
+**[Windows canonical source build #29](https://github.com/Hyperbog/RLOFT/actions/runs/38198547164):
+19/19 CTests PASS**, exact compiled source
+`5e91a0fa7a13b8c5a933a16ea0e200571c321afa`.
+Four tests cover default and configured DOS environment under both authentic
+CODE.2 `argc=1` allocation and `argc=2` decimal pointer mode. This
+build executes the original CODE.1/CODE.2 source through
+`353A0 -> 35418 -> 395E2 -> 20608 -> 2F2EC -> 375FE -> 30BB4 ->
+312A0 -> 37E77 -> 37E99 -> 312EC -> 38106 -> 312DC ->
+380F8 -> 33B44` and **stops at the actual DOS INT 33h mouse-reset
+service**. The no-arg route additionally executes the original checked
+allocator and zero-fill path. The test-only read-only SOUND.CFG fixture is
+59 bytes; its exact copy destination is the *base* of the original audio
+descriptor, followed by separate `+0x64/+0x66` state updates, all asserted.
+No game install files, proprietary resources or original DOS interrupts
+are loaded in Windows CI, and the **full game does not boot yet**.
+
+Canonical `Code2.cpp`'s historical `375FE` C++ omission was repaired:
+original x86 stores the previous far pointer at `105F2/105F6` and uses
+extender byte `12662`, whereas global `105FC` is parsed argument count.
+`Recomp/tools/verify_original_game_entry_oracle.py` independently pins
+**23 original CODE.2 instruction spans** and exact control/data opcode
+windows against owner-supplied authentic original CODE.2 SHA-256.
+See [detailed engineering and original binary evidence](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md).
+
+The Windows workflow now publishes **all three** compiled canonical
+developer executables (not just the older leaf probe), exact source SHA,
+and plain-text usage/disclaimer. This packaging change is subject to a
+new exact-SHA CI gate. It does not publish or claim a playable game.
