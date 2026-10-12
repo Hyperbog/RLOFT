@@ -139,6 +139,8 @@ if(BUILD_TESTING)
         COMMAND rloft_extender_data_break_test)
     add_test(NAME canonical_code1_original_ccde_ah4a_host_dgroup_resize
         COMMAND rloft_code1_startup_gate --extender-host-resize)
+    add_test(NAME canonical_code1_startup_ccde_to_original_source_dpmi_heap_lifetime
+        COMMAND rloft_code1_startup_gate --extender-host-resize-to-source-heap)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
