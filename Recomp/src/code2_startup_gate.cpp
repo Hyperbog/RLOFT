@@ -7,6 +7,7 @@
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
+#include "dpmi_selector_descriptors.hpp"
 #include <algorithm>
 #include <array>
 #include <csetjmp>
@@ -89,6 +90,7 @@ struct Session {
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
     std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;
+    rloft_recomp::DpmiSelectorDescriptors host_startup_descriptors;
     code2::Runtime142Boundary heap_provider{};
     code2::Runtime39d4dBoundary heap_growth{};
     bool source_host_heap=false;
@@ -136,11 +138,23 @@ void dos21(code2::Machine& m) noexcept {
         m.cpu.eax=0x00001606u;  // AL major 6; AH minor 22
     }else if(ax==0xFF00u) {
         ++current->ff00_calls;
-        m.cpu.eax=0u;          // Controlled plain-DOS startup branch
+        // R04 host-DPMI scenario advertises a real 0006 selector-base
+        // service. All historical tests retain the plain-DOS result.
+        m.cpu.eax=current->source_host_heap?1u:0u;
     }else stop("UNSUPPORTED_DOS_INT21");
 }
-void dpmi31(code2::Machine&) noexcept {
-    ++current->dpmi_calls;stop("UNSUPPORTED_DPMI_INT31");
+void dpmi31(code2::Machine& m) noexcept {
+    ++current->dpmi_calls;
+    if(current->source_host_heap &&
+       static_cast<u16>(m.cpu.eax)==0x0006u) {
+        const auto r=current->host_startup_descriptors.get_base(
+            static_cast<u16>(m.cpu.ebx));
+        if(r.carry)stop("SOURCE_STARTUP_DPMI_0006_INVALID_SELECTOR");
+        m.cpu.ecx=(m.cpu.ecx&0xFFFF0000u)|r.cx;
+        m.cpu.edx=(m.cpu.edx&0xFFFF0000u)|r.dx;
+        return;
+    }
+    stop("UNSUPPORTED_DPMI_INT31");
 }
 // The *arena storage and first free block* are a deterministic test fixture.
 // All allocation choice/split/metadata linkage below is performed by original
@@ -1106,6 +1120,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         state.data.resize(0x01100000u,0u);
         state.dpmi_linear_memory=std::make_unique<
             rloft_recomp::DpmiLinearMemory>(state.data.data(),state.data.size());
+        require(state.host_startup_descriptors.install(
+                    0x30u,0x00050000u,0x2DD10u),
+                "CODE.2 original DGROUP selector installation failed");
         // Watcom 39D4D checks this enable flag; setup remains bounded.
         code2::store_le32(state.data.data()+0x12708u,1u);
     }
@@ -1155,6 +1172,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     }
     state.machine.data=state.data.data();
     state.machine.cpu.ds=0x30;state.machine.cpu.ss=0x30;
+    if(source_host_heap)state.machine.cpu.es=0x24u;
     state.machine.cpu.cs=0x17;state.machine.cpu.esp=0x2DD10;
     state.entry.tail_35418=&invoke_startup;
     // The canonical 352EE implementation delegates case-folded comparison
@@ -1245,7 +1263,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     }
     current=nullptr;
     require(state.version_calls==1 && state.ff00_calls==1 &&
-            state.dpmi_calls==(mouse_branch==MouseResetBranch::Present ||
+            state.dpmi_calls==(source_host_heap?1u:0u)+
+                (mouse_branch==MouseResetBranch::Present ||
                               mouse_branch==MouseResetBranch::MemoryHandoff?1u:
                               mouse_branch==MouseResetBranch::FreeBoundary ||
                               mouse_branch==MouseResetBranch::RangeX ||
@@ -1253,8 +1272,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                               mouse_branch==MouseResetBranch::DiskSpace?2u:0u),
             "DOS service sequence differs from bounded original source");
     require(state.machine.cpu.interrupt_enable,"STI was not executed");
-    require(code2::load_le16(state.code.data()+0x35675u)==0x30u,
-            "source startup did not save original DS through CODE selector");
+    require(code2::load_le16(
+                (source_host_heap?state.data.data():state.code.data())+
+                 0x35675u)==0x30u,
+            "source startup did not save original DS through returned selector");
     require(state.data[0x1266bu]==6u && state.data[0x1266cu]==22u,
             "original DOS version writes not observed");
     require(code2::load_le16(state.data.data()+0x12660u)==1u,
