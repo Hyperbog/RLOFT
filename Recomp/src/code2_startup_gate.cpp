@@ -18,6 +18,7 @@
 
 namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
+enum class GameConfig { Unset, Overrides, SignedWrap };
 struct Session {
     std::jmp_buf escape;
     std::vector<u8> data, code;
@@ -25,6 +26,8 @@ struct Session {
     std::array<u8,512> env{};
     code2::Machine machine{};
     code2::Runtime111Boundary entry{};
+    code2::Application46Boundary game{};
+    code2::Application69Boundary game_audio{};
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
@@ -35,7 +38,12 @@ struct Session {
     // A separate execution gate opts into all original initializer callbacks.
     // This is a controlled guest-memory arena, NOT the DOS/WATCOM heap driver.
     bool extended=false;
+    bool execute_application=false;
+    GameConfig game_config=GameConfig::Unset;
     bool arena_seeded=false;
+    unsigned getenv_calls=0, atoi_calls=0, audio_init_calls=0, far_install_calls=0;
+    u32 active_sound_base=0, active_sound_count=0, far_target=0;
+
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
     unsigned allocation_calls=0, aligned_allocations=0, env_copies=0;
@@ -234,9 +242,45 @@ u32 post_stack_alloc(u32 bytes) noexcept {
 void post_protection() noexcept {
     code2::function_3a38a(current->machine);
 }
+// These are *compiled canonical CODE.2* functions. The test-only DOS
+// environment is produced by original 3A2AD before 20608 can read it.
+u32 original_getenv(u32 query) noexcept {
+    ++current->getenv_calls;
+    if(query!=0x114Cu && query!=0x1154u && query!=0x115Cu && query!=0x1164u)
+        stop("ORIGINAL_GAME_UNEXPECTED_ENVIRONMENT_QUERY");
+    return code2::function_352ee(current->machine,current->entry,query);
+}
+code2::s32 original_atoi(u32 text) noexcept {
+    ++current->atoi_calls;
+    return static_cast<code2::s32>(code2::function_35349(current->machine,text));
+}
+// 2F2EC's first guest-visible side effects execute for real: source AUDIO
+// global initialization. Its first external dependency is original 375FE's
+// far callback/interrupt installation; no fake BIOS or IRQ is installed.
+void stop_before_original_far_install(u32 target,u16 selector) noexcept {
+    ++current->far_install_calls;
+    current->far_target=target;
+    if(target!=0x2F2E0u || selector!=current->machine.cpu.cs)
+        stop("ORIGINAL_375FE_FAR_INSTALL_CONTRACT_CHANGED");
+    stop("STOP_BEFORE_DOS_FAR_CALLBACK_INSTALL_375FE");
+}
+void original_audio_init(u32 base,u32 count) noexcept {
+    ++current->audio_init_calls;
+    current->active_sound_base=base; current->active_sound_count=count;
+    if(base!=0x1130u || count!=0x0Bu)
+        stop("ORIGINAL_GAME_RESOURCE_INITIALIZER_ABI_CHANGED");
+    code2::function_2f2ec(current->machine,current->game_audio,base,count);
+    stop("ORIGINAL_AUDIO_INITIALIZER_RETURNED_UNEXPECTEDLY");
+}
 u32 enter_game(u32 argc,u32 argv) noexcept {
     current->game_argc=argc;current->game_argv=argv;
-    stop("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608");
+    if(!current->execute_application)
+        stop("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608");
+    // Original main is executed, not a synthetic lift or a new game engine.
+    // Every external call needed before the first hardware boundary is
+    // source-backed; stop at the *actual* unimplemented DOS/4GW ISR install.
+    code2::function_20608(current->machine,current->game);
+    stop("ORIGINAL_MAIN_RETURNED_WITHOUT_375FE_BREAKPOINT");
 }
 void unexpected_exit(u32) noexcept {stop("GAME_ENTRY_RETURNED_WITHOUT_EXECUTION");}
 void after_initializers(code2::Machine& m) noexcept {
@@ -273,6 +317,22 @@ rloft_recomp::OriginalLeImage synthetic_image() {
         img.objects[1].raw[off+1]=0x20u;
         code2::store_le32(img.objects[1].raw.data()+off+2,init_addresses[i]);
     }
+    // CODE.2 original DGROUP string literals at 114C/1154/115C/1164,
+    // used by the *actual* compiled getenv and decimal parser in 20608.
+    // These fixture bytes are independently certified against original CODE.2.
+    constexpr std::array<const char*,4> names{
+        "ALSIU","KHSSDKJ","CANLW","SEPVON"};
+    constexpr std::array<u32,4> offsets{0x114Cu,0x1154u,0x115Cu,0x1164u};
+    for(std::size_t i=0;i<names.size();++i) {
+        const std::size_t len=std::strlen(names[i])+1u;
+        std::memcpy(img.objects[1].raw.data()+offsets[i],names[i],len);
+    }
+    // Original CODE.2 DGROUP ctype table 165C uses bit 20h for ASCII
+    // decimal digits and bit 02h for ASCII whitespace. This restricted
+    // synthetic table enables only the exact character classes exercised.
+    for(unsigned ch='0';ch<='9';++ch)
+        img.objects[1].raw[0x165Cu+ch+1u]=0x20u;
+    img.objects[1].raw[0x165Cu+unsigned(' ')+1u]=0x02u;
     // Five original-backed 26-byte stream descriptors (original CODE.2
     // DGROUP F6FC/F716/F730/F74A/F764), terminated by a zero descriptor.
     constexpr std::array<u32,5> stream_flags{1u,2u,2u,3u,2u};
@@ -428,7 +488,9 @@ void environment_alloc_failure_probe() {
              <<"FAILED_ALLOCATION_INJECTED=YES\n"
              <<"DOS_HEAP_PARITY=NO\n";
 }
-void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
+void run(const rloft_recomp::OriginalLeImage& img,bool original,
+         bool extended,bool execute_application=false,
+         GameConfig game_config=GameConfig::Unset) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -436,6 +498,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
             img.objects[1].raw.size()==0x2DD10u,"CODE.2 LE geometry mismatch");
     Session state;
     state.extended=extended;
+    state.execute_application=execute_application;
+    state.game_config=game_config;
     state.data=img.objects[1].raw;
     state.code=img.objects[0].raw;
     state.psp[0x2c]=0x2c;state.psp[0x2d]=0;
@@ -448,10 +512,31 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
     constexpr char kEnv[]="no87=1\0\0\1\0C:\\RLOFT\\CODE.2";
     static_assert(sizeof(kEnv)<=512,"environment fixture too large");
     std::copy_n(reinterpret_cast<const u8*>(kEnv),sizeof(kEnv),state.env.begin());
+    if(game_config==GameConfig::Overrides) {
+        // Testing a complete source-backed original getenv/atoi path with
+        // four explicit DOS environment variables; these values are *not*
+        // substituted into CODE.2 globals by the host.
+        constexpr char kOverrides[]=
+            "no87=1\0ALSIU=0\0KHSSDKJ=7\0CANLW=5\0SEPVON=359\0\0\1\0C:\\RLOFT\\CODE.2";
+        std::copy_n(reinterpret_cast<const u8*>(kOverrides),sizeof(kOverrides),
+                    state.env.begin());
+    } else if(game_config==GameConfig::SignedWrap) {
+        constexpr char kSigned[]=
+            "no87=1\0ALSIU=22\0KHSSDKJ=-1\0CANLW=65536\0SEPVON=-90\0\0\1\0C:\\RLOFT\\CODE.2";
+        std::copy_n(reinterpret_cast<const u8*>(kSigned),sizeof(kSigned),
+                    state.env.begin());
+    }
     state.machine.data=state.data.data();
     state.machine.cpu.ds=0x30;state.machine.cpu.ss=0x30;
     state.machine.cpu.cs=0x17;state.machine.cpu.esp=0x2DD10;
     state.entry.tail_35418=&invoke_startup;
+    // The canonical 352EE implementation delegates case-folded comparison
+    // to the real canonical 39526, not a host std::getenv/strtol substitute.
+    state.entry.call_39526=&code2::function_39526;
+    state.game.call_352ee=&original_getenv;
+    state.game.call_35349=&original_atoi;
+    state.game.call_2f2ec=&original_audio_init;
+    state.game_audio.call_375fe_far=&stop_before_original_far_install;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
     state.startup.read_segment8=&seg8;
@@ -505,8 +590,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
         require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
                 "default test unexpectedly passed original allocator boundary");
     }else{
+        const char* required_stop=execute_application
+            ? "STOP_BEFORE_DOS_FAR_CALLBACK_INSTALL_375FE"
+            : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
         if(state.completed_initializers!=4u ||
-           state.stop_reason!=std::string("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608")) {
+           state.stop_reason!=std::string(required_stop)) {
             std::cerr<<"EXTENDED_STARTUP_DIAGNOSTIC stop="<<state.stop_reason
                      <<" completed="<<state.completed_initializers
                      <<" allocations="<<state.allocation_calls
@@ -517,13 +605,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
                      <<" last_guest=0x"<<std::hex<<state.first_guest<<std::dec<<'\n';
         }
         require(state.completed_initializers==4u &&
-                state.stop_reason==std::string("STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608"),
-                "not all four original initializer functions executed before game entry");
-        require(state.env_copies==7u && state.argv_initializations==1u,
+                state.stop_reason==std::string(required_stop),
+                "original initializer to game-entry/ISR-install source path differs");
+        const u32 expected_env_size=game_config==GameConfig::Unset?7u:
+            game_config==GameConfig::Overrides?44u:49u;
+        require(state.env_copies==expected_env_size &&
+                state.argv_initializations==1u,
                 "original environment or argv initializer did not run");
         const u32 table=code2::load_le32(state.data.data()+0x12688u);
+        const u32 expected_env_entries=game_config==GameConfig::Unset?1u:5u;
         require(table>=0x2C000u && table<0x2D500u &&
-                code2::load_le32(state.data.data()+table+4u)==0u,
+                code2::load_le32(state.data.data()+table+4u*expected_env_entries)==0u,
                 "original environment pointer-table terminator differs");
         const u32 item=code2::load_le32(state.data.data()+table);
         require(item>=0x2C000u && item<0x2D500u &&
@@ -547,6 +639,42 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
                 "argv final null pointer was not written");
         require(code2::load_le32(state.data.data()+0x1270Cu)==0x8000u,
                 "post-initialization flag set by original 3A38A is absent");
+        if(execute_application) {
+            // Written by the *compiled canonical source* main 20608,
+            // followed by 20440 and 2F2EC; no substitute startup model.
+            const auto rd16=[&](u32 off){return code2::load_le16(state.data.data()+off);};
+            const auto rd32=[&](u32 off){return code2::load_le32(state.data.data()+off);};
+            const u16 expected_x=game_config==GameConfig::Overrides?7u:
+                game_config==GameConfig::SignedWrap?0xFFFFu:4u;
+            const u16 expected_y=game_config==GameConfig::Overrides?5u:
+                game_config==GameConfig::SignedWrap?0u:4u;
+            const u32 expected_facing=game_config==GameConfig::Overrides?359u:
+                game_config==GameConfig::SignedWrap?u32(-90):270u;
+            require(rd16(0x255D0u)==0x8000u && rd16(0x255D4u)==0x8000u &&
+                    rd16(0x255D2u)==expected_x && rd16(0x255D6u)==expected_y &&
+                    rd32(0xC658u)==expected_facing,
+                    "real CODE.2 20608 initial position/facing state differs");
+            for(u32 off=0x255E0u;off<=0x25610u;off+=4u)
+                require(rd32(off)==0u,"original 20608 actor timer reset missed");
+            for(u32 off=0x22200u;off<=0x2220Cu;off+=4u)
+                require(rd32(off)==0u,"original 20608 counters not reset");
+            require(rd32(0x248E8u)==0u && rd32(0x248E4u)==0u,
+                    "original 20608 link reset differs");
+            require(rd16(0xEF53u)==0x0182u &&
+                    state.data[0xEF3Eu]==0x0Cu &&
+                    state.data[0xEF68u]==1u && state.data[0xEF3Cu]==0xFFu &&
+                    rd32(0xF0C0u)==0xFFFFFFFFu,
+                    "original CODE.2 2F2EC source audio/resource prelude differs");
+            const unsigned expected_queries=game_config==GameConfig::Unset?1u:5u;
+            const unsigned expected_conversions=game_config==GameConfig::Unset?0u:4u;
+            require(state.getenv_calls==expected_queries &&
+                    state.atoi_calls==expected_conversions &&
+                    state.audio_init_calls==1u && state.far_install_calls==1u &&
+                    state.far_target==0x2F2E0u &&
+                    state.active_sound_base==0x1130u &&
+                    state.active_sound_count==0x0Bu,
+                    "real CODE.2 getenv/atoi/resource/ISR callback chain differs");
+        }
         require(state.arena_seeded &&
                 code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
                 code2::load_le32(state.data.data()+state.arena_header+0x18u)==8u &&
@@ -566,8 +694,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
              <<"ORIGINAL_PRIORITY_INITIALIZERS_EXECUTED="<<state.completed_initializers<<"/4\n"
              <<"TEST_ONLY_HEAP_ALLOCATIONS="<<state.allocation_calls<<"\n"
              <<"EXECUTED_ORIGINAL_ARENA_SPLITTER_39838="<<(extended?"YES":"NO")<<"\n"
-             <<"REAL_GAME_ENTRY_20608_CALLED="<<(extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
-             <<"EXECUTION_BOUNDARY=INTENTIONALLY_STOPPED\n"
+             <<"REAL_GAME_ENTRY_20608_CALLED="<<(execute_application?"EXECUTED_SOURCE":extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
+             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
+             <<"ORIGINAL_GETENV_352EE_CALLS="<<state.getenv_calls<<"\n"
+             <<"ORIGINAL_ATOI_35349_CALLS="<<state.atoi_calls<<"\n"
+             <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
              <<"ORIGINAL_DOS_PARITY=NO\nGAME_BOOTED=NO\n"
              <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\n';
 
@@ -576,12 +707,20 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
 int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false;
+        bool execute_application=false;
+        GameConfig game_config=GameConfig::Unset;
         int original_index=1;
         if(argc>=2) {
             const std::string mode(argv[1]);
             if(mode=="--through-initializers" || mode=="--termination-probe" ||
-               mode=="--arena-roundtrip-probe" || mode=="--env-rollback-probe") {
-                extended=(mode=="--through-initializers");
+               mode=="--arena-roundtrip-probe" || mode=="--env-rollback-probe" ||
+               mode=="--enter-game" || mode=="--enter-game-config" ||
+               mode=="--enter-game-signed-wrap") {
+                execute_application=(mode=="--enter-game" ||
+                    mode=="--enter-game-config" || mode=="--enter-game-signed-wrap");
+                if(mode=="--enter-game-config")game_config=GameConfig::Overrides;
+                if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
+                extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
                 failure_probe=(mode=="--env-rollback-probe");
@@ -589,7 +728,7 @@ int main(int argc,char**argv) {
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
         if(arena_probe || failure_probe) {
             require(argc==original_index,"allocator probes use synthetic-only guest memory");
             if(arena_probe)arena_split_coalesce_probe();
@@ -597,13 +736,13 @@ int main(int argc,char**argv) {
         }else if(argc==original_index) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
-            else run(fixture,false,extended);
+            else run(fixture,false,extended,execute_application,game_config);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
             const auto image=rloft_recomp::OriginalLeImage::parse(b);
             if(termination)termination_probe(image,true);
-            else run(image,true,extended);
+            else run(image,true,extended,execute_application,game_config);
         }
         return 0;
     } catch(const std::exception& e) {
