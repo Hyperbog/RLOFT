@@ -570,7 +570,7 @@ void termination_probe(const rloft_recomp::OriginalLeImage& img,bool original) {
              <<"DOS_EXIT_BOUNDARY_3A63E=STOPPED_BEFORE_OS\n"
              <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\n"
              <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<"\n"
-             <<"SOUND_CFG_INPUT="<<(original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
+             <<'\n';
 }
 void arena_split_coalesce_probe() {
     Session s;
@@ -1107,7 +1107,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"ORIGINAL_ATOI_35349_CALLS="<<state.atoi_calls<<"\n"
              <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
              <<"ORIGINAL_DOS_PARITY=NO\nGAME_BOOTED=NO\n"
-             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\n';
+             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<"\n"
+             <<"SOUND_CFG_INPUT="<<(original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
 
 }
 }
