@@ -1,9 +1,24 @@
 # Ravenloft: Strahd's Possession — native engine
 
 **Active development branch:** `demo-v1`  
-**Goal:** faithfully recreate **the complete original DOS game** as a native executable before any modernization. Level 22 is the current integration testbed, **not** the scope of the finished project.
+**Goal:** faithfully recreate **the complete original DOS game** as a native executable before any modernization. The player-facing Level 22 walkaround is retired. The priority is the preserved original intro, title and character-creation sequence.
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
+
+## Original intro / character-creation build (2026-10-11)
+
+The owner has retired the standalone Level 22 demo as a player-facing
+checkpoint. The existing code already contains the CINE00/CINE12 intros,
+DreamForge/SSI sequence, title/menu animation and CODE.1 character creation.
+The new packaged `Play-Original-Intro.cmd` uses the real original media,
+forces the existing front end even when CHARS exists, and **does not modify
+CHARS/SAVE.DAT or enter the incomplete Level 22 renderer**. The unfinished
+title-menu options are explicitly reported as such. This is a native
+front-end recreation, **not** the original DOS executable or a complete
+playable game. Existing Level 22 game assets and reconstruction code are
+preserved for eventual game continuity; old Level 22 demo launchers are no
+longer distributed. Automatic Windows Full CI is authorized on public
+`demo-v1` updates and publishes `Ravenloft-Original-Intro-Windows-x64`.
 
 ## Current evidence and limits (2026-10-11)
 
@@ -93,7 +108,7 @@ ctest --test-dir build/native --output-on-failure
 
 Run these from the **repository root**. The Windows GUI executable, DOS runtime fidelity, shader/pixel timing, and resource-backed gameplay require separately authorized and independently verified Windows/original-game testing. Passing `ctest` is not a DOS equivalence claim. Tests must retain active assertions under Release, as configured in the CMake suite.
 
-**Windows Full GitHub Actions builds are manual and require explicit user authorization for each dispatch.** Committing a source change or documentation does not authorize CI execution. Original copyrighted game assets are required for game execution and should not be added to source commits.
+**Full Windows builds now run automatically on relevant `demo-v1` pushes**, by owner authorization after the repository became public. Passing CI remains distinct from end-to-end game fidelity. Original copyrighted game assets are required for game execution and should not be added to source commits.
 
 ## Research history
 
