@@ -1,7 +1,9 @@
 name: DOSDis Windows desktop build and synthetic regressions
-# Manual only — no GitHub Actions minutes on push or PR.
+# TEMP owner-approved Windows desktop #45 verification PR. DO NOT MERGE.
+# Canonical branch remains workflow_dispatch only; no game originals or CLI release.
 on:
   workflow_dispatch:
+  pull_request:
 permissions:
   contents: read
 jobs:
