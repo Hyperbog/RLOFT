@@ -28559,7 +28559,7 @@ void function_39a2c(Machine& m,Runtime141Boundary& b) noexcept {
     u32 node=load_le32(dg(m,0x12624u));
     while(node!=0u){
         const u32 descriptor=load_le32(dg(m,node+0x24u));
-        if(load_le32(dg(m,descriptor))+0x2Cu!=node){node=load_le32(dg(m,node+8u));continue;}
+        if(load_le32(dg(m,descriptor))+0x2Cu!=load_le32(dg(m,node))){node=load_le32(dg(m,node+8u));continue;}
         const u32 next=load_le32(dg(m,node+8u));
         function_399eb(m,node);
         const u32 owner=node-8u;
