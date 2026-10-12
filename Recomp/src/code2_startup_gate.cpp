@@ -19,6 +19,7 @@
 namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 enum class GameConfig { Unset, Overrides, SignedWrap };
+struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
     std::jmp_buf escape;
     std::vector<u8> data, code;
@@ -29,6 +30,10 @@ struct Session {
     code2::Application46Boundary game{};
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
+    code2::Application71Boundary keyboard_irq{};
+    code2::Application72Boundary dos_file_io{};
+    code2::Application56Boundary audio_seed{};
+    std::array<GuestVector,256> ivt{};
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
@@ -40,12 +45,16 @@ struct Session {
     // This is a controlled guest-memory arena, NOT the DOS/WATCOM heap driver.
     bool extended=false;
     bool execute_application=false;
+    bool advance_to_sound_file=false;
     GameConfig game_config=GameConfig::Unset;
     bool arena_seeded=false;
     unsigned getenv_calls=0, atoi_calls=0, audio_init_calls=0, far_install_calls=0;
     u32 active_sound_base=0, active_sound_count=0, far_target=0;
     u8 vector_number=0; u16 vector_selector=0; u32 vector_handler=0;
     unsigned dos_vector_callbacks=0; bool observe_vector_only=false;
+    unsigned irq_vector_reads=0, irq_vector_sets=0, seed_calls=0;
+    unsigned checked_alloc_calls=0, checked_fill_calls=0, file_open_calls=0;
+    u32 sound_config_path=0, sound_config_mode=0;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -264,6 +273,10 @@ void original_vector_install(u8 vector,u16 selector,u32 handler) noexcept {
     current->vector_number=vector;
     current->vector_selector=selector;
     current->vector_handler=handler;
+    if(current->advance_to_sound_file) {
+        current->ivt[vector]={handler,selector};
+        return; // test-only IVT: never touch the host DOS/Windows vectors
+    }
     if(!current->observe_vector_only)
         stop("STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE");
 }
@@ -279,7 +292,55 @@ void original_far_install(u32 target,u16 selector) noexcept {
     // actual DOS vector write rather than before this source routine.
     (void)code2::function_375fe(current->dos_irq,target,selector,
                                 static_cast<u8>(guest_extender));
+    if(current->advance_to_sound_file && current->dos_vector_callbacks==1u)
+        return;
     stop("ORIGINAL_375FE_RETURNED_WITHOUT_VECTOR_INSTALL");
+}
+// Bounded in-memory IVT models only the exact DOS get/set service boundary
+// used by original 30BB4. This is NOT host interrupt or IRQ emulation.
+void guest_get_vector(u8 vector,u32* offset,u16* selector) noexcept {
+    ++current->irq_vector_reads;
+    const auto& entry=current->ivt[vector];
+    if(offset)*offset=entry.offset;
+    if(selector)*selector=entry.selector;
+}
+void guest_set_vector(u8 vector,u32 offset,u16 selector) noexcept {
+    ++current->irq_vector_sets;
+    current->ivt[vector]={offset,selector};
+}
+void original_keyboard_vectors() noexcept {
+    code2::function_30bb4(current->machine,current->keyboard_irq);
+}
+u32 original_random_seed(u32 value) noexcept {
+    ++current->seed_calls;
+    code2::function_30cc4(current->machine,value);
+    return 0u;
+}
+u32 original_checked_allocation_header(u32 amount) noexcept {
+    return code2::function_37b34(current->heap,amount);
+}
+u32 original_checked_allocation(u32 amount) noexcept {
+    ++current->checked_alloc_calls;
+    return code2::function_3104c(current->machine,current->dos_file_io,amount);
+}
+void original_linear_dword_fill(u32 dst,u32 packed,u32 count) noexcept {
+    code2::function_379d0(segment(0x30u,dst,count),count,packed);
+}
+void original_checked_memset(u32 dst,u32 byte,u32 count) noexcept {
+    ++current->checked_fill_calls;
+    (void)code2::function_30d30(current->dos_file_io,dst,byte,count);
+}
+u32 stop_at_real_sound_file_open(u32 path,u32 mode) noexcept {
+    ++current->file_open_calls;
+    current->sound_config_path=path;
+    current->sound_config_mode=mode;
+    if(path!=0x143Cu || mode!=0x200u ||
+       std::memcmp(segment(0x30u,path,10),"sound.cfg",10)!=0)
+        stop("ORIGINAL_SOUND_CFG_OPEN_ABI_CHANGED");
+    stop("STOP_BEFORE_ORIGINAL_DOS_SOUND_CFG_OPEN_37E77");
+}
+u32 original_sound_file(u32 filename) noexcept {
+    return code2::function_312a0(current->dos_file_io,filename);
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -334,6 +395,9 @@ rloft_recomp::OriginalLeImage synthetic_image() {
         img.objects[1].raw[off+1]=0x20u;
         code2::store_le32(img.objects[1].raw.data()+off+2,init_addresses[i]);
     }
+    // Original CODE.2 DGROUP sound.cfg literal (2F2EC -> 312A0).
+    constexpr char cfg_literal[]="sound.cfg";
+    std::memcpy(img.objects[1].raw.data()+0x143Cu,cfg_literal,sizeof(cfg_literal));
     // CODE.2 original DGROUP string literals at 114C/1154/115C/1164,
     // used by the *actual* compiled getenv and decimal parser in 20608.
     // These fixture bytes are independently certified against original CODE.2.
@@ -530,7 +594,8 @@ void interrupt_vector_matrix_probe() {
 }
 void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool extended,bool execute_application=false,
-         GameConfig game_config=GameConfig::Unset) {
+         GameConfig game_config=GameConfig::Unset,
+         bool advance_to_sound_file=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -539,7 +604,14 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     Session state;
     state.extended=extended;
     state.execute_application=execute_application;
+    state.advance_to_sound_file=advance_to_sound_file;
     state.game_config=game_config;
+    // Original DOS interrupt vectors are external system state. The test
+    // fixture assigns three distinct sentinel pre-existing vectors, which
+    // canonical 30BB4 must save exactly before replacing them.
+    state.ivt[9u]={0x00009009u,0x0020u};
+    state.ivt[8u]={0x00009008u,0x0020u};
+    state.ivt[0u]={0x00009000u,0x0020u};
     state.data=img.objects[1].raw;
     state.code=img.objects[0].raw;
     state.psp[0x2c]=0x2c;state.psp[0x2d]=0;
@@ -578,6 +650,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game.call_2f2ec=&original_audio_init;
     state.game_audio.call_375fe_far=&original_far_install;
     state.dos_irq.install_interrupt=&original_vector_install;
+    state.keyboard_irq.get_vector=&guest_get_vector;
+    state.keyboard_irq.set_vector=&guest_set_vector;
+    state.audio_seed.call_30cc4=&original_random_seed;
+    state.game_audio.call_30bb4=&original_keyboard_vectors;
+    state.game_audio.app56=&state.audio_seed;
+    state.game_audio.call_3104c=&original_checked_allocation;
+    state.game_audio.call_30d30=&original_checked_memset;
+    state.game_audio.call_312a0=&original_sound_file;
+    state.dos_file_io.call_37b34=&original_checked_allocation_header;
+    state.dos_file_io.call_379d0=&original_linear_dword_fill;
+    state.dos_file_io.call_37e77=&stop_at_real_sound_file_open;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
     state.startup.read_segment8=&seg8;
@@ -631,8 +714,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
                 "default test unexpectedly passed original allocator boundary");
     }else{
-        const char* required_stop=execute_application
-            ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
+        const char* required_stop=advance_to_sound_file
+            ? "STOP_BEFORE_ORIGINAL_DOS_SOUND_CFG_OPEN_37E77"
+            : execute_application ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
             : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
         if(state.completed_initializers!=4u ||
            state.stop_reason!=std::string(required_stop)) {
@@ -712,7 +796,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.atoi_calls==expected_conversions &&
                     state.audio_init_calls==1u && state.far_install_calls==1u &&
                     state.far_target==0x2F2E0u &&
-                    state.dos_vector_callbacks==1u &&
+                    state.dos_vector_callbacks==(advance_to_sound_file?1u:1u) &&
                     state.vector_handler==0x37642u &&
                     state.vector_number==
                         (code2::load_le32(state.data.data()+0x105FCu)>=2u &&
@@ -723,6 +807,38 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.active_sound_base==0x1130u &&
                     state.active_sound_count==0x0Bu,
                     "real CODE.2 getenv/atoi/resource/ISR callback chain differs");
+            if(advance_to_sound_file) {
+                require(state.irq_vector_reads==3u && state.irq_vector_sets==3u &&
+                        state.ivt[9u].offset==0x308F8u &&
+                        state.ivt[8u].offset==0x30708u &&
+                        state.ivt[0u].offset==0x30B54u &&
+                        state.ivt[9u].selector==state.machine.cpu.cs &&
+                        state.ivt[8u].selector==state.machine.cpu.cs &&
+                        state.ivt[0u].selector==state.machine.cpu.cs &&
+                        state.data[0xF575u]==1u,
+                        "original 30BB4 vector save/install chain not executed");
+                require(rd32(0xF576u)==0x9009u &&
+                        rd16(0xF57Au)==0x20u &&
+                        rd32(0xF582u)==0x9008u &&
+                        rd16(0xF586u)==0x20u &&
+                        rd32(0xF57Cu)==0x9000u &&
+                        rd16(0xF580u)==0x20u,
+                        "original keyboard/PIT vector backups were not written");
+                require(state.seed_calls==1u &&
+                        rd32(0xF6F4u)==rd16(0x046Cu),
+                        "canonical 290D0 -> 30CC4 RNG seed path was not executed");
+                const u32 env=rd32(0xF050u);
+                require(state.checked_alloc_calls==1u &&
+                        state.checked_fill_calls==1u &&
+                        env>=state.arena_start+0x0Au && env<state.arena_end-0x100u &&
+                        rd32(env-4u)==0x12345678u &&
+                        state.data[env+0x64u]==0u,
+                        "canonical 3104C / 37B34 / 30D30 audio buffer init mismatch");
+                require(state.file_open_calls==1u &&
+                        state.sound_config_path==0x143Cu &&
+                        state.sound_config_mode==0x200u,
+                        "original 312A0 -> 37E77 sound.cfg open boundary not reached");
+            }
         }
         require(state.arena_seeded &&
                 code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
@@ -744,7 +860,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"TEST_ONLY_HEAP_ALLOCATIONS="<<state.allocation_calls<<"\n"
              <<"EXECUTED_ORIGINAL_ARENA_SPLITTER_39838="<<(extended?"YES":"NO")<<"\n"
              <<"REAL_GAME_ENTRY_20608_CALLED="<<(execute_application?"EXECUTED_SOURCE":extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
-             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
+             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(advance_to_sound_file?"EXECUTED_TO_37E77_FILE_OPEN":execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
              <<"ORIGINAL_GETENV_352EE_CALLS="<<state.getenv_calls<<"\n"
              <<"ORIGINAL_ATOI_35349_CALLS="<<state.atoi_calls<<"\n"
              <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
@@ -756,7 +872,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
 int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
-        bool execute_application=false;
+        bool execute_application=false,advance_to_sound_file=false;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
         if(argc>=2) {
@@ -764,10 +880,15 @@ int main(int argc,char**argv) {
             if(mode=="--through-initializers" || mode=="--termination-probe" ||
                mode=="--arena-roundtrip-probe" || mode=="--env-rollback-probe" ||
                mode=="--enter-game" || mode=="--enter-game-config" ||
-               mode=="--enter-game-signed-wrap" || mode=="--vector-mode-matrix") {
+               mode=="--enter-game-signed-wrap" || mode=="--vector-mode-matrix" ||
+               mode=="--to-sound-config" || mode=="--to-sound-config-configured") {
+                advance_to_sound_file=(mode=="--to-sound-config" ||
+                    mode=="--to-sound-config-configured");
                 execute_application=(mode=="--enter-game" ||
-                    mode=="--enter-game-config" || mode=="--enter-game-signed-wrap");
-                if(mode=="--enter-game-config")game_config=GameConfig::Overrides;
+                    mode=="--enter-game-config" || mode=="--enter-game-signed-wrap" ||
+                    advance_to_sound_file);
+                if(mode=="--enter-game-config" || mode=="--to-sound-config-configured")
+                    game_config=GameConfig::Overrides;
                 if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
@@ -778,7 +899,7 @@ int main(int argc,char**argv) {
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--to-sound-config|--to-sound-config-configured|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
         if(vector_matrix) {
             require(argc==original_index,"vector-mode probe does not use original data");
             interrupt_vector_matrix_probe();
@@ -789,13 +910,15 @@ int main(int argc,char**argv) {
         }else if(argc==original_index) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
-            else run(fixture,false,extended,execute_application,game_config);
+            else run(fixture,false,extended,execute_application,game_config,
+                     advance_to_sound_file);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
             const auto image=rloft_recomp::OriginalLeImage::parse(b);
             if(termination)termination_probe(image,true);
-            else run(image,true,extended,execute_application,game_config);
+            else run(image,true,extended,execute_application,game_config,
+                     advance_to_sound_file);
         }
         return 0;
     } catch(const std::exception& e) {
