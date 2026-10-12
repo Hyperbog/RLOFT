@@ -632,3 +632,7 @@ GitHub Actions and executable packaging occur **only on explicit user
 authorization**, ideally after several related checkpoints reach an
 integration gate. Each report distinguishes latest source HEAD from
 last successfully built HEAD.
+
+## Optional shared REA research adapter
+
+[Optional REA/Ghidra independent candidate analysis](REA_ANALYSIS.md) is available through the canonical `code1-decompilation:ResearchInfra/` checkout. It is local, read-only static analysis and **does not** install REA into this application's runtime, alter original game media, or certify original DOS/gameplay parity.
