@@ -38,6 +38,14 @@ int run(const std::filesystem::path& root) {
             {&texture,0,11,32,3,1,144}},planar);
         if(draw.source_texel_reads!=224 || draw.plane_writes!=224)
             throw std::runtime_error("original RGB6 source diagnostic strip writes changed");
+        // The original four world palettes (banks 0,2,3,4) vary in
+        // their last 8 authored color slots (246..253). Add eight
+        // explicitly DIAGNOSTIC indexed pixels to test that exact
+        // original palette distinction, not to imply gameplay frames.
+        for(unsigned x=0;x<8;++x)
+            planar.masked_write(80U+x/4U,
+                static_cast<std::uint8_t>(1U<<(x&3U)),
+                static_cast<std::uint8_t>(246U+x));
         std::array<unsigned,15> histogram{};
         std::cout<<"{\"schema\":\"rloft-original-code2-colors-vga-rgb6/v1\","
                  <<"\"original_code2_sha256\":\""
@@ -65,6 +73,8 @@ int run(const std::filesystem::path& root) {
         }
         std::cout<<"],\"diagnostic_res4_id\":"<<texture_id
                  <<",\"diagnostic_source_reads\":"<<draw.source_texel_reads
+                 <<",\"diagnostic_palette_probe_indexes\":[246,247,248,249,250,251,252,253]"
+                 <<",\"diagnostic_probe_pixel_writes\":8"
                  <<",\"diagnostic_four_plane_sha256\":\""
                  <<planar.planes_sha256()<<"\","
                  <<"\"original_rgb6_frame_dimensions\":[320,400],"
