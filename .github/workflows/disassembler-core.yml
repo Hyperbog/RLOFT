@@ -1,9 +1,33 @@
 name: DOSDis Windows desktop build and synthetic regressions
-# Manual only — no GitHub Actions minutes on push or PR.
+# Owner-approved automatic desktop verification (2026-10-11).
+# Scoped to DOSDis code and tests. Never include proprietary DOS game files.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - disassembler-foundation
+    paths:
+      - '.github/workflows/disassembler-core.yml'
+      - 'Tools/Disassembler/src/**'
+      - 'Tools/Disassembler/tests/**'
+      - 'Tools/Disassembler/build-windows.ps1'
+      - 'Tools/Disassembler/Directory.Build.*'
+      - 'Tools/Disassembler/*.sln*'
+  pull_request:
+    branches:
+      - disassembler-foundation
+    paths:
+      - '.github/workflows/disassembler-core.yml'
+      - 'Tools/Disassembler/src/**'
+      - 'Tools/Disassembler/tests/**'
+      - 'Tools/Disassembler/build-windows.ps1'
+      - 'Tools/Disassembler/Directory.Build.*'
+      - 'Tools/Disassembler/*.sln*'
 permissions:
   contents: read
+concurrency:
+  group: dosdis-win-desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   windows-core:
     runs-on: windows-latest
