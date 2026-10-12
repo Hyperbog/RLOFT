@@ -117,7 +117,7 @@ int main(){
     projection.direction_x_255f8=0x8000U;
     projection.height_numerator_255e0=0x10000U;
     const auto projected=draw_native_code2_wall_record_projected_35730(
-        world,dir,resource,reflected_a,0,projection,14,2,0,0,output);
+        world,dir,resource,reflected_a,projection,0,14,2,0,0,output);
     assert(projected.projection.source_depth==0x10000U);
     assert(projected.projection.original_return_word==256);
     assert(projected.raster.raster.source_texel_reads==256);
@@ -129,7 +129,7 @@ int main(){
     const auto projected_safe=output.planes_sha256();
     projection.live_x_255f0=0; // original 35730 near clamp -> >256
     rejects([&]{static_cast<void>(draw_native_code2_wall_record_projected_35730(
-        world,dir,resource,reflected_a,1,projection,15,2,0,0,output));});
+        world,dir,resource,reflected_a,projection,1,15,2,0,0,output));});
     assert(output.planes_sha256()==projected_safe);
     const auto prior=output.planes_sha256();
     rejects([&]{static_cast<void>(draw_native_code2_wall_record_column(
