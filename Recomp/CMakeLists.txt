@@ -24,6 +24,14 @@ foreach(target IN ITEMS rloft_recomp_link_gate rloft_original_image_gate rloft_c
 endforeach()
 include(CTest)
 if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        # Pure standard-library tests. Validate authenticated-media
+        # execution matrix contracts without bundling commercial files.
+        add_test(NAME canonical_original_media_matrix_contract
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_media_matrix.py")
+    endif()
     add_test(NAME canonical_reconstruction_compiles_links_and_runs COMMAND rloft_recomp_link_gate)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
     add_test(NAME canonical_code2_startup_to_first_original_initializer COMMAND rloft_code2_startup_gate)
