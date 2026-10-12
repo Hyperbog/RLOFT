@@ -747,7 +747,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 std::memcmp(state.data.data()+item,"no87=1",7)==0,
                 "original environment string was not copied by 3A2AD");
         require(state.stream_nodes==5u && state.allocation_calls==8u &&
-                state.aligned_allocations==state.allocation_calls,
+                state.aligned_allocations==state.allocation_calls+
+                    (advance_to_sound_file?1u:0u),
                 "five original stream descriptors plus env/table/argv allocations not observed");
         require(state.data[0xF73Du]==0x04u &&
                 code2::load_le32(state.data.data()+0x2B74Cu)==0u,
@@ -796,7 +797,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.atoi_calls==expected_conversions &&
                     state.audio_init_calls==1u && state.far_install_calls==1u &&
                     state.far_target==0x2F2E0u &&
-                    state.dos_vector_callbacks==(advance_to_sound_file?1u:1u) &&
+                    state.dos_vector_callbacks==1u &&
                     state.vector_handler==0x37642u &&
                     state.vector_number==
                         (code2::load_le32(state.data.data()+0x105FCu)>=2u &&
@@ -842,7 +843,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         }
         require(state.arena_seeded &&
                 code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
-                code2::load_le32(state.data.data()+state.arena_header+0x18u)==8u &&
+                code2::load_le32(state.data.data()+state.arena_header+0x18u)==
+                    (advance_to_sound_file?9u:8u) &&
                 code2::load_le32(state.data.data()+state.arena_header+0x1Cu)==1u,
                 "actual original 39838 arena allocation/split metadata differs");
         const u32 freeptr=code2::load_le32(state.data.data()+state.arena_header+0x0Cu);
