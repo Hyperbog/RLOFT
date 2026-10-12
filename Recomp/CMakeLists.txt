@@ -216,3 +216,19 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_arena_split_coalesce_reuse COMMAND rloft_code2_startup_gate --arena-roundtrip-probe)
     add_test(NAME canonical_code2_env_allocation_failure_frees_original_arena_block COMMAND rloft_code2_startup_gate --env-rollback-probe)
 endif()
+
+# R04: original CODE.2 37B42 -> 39D4D -> 39C7B source allocation,
+# DPMI 0501 host page ownership; arena chain begins at zero (unseeded).
+add_executable(rloft_code2_original_dpmi_heap_gate
+    src/code2_original_dpmi_heap_gate.cpp)
+set_target_properties(rloft_code2_original_dpmi_heap_gate PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code2_original_dpmi_heap_gate PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code2_original_dpmi_heap_gate PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_unseeded_host_dpmi_arena_growth
+        COMMAND rloft_code2_original_dpmi_heap_gate)
+endif()
