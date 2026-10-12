@@ -71,6 +71,8 @@ void heap_dpmi_0502(u32 handle) {
         current->bad_heap_access=true;
 }
 void heap_source_10590(u32 payload,u16 ds,u32 arena) {
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_10590_ENTER="<<payload<<std::endl;
     if(ds!=current->machine.cpu.ds || arena!=0x30B8u) {
         current->bad_heap_access=true;
         return;
@@ -79,6 +81,8 @@ void heap_source_10590(u32 payload,u16 ds,u32 arena) {
     h.read32=&heap_read32;
     h.write32=&heap_write32;
     code1::function_10590(h,payload,arena);
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_10590_EXIT="<<payload<<std::endl;
 }
 void heap_source_clear8(u32 address,u8 value) {
     if(address!=0x8E78u || address>=current->dgroup.size()) {
@@ -89,11 +93,15 @@ void heap_source_clear8(u32 address,u8 value) {
 }
 void heap_source_db5b(u32 payload) {
     ++current->source_db5b;
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_DB5B_ENTER="<<payload<<std::endl;
     code1::AllocBoundary a{};
     a.ds=current->machine.cpu.ds;
     a.call_10590=&heap_source_10590;
     a.write_linear8=&heap_source_clear8;
     code1::function_db5b(a,payload);
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_DB5B_EXIT="<<payload<<std::endl;
 }
 void source_heap_post_extender_handoff(bool original_loaded) {
     auto& s=*current;
@@ -372,6 +380,8 @@ void source_cd97_followup(bool original_loaded) {
 }
 bool source_cd97_resize_break(u32 pages) noexcept {
     auto& s=*current;
+    if(s.mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_RESIZE_ENTER_PAGES="<<pages<<std::endl;
     if(pages==0u || pages>0xFFFFu) {
         s.bad_heap_access=true;
         return false;
@@ -380,13 +390,20 @@ bool source_cd97_resize_break(u32 pages) noexcept {
     if(r.carry)return false;
     s.machine.data=s.dgroup.data();
     ++s.source_break_calls;
+    if(s.mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_RESIZE_EXIT_BYTES="<<s.dgroup.size()<<std::endl;
     return true;
 }
 u32 source_cd97_extend_break(u32 target) noexcept {
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_EXTEND_ENTER="<<target<<std::endl;
     code1::FileBoundaries files{};
     code1::RuntimeIoBoundaries io{};
     io.resize_break_other=&source_cd97_resize_break;
-    return code1::function_10dd7(current->machine,files,io,target);
+    const u32 result=code1::function_10dd7(current->machine,files,io,target);
+    if(current->mode==Mode::ExtenderCd97Constructors)
+        std::cerr<<"R04_CD97_EXTEND_EXIT_OLD="<<result<<std::endl;
+    return result;
 }
 void source_break_heap_followup(bool original_loaded) {
     auto& s=*current;
