@@ -1,0 +1,91 @@
+{
+  "schema": "rloft.recomp.major-acceptance-gates.v1",
+  "definition": "Percentage of 12 deliberately coarse whole-game recompilation acceptance gates satisfied. Not instruction-byte coverage, gameplay equivalence, or a time estimate. Accepted means the scoped gate is supported by independently recorded evidence; later contradictory evidence can revoke it.",
+  "total": 12,
+  "gates": [
+    {
+      "id": "R01",
+      "scope": "Canonical CODE.1 and CODE.2 reconstructive C++ compiles and links as executable host code",
+      "accepted": true,
+      "evidence": "Recomp/README.md; Windows source-link runs including #34; original files stay intact",
+      "limitation": "Only source-backed call edges exercised, not a DOS game"
+    },
+    {
+      "id": "R02",
+      "scope": "Original CODE.1 and CODE.2 LE object, page and relocation images reconstructed and original-byte verified",
+      "accepted": true,
+      "evidence": "Recomp/ORIGINAL_LE_IMAGE_INTEGRATION_20261011.md; 12,430 authentic LE fixups, seven backward-page records",
+      "limitation": "Original images verified locally, CI has synthetic fixtures"
+    },
+    {
+      "id": "R03",
+      "scope": "Actual compiled original CODE.2 startup, all four initializers and original game-entry source are executed under bounded host fixtures",
+      "accepted": true,
+      "evidence": "Recomp/INITIALIZER_20608_INTEGRATION_20261011.md; Recomp/CMakeLists.txt Windows #34 original game-entry tests",
+      "limitation": "No native DOS service completeness, and no real playable game"
+    },
+    {
+      "id": "R04",
+      "scope": "DOS/4GW memory, heap growth and DPMI selector lifecycle is implemented without test-only allocations",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Allocator internals tested; actual DOS/DPMI providers not implemented"
+    },
+    {
+      "id": "R05",
+      "scope": "Complete DOS filesystem and stream services execute original game resources on the canonical reconstructed code",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Bounded original SOUND.CFG read reaches mouse entry; full file service not implemented"
+    },
+    {
+      "id": "R06",
+      "scope": "Original CODE.1 character creation executes from original recompilation entry and hands over authentic CHARS state",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Separate native-engine character creation is not a qualifying recompilation"
+    },
+    {
+      "id": "R07",
+      "scope": "Game-visible DOS keyboard, mouse, timer, IRQ and interrupt behavior operates without synthetic branch outcomes",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Mouse branches and IVT are exercised only with explicit fixtures"
+    },
+    {
+      "id": "R08",
+      "scope": "Original CODE.2 VGA, palette, audio and resource renderer pipelines execute correctly as compiled reconstructed source",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Source routines reconstructed; end-to-end running presentation unverified"
+    },
+    {
+      "id": "R09",
+      "scope": "Actual compiled CODE.2 gameplay loop boots first real in-game level with interactive movement and input",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Original game entry reached but no playable level"
+    },
+    {
+      "id": "R10",
+      "scope": "All shipped levels, creatures, spells, scripted events and game completion paths operate in the recompilation",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "DAT and resource reverse engineering completed separately, gameplay not executed"
+    },
+    {
+      "id": "R11",
+      "scope": "Authentic game saves, loads and CODE.1/CODE.2 transitions round-trip through full gameplay scenarios",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "Data structures and handoff researched, compiled full play flows missing"
+    },
+    {
+      "id": "R12",
+      "scope": "Independent original DOS versus recompilation behavioral regression corpus passes representative full-game scenarios",
+      "accepted": false,
+      "evidence": "",
+      "limitation": "No original-DOS full-game trace equivalence accepted"
+    }
+  ]
+}
