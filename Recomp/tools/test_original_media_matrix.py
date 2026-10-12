@@ -10,9 +10,9 @@ import original_media_matrix as m
 
 class MediaMatrixTests(unittest.TestCase):
     def test_full_path_coverage(self):
-        self.assertEqual(len(m.SOURCE_MODES),18)
-        self.assertEqual(len({c[0] for c in m.SOURCE_MODES}),18)
-        self.assertEqual(len({c[1] for c in m.SOURCE_MODES}),18)
+        self.assertEqual(len(m.SOURCE_MODES),19)
+        self.assertEqual(len({c[0] for c in m.SOURCE_MODES}),19)
+        self.assertEqual(len({c[1] for c in m.SOURCE_MODES}),19)
         self.assertEqual(sum(x[1].startswith("--to-mouse-reset") for x in m.SOURCE_MODES),4)
         self.assertTrue(all(v[2].startswith("STOP_BEFORE_") for v in m.SOURCE_MODES))
     def test_authentication_rejects_mutation(self):
@@ -44,7 +44,7 @@ class MediaMatrixTests(unittest.TestCase):
             self.assertTrue(payload["passed"])
             self.assertFalse(payload["game_booted"])
             self.assertFalse(payload["original_dos_runtime_parity"])
-            self.assertEqual(len(calls),18)
+            self.assertEqual(len(calls),19)
             self.assertTrue(all(arg is None for _,arg in calls))
     def test_one_bad_boundary_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
@@ -77,6 +77,6 @@ class MediaMatrixTests(unittest.TestCase):
                 self.assertEqual(m.main(["--exe",str(p),"--code2",str(code),
                     "--sound-cfg",str(sound),"--report",str(report)]),1)
             result=json.loads(report.read_text())
-            self.assertEqual(sum(not c["passed"] for c in result["cases"]),10)
+            self.assertEqual(sum(not c["passed"] for c in result["cases"]),11)
 if __name__=="__main__":
     unittest.main()
