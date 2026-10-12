@@ -8,6 +8,36 @@ checkout `18a71e37fb5f0ec44ecb7486f754f7678095ef17`;
 translation units compiled and linked; CTest #18 and #19 executed the
 new, reconstructed mouse-branch pathways.
 
+## Follow-on canonical recompilation proof — Windows #34
+
+The source-backed mouse integration did not stop at the first DPMI
+wrapper address. A further source change executes the **actual reconstructed**
+`30D80 → 30D52` DPMI 0100h allocation request, including original
+paragraph-count arithmetic and the **actual `37A73`** six-selector
+snapshot in ES,CS,SS,DS,FS,GS order. The only test-owned callback
+intercepts the subsequent `33A7C` external `INT 31h` boundary and
+rejects any request other than `INT 31h / AX=0100h / BX=5 paragraphs`.
+No DOS memory block, segment, selector, return carry, or success value
+is fabricated. The mouse-present test now stops at
+`STOP_BEFORE_DOS_INT31_0100_ALLOCATION`.
+
+Likewise the no-device branch now executes canonical `311E8`, which
+rewrites embedded dollar signs, appends its temporary DOS dollar
+terminator, and reaches the original `INT 21h / AH=09` output call.
+The test-owned output boundary checks that the original source has
+prepared the expected text before stopping at
+`STOP_BEFORE_DOS_INT21_AH09_MOUSE_WARNING`, without manufacturing
+DOS output or altering the original string-mutation routine.
+
+**Windows build [#34](https://github.com/Hyperbog/RLOFT/actions/runs/38202963930)**
+completed successfully on exact source commit
+`f7f94d8c38153707fde6eacc2474556442c50ec4`, with **22/22 CTests
+passed**, including both expanded original-mouse branches and offline
+14-path original-media identity/boundary contracts. This supersedes
+the #32 source-execution boundary, not its preserved historical results.
+The host test environment and original-DOS game parity are still
+unaccepted and original media were not present in Actions.
+
 ## What actually executes
 
 The canonical `Recomp/src/code2_startup_gate.cpp` continues to enter the
