@@ -4,6 +4,7 @@
 // fabricated result. Source: original CODE.2 353A0 -> 35418 -> 395E2.
 #include "../../Code2/Code2.cpp"
 #include "original_le_image.h"
+#include "dos_readonly_files.hpp"
 #include <algorithm>
 #include <array>
 #include <csetjmp>
@@ -11,6 +12,8 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
+#include <filesystem>
 #include <string>
 #include <cstring>
 #include <stdexcept>
@@ -76,6 +79,9 @@ struct Session {
     std::size_t audio_file_cursor=0;
     u32 audio_descriptor_flags=0, audio_published_flags=0;
     std::array<u8,59> audio_file_fixture{};
+    // Optional genuine host file I/O. Existing DOS/mouse/vector fixtures
+    // remain explicit; this is not a complete DOS runtime.
+    std::unique_ptr<rloft_recomp::ReadOnlyDosFiles> host_files;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -360,6 +366,11 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
     current->open_access_share=access_share;
     if(path!=0x143Cu || access_share!=0u)
         stop("ORIGINAL_DOS_AH3D_OPEN_ARGUMENTS_DIFFER");
+    if(current->host_files) {
+        const auto result=current->host_files->open("sound.cfg",access_share);
+        if(result.carry)stop("HOST_DOS_AH3D_SOUND_OPEN_FAILED");
+        return static_cast<code2::s32>(result.ax);
+    }
     if(current->advance_to_mouse)return 5; // EXPLICIT test-only DOS handle
     stop("STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN");
 }
@@ -383,6 +394,13 @@ code2::s32 original_dos_read_fixture(u32 h,u32 destination,u32 count) noexcept {
     if(h!=5u || count!=59u || current->audio_file_cursor!=0u)
         stop("ORIGINAL_DOS_SOUND_CFG_READ_ABI_CHANGED");
     ++current->dos_file_reads;
+    if(current->host_files) {
+        const auto response=current->host_files->read(
+            static_cast<u16>(h),segment(0x30u,destination,count),count);
+        if(response.carry)stop("HOST_DOS_AH3F_SOUND_READ_FAILED");
+        current->audio_file_cursor+=response.ax;
+        return static_cast<code2::s32>(response.ax);
+    }
     std::memcpy(segment(0x30u,destination,count),
                 current->audio_file_fixture.data(),count);
     current->audio_file_cursor=count;
@@ -392,6 +410,10 @@ code2::s32 original_dos_close_fixture(u32 h) noexcept {
     if(h!=5u || current->audio_file_cursor!=59u)
         stop("ORIGINAL_DOS_SOUND_CFG_CLOSE_ABI_CHANGED");
     ++current->dos_file_closes;
+    if(current->host_files) {
+        const auto response=current->host_files->close(static_cast<u16>(h));
+        if(response.carry)stop("HOST_DOS_AH3E_SOUND_CLOSE_FAILED");
+    }
     current->audio_descriptor_flags=0u;
     return 0;
 }
@@ -884,7 +906,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool advance_to_sound_file=false,bool sound_no_arguments=false,
          bool advance_to_mouse=false,
          const std::vector<u8>* original_sound_cfg=nullptr,
-         MouseResetBranch mouse_branch=MouseResetBranch::Stop) {
+         MouseResetBranch mouse_branch=MouseResetBranch::Stop,
+         const std::filesystem::path* host_root=nullptr) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -896,9 +919,14 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.advance_to_sound_file=advance_to_sound_file;
     state.advance_to_mouse=advance_to_mouse;
     state.mouse_branch=mouse_branch;
+    if(host_root) {
+        require(advance_to_mouse && original_sound_cfg!=nullptr,
+                "host DOS file mode needs explicit 59-byte comparison input");
+        state.host_files=std::make_unique<rloft_recomp::ReadOnlyDosFiles>(*host_root);
+    }
     if(original_sound_cfg) {
-        require(original && advance_to_mouse,
-                "original SOUND.CFG requires original CODE.2 and mouse-boundary mode");
+        require((original || host_root) && advance_to_mouse,
+                "original or host SOUND.CFG requires mouse-boundary mode");
         require(original_sound_cfg->size()==state.audio_file_fixture.size(),
                 "original SOUND.CFG must contain exactly 59 bytes");
         std::copy(original_sound_cfg->begin(),original_sound_cfg->end(),
@@ -1369,7 +1397,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
              <<"ORIGINAL_DOS_PARITY=NO\nGAME_BOOTED=NO\n"
              <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<"\n"
-             <<"SOUND_CFG_INPUT="<<(original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
+             <<"SOUND_CFG_INPUT="<<(host_root?"HOST_READ_ONLY_SERVICE":
+                   original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
+    if(host_root)require(state.host_files->open_handles()==0u,
+                         "host DOS descriptors remained open");
 
 }
 }
@@ -1377,7 +1408,8 @@ int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false,advance_to_sound_file=false,
-             sound_no_arguments=false,advance_to_mouse=false;
+             sound_no_arguments=false,advance_to_mouse=false,
+             host_sound_file=false;
         MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -1391,6 +1423,7 @@ int main(int argc,char**argv) {
                mode=="--to-sound-config-no-args" ||
                mode=="--to-sound-config-no-args-configured" ||
                mode=="--to-mouse-reset" ||
+               mode=="--to-mouse-reset-host-file" ||
                mode=="--to-mouse-reset-configured" ||
                mode=="--to-mouse-reset-no-args" ||
                mode=="--to-mouse-reset-no-args-configured" ||
@@ -1401,7 +1434,8 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-y-range" ||
                mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
-                advance_to_mouse=(mode=="--mouse-no-driver-to-dpmi-free" ||
+                advance_to_mouse=(mode=="--to-mouse-reset-host-file" ||
+                    mode=="--mouse-no-driver-to-dpmi-free" ||
                     mode=="--mouse-no-driver-to-x-range" ||
                     mode=="--mouse-no-driver-to-y-range" ||
                     mode=="--mouse-no-driver-to-disk-query" ||
@@ -1438,6 +1472,7 @@ int main(int argc,char**argv) {
                 if(mode=="--mouse-no-driver-to-y-range")mouse_branch=MouseResetBranch::RangeY;
                 if(mode=="--mouse-no-driver-to-disk-query")mouse_branch=MouseResetBranch::DiskSpace;
                 if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
+                host_sound_file=(mode=="--to-mouse-reset-host-file");
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
@@ -1452,7 +1487,18 @@ int main(int argc,char**argv) {
             require(advance_to_mouse && !termination && !arena_probe &&
                     !failure_probe && !vector_matrix,
                     "original SOUND.CFG only valid for original mouse-reset source modes");
-        if(vector_matrix) {
+        if(host_sound_file) {
+            require(argc==original_index+1,
+                    "usage: --to-mouse-reset-host-file INSTALLATION_ROOT");
+            const std::filesystem::path root(argv[original_index]);
+            // Read a separate expected 59-byte snapshot solely for checking
+            // original compiled source's DGROUP writes. Actual AH=3D/3F/3E
+            // callbacks use ReadOnlyDosFiles, not this copy.
+            const auto expected=read_file((root/"SOUND.CFG").string());
+            require(expected.size()==59u,"host SOUND.CFG must contain 59 bytes");
+            run(synthetic_image(),false,true,true,GameConfig::Unset,
+                true,false,true,&expected,MouseResetBranch::Stop,&root);
+        } else if(vector_matrix) {
             require(argc==original_index,"vector-mode probe does not use original data");
             interrupt_vector_matrix_probe();
         }else if(arena_probe || failure_probe) {
