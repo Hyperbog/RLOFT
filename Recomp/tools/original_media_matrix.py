@@ -29,6 +29,9 @@ SOURCE_MODES=(
     ("mouse-configured-no-args", "--to-mouse-reset-no-args-configured", "STOP_BEFORE_DOS_INT33_MOUSE_RESET"),
     ("mouse-present-source", "--mouse-present-to-memory", "STOP_BEFORE_DOS_INT31_0100_ALLOCATION"),
     ("mouse-present-after-dpmi-0100", "--mouse-present-to-real-mode", "STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION"),
+    ("mouse-no-driver-release", "--mouse-no-driver-to-dpmi-free", "STOP_BEFORE_DOS_INT31_0101_MOUSE_FREE"),
+    ("mouse-x-range", "--mouse-no-driver-to-x-range", "STOP_BEFORE_DOS_INT33_X_RANGE"),
+    ("mouse-y-range", "--mouse-no-driver-to-y-range", "STOP_BEFORE_DOS_INT33_Y_RANGE"),
     ("mouse-absent-source", "--mouse-absent-to-warning", "STOP_BEFORE_DOS_INT21_AH09_MOUSE_WARNING"),
 )
 def digest(path, expected, label):
