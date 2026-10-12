@@ -1,5 +1,18 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Current R04 closure work — DPMI linear memory (2026-10-12)
+
+A host-backed stateful DPMI `0501h/0502h/0503h` linear allocation/resize/free
+provider and an independent lifecycle CTest have been added, alongside the
+existing source-backed `0100h/0101h` conventional memory provider.
+The CMake suite now registers **38 CTests**; the newly registered test
+still requires independent Windows CI verification. **R04 remains unaccepted**
+pending real original CODE.1/CODE.2 heap establishment and growth, DOS memory
+services and removal of the seeded test arena. The coarse accepted score stays
+**3/12 = 25.0%**. See
+[the exact R04 acceptance checkpoint](DPMI_LINEAR_MEMORY_0501_0503_CHECKPOINT_20261012.md).
+
+
 This is the first **actual C++ compilation, linker and executable runtime**
 gate on the `code1-decompilation` branch. The target includes both canonical
 `Code1/Code1.cpp` and `Code2/Code2.cpp`, unchanged, in separate compilation
