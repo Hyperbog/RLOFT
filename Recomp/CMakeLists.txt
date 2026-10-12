@@ -34,6 +34,16 @@ include(CTest)
 if(BUILD_TESTING)
     add_test(NAME canonical_host_readonly_dos_file_service_contract
         COMMAND rloft_dos_readonly_files_test)
+    # Asset-free integration: a generated 59-byte noncommercial SOUND.CFG.
+    # Actual compiled CODE.2 37E77/37E99/38106/380F8 invokes the
+    # read-only host DOS service. DOS memory, vectors and mouse are fixtures.
+    set(_dos_host_fixture "${CMAKE_CURRENT_BINARY_DIR}/dos_host_fixture")
+    file(MAKE_DIRECTORY "${_dos_host_fixture}")
+    string(REPEAT "A" 59 _dos_host_sound_bytes)
+    file(WRITE "${_dos_host_fixture}/SOUND.CFG" "${_dos_host_sound_bytes}")
+    add_test(NAME canonical_code2_original_sound_file_via_host_dos_provider
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-host-file
+                "${_dos_host_fixture}")
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         # Pure standard-library tests. Validate authenticated-media
