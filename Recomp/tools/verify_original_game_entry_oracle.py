@@ -83,7 +83,7 @@ def verify(original: bytes) -> None:
     for off, expected in exact_windows:
         if original[CODE_START + off:CODE_START + off + len(expected)] != expected:
             raise ValueError(f"CODE.2 authentic 375FE side effect {off:05X} changed")
-    if original[DATA_START + 0x143C:DATA_START + 0x1446] != b"sound.cfg\\0":
+    if original[DATA_START + 0x143C:DATA_START + 0x1446] != bytes.fromhex("73 6f 75 6e 64 2e 63 66 67 00"):
         raise ValueError("original CODE.2 sound.cfg filename literal missing")
     print("ORIGINAL_375FE_FAR_CALLBACK_SAVE_AND_MODE=3/3 VERIFIED")
     print("ORIGINAL_SOUND_CFG_FILENAME=VERIFIED")
