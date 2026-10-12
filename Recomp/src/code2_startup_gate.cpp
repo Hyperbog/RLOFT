@@ -20,7 +20,7 @@ namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 enum class GameConfig { Unset, Overrides, SignedWrap };
 // Hypothetical mouse hardware outcomes, NEVER a claim of DOS observation.
-enum class MouseResetBranch { Stop, Present, Absent, MemoryHandoff, FreeBoundary, RangeX, RangeY };
+enum class MouseResetBranch { Stop, Present, Absent, MemoryHandoff, FreeBoundary, RangeX, RangeY, DiskSpace };
 struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
     std::jmp_buf escape;
@@ -72,7 +72,7 @@ struct Session {
     u8 open_access_share=0xFFu;
     unsigned dos_file_reads=0, dos_file_closes=0, mouse_reset_calls=0;
     unsigned dpmi_mouse_simulation_calls=0, mouse_range_calls=0;
-    unsigned mouse_x_range_returned=0, dpmi_mouse_free_calls=0;
+    unsigned mouse_x_range_returned=0, dpmi_mouse_free_calls=0, disk_space_calls=0;
     std::size_t audio_file_cursor=0;
     u32 audio_descriptor_flags=0, audio_published_flags=0;
     std::array<u8,59> audio_file_fixture{};
@@ -433,7 +433,8 @@ bool wants_synthetic_mouse_dpmi_allocation() noexcept {
     const auto b=current->mouse_branch;
     return b==MouseResetBranch::MemoryHandoff ||
            b==MouseResetBranch::FreeBoundary ||
-           b==MouseResetBranch::RangeX || b==MouseResetBranch::RangeY;
+           b==MouseResetBranch::RangeX || b==MouseResetBranch::RangeY ||
+           b==MouseResetBranch::DiskSpace;
 }
 u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
     ++current->dpmi_calls;
@@ -466,7 +467,8 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
         if(current->mouse_branch==MouseResetBranch::FreeBoundary)
             stop("STOP_BEFORE_DOS_INT31_0101_MOUSE_FREE");
         if(current->mouse_branch!=MouseResetBranch::RangeX &&
-           current->mouse_branch!=MouseResetBranch::RangeY)
+           current->mouse_branch!=MouseResetBranch::RangeY &&
+           current->mouse_branch!=MouseResetBranch::DiskSpace)
             stop("ORIGINAL_DPMI_0101_UNEXPECTED_RELEASE");
         // Explicit fixture: successful release of the earlier fake block.
         out[0x18u]=0u;
@@ -487,7 +489,8 @@ u32 stop_at_original_int31_real_mode_mouse(u32 interrupt,u32* in,
         stop("STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION");
     if(current->mouse_branch!=MouseResetBranch::FreeBoundary &&
        current->mouse_branch!=MouseResetBranch::RangeX &&
-       current->mouse_branch!=MouseResetBranch::RangeY)
+       current->mouse_branch!=MouseResetBranch::RangeY &&
+       current->mouse_branch!=MouseResetBranch::DiskSpace)
         stop("ORIGINAL_DPMI_0300_UNEXPECTED_MODE");
     // No driver probe: frame+1C remains 53C1, not the required 1.
     // The real 33B44 code must then release the allocated DOS selector.
@@ -521,15 +524,21 @@ code2::Runtime101MouseRegs interrupt_mouse_range_boundary(
     if(current->mouse_branch==MouseResetBranch::RangeX &&
        command==7u && current->mouse_range_calls==1u)
         stop("STOP_BEFORE_DOS_INT33_X_RANGE");
-    if(current->mouse_branch==MouseResetBranch::RangeY &&
+    if((current->mouse_branch==MouseResetBranch::RangeY ||
+        current->mouse_branch==MouseResetBranch::DiskSpace) &&
        command==7u && current->mouse_range_calls==1u) {
         // Explicit test-only successful X range result, no host mouse.
         ++current->mouse_x_range_returned;
         return {0xFFFFu,0u,0u,0u};
     }
-    if(current->mouse_branch==MouseResetBranch::RangeY &&
-       command==8u && current->mouse_range_calls==2u)
-        stop("STOP_BEFORE_DOS_INT33_Y_RANGE");
+    if((current->mouse_branch==MouseResetBranch::RangeY ||
+        current->mouse_branch==MouseResetBranch::DiskSpace) &&
+       command==8u && current->mouse_range_calls==2u) {
+        if(current->mouse_branch==MouseResetBranch::RangeY)
+            stop("STOP_BEFORE_DOS_INT33_Y_RANGE");
+        // Test-only successful Y range; original CODE.2 2F2EC returns.
+        return {0xFFFFu,0u,0u,0u};
+    }
     stop("UNEXPECTED_MOUSE_RANGE_COMMAND_ORDER");
 }
 void original_mouse_range_x(u32 lo,u32 hi) noexcept {
@@ -537,6 +546,22 @@ void original_mouse_range_x(u32 lo,u32 hi) noexcept {
 }
 void original_mouse_range_y(u32 lo,u32 hi) noexcept {
     (void)code2::function_33d38(current->mouse_range,lo,hi);
+}
+bool stop_at_dos_disk_free(u8 drive,u16&,u16&,u16&,u16&) noexcept {
+    ++current->disk_space_calls;
+    if(drive!=0u || current->mouse_branch!=MouseResetBranch::DiskSpace ||
+       current->mouse_range_calls!=2u)
+        stop("ORIGINAL_DOS_DISK_FREE_SERVICE_ORDER_CHANGED");
+    stop("STOP_BEFORE_DOS_INT21_AH36_DISK_FREE");
+}
+u32 original_disk_free_from_35286(u32 drive,u16& first,
+                                  u16& second,u16& third) noexcept {
+    u16 out[4]{};
+    // Execute actual canonical 35286 and its first external DOS AH36
+    // callback, after 33B44, 33D18 and 33D38 have all returned.
+    const u32 ok=code2::function_35286(current->entry,drive,out);
+    first=out[0];second=out[1];third=out[2];
+    return ok;
 }
 u32 original_mouse_memory_via_30d80(u32 bytes,u32 a,u32 b) noexcept {
     if(bytes!=0x40u || a!=0xFD14u || b!=0xFD18u)
@@ -943,6 +968,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game.call_352ee=&original_getenv;
     state.game.call_35349=&original_atoi;
     state.game.call_2f2ec=&original_audio_init;
+    state.game.call_35286=&original_disk_free_from_35286;
+    state.entry.int21_36=&stop_at_dos_disk_free;
     state.game_audio.call_375fe_far=&original_far_install;
     state.dos_irq.install_interrupt=&original_vector_install;
     state.keyboard_irq.get_vector=&guest_get_vector;
@@ -1052,8 +1079,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "default test unexpectedly passed original allocator boundary");
     }else{
         const char* required_stop=advance_to_mouse
-            ? mouse_branch==MouseResetBranch::RangeY
-                ? "STOP_BEFORE_DOS_INT33_Y_RANGE"
+            ? mouse_branch==MouseResetBranch::DiskSpace
+                ? "STOP_BEFORE_DOS_INT21_AH36_DISK_FREE"
+                : mouse_branch==MouseResetBranch::RangeY
+                    ? "STOP_BEFORE_DOS_INT33_Y_RANGE"
                 : mouse_branch==MouseResetBranch::RangeX
                     ? "STOP_BEFORE_DOS_INT33_X_RANGE"
                 : mouse_branch==MouseResetBranch::FreeBoundary
@@ -1276,7 +1305,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                         if(mouse_branch==MouseResetBranch::MemoryHandoff ||
                            mouse_branch==MouseResetBranch::FreeBoundary ||
                            mouse_branch==MouseResetBranch::RangeX ||
-                           mouse_branch==MouseResetBranch::RangeY) {
+                           mouse_branch==MouseResetBranch::RangeY ||
+                           mouse_branch==MouseResetBranch::DiskSpace) {
                             require(state.dpmi_mouse_simulation_calls==1u &&
                                     rd32(0xFD14u)==0x2D600000u &&
                                     rd16(0xFD18u)==0x0060u &&
@@ -1289,16 +1319,21 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                                 "original DPMI mouse release count changed");
                             require(state.mouse_range_calls==
                                 (mouse_branch==MouseResetBranch::RangeX?1u:
-                                 mouse_branch==MouseResetBranch::RangeY?2u:0u),
+                                 mouse_branch==MouseResetBranch::RangeY ||
+                                 mouse_branch==MouseResetBranch::DiskSpace?2u:0u),
                                 "original mouse coordinate range call sequence differs");
                             require(state.mouse_x_range_returned==
-                                (mouse_branch==MouseResetBranch::RangeY?1u:0u),
+                                (mouse_branch==MouseResetBranch::RangeY ||
+                                 mouse_branch==MouseResetBranch::DiskSpace?1u:0u),
                                 "test-only mouse X range handoff changed");
                         } else require(state.dpmi_mouse_simulation_calls==0u &&
                                        state.dpmi_mouse_free_calls==0u &&
                                        state.mouse_range_calls==0u,
                             "unexpected DPMI real-mode mouse simulation");
                     }
+                    require(state.disk_space_calls==
+                        (mouse_branch==MouseResetBranch::DiskSpace?1u:0u),
+                        "source DOS disk free query unexpectedly bypassed");
                 }
             }
         }
@@ -1359,10 +1394,12 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-dpmi-free" ||
                mode=="--mouse-no-driver-to-x-range" ||
                mode=="--mouse-no-driver-to-y-range" ||
+               mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
                 advance_to_mouse=(mode=="--mouse-no-driver-to-dpmi-free" ||
                     mode=="--mouse-no-driver-to-x-range" ||
                     mode=="--mouse-no-driver-to-y-range" ||
+                    mode=="--mouse-no-driver-to-disk-query" ||
                     mode=="--mouse-present-to-real-mode" ||
                     mode=="--mouse-present-to-memory" ||
                     mode=="--mouse-absent-to-warning" ||
@@ -1394,6 +1431,7 @@ int main(int argc,char**argv) {
                 if(mode=="--mouse-no-driver-to-dpmi-free")mouse_branch=MouseResetBranch::FreeBoundary;
                 if(mode=="--mouse-no-driver-to-x-range")mouse_branch=MouseResetBranch::RangeX;
                 if(mode=="--mouse-no-driver-to-y-range")mouse_branch=MouseResetBranch::RangeY;
+                if(mode=="--mouse-no-driver-to-disk-query")mouse_branch=MouseResetBranch::DiskSpace;
                 if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
