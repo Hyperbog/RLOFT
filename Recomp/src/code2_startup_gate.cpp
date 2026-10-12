@@ -1752,7 +1752,8 @@ int main(int argc,char**argv) {
                     mode=="--to-mouse-reset-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
-                advance_to_sound_file=(mode=="--to-sound-config" ||
+                advance_to_sound_file=(mode=="--to-sound-config-no-args-host-dpmi-heap" ||
+                    mode=="--to-sound-config" ||
                     mode=="--to-sound-config-configured" ||
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
