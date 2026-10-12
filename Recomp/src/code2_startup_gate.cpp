@@ -1834,7 +1834,8 @@ int main(int argc,char**argv) {
         bool execute_application=false,advance_to_sound_file=false,
              sound_no_arguments=false,advance_to_mouse=false,
              host_sound_file=false,host_dpmi=false,multi_host_resource=false,
-             host_source_heap=false,host_dos_fallback=false;
+             host_source_heap=false,host_dos_fallback=false,
+             host_break_growth=false;
         MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -1847,6 +1848,10 @@ int main(int argc,char**argv) {
                mode=="--to-sound-config" || mode=="--to-sound-config-configured" ||
                mode=="--through-initializers-host-dpmi" ||
                mode=="--enter-game-host-dpmi" ||
+               mode=="--through-initializers-host-break" ||
+               mode=="--enter-game-host-break" ||
+               mode=="--to-sound-config-no-args-host-break" ||
+               mode=="--to-mouse-reset-host-break" ||
                mode=="--through-initializers-host-dos-fallback" ||
                mode=="--enter-game-host-dos-fallback" ||
                mode=="--to-sound-config-no-args-host-dos-fallback" ||
@@ -1870,7 +1875,8 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-y-range" ||
                mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
-                advance_to_mouse=(mode=="--to-mouse-reset-host-dos-fallback" ||
+                advance_to_mouse=(mode=="--to-mouse-reset-host-break" ||
+                    mode=="--to-mouse-reset-host-dos-fallback" ||
                     mode=="--to-mouse-reset-host-dpmi-heap" ||
                     mode=="--to-mouse-reset-host-file" ||
                     mode=="--to-mouse-reset-host-multifile" ||
@@ -1887,14 +1893,16 @@ int main(int argc,char**argv) {
                     mode=="--to-mouse-reset-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
-                advance_to_sound_file=(mode=="--to-sound-config-no-args-host-dos-fallback" ||
+                advance_to_sound_file=(mode=="--to-sound-config-no-args-host-break" ||
+                    mode=="--to-sound-config-no-args-host-dos-fallback" ||
                     mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                     mode=="--to-sound-config" ||
                     mode=="--to-sound-config-configured" ||
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
                     advance_to_mouse);
-                sound_no_arguments=(mode=="--to-sound-config-no-args-host-dos-fallback" ||
+                sound_no_arguments=(mode=="--to-sound-config-no-args-host-break" ||
+                    mode=="--to-sound-config-no-args-host-dos-fallback" ||
                     mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
@@ -1904,12 +1912,17 @@ int main(int argc,char**argv) {
                                    mode=="--enter-game-host-dos-fallback" ||
                                    mode=="--to-sound-config-no-args-host-dos-fallback" ||
                                    mode=="--to-mouse-reset-host-dos-fallback");
-                host_source_heap=(host_dos_fallback ||
+                host_break_growth=(mode=="--through-initializers-host-break" ||
+                                   mode=="--enter-game-host-break" ||
+                                   mode=="--to-sound-config-no-args-host-break" ||
+                                   mode=="--to-mouse-reset-host-break");
+                host_source_heap=(host_break_growth || host_dos_fallback ||
                                   mode=="--to-mouse-reset-host-dpmi-heap" ||
                                   mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                                   mode=="--through-initializers-host-dpmi" ||
                                   mode=="--enter-game-host-dpmi");
-                execute_application=(mode=="--enter-game-host-dos-fallback" ||
+                execute_application=(mode=="--enter-game-host-break" ||
+                    mode=="--enter-game-host-dos-fallback" ||
                     mode=="--enter-game-host-dpmi" ||
                     mode=="--enter-game" ||
                     mode=="--enter-game-config" || mode=="--enter-game-signed-wrap" ||
@@ -1975,7 +1988,7 @@ int main(int argc,char**argv) {
             else run(fixture,false,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,advance_to_mouse,
                      nullptr,mouse_branch,nullptr,host_dpmi,false,
-                     host_source_heap,host_dos_fallback);
+                     host_source_heap,host_dos_fallback,host_break_growth);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
@@ -1992,7 +2005,8 @@ int main(int argc,char**argv) {
             else run(image,true,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,
                      advance_to_mouse,sound_ptr,mouse_branch,nullptr,
-                     host_dpmi,false,host_source_heap,host_dos_fallback);
+                     host_dpmi,false,host_source_heap,host_dos_fallback,
+                     host_break_growth);
         }
         return 0;
     } catch(const std::exception& e) {
