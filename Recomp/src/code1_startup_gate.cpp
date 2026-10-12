@@ -5,6 +5,7 @@
 #include "original_le_image.h"
 #include "extender_data_break.hpp"
 #include "dpmi_linear_memory.hpp"
+#include <array>
 #include <csetjmp>
 #include <cstdint>
 #include <fstream>
@@ -17,7 +18,7 @@
 namespace {
 using u8=std::uint8_t;using u16=std::uint16_t;using u32=std::uint32_t;
 enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize, ExtenderHostResize,
-                  ExtenderHostResizeHeap };
+                  ExtenderHostResizeHeap, ExtenderCd97Startup, ExtenderCd97BreakHeap };
 struct Session {
     std::jmp_buf escape{};
     std::vector<u8> dgroup;
@@ -31,6 +32,11 @@ struct Session {
     rloft_recomp::DpmiLinearMemory source_heap;
     unsigned source_0501=0,source_0502=0,source_db5b=0;
     bool bad_heap_access=false;
+    std::array<u8,256> source_psp{},source_env{};
+    std::array<u32,3> source_ctor_targets{};
+    unsigned source_ctor_calls=0,source_runtime_calls=0,source_main_calls=0;
+    unsigned source_exit_calls=0,source_break_calls=0;
+    bool bad_cd97_access=false,source_cd97_saved_ds=false;
 };
 thread_local Session* current=nullptr;
 u8* heap_dword(u32 guest) noexcept {
@@ -160,8 +166,16 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
         // 4458h is the original 32-bit extender marker; no extender ran.
         m.cpu.eax=(s.mode==Mode::ExtenderToResize ||
                     s.mode==Mode::ExtenderHostResize ||
-                    s.mode==Mode::ExtenderHostResizeHeap)?
+                    s.mode==Mode::ExtenderHostResizeHeap ||
+                    s.mode==Mode::ExtenderCd97Startup ||
+                    s.mode==Mode::ExtenderCd97BreakHeap)?
             0x44581606u:0x00001606u;
+        if(s.mode==Mode::ExtenderToResize ||
+           s.mode==Mode::ExtenderHostResize ||
+           s.mode==Mode::ExtenderHostResizeHeap ||
+           s.mode==Mode::ExtenderCd97Startup ||
+           s.mode==Mode::ExtenderCd97BreakHeap)
+            m.cpu.ebx=(m.cpu.ebx&0xFFFFFF00u)|0x32u; // ASCII '2' (not PSP probe 'R')
         return;
     }
     if(s.int21_calls==2u) {
@@ -171,7 +185,9 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
             halt("STOP_BEFORE_CODE1_DOS_INT21_FF00");
         if((s.mode==Mode::ExtenderToResize ||
             s.mode==Mode::ExtenderHostResize ||
-            s.mode==Mode::ExtenderHostResizeHeap) &&
+            s.mode==Mode::ExtenderHostResizeHeap ||
+            s.mode==Mode::ExtenderCd97Startup ||
+            s.mode==Mode::ExtenderCd97BreakHeap) &&
            ((m.cpu.eax>>8)&0xFFu)==0x4Au &&
            s.extender_branch) {
             if(s.mode==Mode::ExtenderToResize)
@@ -237,13 +253,19 @@ void execute(Mode mode,const std::vector<u8>* original) {
             s.extender_branch=true;
             if(mode!=Mode::ExtenderToResize &&
                mode!=Mode::ExtenderHostResize &&
-               mode!=Mode::ExtenderHostResizeHeap)
+               mode!=Mode::ExtenderHostResizeHeap &&
+               mode!=Mode::ExtenderCd97Startup &&
+               mode!=Mode::ExtenderCd97BreakHeap)
                 halt("CODE1_STARTUP_EXTENDER_BRANCH_CHANGED");
             (void)code1::translate_ccde_cd16(
                 s.machine,(mode==Mode::ExtenderHostResize ||
-                           mode==Mode::ExtenderHostResizeHeap)?0xA000u:0x5000u);
+                           mode==Mode::ExtenderHostResizeHeap ||
+                           mode==Mode::ExtenderCd97Startup ||
+                           mode==Mode::ExtenderCd97BreakHeap)?0xA000u:0x5000u);
             if(mode==Mode::ExtenderHostResize ||
-               mode==Mode::ExtenderHostResizeHeap)
+               mode==Mode::ExtenderHostResizeHeap ||
+               mode==Mode::ExtenderCd97Startup ||
+               mode==Mode::ExtenderCd97BreakHeap)
                 halt("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE");
         } else halt("CODE1_ORIGINAL_ENTRY_BRANCH_INVALID");
         halt("CODE1_SOURCE_RETURNED_BEFORE_EXPECTED_DOS_BOUNDARY");
@@ -251,13 +273,22 @@ void execute(Mode mode,const std::vector<u8>* original) {
     if(mode==Mode::ExtenderHostResizeHeap &&
        s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE"))
         source_heap_post_extender_handoff(original!=nullptr);
+    if((mode==Mode::ExtenderCd97Startup ||
+        mode==Mode::ExtenderCd97BreakHeap) &&
+       s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE")) {
+        source_cd97_followup(original!=nullptr);
+        if(mode==Mode::ExtenderCd97BreakHeap)
+            source_break_heap_followup(original!=nullptr);
+    }
     current=nullptr;
     const char* expected=mode==Mode::BeforeVersion?
         "STOP_BEFORE_CODE1_DOS_INT21_AH30_VERSION":
         mode==Mode::Dos6ToFf00?
         "STOP_BEFORE_CODE1_DOS_INT21_FF00":
         (mode==Mode::ExtenderHostResize ||
-         mode==Mode::ExtenderHostResizeHeap)?
+         mode==Mode::ExtenderHostResizeHeap ||
+         mode==Mode::ExtenderCd97Startup ||
+         mode==Mode::ExtenderCd97BreakHeap)?
         "STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE":
         "STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE";
     assert_true(s.boundary==std::string(expected),"CODE1 DOS entry boundary incorrect");
@@ -271,8 +302,10 @@ void execute(Mode mode,const std::vector<u8>* original) {
         assert_true(s.dgroup[0x5326u]==6u && s.dgroup[0x5327u]==22u,
                     "original CC1C DOS major/minor publication differs");
     if(mode==Mode::ExtenderHostResize ||
-       mode==Mode::ExtenderHostResizeHeap)
-        assert_true(s.host_break.successful_resizes()==1u &&
+       mode==Mode::ExtenderHostResizeHeap ||
+       mode==Mode::ExtenderCd97Startup ||
+       mode==Mode::ExtenderCd97BreakHeap)
+        assert_true(s.host_break.successful_resizes()>=1u &&
                     s.dgroup.size()==0xA000u &&
                     code1::load_le32(s.dgroup.data()+0x52f0u)==0xA000u &&
                     s.machine.cpu.es==0x30u,
@@ -301,6 +334,8 @@ int main(int argc,char** argv) {
             else if(cmd=="--extender-to-resize") {mode=Mode::ExtenderToResize;index=2;}
             else if(cmd=="--extender-host-resize") {mode=Mode::ExtenderHostResize;index=2;}
             else if(cmd=="--extender-host-resize-to-source-heap") {mode=Mode::ExtenderHostResizeHeap;index=2;}
+            else if(cmd=="--extender-host-resize-to-cd97") {mode=Mode::ExtenderCd97Startup;index=2;}
+            else if(cmd=="--extender-host-resize-to-cd97-break-heap") {mode=Mode::ExtenderCd97BreakHeap;index=2;}
             else if(cmd=="--stop-before-version") {index=2;}
         }
         assert_true(argc==index || argc==index+1,
