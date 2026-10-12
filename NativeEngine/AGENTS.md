@@ -1,5 +1,22 @@
 # NativeEngine — Active developer/agent instructions
 
+## CONTROLLING CODE.2 400-record ordering and non-NPC scene-stage checkpoint — 2026-10-12
+
+[Original class-one/class-two stage and source-byte audit](ORIGINAL_CODE2_NON_NPC_SCENE_STAGING_20261012.md):
+new native C++ staging mirrors original `2BBF4..2BCC2` and
+`2BE48..2BF17` by binding original definition frame base/stride,
+the source packed 3-bit view, source `35798` projection, and `C02D`
+visibility threshold without guessing the later animation, callback
+or final draw ordering. Original `OBJECTS.DAT` has been checked:
+**336×8=2,688** authentic-data frame cases with zero mismatches;
+**131,072** original-word synthetic source/view combinations passed.
+Original scene ordering at `2C3F1` is capacity-corrected to
+**400** (`0x2260` bytes), not the 200 records initially cleared
+by `2C2AF`. Both isolated source tests passed CMake and sanitizers.
+The full current-head NativeEngine CI suite is not independently
+verified; the documented **29/29** remains the CI baseline. No original
+DOS frame or playable-game equivalence is claimed.
+
 ## CONTROLLING original mixed EH6+EH7 four-plane RGB6 compositing gate — 2026-10-12
 
 [Verified first full 320x400 DAC6 frame from authentic wall and sprite resources](ACTUAL_ORIGINAL_MIXED_EH6_EH7_RGB6_COMPOSITOR_20261012.md). NativeEngine exact source **0783c7f802ebd350c7ee5fa730b234729d58ff99**, [Linux source-only Actions #38272329991](https://github.com/Hyperbog/RLOFT/actions/runs/38272329991) **29/29 CTests PASS**. The engine now composes the original LEVELS/RES4/CODE.2 wall projector and original RES3/SINTAB/CODE.2 EH7 VGA source paths in explicitly caller-chosen order, converts through CODE.2 level COLORS palette to 320x400 DAC6 RGB6, and atomically commits both world visibility and four-plane VGA state. The actual CI-compiled binary was run locally on original CODE.2/LEVELS.DAT/RES3/RES4/SINTAB/COLORS/INIT: 2 ordered wall/sprite calls, 256 wall texels, 1 EH7 source read, **268 VGA plane writes**, 4 complete indexed/RGB6 order-sensitive framebuffer hashes. Another independent Python original-byte decoder matched **all 4/4 full-frame hashes, ZERO differences**, and original-data rollback was validated. All original files remain private; no copyrighted data shipped or committed.
