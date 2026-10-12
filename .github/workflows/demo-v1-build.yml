@@ -1,9 +1,17 @@
 name: Demo v1 build
 
-# Private-repo development: never consume Windows runner minutes from
-# source or documentation commits. Run this workflow manually only.
-# Reconsider the push trigger once the repository is public.
+# Now-public repository: owner authorized automatic Full Windows CI.
+# Source revisions on demo-v1 build; manual quick/full remains available.
+# Binary refresh commits contain [skip ci] to prevent recursion.
 on:
+  push:
+    branches:
+      - demo-v1
+    paths:
+      - '.github/workflows/demo-v1-build.yml'
+      - 'DemoV1/**'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
   workflow_dispatch:
     inputs:
       run_linux:
@@ -12,7 +20,7 @@ on:
         type: boolean
         default: false
       build_mode:
-        description: "Quick = demo + 19 focused tests; Full = complete CTest registry (up to 172)"
+        description: "Quick = demo + 19 focused tests; Full = all registered CTests (currently 246)"
         required: true
         type: choice
         options:
@@ -20,7 +28,7 @@ on:
           - full
         default: quick
 
-# Prevent two intentionally requested manual builds competing for minutes.
+# Cancel superseded source builds when a newer checkout arrives.
 concurrency:
   group: demo-v1-${{ github.ref }}
   cancel-in-progress: true
@@ -47,7 +55,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      # Keep generated MSVC .obj/.lib files between *manual* builds.
+      # Keep generated MSVC .obj/.lib files across incremental public-repo builds.
       # Restoring this cache is optional: the initial cold build is
       # still valid, while follow-up edits rebuild only changed sources.
       - name: Restore incremental Windows C++ build cache
@@ -108,37 +116,29 @@ jobs:
           ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2 -R "^(exploration_session_tests|exploration_preview_tests|exploration_gameplay_cadence_tests|original_entity_collision_tests|exploration_runtime_motion_tests|original_ground_texture_raster_tests|original_ground_res4_audit_tests|exploration_presenter_tests|exploration_frame_capture_tests|character_transfer_tests|character_starting_equipment_tests|inventory_runtime_tests|inventory_item_description_tests|inventory_world_drop_tests|inventory_encumbrance_tests|inventory_party_order_tests|inventory_screen_tests|party_panel_controls_tests|character_modal_stats_tests)$"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build full (all C++ regression targets)
-        if: ${{ inputs.build_mode == 'full' }}
+        if: ${{ github.event_name == 'push' || inputs.build_mode == 'full' }}
         run: cmake --build build/demo-v1 --config Release --parallel 2
       - name: Test full (all registered CTests)
-        if: ${{ inputs.build_mode == 'full' }}
+        if: ${{ github.event_name == 'push' || inputs.build_mode == 'full' }}
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
-      - name: Stage normal-play and Level 22 diagnostic launchers
+      - name: Stage original front-end and character creation
         shell: pwsh
         run: |
-          Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
-          Copy-Item DemoV1/Windows/Capture-Level22.cmd build/demo-v1/Release/Capture-Level22.cmd -Force
-          Copy-Item DemoV1/Windows/Diagnose-Level22.cmd build/demo-v1/Release/Diagnose-Level22.cmd -Force
-          Copy-Item DemoV1/Windows/Trace-Normal-Launch.cmd build/demo-v1/Release/Trace-Normal-Launch.cmd -Force
-          Copy-Item DemoV1/Windows/Probe-Level22-Ground.cmd build/demo-v1/Release/Probe-Level22-Ground.cmd -Force
+          Copy-Item DemoV1/Windows/Play-Original-Intro.cmd build/demo-v1/Release/Play-Original-Intro.cmd -Force
+          # Historical Level 22 developer launchers are not shipped to players.
           Copy-Item DemoV1/Windows/Audit-Starting-Equipment.cmd build/demo-v1/Release/Audit-Starting-Equipment.cmd -Force
           # A machine-readable matching provenance file is shipped next to
           # the exe and launchers for users reporting crash screenshots.
           Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
-          Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ inputs.build_mode }}"
+          Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ github.event_name == 'push' && 'full' || inputs.build_mode }}"
 
-      - name: Publish Windows executable and Level 22 launchers
+      - name: Publish original intro and character creation
         uses: actions/upload-artifact@v4
         with:
-          name: Ravenloft-Demo-v1-Windows-x64
+          name: Ravenloft-Original-Intro-Windows-x64
           path: |
             build/demo-v1/Release/ravenloft_demo_v1.exe
-            build/demo-v1/Release/Explore-Level22.cmd
-            build/demo-v1/Release/Capture-Level22.cmd
-            build/demo-v1/Release/Diagnose-Level22.cmd
-            build/demo-v1/Release/Trace-Normal-Launch.cmd
-            build/demo-v1/Release/Probe-Level22-Ground.cmd
-            build/demo-v1/Release/rloft_res4_ground_probe.exe
+            build/demo-v1/Release/Play-Original-Intro.cmd
             build/demo-v1/Release/Audit-Starting-Equipment.cmd
             build/demo-v1/Release/rloft_starting_equipment_probe.exe
             build/demo-v1/Release/build-source-sha.txt
