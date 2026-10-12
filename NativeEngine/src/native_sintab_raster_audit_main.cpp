@@ -1,5 +1,6 @@
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_media.hpp"
+#include "rloft_native/native_lzss.hpp"
 #include "rloft_native/native_sintab_raster.hpp"
 #include "rloft_native/native_sha256.hpp"
 #include "rloft_native/native_type7_scene_shape.hpp"
@@ -20,6 +21,31 @@ int run(const std::filesystem::path& original_install) {
         const auto original_res3=media.read("RES3");
         const rloft_native::NativeResArchive res3(original_res3);
         constexpr std::array<unsigned,3> scale_samples{0,63,126};
+        // Exact original-source smoke: first EH7 source column's first
+        // descriptor at SINTAB scale 126. The caller supplies a
+        // diagnostic ECX=0, destination=0, sequencer mask=15; these are
+        // NOT original 3D camera/shade/view constants.
+        const auto first_entry=res3.entry(0);
+        const auto first_shape=rloft_native::decode_native_type7_scene_shape(
+            first_entry);
+        if(first_shape.columns.empty() ||
+           first_shape.columns.front().descriptors.empty())
+            throw std::runtime_error("original RES3 shape 0 has no sample descriptor");
+        if(first_entry.size()<7)
+            throw std::runtime_error("original RES3 shape 0 truncated");
+        const auto size=std::uint16_t(first_entry[5]) |
+                        (std::uint16_t(first_entry[6])<<8U);
+        const auto decompressed=rloft_native::native_lzss4k_decode(
+            first_entry.data()+7,first_entry.size()-7,size);
+        if(decompressed.consumed!=first_entry.size()-7)
+            throw std::runtime_error("original RES3 smoke input not consumed");
+        const auto sample_plan=rloft_native::resolve_native_eh7_span(
+            first_shape,tables,126,0,0);
+        rloft_native::NativeIndexedVgaPlanes source_probe;
+        const auto source_execution=rloft_native::draw_native_eh7_span(
+            tables,sample_plan,decompressed.bytes,
+            0,0,0,15,source_probe);
+
         std::size_t sources=0,descriptors=0,planned=0,nonempty=0;
         for(std::size_t id=0;id<res3.entry_count();++id) {
             const auto shape=rloft_native::decode_native_type7_scene_shape(
@@ -57,7 +83,27 @@ int run(const std::filesystem::path& original_install) {
                  <<",\"eh7_sample_scale_count\":"<<scale_samples.size()
                  <<",\"eh7_descriptor_scale_plans\":"<<planned
                  <<",\"eh7_nonempty_span_plans\":"<<nonempty
-                 <<",\"scale_blocks\":[";
+                 <<",\"original_source_isolated_span_execution\":true,"
+                 <<"\"source_sample_shape\":0,"
+                 <<"\"source_sample_column\":0,"
+                 <<"\"source_sample_descriptor\":0,"
+                 <<"\"source_sample_scale\":126,"
+                 <<"\"source_sample_ecx_diagnostic\":0,"
+                 <<"\"source_sample_mask_diagnostic\":15,"
+                 <<"\"source_sample_entry_selector\":"
+                 <<sample_plan.entry_selector
+                 <<",\"source_sample_stop_selector\":"
+                 <<sample_plan.stop_selector
+                 <<",\"source_sample_signed_adjustment\":"
+                 <<sample_plan.source_adjustment
+                 <<",\"source_sample_read_opcodes_executed\":"
+                 <<source_execution.source_reads
+                 <<",\"source_sample_masked_stores_executed\":"
+                 <<source_execution.masked_destination_writes
+                 <<",\"source_sample_plane_sha256\":\""
+                 <<source_probe.planes_sha256()
+                 <<"\",\"source_sample_frame_parity_verified\":false,"
+                 <<"\"scale_blocks\":[";
         for(std::size_t n=0;n<tables.blocks.size();++n) {
             if(n)std::cout<<",";
             const auto& p=tables.blocks[n];
