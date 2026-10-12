@@ -39,6 +39,7 @@ struct Session {
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
     unsigned allocation_calls=0, aligned_allocations=0, env_copies=0;
+    unsigned arena_frees=0, injected_alloc_attempts=0;
     unsigned stream_nodes=0, argv_initializations=0;
     u32 game_argc=0, game_argv=0;
     const char* stop_reason="NO_BOUNDARY_REACHED";
@@ -138,7 +139,23 @@ void fixture_fill(u32 off,u8 value,u32 count) noexcept {
     u8* p=segment(0x30u,off,count);
     std::fill_n(p,count,value);
 }
-void fixture_free(u32) noexcept {stop("UNIMPLEMENTED_ORIGINAL_HEAP_FREE");}
+void fixture_arena_free(u32 root,u32 payload) noexcept {
+    Session& s=*current;
+    if(!s.arena_seeded || root!=0x12624u ||
+       payload<s.arena_start+4u || payload>=s.arena_end)
+        stop("SOURCE_ARENA_FREE_OUT_OF_BOUNDS");
+    const u32 arena=code2::load_le32(segment(0x30u,root,4));
+    if(arena!=s.arena_header)stop("SOURCE_ARENA_FREE_ROOT_CHANGED");
+    code2::function_398e0(s.machine,arena,payload);
+    ++s.arena_frees;
+}
+void fixture_free(u32 payload) noexcept {
+    code2::function_37c37(current->heap,payload);
+}
+u32 injected_fail_second_alloc(u32 bytes) noexcept {
+    if(++current->injected_alloc_attempts==2u)return 0u;
+    return fixture_alloc(bytes);
+}
 u32 rejected_fallback(u32) noexcept {stop("UNIMPLEMENTED_SECONDARY_HEAP_PATH");}
 void rejected_fatal(u32,u32) noexcept {stop("GUEST_FATAL_3A536");}
 void guest(u32 address,u32 arg) noexcept {
@@ -371,6 +388,46 @@ void arena_split_coalesce_probe() {
              <<"GUEST_SOURCE_ALLOCATE_FREE_REUSE=PASS\\n"
              <<"DOS_REAL_HEAP_PARITY=NO\\n";
 }
+void environment_alloc_failure_probe() {
+    // Original 3A2AD must free already-copied environment string storage when
+    // pointer-table allocation fails. The *failure injection* is test-only.
+    // Both the first allocation and the rollback/free run through actual
+    // reconstructed 37B42 -> 39838 and 37C37 -> 398E0 source.
+    Session s;
+    s.data.assign(0x2DD10u,0u);
+    s.machine.data=s.data.data();
+    s.heap.arena_alloc=&fixture_arena_alloc;
+    s.heap.arena_free=&fixture_arena_free;
+    s.environment.alloc=&injected_fail_second_alloc;
+    s.environment.free_37c37=&fixture_free;
+    s.environment.memset_30d30=&fixture_fill;
+    constexpr u32 env_source=0x2D700u;
+    constexpr char input[]="no87=1";
+    std::copy_n(reinterpret_cast<const u8*>(input),sizeof(input),
+                s.data.data()+env_source);
+    s.data[env_source+sizeof(input)]=0u; // double NUL
+    current=&s;
+    code2::function_3a2ad(s.machine,s.environment,env_source);
+    const u32 a=s.arena_header;
+    const u32 sentinel=a+0x20u;
+    const u32 block=code2::load_le32(s.data.data()+a+0x0Cu);
+    require(s.injected_alloc_attempts==2u && s.allocation_calls==1u &&
+            s.aligned_allocations==1u && s.arena_frees==1u &&
+            code2::load_le32(s.data.data()+0x12688u)==0u &&
+            code2::load_le32(s.data.data()+0x1268Cu)==0u &&
+            code2::load_le32(s.data.data()+a+0x18u)==0u &&
+            code2::load_le32(s.data.data()+a+0x1Cu)==1u &&
+            block==s.arena_start &&
+            code2::load_le32(s.data.data()+block)==s.arena_end-s.arena_start &&
+            code2::load_le32(s.data.data()+sentinel+4u)==block &&
+            code2::load_le32(s.data.data()+sentinel+8u)==block,
+            "original environment allocation failure did not free its guest arena block");
+    current=nullptr;
+    std::cout<<"ORIGINAL_3A2AD_ALLOC_FAILURE_ROLLBACK=PASS\n"
+             <<"ORIGINAL_37C37_398E0_FREE_COALESCE=PASS\n"
+             <<"FAILED_ALLOCATION_INJECTED=YES\n"
+             <<"DOS_HEAP_PARITY=NO\n";
+}
 void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
@@ -518,23 +575,25 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
 }
 int main(int argc,char**argv) {
     try {
-        bool extended=false,termination=false,arena_probe=false;
+        bool extended=false,termination=false,arena_probe=false,failure_probe=false;
         int original_index=1;
         if(argc>=2) {
             const std::string mode(argv[1]);
             if(mode=="--through-initializers" || mode=="--termination-probe" ||
-               mode=="--arena-roundtrip-probe") {
+               mode=="--arena-roundtrip-probe" || mode=="--env-rollback-probe") {
                 extended=(mode=="--through-initializers");
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
+                failure_probe=(mode=="--env-rollback-probe");
                 original_index=2;
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe|--arena-roundtrip-probe] [CODE.2]");
-        if(arena_probe) {
-            require(argc==original_index,"arena-roundtrip probe uses synthetic-only guest memory");
-            arena_split_coalesce_probe();
+                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+        if(arena_probe || failure_probe) {
+            require(argc==original_index,"allocator probes use synthetic-only guest memory");
+            if(arena_probe)arena_split_coalesce_probe();
+            else environment_alloc_failure_probe();
         }else if(argc==original_index) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
