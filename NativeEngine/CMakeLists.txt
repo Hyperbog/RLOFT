@@ -30,7 +30,8 @@ add_library(rloft_native_assets STATIC
   src/native_world_payload.cpp
   src/native_world_fingerprints.cpp
   src/native_world_runtime.cpp
-  src/native_scene_view.cpp)
+  src/native_scene_view.cpp
+  src/native_type7_scene_shape.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -65,6 +66,11 @@ native_warnings(rloft_native_world_runtime_audit)
 add_executable(rloft_native_scene_probe src/native_scene_probe_main.cpp)
 target_link_libraries(rloft_native_scene_probe PRIVATE rloft_native_assets)
 native_warnings(rloft_native_scene_probe)
+
+# Original RES3 EH7 geometries and INIT source-class source banks, no x86 execution.
+add_executable(rloft_native_res3_scene_audit src/native_res3_scene_audit_main.cpp)
+target_link_libraries(rloft_native_res3_scene_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_res3_scene_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -145,6 +151,11 @@ add_executable(native_scene_view_tests tests/native_scene_view_tests.cpp)
 target_link_libraries(native_scene_view_tests PRIVATE rloft_native_assets)
 native_warnings(native_scene_view_tests)
 add_test(NAME native_scene_view_tests COMMAND native_scene_view_tests)
+
+add_executable(native_type7_scene_shape_tests tests/native_type7_scene_shape_tests.cpp)
+target_link_libraries(native_type7_scene_shape_tests PRIVATE rloft_native_assets)
+native_warnings(native_type7_scene_shape_tests)
+add_test(NAME native_type7_scene_shape_tests COMMAND native_type7_scene_shape_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)

@@ -1,0 +1,99 @@
+#pragma once
+
+#include "rloft_native/native_assets.hpp"
+#include "rloft_native/native_media.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+namespace rloft_native {
+
+// Original CODE.2 36CEC/369D8: these are offsets into *scale-specific
+// SINTAB-generated x86 rasterizer tables*, NOT RGB spans or bitmap pixels.
+// Keep signed adjustment and both selector offsets unchanged.
+struct NativeType7RasterSpan {
+    std::uint16_t stop_selector{};
+    std::int16_t signed_adjustment{};
+    std::uint16_t entry_selector{};
+};
+
+struct NativeType7Column {
+    std::uint16_t original_list_offset{};
+    std::vector<NativeType7RasterSpan> descriptors;
+};
+
+struct NativeType7SceneShape {
+    std::uint16_t source_width{};
+    std::int16_t x_min{};
+    std::int16_t x_max{};
+    std::int16_t y_min{};
+    std::int16_t y_max{};
+    std::vector<NativeType7Column> columns;
+    std::size_t unique_lists{};
+    std::size_t total_descriptors{};
+    std::size_t decoded_body_bytes{};
+    // True means structurally validated, never original visual parity.
+    bool structure_verified{};
+};
+
+// Decodes EH7 original LZSS 4KiB into a complete *read-only* display list.
+// All column offsets are relative to the decompressed body; offsets may be
+// odd, may be shared and may refer to empty zero-terminated lists.
+// No original DOS x86 machine code is interpreted, patched or executed.
+[[nodiscard]] NativeType7SceneShape decode_native_type7_scene_shape(
+    const std::vector<std::uint8_t>& res_entry);
+
+// Scene source class 0=NPCS, 1=INIT family-B, 2=OBJECTS, 3=INIT transient.
+// CODE.2 looks up each source-class base from original INIT +0x06..+0x0C.
+struct NativeSceneSourceDescriptor {
+    std::uint16_t shape_base_local{};
+    std::uint16_t extent_raw{};
+    std::uint8_t shape_stride{};
+    std::uint8_t variant_count{};
+    std::uint8_t scene_influence_step{};
+};
+
+struct NativeRes3SceneBanks {
+    std::array<std::uint16_t,4> starts{};
+    std::array<std::size_t,4> lengths{};
+    std::array<std::vector<NativeSceneSourceDescriptor>,2> init_descriptors;
+    std::size_t res3_entries{};
+
+    [[nodiscard]] std::size_t absolute_id(unsigned source_class,
+                                           std::size_t local_shape_id) const;
+    // Validates source class + local index with explicit source boundaries.
+    [[nodiscard]] bool contains(unsigned source_class,
+                                std::size_t local_shape_id) const noexcept;
+};
+
+// Bounded INIT/RES3 index validation; requires only the original INIT
+// header+descriptor tables and RES3 entry count (not original x86).
+[[nodiscard]] NativeRes3SceneBanks decode_native_res3_scene_banks(
+    const std::vector<std::uint8_t>& original_init,
+    std::size_t res3_entry_count);
+
+struct NativeRes3SceneCorpus {
+    NativeRes3SceneBanks banks;
+    std::size_t type7_shapes{};
+    std::size_t unique_lists{};
+    std::size_t raster_descriptors{};
+    std::array<std::size_t,3> width_histogram{};
+    std::array<std::size_t,4> source_class_shapes{};
+    // All 4234 original records are parsed, or rejects the entire audit.
+    bool original_sintab_raster_execution_verified{false};
+    bool original_scene_visual_parity_verified{false};
+};
+
+// Full read-only RES3 validation using the *same* native typed decoder,
+// constrained to the original four INIT-defined source-bank ranges.
+[[nodiscard]] NativeRes3SceneCorpus audit_native_res3_scene_corpus(
+    const std::vector<std::uint8_t>& init,
+    const NativeResArchive& res3);
+
+[[nodiscard]] std::string native_res3_scene_corpus_json(
+    const NativeRes3SceneCorpus& corpus);
+
+} // namespace rloft_native
