@@ -200,6 +200,22 @@ void test_source_39e1c_break_growth() {
          "original 39E1C did not extend host-backed guest data break");
     s.guest[first+13u]=0xA6u;
     const u32 second=code2::function_37b42(s.heap,7000u);
+    if(!(second && second!=first && s.grow_calls==2u &&
+         s.break_calls==2u && s.break_end==0x33000u &&
+         s.guest[first+13u]==0xA6u && !s.bad)) {
+        std::cerr<<"39E1C_ADJACENT_GROWTH_DIAGNOSTIC"
+                 <<" first="<<first<<" second="<<second
+                 <<" grows="<<s.grow_calls
+                 <<" breaks="<<s.break_calls
+                 <<" end="<<s.break_end
+                 <<" head="<<word(0x12624u)
+                 <<" size="<<word(0x30000u)
+                 <<" alloccount="<<word(0x30018u)
+                 <<" freelist="<<word(0x3000Cu)
+                 <<" free_callbacks="<<s.arena_free_calls
+                 <<" marker="<<static_cast<unsigned>(s.guest[first+13u])
+                 <<" bad="<<s.bad<<'\\n';
+    }
     need(second && second!=first && s.grow_calls==2u &&
          s.break_calls==2u && s.break_end==0x33000u &&
          s.guest[first+13u]==0xA6u && !s.bad,
