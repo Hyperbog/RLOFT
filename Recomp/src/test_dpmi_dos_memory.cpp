@@ -18,6 +18,13 @@ int main() {
         const auto first=dpmi.allocate(5);
         expect(first,false,0x2D60u,0x0060u,"first real-mode segment/selector");
         need(dpmi.allocation_count()==1u,"first allocation not tracked");
+        const auto first_base=dpmi.selector_base(first.dx);
+        need(!first_base.carry && first_base.base()==
+             static_cast<std::uint32_t>(first.ax)*16u &&
+             first_base.cx==0x0002u && first_base.dx==0xD600u,
+             "0100 selector descriptor did not return expected 0006 base");
+        need(dpmi.selector_base(first.ax).carry,
+             "DOS real-mode segment incorrectly accepted as DPMI selector");
         const auto* block=dpmi.block(first.dx);
         need(block && block->segment==first.ax && block->paragraphs==5u,
              "selector descriptor does not describe 5 paragraphs");
@@ -42,9 +49,17 @@ int main() {
                "real-mode segment incorrectly accepted as selector");
         expect(dpmi.release(first.dx),false,0u,0u,"first release failed");
         need(dpmi.translate(first.dx,0,1)==nullptr,"stale selector translated");
+        need(dpmi.selector_base(first.dx).carry &&
+             dpmi.selector_base(second.dx).base()==
+                 static_cast<std::uint32_t>(second.ax)*16u,
+             "0101 selector retired incorrectly or corrupted live neighbor");
         expect(dpmi.release(first.dx),true,0x8022u,0u,"double release accepted");
         const auto reused=dpmi.allocate(5);
         expect(reused,false,0x2D60u,0x0070u,"hole reuse or descriptor reuse");
+        need(dpmi.selector_base(reused.dx).base()==
+                 static_cast<std::uint32_t>(reused.ax)*16u &&
+             dpmi.selector_base(first.dx).carry,
+             "0006 descriptor was not rebound with a fresh selector");
         auto* z=dpmi.translate(reused.dx,0,80);
         need(z!=nullptr,"reused block not translated");
         for(unsigned i=0;i<80;++i)
@@ -57,6 +72,9 @@ int main() {
         expect(dpmi.release(second.dx),false,0u,0u,"second release");
         expect(dpmi.release(reused.dx),false,0u,0u,"reused release");
         need(dpmi.allocation_count()==0u,"descriptor leak");
+        need(dpmi.selector_base(second.dx).carry &&
+             dpmi.selector_base(reused.dx).carry,
+             "0006 descriptors remained live after 0101 release");
         need(dpmi.largest_free()==
              DpmiDosMemory::kLastParagraph-DpmiDosMemory::kFirstParagraph,
              "arena not fully restored after release");
