@@ -99,6 +99,20 @@ python Recomp/tools/verify_original_game_entry_oracle.py "C:\RLOFT\CODE.2"
 Original source spans and actual owner-provided binary settings were
 independently hashed and authenticated. See
 [the original game-entry integration audit](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md).
+**Build verification:** [canonical Windows CI run #38196507014](https://github.com/Hyperbog/RLOFT/actions/runs/38196507014)
+compiled and passed **10/10 CTests** on exact commit
+`56139409213a0bf4af19dc0adb060b477a5baa16`, including all three
+new original game-entry runtime executions.
+
+**Further source integration:** The actual canonical `function_375fe` now
+runs from the original `2F2EC` callback, preserving its original DOS
+extender-dependent interrupt-vector choice; the source stops **inside
+375FE at the DOS vector-install service** rather than at a preceding
+callback. A fourth independent integration CTest exercises all 256 mode
+values against the original selector/vector/handler contract. The
+[original game-entry source audit](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md)
+documents this change. A fresh Windows build is required for this extension.
+
 **No full DOS game boot, visual gameplay or native-engine milestone is
-claimed.** The new source's Windows CTest result is only accepted after
-a passing run tied to its exact checkout.
+claimed.** Passing CTest proves the named source-execution boundaries only,
+not original-DOS hardware, audio or frame equivalence.
