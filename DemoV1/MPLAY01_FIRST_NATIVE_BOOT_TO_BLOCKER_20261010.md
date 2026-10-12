@@ -2,7 +2,7 @@
 
 **Owner:** `demo-v1` native game-engine workstream  
 **Type:** diagnostic field-test milestone within the **complete faithful original-game reimplementation**; **not** a partial-game release, DOS parity certification, a separate "Phase I", or permission to modernize.  
-**Established:** 2026-10-10. **Status:** defined; latest-source executable and first user playthrough **not yet accepted**.
+**Established:** 2026-10-10. **Status:** latest Windows Full #660 compiled/tested/published; first ordinary user playthrough **not yet accepted**.
 
 ## Goal
 
@@ -10,7 +10,23 @@ Give the player a reproducibly identified Windows build of the **existing native
 
 This checkpoint is an observation and defect-triage gate. The separate project charter's **Level 22 complete/source-faithful acceptance before independent Level 23 work** remains binding.
 
-## Existing baseline (not a current-SHA build)
+## Latest Windows Full candidate — accepted compiler/tests, field pending
+
+- [Full Windows #660](FULL_WINDOWS_BUILD_CHECKPOINT_20261011_RUN660.md) compiled
+  checkout `5b0b00e89bfdc783ee20c59ad1c546bfa0873311`, passed
+  **245/245 CTests**, published artifact `Ravenloft-Demo-v1-Windows-x64`
+  (GitHub artifact ID `11722062072`), and verified EXE SHA-256
+  `f28f4165b4c4f47071536c4de4b63f12363e55efba1c10a57e5bf3c1297693de`.
+- The ZIP now contains `Trace-Normal-Launch.cmd` for the **actual
+  intro/creation route** with passive exploration trace. The player has
+  **not** yet accepted startup, character creation, Level 22, level/story
+  progression, state reloading, or original DOS-equivalent behavior.
+- Use an **isolated/disposable** runtime copy: the launcher does not
+  block normal game saves. Developer `Diagnose-Level22.cmd` remains a
+  separate, non-progressing test.
+
+## Previous baseline (#658, historical)
+
 
 - Last independently accepted native Windows Full [#658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) compiled source checkout `ba3dc29e42d93e87a147b4b909c52167dbd3b362`, passed **214/214** CTests, published `Ravenloft-Demo-v1-Windows-x64`, and verified original `RES4[655]` terrain in 64/64 subsequent **native** open-field captures.
 - Later source work has expanded the source/test catalog without another accepted current-checkout Windows Full run. Treat #658 as an **older baseline**, not a binary containing the latest source or proof of end-to-end gameplay.
@@ -32,7 +48,7 @@ This checkpoint is an observation and defect-triage gate. The separate project c
 
 ## How to run the candidate
 
-1. Obtain the most recent **user-authorized** verified Windows build artifact on the `demo-v1` source SHA. Existing #658 may be used **right now** as an explicitly older baseline for preliminary testing, not as a test of current Git.
+1. Obtain the verified [#660 Windows build](https://github.com/Hyperbog/RLOFT/actions/runs/38192487862) (compiled checkout `5b0b00e8`). Existing #658 may be used only as an explicitly older baseline, not as a test of current Git.
 2. Unzip into a **new** folder. Run `ravenloft_demo_v1.exe` normally; follow its original-installation folder chooser if prompted. Optionally use `ravenloft_demo_v1.exe "C:\\path\\to\\owned-Ravenloft"` to select the media directly.
 3. For normal-play tracing, the Win32 host supports `--dev-trace` **without** `--explore-level22`; this does not itself select diagnostic-party access. Record whether a trace is successfully generated. Do not assume the existing Level22 ZIP wrapper covers a normal-play session.
 4. Only for an independent diagnostic run, launch bundled `Diagnose-Level22.cmd`; it uses `--explore-level22 --dev-inspect --dev-interact --dev-trace` and, after exit, packages the session beneath `%TEMP%\\RLOFT-Demo-Diagnostics`. Its world/progression results must be labeled **developer shortcut**, not ordinary gameplay.

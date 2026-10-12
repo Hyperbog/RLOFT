@@ -5,12 +5,12 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
-## Current evidence and limits (2026-10-10)
+## Current evidence and limits (2026-10-11)
 
 | Gate | Evidence / current limit |
 | --- | --- |
 | Original executable | `CODE.1` / `CODE.2` reconstructed and byte-accounted; **not exhaustively semantically verified**, and post-accounting corrections remain possible |
-| Native Windows Full build | [#658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) passed **214/214** tests **on its earlier checkout** |
+| Native Windows Full build | [#660](https://github.com/Hyperbog/RLOFT/actions/runs/38192487862) **245/245 CTests passed** on exact source `5b0b00e8`; Windows ZIP/EXE SHA-256 verified and committed. This is not DOS gameplay parity. |
 | Current source test catalog | Run the [read-only preflight](tools/research_preflight.py) for current CMake declarations; source registration and passing Windows CTest are separate gates. |
 | Level 22 viewport | Original `RES4[655]` full-open ground confirmed in 64/64 native capture frames; source-accurate partial clipping and DOS framebuffer equivalence remain pending |
 | Original DOS acceptance | No accepted full indexed-frame/palette/IRQ/RNG/complete-game parity; do not infer fidelity from synthetic tests or a successful native build |
@@ -18,24 +18,24 @@ This is the active project entry point. Historical development updates have been
 
 The latest native source includes a read-only, provenance-checked source `22220/FF50` field projection. It does **not** yet use partial-depth calculations for gameplay rendering. Original `F790` stack-local text pre-read and callback identity have been synchronized from the verified decompilation branch; this is a **source correction**, not a passing end-to-end game test.
 
-**October 11 follow-up:** [Windows Full #659](FULL_WINDOWS_BUILD_CHECKPOINT_20261011_RUN659.md)
-compiled the full Windows C++ solution but ended at **243/245 CTests**
-because two source-only checks required an omitted `42-way` audit phrase.
-The source documentation was corrected after the failed run; **no new
-Windows artifact was published or post-fix Windows rebuild authorized**.
-The previously accepted #658 binary remains the only accepted packaged
-Windows baseline. Original DOS and full gameplay parity are unchanged.
+**October 11 build follow-up:** [Windows Full #659](FULL_WINDOWS_BUILD_CHECKPOINT_20261011_RUN659.md)
+compiled but failed 2 source-only documentation assertions (243/245);
+the missing `42-way` source-audit phrase was repaired. The
+[user-authorized #660 rerun](FULL_WINDOWS_BUILD_CHECKPOINT_20261011_RUN660.md)
+then passed **245/245**, produced a new Windows artifact, and committed its
+verified executable. This closes the Windows regression checkpoint, **not**
+the M-PLAY-01 normal-play field test or original DOS equivalence.
 
 ## Current player field-test checkpoint
 
-**[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; current Windows Full compilation and independent DOS parity gates are unchanged. No build is dispatched by creating this checkpoint.
+**[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; the Windows Full #660 compilation/test gate is accepted; independent DOS parity is unchanged. No build is dispatched by creating this checkpoint.
 
-The next explicitly authorized Windows artifact will also include
+The verified #660 Windows artifact includes
 `Trace-Normal-Launch.cmd`, which starts ordinary gameplay with opt-in
 non-mutating native tracing instead of the Level 22 diagnostic shortcut.
 It preserves native game exit status and distinguishes failure before
 exploration from a recorded field session. Existing save files must be
-protected using a disposable runtime copy. No new build is claimed.
+protected using a disposable runtime copy. Build #660 is published; normal gameplay and DOS acceptance remain open.
 
 The [M-PLAY-01 offline trace-integrity tool](tools/audit_mplay01_trace.py)
 now verifies an existing diagnostic ZIP's original indexed-byte hashes,
