@@ -32,6 +32,7 @@ struct Session {
     code2::Runtime126Boundary dos_irq{};
     code2::Application71Boundary keyboard_irq{};
     code2::Application72Boundary dos_file_io{};
+    code2::Runtime131Boundary dos_file_open{};
     code2::Application56Boundary audio_seed{};
     std::array<GuestVector,256> ivt{};
     code2::Runtime112Boundary startup{};
@@ -58,6 +59,9 @@ struct Session {
     u32 audio_atoi_text=0;
     unsigned checked_alloc_calls=0, checked_fill_calls=0, file_open_calls=0;
     u32 sound_config_path=0, sound_config_mode=0;
+    unsigned dos_ah3d_open_calls=0;
+    u32 original_open_create_slot=0xFFFFFFFFu;
+    u8 open_access_share=0xFFu;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -334,14 +338,29 @@ void original_checked_memset(u32 dst,u32 byte,u32 count) noexcept {
     ++current->checked_fill_calls;
     (void)code2::function_30d30(current->dos_file_io,dst,byte,count);
 }
-u32 stop_at_real_sound_file_open(u32 path,u32 mode) noexcept {
+u8 original_dos_open_guest_read8(u32 addr) noexcept {
+    return *segment(0x30u,addr,1u);
+}
+code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
+    ++current->dos_ah3d_open_calls;
+    current->open_access_share=access_share;
+    if(path!=0x143Cu || access_share!=0u)
+        stop("ORIGINAL_DOS_AH3D_OPEN_ARGUMENTS_DIFFER");
+    stop("STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN");
+}
+u32 original_checked_source_open(u32 path,u32 mode) noexcept {
     ++current->file_open_calls;
     current->sound_config_path=path;
     current->sound_config_mode=mode;
     if(path!=0x143Cu || mode!=0x200u ||
        std::memcmp(segment(0x30u,path,10),"sound.cfg",10)!=0)
         stop("ORIGINAL_SOUND_CFG_OPEN_ABI_CHANGED");
-    stop("STOP_BEFORE_ORIGINAL_DOS_SOUND_CFG_OPEN_37E77");
+    // Actual reconstructed 312A0 uses two stack slots; 37E77 reads an
+    // additional inherited third slot. In read-only mode 0x200, 37E99
+    // never consumes this create-only value, so a marked dummy is safe
+    // for this *bounded* original DOS open witness only.
+    return static_cast<u32>(code2::function_37e77(
+        current->dos_file_open,path,mode,current->original_open_create_slot));
 }
 u32 original_sound_file(u32 filename) noexcept {
     return code2::function_312a0(current->dos_file_io,filename);
@@ -699,7 +718,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game_audio.call_35349=&original_sound_pointer_from_argv;
     state.dos_file_io.call_37b34=&original_checked_allocation_header;
     state.dos_file_io.call_379d0=&original_linear_dword_fill;
-    state.dos_file_io.call_37e77=&stop_at_real_sound_file_open;
+    state.dos_file_io.call_37e77=&original_checked_source_open;
+    state.dos_file_open.read8=&original_dos_open_guest_read8;
+    state.dos_file_open.dos_open=&stop_at_real_dos_ah3d_open;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
     state.startup.read_segment8=&seg8;
@@ -765,7 +786,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "default test unexpectedly passed original allocator boundary");
     }else{
         const char* required_stop=advance_to_sound_file
-            ? "STOP_BEFORE_ORIGINAL_DOS_SOUND_CFG_OPEN_37E77"
+            ? "STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN"
             : execute_application ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
             : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
         if(state.completed_initializers!=4u ||
@@ -924,8 +945,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 }
                 require(state.file_open_calls==1u &&
                         state.sound_config_path==0x143Cu &&
-                        state.sound_config_mode==0x200u,
-                        "original 312A0 -> 37E77 sound.cfg open boundary not reached");
+                        state.sound_config_mode==0x200u &&
+                        state.dos_ah3d_open_calls==1u &&
+                        state.open_access_share==0u,
+                        "original 312A0->37E77->37E99 DOS AH=3D open not executed");
             }
         }
         require(state.arena_seeded &&
@@ -949,7 +972,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"TEST_ONLY_HEAP_ALLOCATIONS="<<state.allocation_calls<<"\n"
              <<"EXECUTED_ORIGINAL_ARENA_SPLITTER_39838="<<(extended?"YES":"NO")<<"\n"
              <<"REAL_GAME_ENTRY_20608_CALLED="<<(execute_application?"EXECUTED_SOURCE":extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
-             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(advance_to_sound_file?"EXECUTED_TO_37E77_FILE_OPEN":execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
+             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(advance_to_sound_file?"EXECUTED_37E77_TO_DOS_AH3D":execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
              <<"ORIGINAL_GETENV_352EE_CALLS="<<state.getenv_calls<<"\n"
              <<"ORIGINAL_ATOI_35349_CALLS="<<state.atoi_calls<<"\n"
              <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
