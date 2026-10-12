@@ -87,13 +87,17 @@ void heap_source_db5b(u32 payload) {
     a.write_linear8=&heap_source_clear8;
     code1::function_db5b(a,payload);
 }
-void source_heap_post_extender_handoff() {
+void source_heap_post_extender_handoff(bool original_loaded) {
     auto& s=*current;
     // These four root DWORDs are exact authenticated original CODE.1
     // static LE data bytes. The asset-free variant supplies them as an
     // explicit fixture; original-media mode must already contain them.
     const auto initialize=[&](u32 offset,u32 value) {
-        code1::store_le32(s.dgroup.data()+offset,value);
+        if(original_loaded) {
+            if(code1::load_le32(s.dgroup.data()+offset)!=value)
+                throw std::runtime_error(
+                    "authenticated CODE.1 original static heap roots changed");
+        } else code1::store_le32(s.dgroup.data()+offset,value);
     };
     initialize(0x30C0u,0x30D4u);
     initialize(0x30C8u,0xFFFFFFFFu);
@@ -246,7 +250,7 @@ void execute(Mode mode,const std::vector<u8>* original) {
     }
     if(mode==Mode::ExtenderHostResizeHeap &&
        s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE"))
-        source_heap_post_extender_handoff();
+        source_heap_post_extender_handoff(original!=nullptr);
     current=nullptr;
     const char* expected=mode==Mode::BeforeVersion?
         "STOP_BEFORE_CODE1_DOS_INT21_AH30_VERSION":
