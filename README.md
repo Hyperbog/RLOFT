@@ -25,6 +25,6 @@ This repository preserves and reverse-engineers the original DOS game and develo
 
 Complete **original instruction-byte accounting is not complete semantic or runtime equivalence**. Keep compiler/test pass status separate from independently accepted Windows builds, original indexed VGA/palette, RNG/IRQ, full-level events and original DOS comparisons.
 
-Native Windows Full CI builds and disassembler builds remain manually owner-authorized. Source commits or documentation housekeeping do not dispatch them. Original copyrighted game files are evidence/preservation media, not automatically redistributable source assets.
+**Build authorization (updated 2026-10-11):** The owner has expressly lifted the per-build manual-approval restriction. Automated source-triggered CI and on-demand Windows/native/disassembler builds may run whenever required for development, on the appropriate owning branch and with the existing workflow prerequisites. A successful build is still distinct from original-DOS or gameplay parity. Original copyrighted game files remain evidence/preservation media and are not automatically redistributable or publishable in Actions artifacts.
 
 See the [current status](docs/CURRENT_STATUS.md) for dated acceptance boundaries.
