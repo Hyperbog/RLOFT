@@ -38,6 +38,28 @@ fingerprinting research.
 This project is strictly separate from `demo-v1` and `native-engine`. Do not
 invoke their full Windows build workflows from this target.
 
+## 2026-10-12 first host-backed original DOS file-service integration
+
+[Windows build #49](https://github.com/Hyperbog/RLOFT/actions/runs/38208279160)
+compiled and passed **33/33 CTests** at exact source SHA
+e91263ff89dccf20b3335d4171ff5d76dfd3dbed.
+
+Actual compiled canonical CODE.2 sound initialization now optionally runs its
+original DOS AH=3Dh open, AH=3Fh read and AH=3Eh close wrappers through a
+**host-backed, strictly read-only** file service. The tests use synthetic
+startup/PSP/mouse fixtures and a generated noncommercial 59-byte SOUND.CFG.
+The next boundary is the original unsupported DOS mouse-reset interrupt.
+
+For Windows owner testing, invoke:
+
+    .\build\recomp\Debug\rloft_code2_startup_gate.exe --to-mouse-reset-host-file "C:\RLOFT"
+
+The CODE.2 image remains synthetic in this mode. No playable DOS boot, real
+interrupts or whole-game parity is claimed. Acceptance remains **3/12 =
+25.00%** because complete filesystem services (R05) remain unimplemented.
+
+[Source-execution checkpoint](HOST_READONLY_DOS_FILE_SOURCE_GATE_20261012.md).
+
 ## 2026-10-12 verified canonical recompilation expansion
 
 [Windows build #41](https://github.com/Hyperbog/RLOFT/actions/runs/38207402256):
