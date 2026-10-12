@@ -51,6 +51,13 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --to-sound-config)
     add_test(NAME canonical_code2_configured_runtime_to_sound_cfg_open
         COMMAND rloft_code2_startup_gate --to-sound-config-configured)
+    # Original 3968E parsed argc==1 causes real CODE.2 2F2EC to execute
+    # 3104C / 37B34 checked allocator and 30D30/379D0 zero fill.
+    # Original argc==2 goes through 35349 parsed DOS argv instead.
+    add_test(NAME canonical_code2_no_argv_original_audio_checked_allocator
+        COMMAND rloft_code2_startup_gate --to-sound-config-no-args)
+    add_test(NAME canonical_code2_configured_no_argv_audio_checked_allocator
+        COMMAND rloft_code2_startup_gate --to-sound-config-no-args-configured)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
     add_test(NAME canonical_code2_original_arena_split_coalesce_reuse COMMAND rloft_code2_startup_gate --arena-roundtrip-probe)
     add_test(NAME canonical_code2_env_allocation_failure_frees_original_arena_block COMMAND rloft_code2_startup_gate --env-rollback-probe)
