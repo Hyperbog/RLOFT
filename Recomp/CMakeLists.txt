@@ -255,6 +255,10 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --through-initializers-host-dos-fallback)
     add_test(NAME canonical_code2_startup_game_entry_unseeded_dos48_fallback
         COMMAND rloft_code2_startup_gate --enter-game-host-dos-fallback)
+    add_test(NAME canonical_code2_startup_no_args_sound_unseeded_dos48_fallback
+        COMMAND rloft_code2_startup_gate --to-sound-config-no-args-host-dos-fallback)
+    add_test(NAME canonical_code2_startup_mouse_reset_unseeded_dos48_fallback
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-host-dos-fallback)
     add_test(NAME canonical_code2_startup_sound_no_args_unseeded_host_dpmi_heap
         COMMAND rloft_code2_startup_gate --to-sound-config-no-args-host-dpmi-heap)
     add_test(NAME canonical_code2_startup_mouse_reset_unseeded_host_dpmi_heap
