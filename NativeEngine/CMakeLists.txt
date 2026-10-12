@@ -37,7 +37,8 @@ add_library(rloft_native_assets STATIC
   src/native_type7_vga_dispatch.cpp
   src/native_scene_frame_ranges.cpp
   src/native_type6_column_sampler.cpp
-  src/native_world_materials.cpp)
+  src/native_world_materials.cpp
+  src/native_code2_wall_emission.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -106,6 +107,10 @@ native_warnings(rloft_native_type6_strip_audit)
 add_executable(rloft_native_world_materials_audit src/native_world_materials_audit_main.cpp)
 target_link_libraries(rloft_native_world_materials_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_world_materials_audit)
+
+add_executable(rloft_native_code2_wall_emission_audit src/native_code2_wall_emission_audit_main.cpp)
+target_link_libraries(rloft_native_code2_wall_emission_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_code2_wall_emission_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -221,6 +226,11 @@ add_executable(native_world_materials_tests tests/native_world_materials_tests.c
 target_link_libraries(native_world_materials_tests PRIVATE rloft_native_assets)
 native_warnings(native_world_materials_tests)
 add_test(NAME native_world_materials_tests COMMAND native_world_materials_tests)
+
+add_executable(native_code2_wall_emission_tests tests/native_code2_wall_emission_tests.cpp)
+target_link_libraries(native_code2_wall_emission_tests PRIVATE rloft_native_assets)
+native_warnings(native_code2_wall_emission_tests)
+add_test(NAME native_code2_wall_emission_tests COMMAND native_code2_wall_emission_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
