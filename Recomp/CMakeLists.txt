@@ -38,6 +38,11 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --enter-game-config)
     add_test(NAME canonical_code2_original_game_signed_wrapping_args
         COMMAND rloft_code2_startup_gate --enter-game-signed-wrap)
+    # Exhaustive original source CODE.2 375FE 8-bit extender-mode branch.
+    # Executes real canonical function_375fe 256 times, *observes* but never
+    # installs a DOS interrupt vector (separate acceptance gate).
+    add_test(NAME canonical_code2_original_far_callback_vector_mode_matrix
+        COMMAND rloft_code2_startup_gate --vector-mode-matrix)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
     add_test(NAME canonical_code2_original_arena_split_coalesce_reuse COMMAND rloft_code2_startup_gate --arena-roundtrip-probe)
     add_test(NAME canonical_code2_env_allocation_failure_frees_original_arena_block COMMAND rloft_code2_startup_gate --env-rollback-probe)
