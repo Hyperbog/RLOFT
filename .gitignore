@@ -5,3 +5,6 @@
 **/CODE1_OBJECT1_ADDRESS_INDEX.tsv
 **/CODE2_OBJECT1_ADDRESS_INDEX.tsv
 RLOFT_Original_Disassembly_Reference.zip
+
+# Private REA analysis and derived original-code windows (never public artifacts)
+/.rloft-private/
