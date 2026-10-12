@@ -1523,6 +1523,13 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.dpmi_dos_memory->allocation_count()==
                 (mouse_branch==MouseResetBranch::MemoryHandoff?1u:0u),
                 "actual DOS-memory descriptor state differs after original code");
+        // This descriptor was created by host-owned 0100 through original
+        // CODE.2 and must vanish after source 30DE8 -> 0101 on DiskSpace.
+        const auto live_base=state.dpmi_dos_memory->selector_base(0x0060u);
+        require(mouse_branch==MouseResetBranch::MemoryHandoff?
+                    (!live_base.carry && live_base.base()==0x0002d600u):
+                    (live_base.carry && live_base.ax==0x8022u),
+                "original CODE.2 DPMI selector base/lifetime mismatch");
         std::cout<<"HOST_DPMI_DOS_MEMORY_0100=TRACKED_SERVICE\\n"
                     "HOST_DPMI_DOS_MEMORY_0101="
                  <<(mouse_branch==MouseResetBranch::DiskSpace?
