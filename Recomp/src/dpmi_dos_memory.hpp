@@ -29,7 +29,12 @@ public:
     static constexpr std::uint32_t kLastParagraph=0xA000u;
     static constexpr std::uint16_t kFirstSelector=0x0060u;
 
-    DpmiDosMemory(): real_mode_(kLastParagraph*16u,0u) {}
+    // A CODE.1 or CODE.2 host can pass its loader-owned descriptor
+    // registry. The default preserves the original stand-alone provider
+    // contract. All 0006/0100/0101 requests then consult one table.
+    explicit DpmiDosMemory(DpmiSelectorDescriptors* descriptors=nullptr):
+        selectors_(descriptors?descriptors:&owned_selectors_),
+        real_mode_(kLastParagraph*16u,0u) {}
 
     // DPMI 0100: BX requested paragraphs, returned AX segment / DX selector.
     DpmiDosResult allocate(std::uint16_t paragraphs) {
@@ -55,7 +60,7 @@ public:
         Block b{static_cast<std::uint16_t>(candidate),selector,paragraphs};
         // The descriptor is installed only for this live 0100 allocation.
         // The 0006 base is a linear address; the segment remains separate.
-        if(!selectors_.install(selector,candidate*16u,
+        if(!selectors_->install(selector,candidate*16u,
                                static_cast<std::uint32_t>(paragraphs)*16u))
             return {true,0x8011u,0u,largest_free()};
         blocks_.emplace(selector,b);
@@ -74,14 +79,14 @@ public:
         std::fill(real_mode_.begin()+static_cast<std::uint32_t>(b.segment)*16u,
                   real_mode_.begin()+
                     (static_cast<std::uint32_t>(b.segment)+b.paragraphs)*16u,0u);
-        selectors_.retire(selector);
+        selectors_->retire(selector);
         blocks_.erase(it);
         return {false,0u,0u,0u};
     }
 
     // DPMI INT 31h AX=0006h: selector in BX, base in CX:DX.
     DpmiSelectorResult selector_base(std::uint16_t selector) const noexcept {
-        return selectors_.get_base(selector);
+        return selectors_->get_base(selector);
     }
     const Block* block(std::uint16_t selector) const noexcept {
         const auto it=blocks_.find(selector);
@@ -91,7 +96,7 @@ public:
     std::uint8_t* translate(std::uint16_t selector,std::uint32_t offset,
                             std::size_t count) noexcept {
         const auto* b=block(selector);
-        if(!b || !selectors_.check(selector,offset,count))return nullptr;
+        if(!b || !selectors_->check(selector,offset,count))return nullptr;
         return real_mode_.data()+static_cast<std::uint32_t>(b->segment)*16u+offset;
     }
     std::uint16_t largest_free() const noexcept {
@@ -113,7 +118,8 @@ public:
     std::size_t allocation_count() const noexcept {return blocks_.size();}
 private:
     std::map<std::uint16_t,Block> blocks_;
-    DpmiSelectorDescriptors selectors_;
+    DpmiSelectorDescriptors owned_selectors_;
+    DpmiSelectorDescriptors* selectors_;
     std::vector<std::uint8_t> real_mode_;
     std::uint32_t next_selector_=kFirstSelector;
 };
