@@ -34,12 +34,18 @@ set_target_properties(rloft_dos_readonly_files_test PROPERTIES
 add_executable(rloft_dpmi_dos_memory_test src/test_dpmi_dos_memory.cpp)
 set_target_properties(rloft_dpmi_dos_memory_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+# Real host-backed block lifetime for DPMI protected-mode linear memory.
+add_executable(rloft_dpmi_linear_memory_test src/test_dpmi_linear_memory.cpp)
+set_target_properties(rloft_dpmi_linear_memory_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 include(CTest)
 if(BUILD_TESTING)
     add_test(NAME canonical_host_readonly_dos_file_service_contract
         COMMAND rloft_dos_readonly_files_test)
     add_test(NAME canonical_dpmi_dos_memory_selector_lifecycle
         COMMAND rloft_dpmi_dos_memory_test)
+    add_test(NAME canonical_dpmi_0501_0502_0503_linear_memory_lifecycle
+        COMMAND rloft_dpmi_linear_memory_test)
     # Execute actual compiled CODE.2 30D80->30D52->33B44 DPMI 0100
     # with host-owned allocation state, stopping at external INT31 0300.
     add_test(NAME canonical_code2_original_dpmi_dos_allocation_via_host
