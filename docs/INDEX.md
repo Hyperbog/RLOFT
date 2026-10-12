@@ -9,6 +9,7 @@
 - [Original CODE.2 arena allocator, free/reuse and raw-size ABI](../Recomp/CODE2_ORIGINAL_ARENA_CLOSURE_20261011.md) — 7/7 compiled source tests and exact original-byte proof.
 - [Four CODE.2 original initializers through the game-entry boundary](../Recomp/INITIALIZER_20608_INTEGRATION_20261011.md) — canonical source execution, original-byte witnesses and DOS allocator limitations.
 - [Original CODE.2 initializer/shutdown indirect callback candidates](../ResearchInfra/CODE2_INDIRECT_CALLBACK_TABLES_20261011.md) — four initializer targets and partially file-backed `3A228` termination target.
+- [Optional cross-project REA/Ghidra static analysis](../ResearchInfra/REA.md) — SHA-bound local inspection plans for all owning branches, authenticated LE raw-x86 windows, and private evidence handling (not DOS parity).
 - [Original-machine CFG and AI work-packet integration](../ResearchInfra/ORIGINAL_MACHINE_CFG_20261011.md) — optional authenticated CODE originals, independent x86 blocks and source-call overlays.
 - [Bulk original LE survey and DOSDis evidence cross-check](../ResearchInfra/BULK_CFG_DOSDIS_BRIDGE_20261011.md) — bounded candidate source-address coverage and fail-closed DOSDis schema-v1 bridge.
 - [CODE.1 B01A overlapping-original-instruction correction](../ResearchInfra/CODE1_B01A_OVERLAP_CORRECTION_20261011.md) — authenticated alternate-entry STOSB, compiled regression and shared-source synchronization.
