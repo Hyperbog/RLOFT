@@ -482,10 +482,21 @@ void execute(Mode mode,const std::vector<u8>* original) {
        mode==Mode::ExtenderCd97Startup ||
        mode==Mode::ExtenderCd97BreakHeap)
         assert_true(s.host_break.successful_resizes()>=1u &&
-                    s.dgroup.size()==0xA000u &&
-                    code1::load_le32(s.dgroup.data()+0x52f0u)==0xA000u &&
+                    s.dgroup.size()==
+                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:0xA000u) &&
+                    code1::load_le32(s.dgroup.data()+0x52f0u)==
+                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:0xA000u) &&
                     s.machine.cpu.es==0x30u,
                     "original CODE.1 CCDE host-backed 4KiB resize mismatch");
+    if(mode==Mode::ExtenderCd97Startup ||
+       mode==Mode::ExtenderCd97BreakHeap)
+        std::cout<<"CODE1_ORIGINAL_CD97_EXTENDER_MODE=2\\n"
+                    "CODE1_FCE8_ORIGINAL_CTOR_DISPATCH=3_SOURCE_RECORDS\\n"
+                    "CODE1_FC98_HEAP_MINIMUM=SOURCE_10D1C\\n"
+                    "CODE1_GAME_ENTRY_508C=HOST_STOP_BOUNDARY\\n";
+    if(mode==Mode::ExtenderCd97BreakHeap)
+        std::cout<<"CODE1_CD97_MODE2_10DD7_DS_BREAK_ALLOC_FREE=PASS\\n"
+                    "CODE1_SOURCE_HEAP_PRESEEDED_ARENA=NO\\n";
     if(mode==Mode::ExtenderHostResizeHeap)
         std::cout<<"CODE1_CCDE_10AA9_DB5B_107CB_SHARED_SESSION=PASS\\n"
                     "CODE1_SOURCE_HEAP_PRESEEDED_ARENA=NO\\n"
