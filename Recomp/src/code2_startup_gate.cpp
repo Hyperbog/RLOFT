@@ -569,7 +569,8 @@ void termination_probe(const rloft_recomp::OriginalLeImage& img,bool original) {
              <<"EXECUTED_TERMINATION_HANDLER=3A228\n"
              <<"DOS_EXIT_BOUNDARY_3A63E=STOPPED_BEFORE_OS\n"
              <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\n"
-             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\n';
+             <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<"\n"
+             <<"SOUND_CFG_INPUT="<<(original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
 }
 void arena_split_coalesce_probe() {
     Session s;
@@ -694,7 +695,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool extended,bool execute_application=false,
          GameConfig game_config=GameConfig::Unset,
          bool advance_to_sound_file=false,bool sound_no_arguments=false,
-         bool advance_to_mouse=false) {
+         bool advance_to_mouse=false,
+         const std::vector<u8>* original_sound_cfg=nullptr) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -705,7 +707,15 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.execute_application=execute_application;
     state.advance_to_sound_file=advance_to_sound_file;
     state.advance_to_mouse=advance_to_mouse;
-    if(advance_to_mouse) {
+    if(original_sound_cfg) {
+        require(original && advance_to_mouse,
+                "original SOUND.CFG requires original CODE.2 and mouse-boundary mode");
+        require(original_sound_cfg->size()==state.audio_file_fixture.size(),
+                "original SOUND.CFG must contain exactly 59 bytes");
+        std::copy(original_sound_cfg->begin(),original_sound_cfg->end(),
+                  state.audio_file_fixture.begin());
+    } else if(advance_to_mouse) {
+        // Explicit synthetic fallback; never label this as original media.
         for(std::size_t i=0;i<state.audio_file_fixture.size();++i)
             state.audio_file_fixture[i]=static_cast<u8>((0x31u+3u*i)&0xFFu);
     }
@@ -1152,8 +1162,12 @@ int main(int argc,char**argv) {
                 original_index=2;
             }
         }
-        require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--to-sound-config|--to-sound-config-configured|--to-sound-config-no-args|--to-sound-config-no-args-configured|--to-mouse-reset|--to-mouse-reset-configured|--to-mouse-reset-no-args|--to-mouse-reset-no-args-configured|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+        require(argc>=original_index && argc<=original_index+2,
+                "usage: rloft_code2_startup_gate [mode] [CODE.2 [SOUND.CFG]]");
+        if(argc==original_index+2)
+            require(advance_to_mouse && !termination && !arena_probe &&
+                    !failure_probe && !vector_matrix,
+                    "original SOUND.CFG only valid for original mouse-reset source modes");
         if(vector_matrix) {
             require(argc==original_index,"vector-mode probe does not use original data");
             interrupt_vector_matrix_probe();
@@ -1170,9 +1184,18 @@ int main(int argc,char**argv) {
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
             const auto image=rloft_recomp::OriginalLeImage::parse(b);
+            std::vector<u8> sound_bytes;
+            const std::vector<u8>* sound_ptr=nullptr;
+            if(argc==original_index+2) {
+                sound_bytes=read_file(argv[original_index+1]);
+                require(sound_bytes.size()==59u,
+                        "original SOUND.CFG must contain exactly 59 bytes");
+                sound_ptr=&sound_bytes;
+            }
             if(termination)termination_probe(image,true);
             else run(image,true,extended,execute_application,game_config,
-                     advance_to_sound_file,sound_no_arguments,advance_to_mouse);
+                     advance_to_sound_file,sound_no_arguments,
+                     advance_to_mouse,sound_ptr);
         }
         return 0;
     } catch(const std::exception& e) {
