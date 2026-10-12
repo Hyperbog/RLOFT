@@ -22,6 +22,14 @@ heap core, not the separate `demo-v1` or `native-engine` workstreams.
   split/coalesce/reclaim assertions against the separate host-owned DOS
   paragraph backing store and a non-overlapping static DGROUP.
 
+Original code-object bytes were also independently disassembled from the
+authenticated file: `DB5B` loads `EBX=30B8h` at `DB66h`,
+calls `10590h` at `DB71h`, then clears byte `8E78h` at
+`DB76h`. The original free-core entry `10590h` starts with
+`PUSH ESI; PUSH EDI; PUSH ECX; PUSH DS; MOV DS,EDX`. This confirms
+the reconstructed `AllocBoundary` callback order and the DS/arena
+dispatch, not a complete x86-versus-C++ equivalence proof.
+
 The asset-free initial DGROUP fixture seeds *only four* original CODE.1
 LE data-object-2 words: `[30C0]=30D4`, `[30C8]=FFFFFFFF`,
 `[30D8]=30D4`, `[30DC]=30D4`. These were independently read from
