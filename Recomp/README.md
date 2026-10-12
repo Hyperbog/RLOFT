@@ -175,3 +175,29 @@ and [separate CODE.2 semantic correction](../Code2/PROGRESS.md).
 The current branch's new DOS-service-boundary C++ additions require
 their **own exact-SHA passing Windows CTest**, independently of build
 #22 and of any future original DOS game/visual acceptance.
+
+## 2026-10-11 source-executed sound.cfg open/read/close to mouse setup
+
+[Canonical Windows source CI #38197945672](https://github.com/Hyperbog/RLOFT/actions/runs/38197945672)
+passed **15/15** original-reconstructed-code CTests at exact checkout
+`c0767e73e1fd93c435f623eb8280aad768d33ee9`, including
+source-executed `312A0 -> 37E77 -> 37E99` DOS open control flow
+stopping at actual DOS AH=3Dh.
+
+**Next integrated source checkpoint** (this revision):
+for four PSP/environment scenarios, execute the complete original
+`312A0→37E77→37E99` open, `312EC→38106` read,
+`312DC→380F8` close and the original `33B44` mouse setup;
+**stop at the actual DOS INT 33h mouse-reset dependency**.
+
+The new open/read/close return values and 59-byte SOUND.CFG sample
+are **test-only virtual DOS fixtures**, not original files or a
+claimed DOS game boot; original game files are never distributed in CI.
+All game application, arithmetic, path, descriptor, allocation,
+character/keyboard/timer setup and file-wrapper decisions under test
+execute *compiled canonical CODE.2 source*, not the native engine.
+[Technical source evidence and limits](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md).
+
+The new four CTests and their binary integration are separate
+from the previous 15/15 green checkpoint until CI confirms the
+exact new checkout.
