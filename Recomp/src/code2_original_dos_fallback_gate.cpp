@@ -229,8 +229,22 @@ void test_source_39e1c_break_growth() {
          "original 39E1C rejected extension corrupted heap state");
     code2::function_37c37(s.heap,second);
     code2::function_37c37(s.heap,first);
-    need(s.arena_free_calls>=3u && !s.bad,
-         "source 398E0 break-growth frees failed");
+    const u32 full=word(0x30000u+0x2Cu);
+    need(s.arena_free_calls>=3u &&
+         word(0x30000u+0x18u)==0u &&
+         word(0x30000u+0x1Cu)==1u &&
+         word(0x30000u+0x24u)==0x3002Cu &&
+         word(0x30000u+0x0Cu)==0x3002Cu &&
+         full==word(0x30000u)-0x2Cu && !s.bad,
+         "source 398E0 failed to coalesce grown 39E1C guest arena");
+    const unsigned previous_growth=s.grow_calls;
+    const u32 reused=code2::function_37b42(s.heap,7000u);
+    need(reused==first && s.grow_calls==previous_growth &&
+         s.break_end==frozen && !s.bad,
+         "source 39838 did not reuse fully coalesced 39E1C arena");
+    code2::function_37c37(s.heap,reused);
+    need(word(0x30000u+0x18u)==0u && !s.bad,
+         "source break-growth reused block not released");
     active=nullptr;
 }
 } // namespace
