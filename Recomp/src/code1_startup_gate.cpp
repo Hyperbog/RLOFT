@@ -18,7 +18,8 @@
 namespace {
 using u8=std::uint8_t;using u16=std::uint16_t;using u32=std::uint32_t;
 enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize, ExtenderHostResize,
-                  ExtenderHostResizeHeap, ExtenderCd97Startup, ExtenderCd97BreakHeap };
+                  ExtenderHostResizeHeap, ExtenderCd97Startup, ExtenderCd97BreakHeap,
+                  ExtenderCd97Constructors };
 struct Session {
     std::jmp_buf escape{};
     std::vector<u8> dgroup;
@@ -36,6 +37,7 @@ struct Session {
     std::array<u32,3> source_ctor_targets{};
     unsigned source_ctor_calls=0,source_runtime_calls=0,source_main_calls=0;
     unsigned source_exit_calls=0,source_break_calls=0;
+    unsigned source_constructor_allocs=0,source_nodes=0;
     bool bad_cd97_access=false,source_cd97_saved_ds=false;
 };
 thread_local Session* current=nullptr;
@@ -344,13 +346,15 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
                     s.mode==Mode::ExtenderHostResize ||
                     s.mode==Mode::ExtenderHostResizeHeap ||
                     s.mode==Mode::ExtenderCd97Startup ||
-                    s.mode==Mode::ExtenderCd97BreakHeap)?
+                    s.mode==Mode::ExtenderCd97BreakHeap ||
+                    s.mode==Mode::ExtenderCd97Constructors)?
             0x44581606u:0x00001606u;
         if(s.mode==Mode::ExtenderToResize ||
            s.mode==Mode::ExtenderHostResize ||
            s.mode==Mode::ExtenderHostResizeHeap ||
            s.mode==Mode::ExtenderCd97Startup ||
-           s.mode==Mode::ExtenderCd97BreakHeap)
+           s.mode==Mode::ExtenderCd97BreakHeap ||
+                    s.mode==Mode::ExtenderCd97Constructors)
             m.cpu.ebx=(m.cpu.ebx&0xFFFFFF00u)|0x32u; // ASCII '2' (not PSP probe 'R')
         return;
     }
@@ -363,7 +367,8 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
             s.mode==Mode::ExtenderHostResize ||
             s.mode==Mode::ExtenderHostResizeHeap ||
             s.mode==Mode::ExtenderCd97Startup ||
-            s.mode==Mode::ExtenderCd97BreakHeap) &&
+            s.mode==Mode::ExtenderCd97BreakHeap ||
+                    s.mode==Mode::ExtenderCd97Constructors) &&
            ((m.cpu.eax>>8)&0xFFu)==0x4Au &&
            s.extender_branch) {
             if(s.mode==Mode::ExtenderToResize)
@@ -431,17 +436,20 @@ void execute(Mode mode,const std::vector<u8>* original) {
                mode!=Mode::ExtenderHostResize &&
                mode!=Mode::ExtenderHostResizeHeap &&
                mode!=Mode::ExtenderCd97Startup &&
-               mode!=Mode::ExtenderCd97BreakHeap)
+               mode!=Mode::ExtenderCd97BreakHeap &&
+               mode!=Mode::ExtenderCd97Constructors)
                 halt("CODE1_STARTUP_EXTENDER_BRANCH_CHANGED");
             (void)code1::translate_ccde_cd16(
                 s.machine,(mode==Mode::ExtenderHostResize ||
                            mode==Mode::ExtenderHostResizeHeap ||
                            mode==Mode::ExtenderCd97Startup ||
-                           mode==Mode::ExtenderCd97BreakHeap)?0xA000u:0x5000u);
+                           mode==Mode::ExtenderCd97BreakHeap ||
+                           mode==Mode::ExtenderCd97Constructors)?0xA000u:0x5000u);
             if(mode==Mode::ExtenderHostResize ||
                mode==Mode::ExtenderHostResizeHeap ||
                mode==Mode::ExtenderCd97Startup ||
-               mode==Mode::ExtenderCd97BreakHeap)
+               mode==Mode::ExtenderCd97BreakHeap ||
+               mode==Mode::ExtenderCd97Constructors)
                 halt("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE");
         } else halt("CODE1_ORIGINAL_ENTRY_BRANCH_INVALID");
         halt("CODE1_SOURCE_RETURNED_BEFORE_EXPECTED_DOS_BOUNDARY");
@@ -450,7 +458,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
        s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE"))
         source_heap_post_extender_handoff(original!=nullptr);
     if((mode==Mode::ExtenderCd97Startup ||
-        mode==Mode::ExtenderCd97BreakHeap) &&
+        mode==Mode::ExtenderCd97BreakHeap ||
+        mode==Mode::ExtenderCd97Constructors) &&
        s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE")) {
         source_cd97_followup(original!=nullptr);
         if(mode==Mode::ExtenderCd97BreakHeap)
@@ -464,7 +473,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
         (mode==Mode::ExtenderHostResize ||
          mode==Mode::ExtenderHostResizeHeap ||
          mode==Mode::ExtenderCd97Startup ||
-         mode==Mode::ExtenderCd97BreakHeap)?
+         mode==Mode::ExtenderCd97BreakHeap ||
+         mode==Mode::ExtenderCd97Constructors)?
         "STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE":
         "STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE";
     assert_true(s.boundary==std::string(expected),"CODE1 DOS entry boundary incorrect");
@@ -480,7 +490,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
     if(mode==Mode::ExtenderHostResize ||
        mode==Mode::ExtenderHostResizeHeap ||
        mode==Mode::ExtenderCd97Startup ||
-       mode==Mode::ExtenderCd97BreakHeap)
+       mode==Mode::ExtenderCd97BreakHeap ||
+       mode==Mode::ExtenderCd97Constructors)
         assert_true(s.host_break.successful_resizes()>=1u &&
                     s.dgroup.size()==
                         (mode==Mode::ExtenderCd97BreakHeap?0x12000u:0xA000u) &&
@@ -489,7 +500,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
                     s.machine.cpu.es==0x30u,
                     "original CODE.1 CCDE host-backed 4KiB resize mismatch");
     if(mode==Mode::ExtenderCd97Startup ||
-       mode==Mode::ExtenderCd97BreakHeap)
+       mode==Mode::ExtenderCd97BreakHeap ||
+       mode==Mode::ExtenderCd97Constructors)
         std::cout<<"CODE1_ORIGINAL_CD97_EXTENDER_MODE=2\\n"
                     "CODE1_FCE8_ORIGINAL_CTOR_DISPATCH=3_SOURCE_RECORDS\\n"
                     "CODE1_FC98_HEAP_MINIMUM=SOURCE_10D1C\\n"
@@ -523,6 +535,7 @@ int main(int argc,char** argv) {
             else if(cmd=="--extender-host-resize-to-source-heap") {mode=Mode::ExtenderHostResizeHeap;index=2;}
             else if(cmd=="--extender-host-resize-to-cd97") {mode=Mode::ExtenderCd97Startup;index=2;}
             else if(cmd=="--extender-host-resize-to-cd97-break-heap") {mode=Mode::ExtenderCd97BreakHeap;index=2;}
+            else if(cmd=="--extender-host-resize-to-cd97-constructors") {mode=Mode::ExtenderCd97Constructors;index=2;}
             else if(cmd=="--stop-before-version") {index=2;}
         }
         assert_true(argc==index || argc==index+1,
