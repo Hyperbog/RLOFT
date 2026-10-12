@@ -300,3 +300,7 @@ The next **manual-only** Windows build is [Native Engine Original Assets — Win
 - [Native GPU comparison — Issue #10](https://github.com/Hyperbog/RLOFT/issues/10)
 
 **Superseded:** `DEMO_BOOT_PIPELINE_REUSE_20261011.md` and `LIVE_ORIGINAL_RUNTIME_INTEGRATION_20261011.md` document an abandoned recompilation-based native integration and MUST NOT guide current implementation.
+
+## Optional shared REA research adapter
+
+[Optional shared REA native-binary analysis](REA_ANALYSIS.md) is available through the canonical `code1-decompilation:ResearchInfra/` checkout. It is local, read-only static analysis and **does not** install REA into this application's runtime, alter original game media, or certify original DOS/gameplay parity.
