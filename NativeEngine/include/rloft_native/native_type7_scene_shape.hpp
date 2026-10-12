@@ -35,6 +35,8 @@ struct NativeType7SceneShape {
     std::size_t unique_lists{};
     std::size_t total_descriptors{};
     std::size_t decoded_body_bytes{};
+    std::string original_entry_sha256;
+    std::string decoded_body_sha256;
     // True means structurally validated, never original visual parity.
     bool structure_verified{};
 };
@@ -111,11 +113,25 @@ struct NativeSceneDefinitionDirectory {
     const std::vector<std::uint8_t>& npc_dat,
     const std::vector<std::uint8_t>& objects_dat);
 
+struct NativeRes3ShapeFingerprint {
+    std::size_t id{};
+    std::string eh7_entry_sha256;
+    std::string eh7_body_sha256;
+    std::size_t decoded_body_bytes{};
+    unsigned source_width{};
+    std::size_t source_columns{};
+    std::size_t unique_column_lists{};
+    std::size_t raster_descriptors_with_column_references{};
+    std::size_t raster_descriptors_unique_lists{};
+};
+
 struct NativeRes3SceneCorpus {
     NativeRes3SceneBanks banks;
     std::size_t type7_shapes{};
     std::size_t unique_lists{};
     std::size_t raster_descriptors{};
+    std::size_t decoded_body_total_bytes{};
+    std::vector<NativeRes3ShapeFingerprint> shapes;
     std::array<std::size_t,3> width_histogram{};
     std::array<std::size_t,4> source_class_shapes{};
     // All 4234 original records are parsed, or rejects the entire audit.

@@ -1,5 +1,6 @@
 #include "rloft_native/native_type7_scene_shape.hpp"
 #include "rloft_native/native_lzss.hpp"
+#include "rloft_native/native_sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -69,6 +70,8 @@ NativeType7SceneShape decode_native_type7_scene_shape(
             "original EH7 compressed stream has trailing input bytes");
     const auto& body=decoded.bytes;
     NativeType7SceneShape scene;
+    scene.original_entry_sha256=native_sha256_hex(entry);
+    scene.decoded_body_sha256=native_sha256_hex(body);
     scene.source_width=word(body,0U);
     scene.x_min=signed_word(body,2U);
     scene.x_max=signed_word(body,4U);
@@ -260,12 +263,23 @@ NativeRes3SceneCorpus audit_native_res3_scene_corpus(
     const NativeResArchive& archive) {
     NativeRes3SceneCorpus corpus;
     corpus.banks=decode_native_res3_scene_banks(init,archive.entry_count());
+    corpus.shapes.reserve(archive.entry_count());
     for(std::size_t id=0;id<archive.entry_count();++id) {
         const auto shape=decode_native_type7_scene_shape(archive.entry(id));
         require(shape.structure_verified,"original RES3 shape was not validated");
         ++corpus.type7_shapes;
         corpus.raster_descriptors+=shape.total_descriptors;
         corpus.unique_lists+=shape.unique_lists;
+        corpus.decoded_body_total_bytes+=shape.decoded_body_bytes;
+        std::size_t unique_descriptors=0;
+        std::set<std::uint16_t> counted_offsets;
+        for(const auto& col:shape.columns)
+            if(counted_offsets.insert(col.original_list_offset).second)
+                unique_descriptors+=col.descriptors.size();
+        corpus.shapes.push_back({id,
+            shape.original_entry_sha256,shape.decoded_body_sha256,
+            shape.decoded_body_bytes,shape.source_width,shape.columns.size(),
+            shape.unique_lists,shape.total_descriptors,unique_descriptors});
         switch(shape.source_width) {
             case 64:++corpus.width_histogram[0];break;
             case 96:++corpus.width_histogram[1];break;
@@ -294,6 +308,7 @@ std::string native_res3_scene_corpus_json(
        <<",\"decoded_eh7_shapes\":"<<v.type7_shapes
        <<",\"unique_column_lists\":"<<v.unique_lists
        <<",\"raster_descriptors\":"<<v.raster_descriptors
+       <<",\"total_decoded_body_bytes\":"<<v.decoded_body_total_bytes
        <<",\"width_64\":"<<v.width_histogram[0]
        <<",\"width_96\":"<<v.width_histogram[1]
        <<",\"width_128\":"<<v.width_histogram[2]
@@ -305,7 +320,23 @@ std::string native_res3_scene_corpus_json(
     out<<"],\"sintab_x86_code_executed\":false,"
        <<"\"pixel_color_parity_verified\":false,"
        <<"\"original_scene_frame_parity_verified\":false,"
-       <<"\"event_vm_executed\":false}\n";
+       <<"\"event_vm_executed\":false,\"shapes\":[";
+    for(std::size_t i=0;i<v.shapes.size();++i) {
+        const auto& shape=v.shapes[i];
+        if(i)out<<",";
+        out<<"{\"id\":"<<shape.id
+           <<",\"eh7_entry_sha256\":\""<<shape.eh7_entry_sha256
+           <<"\",\"eh7_body_sha256\":\""<<shape.eh7_body_sha256
+           <<"\",\"decoded_body_bytes\":"<<shape.decoded_body_bytes
+           <<",\"source_width\":"<<shape.source_width
+           <<",\"source_columns\":"<<shape.source_columns
+           <<",\"unique_column_lists\":"<<shape.unique_column_lists
+           <<",\"raster_descriptors_with_column_references\":"
+           <<shape.raster_descriptors_with_column_references
+           <<",\"raster_descriptors_unique_lists\":"
+           <<shape.raster_descriptors_unique_lists<<"}";
+    }
+    out<<"]}\n";
     return out.str();
 }
 } // namespace rloft_native

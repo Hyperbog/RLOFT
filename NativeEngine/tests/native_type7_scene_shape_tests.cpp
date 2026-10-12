@@ -84,6 +84,9 @@ void run() {
     assert(shape.source_width==64 && shape.y_max==127);
     assert(shape.x_min==0 && shape.x_max==2);
     assert(shape.decoded_body_bytes==27);
+    assert(shape.original_entry_sha256.size()==64);
+    assert(shape.decoded_body_sha256.size()==64);
+    assert(shape.original_entry_sha256!=shape.decoded_body_sha256);
     assert(shape.columns.size()==3);
     assert(shape.unique_lists==2);
     assert(shape.total_descriptors==2); // repeated list is drawn twice
@@ -194,11 +197,21 @@ void run() {
     assert(corpus.width_histogram[0]==8);
     assert(corpus.unique_lists==16);
     assert(corpus.raster_descriptors==16);
+    assert(corpus.decoded_body_total_bytes==27*8);
+    assert(corpus.shapes.size()==8);
+    assert(corpus.shapes[0].id==0);
+    assert(corpus.shapes[0].eh7_body_sha256==shape.decoded_body_sha256);
+    assert(corpus.shapes[0].eh7_entry_sha256==shape.original_entry_sha256);
+    assert(corpus.shapes[0].raster_descriptors_unique_lists==1);
+    assert(corpus.shapes[0].raster_descriptors_with_column_references==2);
     const auto json=native_res3_scene_corpus_json(corpus);
     assert(json.find("\"decoded_eh7_shapes\":8")!=std::string::npos);
     assert(json.find("\"sintab_x86_code_executed\":false")!=std::string::npos);
     assert(json.find("\"source_class_lengths\":[3,2,2,1]")!=std::string::npos);
     assert(json.find("\"original_scene_frame_parity_verified\":false")!=std::string::npos);
+    assert(json.find("\"eh7_body_sha256\":\"")!=std::string::npos);
+    assert(json.find("\"total_decoded_body_bytes\":216")!=std::string::npos);
+    assert(json.find("\"shapes\":[{\"id\":0,")!=std::string::npos);
 
     auto changed=init;u16(changed,0x0A,3); // duplicate bank start
     rejects([&]{static_cast<void>(
