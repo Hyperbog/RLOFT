@@ -1,5 +1,30 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## R04 focused checkpoint — original CODE.1 host-backed heap execution (2026-10-12)
+
+[Windows source build #81](https://github.com/Hyperbog/RLOFT/actions/runs/38245588733)
+passed **43/43 CTests** at SHA
+`875617f4b6a47dcbb48bc209eeb0abfa2d2b4075`.
+
+The compiled original CODE.1 `10AA9/109C1/1069B` now establishes
+a heap using real stateful DPMI `0501` host allocations, original `107CB`
+reclaims the DPMI-backed or DOS `AH=48h` fallback arena, and original
+`1083F` executes a DPMI `0503` relocation with retired handles.
+Separately, original `CCDE` performs its Phar Lap selector/data-break
+`AH=4Ah` request in **4 KiB units** through an actual host-backed resized
+DGROUP. The conventional DOS `AH=48/49/4A` paragraph allocator has separate
+bounded tests. These are real source-bound memory transfers, **not**
+a complete DOS/4GW runtime. CODE.1's `DB5B` release adapter remains
+test-owned; CODE.2 original `39C7B/39D4D/39E1C` growth is not yet
+connected and startup still uses a seeded arena. A real DPMI `0006`
+selector descriptor/base service and actual DOS behavioral checks
+remain mandatory.
+
+**R04 remains unaccepted; recompilation is 3/12 = 25.00%.**
+See [R04 memory-runtime closure checkpoint](R04_MEMORY_RUNTIME_CLOSURE_CHECKPOINT_20261012.md).
+**Continue R04** before beginning R05-R12.
+
+
 ## Current R04 closure work — DPMI linear memory (2026-10-12)
 
 A host-backed stateful DPMI `0501h/0502h/0503h` linear allocation/resize/free
