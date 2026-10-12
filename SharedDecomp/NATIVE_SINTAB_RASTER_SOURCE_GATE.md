@@ -56,3 +56,11 @@ python3 SharedDecomp/verify_native_sintab_raster.py \
 ```
 
 **Acceptance remains pending** until the actual committed new NativeEngine C++ source compiles, passes synthetic CTests and the resulting executable agrees with that independent original-file oracle. Windows/MSVC current-source demo, original DOS pixel/frame parity and a complete playable native engine are not certified. Windows release Actions remain manual-owner-controlled and DemoV1 gameplay remains unlinked.
+
+## Final compiled-original acceptance checkpoint — supersedes pending notes above
+
+The previously pending NativeEngine build and original-data comparison gates **closed** at native source `a3bc4e24fb18d0c7988dbe1ea261276def6df42d`. [Linux Actions #38194123968](https://github.com/Hyperbog/RLOFT/actions/runs/38194123968) passed **21/21 CTests**; the independently authored [research Actions #38193878447](https://github.com/Hyperbog/RLOFT/actions/runs/38193878447) passed **159/159** at `code1-decompilation:0a7290fcf2832dfbf8693874b7e3663d1a4da908`. After transient GitHub Actions runner-allocation failures, successful build gates were obtained without disabling a single original test.
+
+The compiled original-data auditor's **127/127 source program block fields** and aggregate counts match the independent original SINTAB/RES3 oracle exactly: **1,282/1,282 typed values**, **834,255 original descriptor-to-scale plan checks** at scales 0, 63 and 126, zero differences. One selected real original EH7 source span (RES3 shape 0, first column, first descriptor, scale 126, explicit diagnostic ECX=0/mask=0xF/destination 0) was evaluated with the new *safe host* interpreter, resulting in one original byte read and four masked writes. An independent Python interpreter produced the identical combined four VGA-plane SHA256 `e0b7360b0fd1615974122a5a451993b248978affed73333c000bf394ec613ddf`.
+
+Controlling native project chapter: `NativeEngine/ACTUAL_ORIGINAL_SINTAB_SAFE_RASTER_VERIFIED_20261011.md`. Metadata-only local report `rloft_original_SINTAB_127_native_safe_raster_verified.json`. **Do not infer original x86 execution or DOS game-frame parity from the host diagnostic sample.** Pixel fidelity, full CODE.2 projection, current Windows/MSVC build and playable native engine remain open.
