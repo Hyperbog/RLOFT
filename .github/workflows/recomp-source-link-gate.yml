@@ -35,6 +35,12 @@ jobs:
       - name: Execute compiled reconstruction leaf and entry-boundary tests
         shell: pwsh
         run: ctest --test-dir build/recomp -C Debug --output-on-failure
+      - name: Report recompilation progress from certified major acceptance gates
+        if: success()
+        shell: pwsh
+        run: |
+          python Recomp/tools/recomp_progress.py | Tee-Object -FilePath build/recomp/Debug/recomp-progress.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Stamp exact canonical source and engineering status
         if: success()
         shell: pwsh
@@ -47,7 +53,7 @@ jobs:
             'Run rloft_code2_startup_gate.exe --to-mouse-reset to test actual CODE.2 startup through original DOS mouse reset, using test-only DOS environment/file fixtures.'
             'Run rloft_code2_startup_gate.exe --to-mouse-reset-no-args for the source-backed allocator branch.'
             'Run rloft_original_image_gate.exe CODE.1 CODE.2 to verify personally owned original files.'
-            'The currently unresolved boundary is original DOS INT 33h mouse behavior, with real service/media parity still to be implemented.'
+            'Latest bounded source paths stop at external DOS INT 31h function 0300h real-mode mouse simulation, or INT 21h AH=09h text output. Actual DOS/4GW services and independent runtime parity remain incomplete.'
             'No commercial original game media are included in this artifact.'
           ) | Set-Content -Path build/recomp/Debug/README-RECOMP.txt
       - name: Publish all three canonical source executables and source SHA
@@ -60,6 +66,7 @@ jobs:
             build/recomp/Debug/rloft_code2_startup_gate.exe
             build/recomp/Debug/rloft_original_image_gate.exe
             build/recomp/Debug/build-source-sha.txt
+            build/recomp/Debug/recomp-progress.txt
             build/recomp/Debug/README-RECOMP.txt
           if-no-files-found: error
           retention-days: 7
