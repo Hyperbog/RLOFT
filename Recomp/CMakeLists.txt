@@ -98,6 +98,10 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --mouse-no-driver-to-x-range)
     add_test(NAME canonical_code2_original_33d38_mouse_y_range_entry
         COMMAND rloft_code2_startup_gate --mouse-no-driver-to-y-range)
+    # Source CODE.2 20440 -> 202F0 -> 35286 original DOS disk-free
+    # call, reached only after the full original 2F2EC audio prelude returns.
+    add_test(NAME canonical_code2_original_20440_to_35286_disk_free_dos_boundary
+        COMMAND rloft_code2_startup_gate --mouse-no-driver-to-disk-query)
     add_test(NAME canonical_code2_mouse_absent_source_to_real_dos_warning_boundary
         COMMAND rloft_code2_startup_gate --mouse-absent-to-warning)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
