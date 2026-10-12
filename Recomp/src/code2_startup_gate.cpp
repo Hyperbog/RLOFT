@@ -321,6 +321,49 @@ void termination_probe(const rloft_recomp::OriginalLeImage& img,bool original) {
              <<"ORIGINAL_DOS_SHUTDOWN_PARITY=NO\n"
              <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<'\n';
 }
+void arena_split_coalesce_probe() {
+    Session s;
+    s.data.assign(0x2DD10u,0u);
+    s.machine.data=s.data.data();
+    current=&s;
+    initialize_guest_arena(s);
+    constexpr u32 sentinel=0x2B820u;
+    const u32 first=code2::function_39838(s.machine,s.arena_header,0x20u);
+    const u32 second=code2::function_39838(s.machine,s.arena_header,0x10u);
+    require(first==s.arena_start+4u &&
+            second>first &&
+            code2::load_le32(s.data.data()+s.arena_header+0x18u)==2u &&
+            code2::load_le32(s.data.data()+s.arena_header+0x1Cu)==1u,
+            "original arena splitter did not allocate two contiguous blocks");
+    require(code2::function_39838(s.machine,s.arena_header,0u)==0u &&
+            code2::function_39838(s.machine,s.arena_header,0xFFFFFFF0u)==0u,
+            "original arena allocator size rejection differs");
+    // Each allocated block has its low size bit set. Reverse-order original
+    // source free 398E0 must combine the blocks with the initial free tail.
+    require((code2::load_le32(s.data.data()+first-4u)&1u)!=0u &&
+            (code2::load_le32(s.data.data()+second-4u)&1u)!=0u,
+            "original allocated-block headers are not marked used");
+    code2::function_398e0(s.machine,s.arena_header,second);
+    require(code2::load_le32(s.data.data()+s.arena_header+0x18u)==1u,
+            "original arena free did not decrement allocated count");
+    code2::function_398e0(s.machine,s.arena_header,first);
+    const u32 at=code2::load_le32(s.data.data()+s.arena_header+0x0Cu);
+    require(at==s.arena_start &&
+            code2::load_le32(s.data.data()+at)==s.arena_end-s.arena_start &&
+            code2::load_le32(s.data.data()+s.arena_header+0x18u)==0u &&
+            code2::load_le32(s.data.data()+s.arena_header+0x1Cu)==1u &&
+            code2::load_le32(s.data.data()+sentinel+4u)==at &&
+            code2::load_le32(s.data.data()+sentinel+8u)==at &&
+            code2::load_le32(s.data.data()+at+4u)==sentinel &&
+            code2::load_le32(s.data.data()+at+8u)==sentinel,
+            "original arena source free/adjacent-block coalescing mismatch");
+    const u32 reused=code2::function_39838(s.machine,s.arena_header,0x20u);
+    require(reused==first,"original arena first-fit reuse changed");
+    current=nullptr;
+    std::cout<<"CODE2_ORIGINAL_ARENA_39838_398E0=PASS\\n"
+             <<"GUEST_SOURCE_ALLOCATE_FREE_REUSE=PASS\\n"
+             <<"DOS_REAL_HEAP_PARITY=NO\\n";
+}
 void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
@@ -468,19 +511,24 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
 }
 int main(int argc,char**argv) {
     try {
-        bool extended=false,termination=false;
+        bool extended=false,termination=false,arena_probe=false;
         int original_index=1;
         if(argc>=2) {
             const std::string mode(argv[1]);
-            if(mode=="--through-initializers" || mode=="--termination-probe") {
+            if(mode=="--through-initializers" || mode=="--termination-probe" ||
+               mode=="--arena-roundtrip-probe") {
                 extended=(mode=="--through-initializers");
                 termination=(mode=="--termination-probe");
+                arena_probe=(mode=="--arena-roundtrip-probe");
                 original_index=2;
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe] [CODE.2]");
-        if(argc==original_index) {
+                "usage: rloft_code2_startup_gate [--through-initializers|--termination-probe|--arena-roundtrip-probe] [CODE.2]");
+        if(arena_probe) {
+            require(argc==original_index,"arena-roundtrip probe uses synthetic-only guest memory");
+            arena_split_coalesce_probe();
+        }else if(argc==original_index) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
             else run(fixture,false,extended);
