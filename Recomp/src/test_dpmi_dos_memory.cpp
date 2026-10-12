@@ -78,6 +78,44 @@ int main() {
         need(dpmi.largest_free()==
              DpmiDosMemory::kLastParagraph-DpmiDosMemory::kFirstParagraph,
              "arena not fully restored after release");
+        // Unified loader / DPMI table: the original guest DS selector,
+        // two independently allocated DPMI 0100 descriptors and a third
+        // unrelated DOS-fallback descriptor must coexist. Releasing a
+        // DOS allocation must not retire loader or other owner identities.
+        rloft_recomp::DpmiSelectorDescriptors loader;
+        need(loader.install(0x30u,0x50000u,0x2DD10u) &&
+             loader.install(0x1003u,0x310030u,0x1000u),
+             "shared selector loader initial descriptors failed");
+        DpmiDosMemory shared(&loader);
+        need(shared.allocation_count()==0u && loader.size()==2u,
+             "shared 0100 provider created test-only DOS allocations");
+        const auto a=shared.allocate(0x12u);
+        const auto b=shared.allocate(0x07u);
+        need(!a.carry && !b.carry && a.dx==0x60u && b.dx==0x68u &&
+             loader.size()==4u &&
+             loader.get_base(a.dx).base()==
+                 static_cast<std::uint32_t>(a.ax)*16u &&
+             loader.get_base(b.dx).base()==
+                 static_cast<std::uint32_t>(b.ax)*16u &&
+             loader.check(a.dx,0u,0x120u) &&
+             !loader.check(a.dx,0x120u,1u),
+             "shared DPMI 0006, 0100 selector and limit not unified");
+        need(!shared.release(a.dx).carry && loader.size()==3u &&
+             loader.get_base(a.dx).carry && !loader.get_base(b.dx).carry &&
+             !loader.get_base(0x30u).carry &&
+             !loader.get_base(0x1003u).carry,
+             "shared descriptor release invalidated unrelated selector");
+        need(!shared.release(b.dx).carry && loader.size()==2u &&
+             loader.get_base(b.dx).carry &&
+             loader.get_base(0x30u).base()==0x50000u &&
+             loader.check(0x1003u,0xFFFu,1u) &&
+             !loader.check(0x1003u,0x1000u,1u) &&
+             loader.retire(0x1003u) &&
+             loader.get_base(0x1003u).carry &&
+             loader.size()==1u,
+             "shared DPMI selector lifetime leaked or wrong owner retired");
+        need(loader.retire(0x30u) && loader.size()==0u,
+             "shared loader teardown leaked final descriptor");
         std::cout<<"DPMI_DOS_MEMORY_AX0100_AX0101=PASS\n"
                     "DPMI_LIVE_SELECTORS_AFTER_FREE=0\n"
                     "DPMI_GUEST_TRANSLATION_CHECKED=YES\n"
