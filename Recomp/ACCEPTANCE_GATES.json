@@ -29,7 +29,7 @@
       "scope": "DOS/4GW memory, heap growth and DPMI selector lifecycle is implemented without test-only allocations",
       "accepted": false,
       "evidence": "",
-      "limitation": "Original CODE.2 mode-2 Phar Lap 35418 to 39E1C DS-break continuous startup, game entry, sound and mouse verified (#125, 59/59), independent original-code x86 branch audit. Host CODE.2 DOS fallback/0100 selector issuance/0006 base+limit/0101 release share checked loader registry (#130, 59/59), with DpmiDosMemory injected owner. CODE.1 CCDE host DGROUP resize and 10AA9/104E0/DB5B/10590/107CB original source memory lifecycle share one guest session (#133, 60/60), with source-authenticated original heap-root verification. R04 remains NOT accepted: natural non-host-triggered CODE.1 heap-mode initialization and independent original DOS/4GW selector, memory-ownership, limit and error-path behavioral comparison are missing. See R04_MEMORY_RUNTIME_PROGRESS_AUDIT_20261012.md"
+      "limitation": "Original CODE.1 natural Phar Lap CCDE -> CD97 mode 2 -> FCE8 source constructor dispatch (10E81 original 5 stream nodes, 10438 stack selector, FD6E/FE21 source argv allocation) -> FC98/10D1C heap default with live source 10AA9/10DD7/104E0 DS-break and original heap free-list verified by Windows #147 (63/63). Byte-audited original 10BB4 CMP ESI,EAX reconstruction fix and authentic static DGROUP roots now covered. CODE.2 three continuous DPMI/DOS/Phar Lap heap paths and shared 0006/0100/0101 descriptor registry also pass. R04 NOT accepted: original DOS/4GW observed memory/selector parity, full CODE.1 natural allocation veneers and 508C gameplay beyond source stop boundary remain missing. See R04_CODE1_CD97_CONSTRUCTOR_HEAP_CHECKPOINT_20261012.md"
     },
     {
       "id": "R05",
