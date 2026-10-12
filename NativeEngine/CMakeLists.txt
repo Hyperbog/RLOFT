@@ -40,7 +40,8 @@ add_library(rloft_native_assets STATIC
   src/native_world_materials.cpp
   src/native_code2_wall_emission.cpp
   src/native_code2_projection.cpp
-  src/native_vga_rgb6_scanout.cpp)
+  src/native_vga_rgb6_scanout.cpp
+  src/native_source_scene_compositor.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -122,6 +123,11 @@ native_warnings(rloft_native_code2_projection_audit)
 add_executable(rloft_native_vga_rgb6_scanout_audit src/native_vga_rgb6_scanout_audit_main.cpp)
 target_link_libraries(rloft_native_vga_rgb6_scanout_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_vga_rgb6_scanout_audit)
+
+# Combined original EH6 + EH7 + VGA DAC6 renderer; explicit caller-ordered diagnostic.
+add_executable(rloft_native_source_scene_compositor_audit src/native_source_scene_compositor_audit_main.cpp)
+target_link_libraries(rloft_native_source_scene_compositor_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_source_scene_compositor_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -252,6 +258,11 @@ add_executable(native_vga_rgb6_scanout_tests tests/native_vga_rgb6_scanout_tests
 target_link_libraries(native_vga_rgb6_scanout_tests PRIVATE rloft_native_assets)
 native_warnings(native_vga_rgb6_scanout_tests)
 add_test(NAME native_vga_rgb6_scanout_tests COMMAND native_vga_rgb6_scanout_tests)
+
+add_executable(native_source_scene_compositor_tests tests/native_source_scene_compositor_tests.cpp)
+target_link_libraries(native_source_scene_compositor_tests PRIVATE rloft_native_assets)
+native_warnings(native_source_scene_compositor_tests)
+add_test(NAME native_source_scene_compositor_tests COMMAND native_source_scene_compositor_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
