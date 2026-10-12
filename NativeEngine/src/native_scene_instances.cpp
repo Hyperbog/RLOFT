@@ -48,6 +48,32 @@ std::string compact_original_sha(const NativeWorldPayload& world) {
     }
     return native_sha256_hex(bytes);
 }
+std::vector<std::uint8_t> serialize_resolved_level(
+    unsigned level,
+    const std::vector<NativeAuthoredSceneInstance>& records) {
+    std::vector<std::uint8_t> out;
+    out.reserve(6U+records.size()*27U);
+    add16(out,level);
+    add32(out,records.size());
+    for(const auto& record:records) {
+        require(record.level==level &&
+                record.cell_column<=65535U &&
+                record.cell_row<=65535U,
+                "authored scene resolved level/cell overflow");
+        out.push_back(static_cast<std::uint8_t>(record.source_class));
+        add32(out,record.compact_record_index);
+        add16(out,record.original_type_id);
+        add16(out,record.runtime_type_id);
+        add32(out,static_cast<std::uint32_t>(record.x_position_16_16));
+        add32(out,static_cast<std::uint32_t>(record.y_position_16_16));
+        add16(out,record.cell_column);
+        add16(out,record.cell_row);
+        out.push_back(record.compact_flags);
+        out.push_back(record.compact_facing_0_to_7);
+        add32(out,record.absolute_res3_base);
+    }
+    return out;
+}
 }
 
 NativeAuthoredSceneDirectory derive_native_authored_scene_instances(
@@ -123,6 +149,17 @@ NativeAuthoredSceneDirectory derive_native_authored_scene_instances(
         }
         result.levels.push_back(std::move(list));
     }
+    static constexpr char domain[]="RLOFT-native-scene-source-bases-v1";
+    std::vector<std::uint8_t> combined(domain,domain+sizeof(domain)-1U);
+    add32(combined,result.levels.size());
+    result.per_level_resolved_sha256.reserve(result.levels.size());
+    for(unsigned id=0;id<result.levels.size();++id) {
+        const auto encoded=serialize_resolved_level(id,result.levels[id]);
+        result.per_level_resolved_sha256.push_back(
+            native_sha256_hex(encoded));
+        combined.insert(combined.end(),encoded.begin(),encoded.end());
+    }
+    result.resolved_source_bases_sha256=native_sha256_hex(combined);
     return result;
 }
 

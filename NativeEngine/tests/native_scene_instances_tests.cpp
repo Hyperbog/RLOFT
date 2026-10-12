@@ -79,6 +79,19 @@ void run() {
     assert(ledger.original_loose_instances==32);
     assert(ledger.original_legacy_object_aliases==32);
     assert(ledger.original_compact_families_sha256.size()==64);
+    assert(ledger.resolved_source_bases_sha256.size()==64);
+    assert(ledger.per_level_resolved_sha256.size()==32);
+    assert(ledger.per_level_resolved_sha256[22].size()==64);
+    auto changed_definitions=d;
+    changed_definitions.npc_definitions[9].absolute_shape_base+=1;
+    const auto retargeted=derive_native_authored_scene_instances(
+        sources,changed_definitions);
+    assert(retargeted.original_compact_families_sha256==
+           ledger.original_compact_families_sha256);
+    assert(retargeted.resolved_source_bases_sha256!=
+           ledger.resolved_source_bases_sha256);
+    assert(retargeted.per_level_resolved_sha256[22]!=
+           ledger.per_level_resolved_sha256[22]);
     assert(!ledger.native_scene_frame_selection_verified);
     const auto& row=ledger.levels[22];
     assert(row.size()==3);

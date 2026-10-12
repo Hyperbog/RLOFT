@@ -56,7 +56,14 @@ int run(const std::filesystem::path& root) {
                  <<instances.original_legacy_object_aliases<<","
                  <<"\"compact_scene_instance_source_sha256\":\""
                  <<instances.original_compact_families_sha256<<"\","
-                 <<"\"original_view_frame_selection_verified\":false,"
+                 <<"\"resolved_source_bases_sha256\":\""
+                 <<instances.resolved_source_bases_sha256<<"\","
+                 <<"\"per_level_resolved_sha256\":[";
+        for(std::size_t id=0;id<instances.levels.size();++id) {
+            if(id)std::cout<<",";
+            std::cout<<"\""<<instances.per_level_resolved_sha256.at(id)<<"\"";
+        }
+        std::cout<<"],\"original_view_frame_selection_verified\":false,"
                  <<"\"original_dos_rasterizer_executed\":false,"
                  <<"\"gameplay_parity_verified\":false}\n";
         return 0;

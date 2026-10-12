@@ -32,6 +32,10 @@ struct NativeAuthoredSceneInstance {
 
 struct NativeAuthoredSceneDirectory {
     std::string original_compact_families_sha256;
+    // Every resolved class/base/type/position is fingerprinted,
+    // without serializing original source records to diagnostic output.
+    std::string resolved_source_bases_sha256;
+    std::vector<std::string> per_level_resolved_sha256;
     std::vector<std::vector<NativeAuthoredSceneInstance>> levels;
     std::size_t original_npc_instances{};
     std::size_t original_placed_instances{};
