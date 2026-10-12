@@ -22,6 +22,13 @@ public:
     static constexpr std::uint32_t kFirstMcb=0x1000u;
     static constexpr std::uint32_t kLimit=0xA000u; // exclusive
 
+    // Optional guest-owned physical aperture. In this mode CODE.2 source
+    // and DOS AH=48h allocator read and write the exact same guest bytes.
+    // No privately mirrored host vector may silently diverge from DGROUP.
+    explicit DosParagraphMemory(std::uint8_t* guest=nullptr,
+                                std::size_t guest_size=0u) noexcept
+        : guest_(guest),guest_size_(guest_size) {}
+
     struct Block {
         std::uint16_t segment;
         std::uint16_t paragraphs;
@@ -38,12 +45,17 @@ public:
             candidate=static_cast<std::uint32_t>(block.segment)+
                       block.paragraphs+1u;
         }
-        if(candidate+paragraphs>kLimit)
+        if(candidate+paragraphs>kLimit ||
+           (guest_ && (candidate+static_cast<std::uint32_t>(paragraphs))*16u>guest_size_))
             return {true,8u,largest_free()};
         Block incoming{static_cast<std::uint16_t>(candidate),paragraphs,{}};
         try {
-            incoming.bytes.resize(static_cast<std::size_t>(paragraphs)*16u,0u);
+            if(!guest_)
+                incoming.bytes.resize(static_cast<std::size_t>(paragraphs)*16u,0u);
             blocks_.emplace(incoming.segment,std::move(incoming));
+            if(guest_)
+                std::fill_n(guest_+candidate*16u,
+                            static_cast<std::size_t>(paragraphs)*16u,0u);
         } catch(const std::bad_alloc&) {
             return {true,8u,largest_free()};
         }
@@ -65,10 +77,21 @@ public:
         const std::uint32_t boundary=next==blocks_.end()?
             kLimit:static_cast<std::uint32_t>(next->second.segment)-1u;
         const auto available=boundary-static_cast<std::uint32_t>(segment);
-        if(paragraphs>available)
+        if(paragraphs>available ||
+           (guest_ &&
+            (static_cast<std::uint32_t>(segment)+paragraphs)*16u>guest_size_))
             return {true,8u,static_cast<std::uint16_t>(available)};
         try {
-            it->second.bytes.resize(static_cast<std::size_t>(paragraphs)*16u,0u);
+            if(guest_) {
+                if(paragraphs>it->second.paragraphs)
+                    std::fill_n(guest_+
+                                    (static_cast<std::uint32_t>(segment)+
+                                     it->second.paragraphs)*16u,
+                                static_cast<std::size_t>(paragraphs-
+                                                         it->second.paragraphs)*16u,
+                                0u);
+            } else it->second.bytes.resize(
+                        static_cast<std::size_t>(paragraphs)*16u,0u);
         } catch(const std::bad_alloc&) {
             return {true,8u,static_cast<std::uint16_t>(available)};
         }
@@ -87,9 +110,15 @@ public:
             const auto base=static_cast<std::uint32_t>(b.segment)*16u;
             if(linear<base)continue;
             const auto displacement=static_cast<std::uint64_t>(linear)-base;
-            if(displacement<=b.bytes.size() &&
-               count<=b.bytes.size()-displacement)
+            const std::size_t extent=static_cast<std::size_t>(b.paragraphs)*16u;
+            if(displacement<=extent && count<=extent-displacement) {
+                if(guest_) {
+                    if(linear>guest_size_ || count>guest_size_-linear)
+                        return nullptr;
+                    return guest_+linear;
+                }
                 return b.bytes.data()+static_cast<std::size_t>(displacement);
+            }
         }
         return nullptr;
     }
@@ -110,6 +139,8 @@ public:
     }
     std::size_t allocation_count() const noexcept{return blocks_.size();}
 private:
+    std::uint8_t* guest_=nullptr;
+    std::size_t guest_size_=0u;
     std::map<std::uint16_t,Block> blocks_;
 };
 } // namespace rloft_recomp
