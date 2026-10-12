@@ -389,15 +389,15 @@ code2::s32 original_dos_close_fixture(u32 h) noexcept {
     current->audio_descriptor_flags=0u;
     return 0;
 }
-u32 original_sound_config_read(u32 destination,u32 count,u32 h) noexcept {
-    return code2::function_312ec(current->dos_file_io,destination,count,h);
+void original_sound_config_read(u32 destination,u32 count,u32 h) noexcept {
+    (void)code2::function_312ec(current->dos_file_io,destination,count,h);
 }
 u32 original_binary_read(u32 handle,u32 dest,u32 n) noexcept {
     return static_cast<u32>(code2::function_38106(
         current->dos_file_read,handle,dest,n));
 }
-u32 original_sound_config_close(u32 handle) noexcept {
-    return code2::function_312dc(current->dos_file_io,handle);
+void original_sound_config_close(u32 handle) noexcept {
+    (void)code2::function_312dc(current->dos_file_io,handle);
 }
 u32 original_source_descriptor_close(u32 handle) noexcept {
     return static_cast<u32>(code2::function_380f8(
