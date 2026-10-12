@@ -38,6 +38,37 @@ fingerprinting research.
 This project is strictly separate from `demo-v1` and `native-engine`. Do not
 invoke their full Windows build workflows from this target.
 
+## 2026-10-12 latest verified canonical recompilation checkpoint
+
+**The current canonical workstream is `Recomp/` on `code1-decompilation`,
+not either native engine.** [Windows canonical source build #34](https://github.com/Hyperbog/RLOFT/actions/runs/38202963930)
+successfully compiled/linked the existing original CODE.1 and CODE.2
+reconstructions and passed **22/22 CTests** (exact source
+`f7f94d8c38153707fde6eacc2474556442c50ec4`).
+
+Unlike the earlier game-entry stop, the extended compiled source
+now executes the original CODE.2 startup through `20608`,
+authored original ISR/vector/allocator/audio open/read/close paths
+and `33B44` mouse reset. It selects both original mouse branches:
+the device-present branch executes canonical `30D80 → 30D52 →
+37A73` before halting at the genuine external `INT 31h AX=0100h`
+allocation dependency; the device-absent branch executes canonical
+`311E8` before stopping at the real external `INT 21h AH=09`
+output dependency. Those branches are driven by **explicit test-only
+hardware outcomes**, not a claimed original DOS trace.
+
+The original media matrix runs **14 bounded execution modes**, enforces
+the archived original CODE.2/SOUND.CFG SHA-256 identities, requires
+the precise first unsupported original service boundary, and emits
+a machine-readable audit. The Windows CI uses synthetic media, while
+local owners can explicitly supply original CODE.2/SOUND.CFG to the
+same compiled original-code executable. Details and commands:
+[Original media and mouse source-execution evidence](ORIGINAL_MEDIA_AND_MOUSE_BRANCH_GATE_20261012.md).
+
+**Still missing:** actual DOS/4GW services/memory/IRQ/graphics,
+full CODE.1-to-CODE.2 live game handoff, real DOS gameplay-equivalence
+and complete original game execution. CI passing cannot certify those.
+
 ## Whole original LE image integration (2026-10-11)
 
 The current source tree now also builds `rloft_original_image_gate`, which reconstructs **the entire original LE code/data memory image** for both modules and validates all original object/page/fixup records against the original executable bytes. Its synthetic, media-independent CTest is registered beside the existing canonical source-link CTest.
