@@ -90,6 +90,14 @@ if(BUILD_TESTING)
     # then original 33AA0 real-mode INT33 simulation wrapper to DPMI 0300.
     add_test(NAME canonical_code2_source_dpmi_0100_to_actual_33aa0_bridge
         COMMAND rloft_code2_startup_gate --mouse-present-to-real-mode)
+    # Three deeper original-source calls executed under explicitly synthetic
+    # DPMI service outcomes. Halts before external hardware effects.
+    add_test(NAME canonical_code2_source_dpmi_0101_original_mouse_release
+        COMMAND rloft_code2_startup_gate --mouse-no-driver-to-dpmi-free)
+    add_test(NAME canonical_code2_original_33d18_mouse_x_range_entry
+        COMMAND rloft_code2_startup_gate --mouse-no-driver-to-x-range)
+    add_test(NAME canonical_code2_original_33d38_mouse_y_range_entry
+        COMMAND rloft_code2_startup_gate --mouse-no-driver-to-y-range)
     add_test(NAME canonical_code2_mouse_absent_source_to_real_dos_warning_boundary
         COMMAND rloft_code2_startup_gate --mouse-absent-to-warning)
     add_test(NAME canonical_code2_original_termination_table_to_exit_boundary COMMAND rloft_code2_startup_gate --termination-probe)
