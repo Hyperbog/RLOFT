@@ -22,6 +22,8 @@ SPANS = {
     (0x37B42, 0x37C37): "f5e4e045387d36c2d8615cd13d6f9e11bfea4c14c60672607e5b9a13446d4737",
     (0x39589, 0x395E2): "4d01c84b06650061922e0f5406c5c18225ab3984583f9a96aba138a7a8cef038",
     (0x3A38A, 0x3A395): "7e62ec735424ad532845ef46794017a8ea470bb8b115dd89020ef44624cdbf51",
+    (0x39838, 0x398DB): "e296f5ba2bc6f038404bcf31e0e6d87e07284883ec293f9e1b04d083d627a9c5",
+    (0x398E0, 0x399E6): "5c5a84c8a78495f92bba9cafe6754f6f68fe8ed90c33c0f86944141ea1ea2460",
 }
 EXPECTED_INITIALIZERS = (0x3968E, 0x3A1B3, 0x3A2AD, 0x3A16E)
 
@@ -43,6 +45,10 @@ def verify(image: bytes) -> dict[str, int]:
         0x39602: bytes.fromhex("3846017705"),
         0x39607: bytes.fromhex("89f3"),
         0x3A16E: bytes.fromhex("668c15ec260100"),
+        0x37BC2: bytes.fromhex("89f8 89f3 e86d1c0000"),
+        0x39842: bytes.fromhex("83c007"),
+        0x398CE: bytes.fromhex("830e01"),
+        0x398E0: bytes.fromhex("5657511e8eda"),
     }
     for offset, expected in windows.items():
         if image[CODE_START+offset:CODE_START+offset+len(expected)] != expected:

@@ -111,7 +111,7 @@ void initialize_guest_arena(Session& s) noexcept {
 }
 u32 fixture_arena_alloc(u32 root,u32 request) noexcept {
     Session& s=*current;
-    if(root!=0x12624u || request<12u || (request&3u)!=0u)
+    if(root!=0x12624u || request==0u || request>0xFFFFFFD4u)
         stop("GUEST_ARENA_ABI_MISMATCH");
     initialize_guest_arena(s);
     const u32 arena=code2::load_le32(segment(0x30u,root,4));
@@ -359,6 +359,13 @@ void arena_split_coalesce_probe() {
             "original arena source free/adjacent-block coalescing mismatch");
     const u32 reused=code2::function_39838(s.machine,s.arena_header,0x20u);
     require(reused==first,"original arena first-fit reuse changed");
+    // Original MOV EAX,EDI at 37BC2 passes raw request 7 (not cached 12).
+    // Original 39838 rounds 7+7 down to 12 total bytes, not 16.
+    s.heap.arena_alloc=&fixture_arena_alloc;
+    const u32 tiny=code2::function_37b42(s.heap,7u);
+    require(tiny>reused && tiny<s.arena_end &&
+            code2::load_le32(s.data.data()+tiny-4u)==(12u|1u),
+            "original 37B42->39838 raw request was rounded twice");
     current=nullptr;
     std::cout<<"CODE2_ORIGINAL_ARENA_39838_398E0=PASS\\n"
              <<"GUEST_SOURCE_ALLOCATE_FREE_REUSE=PASS\\n"
