@@ -169,7 +169,10 @@ void initializers(code2::Machine& m) noexcept {
     // This executes the real reconstructed CODE.2 scheduler. Source directly
     // references the original 0x12720 table and invokes original guest addresses.
     code2::function_395e2(m,current->init,m.cpu.eax);
-    stop("INITIALIZER_TABLE_EXHAUSTED");
+    // In extended mode the original scheduler's successful RET is followed
+    // by source function_35418's post-initializer 39589 call. The default
+    // first-boundary gate never reaches this return path.
+    if(!current->extended)stop("INITIALIZER_TABLE_EXHAUSTED");
 }
 u32 post_stack_capacity() noexcept {
     return code2::function_3a165(current->machine,current->machine.cpu.esp);
