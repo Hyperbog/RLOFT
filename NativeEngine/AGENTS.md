@@ -1,5 +1,40 @@
 # NativeEngine — Active developer/agent instructions
 
+## CONTROLLING verified native scene view/resource-header milestone — 288/288 original sections (2026-10-11)
+
+[Evidence chapter](ACTUAL_SCENE_HEADER_288_AND_PROBE_20261011.md).
+Exact compiled Linux SHA \`0850d312a76a52715eec459063a47b393396382d\`;
+[Actions #38190025508](https://github.com/Hyperbog/RLOFT/actions/runs/38190025508),
+**18/18 CTests PASS**. New independent NativeEngine now retains **all
+676 original header bytes per map** (five 64-entry resource mapping
+tables), resolves conservative original-backed resource candidates,
+and has a bounded camera movement / 320-column raycast **diagnostic
+host probe**. The latter uses original level topology and proven
+normal collision but **is not the original DOS traversal, projection
+or renderer**; its artificial RGB debug image is *not game artwork*.
+
+The actual CI-built native executable was executed locally against
+the owner's authentic \`LEVELS.DAT\`. Independent original byte parser
+and actual native SHA-256 output match **288/288 map section digests**
+(32 maps × complete header, cells, 10-byte controls, events, automap,
+annotations and each A/B/C record family). New header-only source
+SHA-256 matched **32/32**. This required a real-world malformed JSON
+separator fix; the fixed compiled executable now emits valid JSON.
+The canonical comparator is
+\`code1-decompilation:SharedDecomp/verify_native_world_fingerprints.py\`,
+which now requires the header digest too; [research CI
+#38190191412](https://github.com/Hyperbog/RLOFT/actions/runs/38190191412)
+passed **129/129** synthetic source-only tests.
+
+**Next controlling work:** replace host DDA with original CODE.2-proven
+orientation/traversal, bind validated RES3/EH7 and SINTAB microcode
+semantics safely to the renderer, EH6 textures/VGA palettes, then
+integrate animation, true party motion, NPC/event VM and SAVE
+compatibility. No original media is committed; current Windows/MSVC
+build and field/gameplay/visual parity remain unverified, and Windows
+Actions stay manual-only. Keep independent \`demo-v1\` game runtime
+unlinked.
+
 ## CONTROLLING native persistent-world milestone — actual original 32-level runtime verified on Linux
 
 [Compiled source and full 32-level normal-collision evidence](ACTUAL_ORIGINAL_RUNTIME_32_LEVELS_VERIFIED_20261011.md).
