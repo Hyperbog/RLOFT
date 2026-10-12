@@ -38,6 +38,44 @@ fingerprinting research.
 This project is strictly separate from `demo-v1` and `native-engine`. Do not
 invoke their full Windows build workflows from this target.
 
+## Measured recompilation progress — 25.0% (3 / 12 accepted gates)
+
+The canonical recompilation percentage is now measured using
+[the fixed 12-gate acceptance ledger](ACCEPTANCE_GATES.json), computed by
+`python Recomp/tools/recomp_progress.py` and tested on every Windows source
+build. **3/12 = 25.0%** major acceptance milestones have passed:
+
+1. Both original CODE.1 and CODE.2 reconstructed translation units compile,
+   link and execute source-backed probes.
+2. Both original LE executable memory images (objects, pages, relocations)
+   are independently reconstructed and checked against user-supplied bytes.
+3. The actual compiled CODE.2 startup, original initializer scheduler,
+   four original initializers and source-backed game-entry path execute under
+   strictly labeled bounded host fixtures.
+
+The remaining **9/12** acceptance milestones cover real DOS/DPMI memory,
+full filesystem services, CODE.1 gameplay/CHARS handoff, game-visible
+hardware interrupt handling, graphics/audio resource output, first
+interactive gameplay, all levels/events, save/load, and independent
+original-DOS runtime parity. Those milestones are **not** accepted simply
+because related routines compile or test-only service fixtures work.
+This percentage is a disciplined engineering milestone count, **not
+25% playable-game completion**.
+
+The newest CODE.2 original-code source witness additionally executes
+`33B44 → 30D80 → 30D52 → 37A73` with an explicitly simulated
+successful DPMI `0100h` allocation result, then executes the original
+`33AA0` real-mode mouse interrupt bridge and stops **before
+`INT 31h / 0300h`**. No original DOS interrupt service is asserted.
+The no-device branch executes `311E8` and stops before DOS AH=09h.
+Both paths are included in the **15-mode authenticated media matrix**.
+
+[Windows source build #35](https://github.com/Hyperbog/RLOFT/actions/runs/38206495432)
+at exact source `5c1efa61022ccbe93cf19ed3c98b755a269ab80c`
+passed **24/24 CTests**, including the original reconstructed-code
+DPMI 0300 source path and acceptance-score invariants. Windows CI does
+not bundle owner-original media or verify DOS game parity.
+
 ## 2026-10-12 latest verified canonical recompilation checkpoint
 
 **The current canonical workstream is `Recomp/` on `code1-decompilation`,
