@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 using rloft_recomp::DosParagraphMemory;
 using rloft_recomp::DosMemoryResult;
 static void need(bool ok,const char* msg){if(!ok)throw std::runtime_error(msg);}
@@ -55,6 +56,48 @@ int main() {
         result(dos.release(reused.ax),false,0u,"final free");
         need(dos.allocation_count()==0u &&
              dos.largest_free()==0x8fffu,"paragraph arena not restored");
+        // Separate original CODE.2 guest DGROUP from DOS conventional
+        // physical memory. A checked host selector maps segment * 16 into
+        // a distinct shared byte aperture; unowned segments stay invalid.
+        constexpr std::uint32_t alias=0x300000u;
+        std::vector<std::uint8_t> whole(alias+0xA0000u,0x69u);
+        DosParagraphMemory mapped(whole.data()+alias,whole.size()-alias);
+        const auto dos_a=mapped.allocate(0x100u);
+        need(!dos_a.carry && dos_a.ax==0x1001u,
+             "shared conventional memory allocation failed");
+        const auto phys=mapped.physical_base(dos_a.ax);
+        need(mapped.translate(phys,0x1000u)==whole.data()+alias+phys,
+             "shared conventional bytes do not alias original guest image");
+        need(whole[0x12624u]==0x69u,
+             "shared DOS page allocation overwrote CODE.2 static DGROUP");
+        whole[alias+phys+5u]=0x37u;
+        need(mapped.translate(phys+5u,1u)[0]==0x37u,
+             "guest write invisible through DOS segment provider");
+        mapped.translate(phys+6u,1u)[0]=0xC8u;
+        need(whole[alias+phys+6u]==0xC8u,
+             "DOS segment provider write invisible through guest image");
+        const auto too_big=mapped.resize(dos_a.ax,0x9000u);
+        need(too_big.carry && too_big.ax==8u &&
+             whole[alias+phys+5u]==0x37u,
+             "failed shared DOS resize corrupted live guest data");
+        need(!mapped.resize(dos_a.ax,0x200u).carry &&
+             mapped.translate(phys,0x2000u)==whole.data()+alias+phys &&
+             whole[alias+phys+0x1000u]==0u,
+             "shared DOS growth failed to preserve or zero guest bytes");
+        need(!mapped.resize(dos_a.ax,0x80u).carry &&
+             mapped.translate(phys+0x800u,1u)==nullptr,
+             "shared DOS shrink left stale translated pages");
+        need(!mapped.release(dos_a.ax).carry &&
+             mapped.translate(phys,1u)==nullptr &&
+             mapped.allocation_count()==0u,
+             "shared DOS release retained a guest segment");
+        const auto dos_reuse=mapped.allocate(0x80u);
+        need(!dos_reuse.carry && dos_reuse.ax==dos_a.ax &&
+             mapped.translate(phys,16u)==whole.data()+alias+phys &&
+             whole[alias+phys+5u]==0u,
+             "shared DOS free/reallocate resurrected stale bytes");
+        need(!mapped.release(dos_reuse.ax).carry,
+             "shared DOS final release failed");
         std::cout<<"DOS_INT21_AH48_AH49_AH4A=PASS\n"
                     "DOS_MCB_GAPS_AND_RESIZE=CHECKED\n"
                     "DOS_MEM_SOURCE_PARITY=NOT_CLAIMED\n"
