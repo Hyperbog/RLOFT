@@ -1,5 +1,37 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Current R04 checkpoint — 60/60 source-backed DOS/DPMI memory tests (2026-10-12)
+
+[Windows canonical #133](https://github.com/Hyperbog/RLOFT/actions/runs/38320942043)
+passed **60/60 CTests** at original-source change
+`9a1ab2a383127a8223879b5952bc6b71f993c390`.
+CODE.2 original Phar Lap `35418` mode-2 startup is now carried
+through four initializers, game entry, sound initialization and the
+mouse boundary using **original source `39E1C` guest DS-break
+heap growth**, without seeded arena headers. The original x86 branch,
+PSP:005Ch break and AH=4Ah (4 KiB units) were checked directly against
+the authenticated owner-original `CODE.2` bytes.
+
+Original CODE.1 and CODE.2 host DPMI `0006/0100/0101` selector
+providers now share a loader-owned descriptor registry with independently
+tracked live bases, limits and releases; CODE.2 `39C7B` DOS fallback
+uses the same table with an explicitly **test-defined** segment-selector
+alias. A new CODE.1 test reuses the same DGROUP from original `CCDE`
+extender resize through original `10AA9/104E0/DB5B/10590/107CB`
+DPMI heap allocation, split, coalescing and cleanup; authenticated
+original CODE.1 heap-root data is verified rather than overwritten.
+This **post-startup CODE.1 heap call is still host-triggered**.
+
+[Complete source and original-byte evidence, plus remaining R04
+blockers](R04_MEMORY_RUNTIME_PROGRESS_AUDIT_20261012.md).
+
+**R04 IS NOT ACCEPTED. Recompilation remains 3/12 = 25.00%.**
+Natural CODE.1 heap-mode startup and independently observed original
+DOS/4GW selector/memory behavior are still required. These completed
+source CTests do not substitute for DOS observation or game boot.
+Older checkpoints below are retained for historical provenance.
+
+
 ## R04 source-backed DOS fallback — Windows #122 (2026-10-12)
 
 [Canonical Windows #122](https://github.com/Hyperbog/RLOFT/actions/runs/38287503152)
