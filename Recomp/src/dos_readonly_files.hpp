@@ -80,6 +80,9 @@ public:
     DosFileResult close(std::uint16_t handle) {
         const auto it=files_.find(handle);
         if(it==files_.end())return {true,6u};
+        // A successful EOF read leaves failbit/eofbit set; that is not
+        // a failed DOS AH=3Eh close. Clear prior read status first.
+        it->second.clear();
         it->second.close();
         const bool failed=it->second.fail();
         files_.erase(it);
@@ -97,9 +100,11 @@ private:
     static bool valid_basename(const std::string& v) {
         if(v.empty() || v.size()>12u)return false;
         const auto dot=v.find('.');
-        if(dot==0u || dot>8u || (dot!=std::string::npos &&
-            (dot==v.size()-1u || v.size()-dot-1u>3u ||
-             v.find('.',dot+1u)!=std::string::npos)))
+        if(dot==std::string::npos) {
+            if(v.size()>8u)return false;
+        } else if(dot==0u || dot>8u || dot==v.size()-1u ||
+                  v.size()-dot-1u>3u ||
+                  v.find('.',dot+1u)!=std::string::npos)
             return false;
         for(unsigned char ch:v) {
             if(ch=='.')continue;
