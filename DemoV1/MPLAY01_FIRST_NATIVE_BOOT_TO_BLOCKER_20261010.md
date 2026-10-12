@@ -1,3 +1,16 @@
+## 2026-10-11: owner retired standalone Level22 demo from player release
+
+This historical Level22-first field-test protocol is **superseded as a
+player-facing deliverable**. The owner requested the existing original-game
+intro/SSI-DreamForge/title sequence and animated CODE.1 character creation,
+not another Level22 walkaround. New opt-in `Play-Original-Intro.cmd`
+launches `--front-end-only --choose-install`, displays that source code
+and returns before any CHARS writes or entry into the partial world renderer.
+Existing CHARS is ignored *only* for this showcase, not the normal original
+CODE.2 route. Level22 original files/source proofs are preserved for
+eventual integrated game fidelity. The automated public-repository Windows
+Full build is owner-approved; no M-PLAY-01 end-to-end acceptance is claimed.
+
 # M-PLAY-01 — First native boot-to-blocker playability checkpoint
 
 **Owner:** `demo-v1` native game-engine workstream  
@@ -174,4 +187,4 @@ This **testing milestone** is complete when:
 - [ ] Failures are filed and prioritized: **P0** cannot boot or immediately crashes; **P1** blocks ordinary progression; **P2** correctness, render/audio/input mismatch without total blockage. A genuine DOS-equivalence mismatch retains an independent acceptance gate.
 - [ ] The next source-verified native correction is selected from the observed blocker, rather than assuming the rest is playable.
 
-This milestone **does not require** a full Level 22 playthrough or imply full original-game completion. Windows Full GitHub Actions is **manual, per-run user-authorized**; creating this tracking document/issue does not dispatch it. No live gameplay change, readiness-score increase or original-DOS-parity claim occurs by declaring the milestone.
+This milestone **does not require** a full Level 22 playthrough or imply full original-game completion. Windows Full GitHub Actions is automatically triggered on relevant `demo-v1` pushes under owner authorization after the repository became public. No live gameplay change, readiness-score increase or original-DOS-parity claim occurs by declaring the milestone.
