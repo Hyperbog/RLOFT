@@ -116,3 +116,28 @@ documents this change. A fresh Windows build is required for this extension.
 **No full DOS game boot, visual gameplay or native-engine milestone is
 claimed.** Passing CTest proves the named source-execution boundaries only,
 not original-DOS hardware, audio or frame equivalence.
+
+## 2026-10-11 actual canonical CODE.2 sound.cfg I/O boundary
+
+[Windows canonical CI #38196695480](https://github.com/Hyperbog/RLOFT/actions/runs/38196695480)
+passed **11/11 CTests** at exact source revision
+`7d62306bc860136e9564e7f45e22dd7896f109aa`, including the
+256-mode original 375FE source callback switch. That checkout reaches and
+executes original game application 20608, audio setup 2F2EC and vector
+selection 375FE.
+
+The next original-source integration now also executes real
+`30BB4` IRQ vector save/install, `290D0/30CC4` RNG seeding,
+`3104C/37B34/37B42/39838` checked source allocation, and
+`30D30/379D0` original zero fill, then real
+`312A0` until the `37E77` **sound.cfg DOS file-open service**.
+No host interrupts or copyrighted game-data file are accessed by the
+synthetic Windows CTests. The *external* DOS IVT is explicitly a
+bounded in-memory test fixture; compiled original source owns the
+vector save/install and hardware setup ordering. Two CTests use the
+default original and fully configured source environment paths.
+
+The [complete game-entry integration record](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md)
+describes source evidence and acceptance boundaries. A passing new
+Windows build is required for these added paths. **Still not a
+DOS-accurate game boot or native engine.**
