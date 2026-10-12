@@ -113,12 +113,13 @@ jobs:
       - name: Test full (all registered CTests)
         if: ${{ inputs.build_mode == 'full' }}
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
-      - name: Stage Level 22 walkaround and capture launchers
+      - name: Stage normal-play and Level 22 diagnostic launchers
         shell: pwsh
         run: |
           Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
           Copy-Item DemoV1/Windows/Capture-Level22.cmd build/demo-v1/Release/Capture-Level22.cmd -Force
           Copy-Item DemoV1/Windows/Diagnose-Level22.cmd build/demo-v1/Release/Diagnose-Level22.cmd -Force
+          Copy-Item DemoV1/Windows/Trace-Normal-Launch.cmd build/demo-v1/Release/Trace-Normal-Launch.cmd -Force
           Copy-Item DemoV1/Windows/Probe-Level22-Ground.cmd build/demo-v1/Release/Probe-Level22-Ground.cmd -Force
           Copy-Item DemoV1/Windows/Audit-Starting-Equipment.cmd build/demo-v1/Release/Audit-Starting-Equipment.cmd -Force
           # A machine-readable matching provenance file is shipped next to
@@ -135,6 +136,7 @@ jobs:
             build/demo-v1/Release/Explore-Level22.cmd
             build/demo-v1/Release/Capture-Level22.cmd
             build/demo-v1/Release/Diagnose-Level22.cmd
+            build/demo-v1/Release/Trace-Normal-Launch.cmd
             build/demo-v1/Release/Probe-Level22-Ground.cmd
             build/demo-v1/Release/rloft_res4_ground_probe.exe
             build/demo-v1/Release/Audit-Starting-Equipment.cmd

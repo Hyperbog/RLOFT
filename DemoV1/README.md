@@ -22,6 +22,13 @@ The latest native source includes a read-only, provenance-checked source `22220/
 
 **[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; current Windows Full compilation and independent DOS parity gates are unchanged. No build is dispatched by creating this checkpoint.
 
+The next explicitly authorized Windows artifact will also include
+`Trace-Normal-Launch.cmd`, which starts ordinary gameplay with opt-in
+non-mutating native tracing instead of the Level 22 diagnostic shortcut.
+It preserves native game exit status and distinguishes failure before
+exploration from a recorded field session. Existing save files must be
+protected using a disposable runtime copy. No new build is claimed.
+
 The [M-PLAY-01 offline trace-integrity tool](tools/audit_mplay01_trace.py)
 now verifies an existing diagnostic ZIP's original indexed-byte hashes,
 palettes, capture events and build provenance without unzipping or modifying

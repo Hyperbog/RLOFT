@@ -84,6 +84,11 @@ if(Python3_Interpreter_FOUND)
     # dispatch the original CODE.2 IRQ from ordinary gameplay.
     # Offline M-PLAY-01 diagnostic integrity regression; no owned game media,
     # native input mutation, Windows build dispatch or DOS acceptance.
+    # Normal launch must not silently gain diagnostic-party shortcuts.
+    add_test(
+        NAME mplay01_normal_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_mplay01_normal_launch_contract.py")
     add_test(
         NAME mplay01_trace_integrity_tests
         COMMAND "${Python3_EXECUTABLE}"

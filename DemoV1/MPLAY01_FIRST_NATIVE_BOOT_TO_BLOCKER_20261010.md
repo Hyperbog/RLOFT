@@ -38,6 +38,28 @@ This checkpoint is an observation and defect-triage gate. The separate project c
 4. Only for an independent diagnostic run, launch bundled `Diagnose-Level22.cmd`; it uses `--explore-level22 --dev-inspect --dev-interact --dev-trace` and, after exit, packages the session beneath `%TEMP%\\RLOFT-Demo-Diagnostics`. Its world/progression results must be labeled **developer shortcut**, not ordinary gameplay.
 5. Stop at the first repeatable blocking issue; submit the evidence before any unverified workaround or forced level transition.
 
+## Packaged no-shortcut field launcher
+
+`Trace-Normal-Launch.cmd` is staged beside the native EXE in the **next
+explicitly authorized** Windows Full/Quick artifact. Double-click it in an
+isolated owned-game installation; it launches only
+`ravenloft_demo_v1.exe --dev-trace` and follows the ordinary original
+intro → menu → CHARS/character creation → exploration path. It never
+uses `--explore-level22`, a temporary diagnostic party or dev-interact
+flags. The launcher does not write original files itself, but **normal
+gameplay may write CHARS and saves**, so a disposable runtime copy is
+mandatory. Do not use an original installation with unbacked saves.
+
+After exit, a ZIP is packaged from the recording if and only if
+exploration was actually reached. A failure before exploration is
+reported as **no trace available**, with the game's exit status, not
+as a successful progression milestone. Preserve an external screenshot
+or video of such an early failure. The ZIP can then be checked using
+`audit_mplay01_trace.py` below. Launcher argument forwarding is
+intentionally disabled to prevent an accidental developer-shortcut test.
+This is source wiring and synthetic contract validation, **not a
+new Windows-tested binary or actual player acceptance**.
+
 ## Offline integrity verification of the native trace
 
 The read-only [diagnostic ZIP/folder validator](tools/audit_mplay01_trace.py)
