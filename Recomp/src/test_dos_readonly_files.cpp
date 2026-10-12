@@ -1,5 +1,6 @@
 // Service-provider verification. Runs without copyrighted game assets.
 #include "dos_readonly_files.hpp"
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
