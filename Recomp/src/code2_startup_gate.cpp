@@ -1480,6 +1480,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         // that original game flow naturally opens this second asset here.
         constexpr u32 path=0x2D900u, buf1=0x2DA00u,buf2=0x2DA80u;
         constexpr char name[]="objects.dat";
+        // Independent expected host bytes: works with owner-original
+        // OBJECTS.DAT as well as CI's generated synthetic fixture.
+        const auto reference=read_file(((*host_root)/"OBJECTS.DAT").string().c_str());
+        require(reference.size()>=50u,"OBJECTS.DAT too short for source probe");
         std::memcpy(state.data.data()+path,name,sizeof(name));
         current=&state;
         const auto fd1=code2::function_37e77(
@@ -1500,10 +1504,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(code2::function_38106(state.dos_file_read,5u,buf1,32u)==32,
                 "original 38106 read after host seek failed");
         for(unsigned i=0;i<32u;++i)
-            require(state.data[buf1+i]=='Z',
+            require(state.data[buf1+i]==reference[i],
                     "first original CODE.2 multi-file read bytes differ");
         for(unsigned i=0;i<50u;++i)
-            require(state.data[buf2+i]=='Z',
+            require(state.data[buf2+i]==reference[i],
                     "second original CODE.2 multi-file read bytes differ");
         (void)code2::function_380f8(state.dos_file_close,5u);
         (void)code2::function_380f8(state.dos_file_close,6u);
