@@ -25,15 +25,19 @@ The *compiled original reconstructed CODE.2* is now wired through:
        -> 20440 main setup           NEW EXECUTION, real Code2.cpp
           -> 2F2EC audio/resource    NEW EXECUTION, real Code2.cpp
              -> original EF53/EF3E/EF68/EF3C/F0C0 writes
-             -> 375FE far callback   EXPLICIT STOP, DOS boundary
+             -> 375FE far callback   NEW EXECUTION, real Code2.cpp
+                -> original extender-mode vector selection (0..255)
+                -> actual DOS interrupt-vector installation   EXPLICIT STOP
 ```
 
 Previously, `rloft_code2_startup_gate` stopped at 20608 **before
 executing it**. In the new opt-in mode, the original application runs,
 mutates its original-sized DGROUP, and enters the actual original
-audio/resource setup through the first unimplemented 375FE DOS/4GW far
-callback installation. Original hardware interrupt installation has **not**
-been invented, silently skipped, or called through a null boundary.
+audio/resource setup, now including the reconstructed **375FE interrupt
+vector choice**. The first unimplemented boundary is the real DOS
+interrupt-vector installation callback called *inside* 375FE. Original
+hardware interrupt installation has **not** been invented or silently
+skipped.
 
 ## Three source-execution CTests
 
@@ -66,6 +70,20 @@ keys and a **restricted** ASCII ctype table for numbers. It makes no claim
 that these guest-only fixtures reproduce Watcom, DOS, BIOS hardware, real
 audio drivers, or on-screen game operation.
 
+## Complete 375FE extender-mode branch matrix
+
+A fourth new CTest invokes the **actual compiled canonical**
+`code2::function_375fe` for each of the **256 possible 8-bit extender
+mode values**. The encoded branch chooses vector **6**, selector
+**0x24**, handler **0x37642** only for modes **2 through 6**; all other
+mode values request vector **0x24**, selector **0**, handler
+**0x37642**. The test observes the callback without installing a DOS
+interrupt, and fails if the original source call count or selected
+vector/selector/handler differs. In the authentic source-integrated game
+path, that callback instead stops immediately before changing the host
+DOS/IVT vectors. This new test asserts all branches of the original
+8-bit mode selector, not game startup parity.
+
 ## Independent original CODE.2 binary oracle
 
 `Recomp/tools/verify_original_game_entry_oracle.py` requires the untouched
@@ -92,9 +110,10 @@ ctest --test-dir build/recomp -C Debug --output-on-failure
 ## Acceptance boundaries / next real engineering work
 
 The 375FE far callback is a DOS/4GW interrupt/selector installation.
-A faithful implementation must reconcile original 375FE semantics,
-selector lifetimes, driver IRQ services and the interrupt callback before
-advancing the *real* 2F2EC initializer. The next major integration stage is
+A faithful implementation must reconcile the real DOS vector-install
+service, selector lifetimes, IRQ drivers and guest interrupt callback before
+advancing the *real* 2F2EC initializer. The encoded 375FE switch itself
+is now executed by the canonical source and exhaustively checked. The next major integration stage is
 then original graphics/sound resource setup and the real 1FC14 application
 event loop. In particular, **this checkpoint does not boot the whole game,
 play the intro, use the user's CHARS/SAVE, or establish original DOS runtime
