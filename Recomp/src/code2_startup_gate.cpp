@@ -35,7 +35,9 @@ struct Session {
     // A separate execution gate opts into all original initializer callbacks.
     // This is a controlled guest-memory arena, NOT the DOS/WATCOM heap driver.
     bool extended=false;
-    u32 heap_cursor=0x2C000u;
+    bool arena_seeded=false;
+    u32 arena_start=0x2C000u,arena_end=0x2D500u;
+    u32 arena_header=0x2B800u;
     unsigned allocation_calls=0, aligned_allocations=0, env_copies=0;
     unsigned stream_nodes=0, argv_initializations=0;
     u32 game_argc=0, game_argv=0;
@@ -81,21 +83,50 @@ void dos21(code2::Machine& m) noexcept {
 void dpmi31(code2::Machine&) noexcept {
     ++current->dpmi_calls;stop("UNSUPPORTED_DPMI_INT31");
 }
-// Arena allocation is a deterministic host-side fixture. Only the source
-// function_37b42 request alignment and retry dispatch are canonical; this
-// callback does not impersonate function_39838 or a DOS/DPMI heap arena.
-u32 fixture_arena_alloc(u32 arena,u32 request) noexcept {
+// The *arena storage and first free block* are a deterministic test fixture.
+// All allocation choice/split/metadata linkage below is performed by original
+// reconstructed CODE.2 function_39838, reached through function_37b42.
+// The DOS/4GW heap provider and original arena-growth callbacks are still absent.
+void initialize_guest_arena(Session& s) noexcept {
+    if(s.arena_seeded)return;
+    const u32 a=s.arena_header, first=s.arena_start, sentinel=a+0x20u;
+    if((first&3u)!=0u || (a&3u)!=0u || first<a+0x2Cu ||
+       s.arena_end<=first || s.arena_end>s.data.size())
+        stop("GUEST_SOURCE_ARENA_GEOMETRY_INVALID");
+    // The real allocator's chain walk obtains the first arena from [12624].
+    code2::store_le32(segment(0x30u,0x12624u,4),a);
+    code2::store_le32(segment(0x30u,0x12628u,4),a);
+    code2::store_le32(segment(0x30u,a+0x0Cu,4),first);
+    code2::store_le32(segment(0x30u,a+0x10u,4),0u);
+    code2::store_le32(segment(0x30u,a+0x14u,4),s.arena_end-first);
+    code2::store_le32(segment(0x30u,a+0x18u,4),0u);
+    code2::store_le32(segment(0x30u,a+0x1Cu,4),1u);
+    code2::store_le32(segment(0x30u,sentinel+0u,4),0u);
+    code2::store_le32(segment(0x30u,sentinel+4u,4),first);
+    code2::store_le32(segment(0x30u,sentinel+8u,4),first);
+    code2::store_le32(segment(0x30u,first+0u,4),s.arena_end-first);
+    code2::store_le32(segment(0x30u,first+4u,4),sentinel);
+    code2::store_le32(segment(0x30u,first+8u,4),sentinel);
+    s.arena_seeded=true;
+}
+u32 fixture_arena_alloc(u32 root,u32 request) noexcept {
     Session& s=*current;
-    if(arena!=0x12624u || request<12u || (request&3u)!=0u)
+    if(root!=0x12624u || request<12u || (request&3u)!=0u)
         stop("GUEST_ARENA_ABI_MISMATCH");
-    const u32 total=(request+7u)&~3u;
-    const u32 cursor=(s.heap_cursor+3u)&~3u;
-    if(total>0x2D500u-cursor)stop("GUEST_FIXTURE_HEAP_EXHAUSTED");
-    const u32 payload=cursor+4u;
-    s.heap_cursor=cursor+total;
+    initialize_guest_arena(s);
+    const u32 arena=code2::load_le32(segment(0x30u,root,4));
+    if(arena!=s.arena_header)stop("GUEST_ARENA_ROOT_POINTER_CHANGED");
+    const u32 p=code2::function_39838(s.machine,arena,request);
+    if(p==0u)return 0u; // real source allocator's out-of-space result
+    if(p<s.arena_start+4u || p>=s.arena_end || (p&3u)!=0u)
+        stop("ORIGINAL_ARENA_ALLOCATION_OUT_OF_BOUNDS");
+    const u32 encoded=code2::load_le32(segment(0x30u,p-4u,4));
+    if((encoded&1u)==0u || (encoded&~1u)<request+4u ||
+       (encoded&~1u)>s.arena_end-(p-4u))
+        stop("ORIGINAL_ARENA_USED_BLOCK_METADATA_INVALID");
+    (void)segment(0x30u,p,request);
     ++s.aligned_allocations;
-    (void)segment(0x30u,payload,request); // full bounds check
-    return payload;
+    return p;
 }
 u32 fixture_alloc(u32 bytes) noexcept {
     ++current->allocation_calls;
@@ -409,11 +440,25 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,bool extended) {
                 "argv final null pointer was not written");
         require(code2::load_le32(state.data.data()+0x1270Cu)==0x8000u,
                 "post-initialization flag set by original 3A38A is absent");
-        require(state.heap_cursor<=0x2D500u,"test-only guest arena exceeded bounds");
+        require(state.arena_seeded &&
+                code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
+                code2::load_le32(state.data.data()+state.arena_header+0x18u)==8u &&
+                code2::load_le32(state.data.data()+state.arena_header+0x1Cu)==1u,
+                "actual original 39838 arena allocation/split metadata differs");
+        const u32 freeptr=code2::load_le32(state.data.data()+state.arena_header+0x0Cu);
+        const u32 sent=state.arena_header+0x20u;
+        require(freeptr>=state.arena_start && freeptr<state.arena_end &&
+                code2::load_le32(state.data.data()+freeptr+4u)==sent &&
+                code2::load_le32(state.data.data()+freeptr+8u)==sent &&
+                code2::load_le32(state.data.data()+sent+4u)==freeptr &&
+                code2::load_le32(state.data.data()+sent+8u)==freeptr &&
+                code2::load_le32(state.data.data()+freeptr)>12u,
+                "real 39838 original arena free-list split/link invariants differ");
     }
     std::cout<<"CODE2_ORIGINAL_SOURCE_ENTRY=353A0\n"
              <<"ORIGINAL_PRIORITY_INITIALIZERS_EXECUTED="<<state.completed_initializers<<"/4\n"
              <<"TEST_ONLY_HEAP_ALLOCATIONS="<<state.allocation_calls<<"\n"
+             <<"EXECUTED_ORIGINAL_ARENA_SPLITTER_39838="<<(extended?"YES":"NO")<<"\n"
              <<"REAL_GAME_ENTRY_20608_CALLED="<<(extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
              <<"EXECUTION_BOUNDARY=INTENTIONALLY_STOPPED\n"
              <<"ORIGINAL_DOS_PARITY=NO\nGAME_BOOTED=NO\n"
