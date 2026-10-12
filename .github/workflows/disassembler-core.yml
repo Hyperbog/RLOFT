@@ -1,51 +1,45 @@
-name: DOSDis Windows desktop build and synthetic regressions
-# TEMP owner-approved Windows desktop #45 verification PR. DO NOT MERGE.
-# Canonical branch remains workflow_dispatch only; no game originals or CLI release.
+name: DOSDis temporary Linux-hosted Windows desktop cross-build
+# TEMP only for PR #14. DO NOT MERGE. Canonical Windows Actions remains manual-only.
 on:
   workflow_dispatch:
   pull_request:
 permissions:
   contents: read
 jobs:
-  windows-core:
-    runs-on: windows-latest
+  linux-win64-cross-build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Build Windows desktop and regression test projects
-        shell: pwsh
+      - name: Build platform-neutral synthetic test projects
         working-directory: Tools/Disassembler
         run: |
-          $ErrorActionPreference = 'Stop'
-          foreach ($project in @(
-            'src/DosDis.Desktop/DosDis.Desktop.csproj',
-            'tests/DosDis.Smoke/DosDis.Smoke.csproj',
-            'tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj'
-          )) {
-            dotnet build $project --configuration Release
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-      - name: Run synthetic tests (no original game files)
-        shell: pwsh
+          set -euo pipefail
+          dotnet build tests/DosDis.Smoke/DosDis.Smoke.csproj -c Release
+          dotnet build tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj -c Release
+      - name: Run synthetic C# regression suites without game originals
         working-directory: Tools/Disassembler
         run: |
-          dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet run --project tests/DosDis.ProjectSmoke --configuration Release --no-build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish portable self-contained Windows desktop
-        shell: pwsh
+          set -euo pipefail
+          dotnet run --project tests/DosDis.Smoke -c Release --no-build
+          dotnet run --project tests/DosDis.ProjectSmoke -c Release --no-build
+      - name: Cross-build Windows WPF desktop under .NET 10 with Windows targeting
         working-directory: Tools/Disassembler
         run: |
-          dotnet publish src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output dist/windows-desktop
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-desktop/
-      - name: Upload Windows desktop preview artifact
+          set -euo pipefail
+          dotnet build src/DosDis.Desktop/DosDis.Desktop.csproj -c Release -p:EnableWindowsTargeting=true
+      - name: Cross-publish win-x64 self-contained WPF desktop only
+        working-directory: Tools/Disassembler
+        run: |
+          set -euo pipefail
+          dotnet publish src/DosDis.Desktop/DosDis.Desktop.csproj -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true --output dist/windows-desktop
+          cp README.md THIRD_PARTY_NOTICES.md dist/windows-desktop/
+      - name: Upload Windows desktop only (Linux cross-build)
         uses: actions/upload-artifact@v4
         with:
-          name: DOSDis-Desktop-win-x64-preview
+          name: DOSDis-Desktop-win-x64-preview-LinuxCross
           path: Tools/Disassembler/dist/windows-desktop/
           if-no-files-found: error
           retention-days: 30
