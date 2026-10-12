@@ -28,6 +28,13 @@ public:
         std::vector<std::uint8_t> bytes;
     };
 
+    // Optional caller-owned flat guest aperture. When present, the original
+    // reconstructed source and DPMI 0501 backing share the SAME host bytes.
+    // Addresses are guest offsets; no invalid host pointer casts are used.
+    explicit DpmiLinearMemory(std::uint8_t* guest=nullptr,
+                              std::size_t guest_size=0u)
+        : guest_(guest),guest_size_(guest_size) {}
+
     DpmiLinearResult allocate(std::uint32_t bytes) {
         return replace(0u,bytes,false);
     }
@@ -55,8 +62,14 @@ public:
             Block& b=entry.second;
             if(linear<b.linear)continue;
             const auto offset=static_cast<std::uint64_t>(linear)-b.linear;
-            if(offset<=b.committed && count<=b.committed-offset)
+            if(offset<=b.committed && count<=b.committed-offset) {
+                if(guest_) {
+                    if(linear>guest_size_ || count>guest_size_-linear)
+                        return nullptr;
+                    return guest_+linear;
+                }
                 return b.bytes.data()+static_cast<std::size_t>(offset);
+            }
         }
         return nullptr;
     }
@@ -79,25 +92,42 @@ private:
         if(committed>kBudget ||
            static_cast<std::uint64_t>(committed_)-prior_bytes+committed>kBudget ||
            next_linear_+committed>std::numeric_limits<std::uint32_t>::max() ||
-           next_handle_>std::numeric_limits<std::uint32_t>::max())
+           next_handle_>std::numeric_limits<std::uint32_t>::max() ||
+           (guest_ && next_linear_+committed>guest_size_))
             return error(0x8012u);
         Block incoming{};
         incoming.linear=static_cast<std::uint32_t>(next_linear_);
         incoming.requested=requested;
         incoming.committed=static_cast<std::uint32_t>(committed);
         try {
-            incoming.bytes.resize(static_cast<std::size_t>(committed),0u);
+            if(!guest_)
+                incoming.bytes.resize(static_cast<std::size_t>(committed),0u);
         } catch(const std::bad_alloc&) {
             return error(0x8013u);
         }
         if(resizing) {
             const auto& original=prior->second;
             const auto keep=std::min(original.committed,incoming.committed);
-            std::copy_n(original.bytes.begin(),keep,incoming.bytes.begin());
+            if(!guest_)
+                std::copy_n(original.bytes.begin(),keep,incoming.bytes.begin());
         }
         // All expected rejections happen before retiring the old identity.
         const auto handle=static_cast<std::uint32_t>(next_handle_);
         blocks_.emplace(handle,std::move(incoming));
+        if(guest_) {
+            const auto newbase=static_cast<std::size_t>(next_linear_);
+            if(resizing) {
+                std::copy_n(guest_+prior->second.linear,
+                            std::min(prior->second.committed,
+                                     static_cast<std::uint32_t>(committed)),
+                            guest_+newbase);
+            }
+            const auto keep=resizing?
+                std::min(prior->second.committed,
+                         static_cast<std::uint32_t>(committed)):0u;
+            std::fill_n(guest_+newbase+keep,
+                        static_cast<std::size_t>(committed)-keep,0u);
+        }
         if(resizing)blocks_.erase(old);
         committed_=static_cast<std::uint32_t>(
             static_cast<std::uint64_t>(committed_)-prior_bytes+committed);
@@ -106,6 +136,8 @@ private:
         return {false,0u,static_cast<std::uint32_t>(
             next_linear_-committed-kPage),handle};
     }
+    std::uint8_t* guest_=nullptr;
+    std::size_t guest_size_=0u;
     std::map<std::uint32_t,Block> blocks_;
     std::uint32_t committed_=0u;
     std::uint64_t next_linear_=kFirstLinear;
