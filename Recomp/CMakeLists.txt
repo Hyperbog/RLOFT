@@ -14,6 +14,16 @@ add_executable(rloft_code1_startup_gate
 # arena, separate from the CODE.2 fixture-seeded startup tests.
 add_executable(rloft_code1_original_heap_growth_gate
     src/code1_original_heap_growth_gate.cpp)
+# Original CODE.1 mode-1 fallback, DOS 48h/49h host paragraph lifecycle.
+add_executable(rloft_code1_original_dos_fallback_gate
+    src/code1_original_dos_fallback_gate.cpp)
+set_target_properties(rloft_code1_original_dos_fallback_gate PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code1_original_dos_fallback_gate PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code1_original_dos_fallback_gate PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
 set_target_properties(rloft_code1_original_heap_growth_gate PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
@@ -42,6 +52,9 @@ add_executable(rloft_dos_readonly_files_test src/test_dos_readonly_files.cpp)
 set_target_properties(rloft_dos_readonly_files_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 # Stateful DOS conventional memory / selector transport, independently tested.
+add_executable(rloft_dos_paragraph_memory_test src/test_dos_paragraph_memory.cpp)
+set_target_properties(rloft_dos_paragraph_memory_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 add_executable(rloft_dpmi_dos_memory_test src/test_dpmi_dos_memory.cpp)
 set_target_properties(rloft_dpmi_dos_memory_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
@@ -97,6 +110,10 @@ if(BUILD_TESTING)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
     add_test(NAME canonical_code1_original_10aa9_host_dpmi_heap_growth
         COMMAND rloft_code1_original_heap_growth_gate)
+    add_test(NAME canonical_code1_original_10aa9_dos48_fallback_and_dos49_reclaim
+        COMMAND rloft_code1_original_dos_fallback_gate)
+    add_test(NAME canonical_host_dos_ah48_49_4a_paragraph_memory
+        COMMAND rloft_dos_paragraph_memory_test)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
