@@ -248,6 +248,13 @@ if(BUILD_TESTING)
         COMMAND rloft_code2_startup_gate --through-initializers-host-dpmi)
     add_test(NAME canonical_code2_startup_game_entry_unseeded_host_dpmi_heap
         COMMAND rloft_code2_startup_gate --enter-game-host-dpmi)
+    # Same continuous compiled original startup and 39D4D -> 39C7B path,
+    # but a denied DPMI 0501 must produce authentic source-selected DOS 48
+    # probe/request, 49 probe release and owned conventional memory pages.
+    add_test(NAME canonical_code2_startup_initializers_unseeded_dos48_fallback
+        COMMAND rloft_code2_startup_gate --through-initializers-host-dos-fallback)
+    add_test(NAME canonical_code2_startup_game_entry_unseeded_dos48_fallback
+        COMMAND rloft_code2_startup_gate --enter-game-host-dos-fallback)
     add_test(NAME canonical_code2_startup_sound_no_args_unseeded_host_dpmi_heap
         COMMAND rloft_code2_startup_gate --to-sound-config-no-args-host-dpmi-heap)
     add_test(NAME canonical_code2_startup_mouse_reset_unseeded_host_dpmi_heap
