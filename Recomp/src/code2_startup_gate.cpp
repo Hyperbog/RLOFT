@@ -33,6 +33,9 @@ struct Session {
     code2::Application71Boundary keyboard_irq{};
     code2::Application72Boundary dos_file_io{};
     code2::Runtime131Boundary dos_file_open{};
+    code2::Runtime132Boundary dos_file_read{};
+    code2::Runtime131CloseBoundary dos_file_close{};
+    code2::Runtime100Boundary mouse_init{};
     code2::Application56Boundary audio_seed{};
     std::array<GuestVector,256> ivt{};
     code2::Runtime112Boundary startup{};
@@ -47,6 +50,7 @@ struct Session {
     bool extended=false;
     bool execute_application=false;
     bool advance_to_sound_file=false;
+    bool advance_to_mouse=false;
     bool sound_no_arguments=false;
     GameConfig game_config=GameConfig::Unset;
     bool arena_seeded=false;
@@ -62,6 +66,10 @@ struct Session {
     unsigned dos_ah3d_open_calls=0;
     u32 original_open_create_slot=0xFFFFFFFFu;
     u8 open_access_share=0xFFu;
+    unsigned dos_file_reads=0, dos_file_closes=0, mouse_reset_calls=0;
+    std::size_t audio_file_cursor=0;
+    u32 audio_descriptor_flags=0, audio_published_flags=0;
+    std::array<u8,59> audio_file_fixture{};
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -346,7 +354,61 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
     current->open_access_share=access_share;
     if(path!=0x143Cu || access_share!=0u)
         stop("ORIGINAL_DOS_AH3D_OPEN_ARGUMENTS_DIFFER");
+    if(current->advance_to_mouse)return 5; // EXPLICIT test-only DOS handle
     stop("STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN");
+}
+// Read-only synthetic 59-byte SOUND.CFG transport for testing the *original*
+// reconstructed file wrappers. These callbacks do not read/modify game
+// installation files or pretend that the 59 bytes are authentic media.
+u32 original_read_descriptor_flags(u32 h) noexcept {
+    if(h!=5u)stop("ORIGINAL_DOS_DESCRIPTOR_UNEXPECTED_HANDLE");
+    return current->audio_descriptor_flags;
+}
+bool original_descriptor_is_device(u32 h) noexcept {
+    if(h!=5u)stop("ORIGINAL_DOS_DEVICE_PROBE_BAD_HANDLE");
+    return false;
+}
+void original_publish_descriptor_flags(u32 h,u32 flags) noexcept {
+    if(h!=5u)stop("ORIGINAL_DOS_DESCRIPTOR_PUBLISH_BAD_HANDLE");
+    current->audio_descriptor_flags=flags;
+    current->audio_published_flags=flags;
+}
+code2::s32 original_dos_read_fixture(u32 h,u32 destination,u32 count) noexcept {
+    if(h!=5u || count!=59u || current->audio_file_cursor!=0u)
+        stop("ORIGINAL_DOS_SOUND_CFG_READ_ABI_CHANGED");
+    ++current->dos_file_reads;
+    std::memcpy(segment(0x30u,destination,count),
+                current->audio_file_fixture.data(),count);
+    current->audio_file_cursor=count;
+    return static_cast<code2::s32>(count);
+}
+code2::s32 original_dos_close_fixture(u32 h) noexcept {
+    if(h!=5u || current->audio_file_cursor!=59u)
+        stop("ORIGINAL_DOS_SOUND_CFG_CLOSE_ABI_CHANGED");
+    ++current->dos_file_closes;
+    current->audio_descriptor_flags=0u;
+    return 0;
+}
+u32 original_sound_config_read(u32 destination,u32 count,u32 h) noexcept {
+    return code2::function_312ec(current->dos_file_io,destination,count,h);
+}
+u32 original_binary_read(u32 handle,u32 dest,u32 n) noexcept {
+    return static_cast<u32>(code2::function_38106(
+        current->dos_file_read,handle,dest,n));
+}
+u32 original_sound_config_close(u32 handle) noexcept {
+    return code2::function_312dc(current->dos_file_io,handle);
+}
+u32 original_source_descriptor_close(u32 handle) noexcept {
+    return static_cast<u32>(code2::function_380f8(
+        current->dos_file_close,handle));
+}
+code2::Runtime100MouseResetResult stop_at_real_dos_int33_mouse_reset() noexcept {
+    ++current->mouse_reset_calls;
+    stop("STOP_BEFORE_DOS_INT33_MOUSE_RESET");
+}
+u32 original_mouse_initialization() noexcept {
+    return code2::function_33b44(current->machine,current->mouse_init);
 }
 u32 original_checked_source_open(u32 path,u32 mode) noexcept {
     ++current->file_open_calls;
@@ -631,7 +693,8 @@ void interrupt_vector_matrix_probe() {
 void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool extended,bool execute_application=false,
          GameConfig game_config=GameConfig::Unset,
-         bool advance_to_sound_file=false,bool sound_no_arguments=false) {
+         bool advance_to_sound_file=false,bool sound_no_arguments=false,
+         bool advance_to_mouse=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -641,6 +704,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.extended=extended;
     state.execute_application=execute_application;
     state.advance_to_sound_file=advance_to_sound_file;
+    state.advance_to_mouse=advance_to_mouse;
+    if(advance_to_mouse) {
+        for(std::size_t i=0;i<state.audio_file_fixture.size();++i)
+            state.audio_file_fixture[i]=static_cast<u8>((0x31u+3u*i)&0xFFu);
+    }
     state.sound_no_arguments=sound_no_arguments;
     state.game_config=game_config;
     // Original DOS interrupt vectors are external system state. The test
@@ -721,6 +789,18 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.dos_file_io.call_37e77=&original_checked_source_open;
     state.dos_file_open.read8=&original_dos_open_guest_read8;
     state.dos_file_open.dos_open=&stop_at_real_dos_ah3d_open;
+    state.dos_file_open.descriptor_flags=&original_read_descriptor_flags;
+    state.dos_file_open.descriptor_is_device=&original_descriptor_is_device;
+    state.dos_file_open.descriptor_publish=&original_publish_descriptor_flags;
+    state.dos_file_read.descriptor_flags=&original_read_descriptor_flags;
+    state.dos_file_read.dos_read=&original_dos_read_fixture;
+    state.dos_file_close.descriptor_close=&original_dos_close_fixture;
+    state.dos_file_io.call_38106=&original_binary_read;
+    state.dos_file_io.call_380f8=&original_source_descriptor_close;
+    state.game_audio.call_312ec=&original_sound_config_read;
+    state.game_audio.call_312dc=&original_sound_config_close;
+    state.mouse_init.int33_reset=&stop_at_real_dos_int33_mouse_reset;
+    state.game_audio.call_33b44=&original_mouse_initialization;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
     state.startup.read_segment8=&seg8;
@@ -785,8 +865,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
                 "default test unexpectedly passed original allocator boundary");
     }else{
-        const char* required_stop=advance_to_sound_file
-            ? "STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN"
+        const char* required_stop=advance_to_mouse
+            ? "STOP_BEFORE_DOS_INT33_MOUSE_RESET"
+            : advance_to_sound_file ? "STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN"
             : execute_application ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
             : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
         if(state.completed_initializers!=4u ||
@@ -949,6 +1030,21 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                         state.dos_ah3d_open_calls==1u &&
                         state.open_access_share==0u,
                         "original 312A0->37E77->37E99 DOS AH=3D open not executed");
+                if(advance_to_mouse) {
+                    const auto base=rd32(0xF050u);
+                    require(state.audio_published_flags==0x41u &&
+                            state.audio_descriptor_flags==0u &&
+                            state.dos_file_reads==1u &&
+                            state.dos_file_closes==1u &&
+                            state.audio_file_cursor==59u &&
+                            state.mouse_reset_calls==1u &&
+                            state.data[base+0x64u]==1u &&
+                            state.data[base+0x66u]==1u &&
+                            std::memcmp(state.data.data()+base+0x3Bu,
+                                        state.audio_file_fixture.data(),
+                                        state.audio_file_fixture.size())==0,
+                            "original 37E99/312EC/38106/312DC/380F8/33B44 source chain differs");
+                }
             }
         }
         require(state.arena_seeded &&
@@ -972,7 +1068,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"TEST_ONLY_HEAP_ALLOCATIONS="<<state.allocation_calls<<"\n"
              <<"EXECUTED_ORIGINAL_ARENA_SPLITTER_39838="<<(extended?"YES":"NO")<<"\n"
              <<"REAL_GAME_ENTRY_20608_CALLED="<<(execute_application?"EXECUTED_SOURCE":extended?"REACHED_CALLBACK_NOT_EXECUTED":"NO")<<"\n"
-             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(advance_to_sound_file?"EXECUTED_37E77_TO_DOS_AH3D":execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
+             <<"SOURCE_GAME_AUDIO_INIT_2F2EC="<<(advance_to_sound_file?(advance_to_mouse?"EXECUTED_37E77_38106_380F8_TO_INT33":"EXECUTED_37E77_TO_DOS_AH3D"):execute_application?"EXECUTED_TO_ORIGINAL_375FE":"NOT_EXECUTED")<<"\n"
              <<"ORIGINAL_GETENV_352EE_CALLS="<<state.getenv_calls<<"\n"
              <<"ORIGINAL_ATOI_35349_CALLS="<<state.atoi_calls<<"\n"
              <<"EXECUTION_BOUNDARY="<<state.stop_reason<<"\n"
