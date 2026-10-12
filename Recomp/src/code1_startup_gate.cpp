@@ -49,7 +49,8 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
             halt("STOP_BEFORE_CODE1_DOS_INT21_AH30_VERSION");
         // Controlled DOS responses for *source-branch observation only*.
         // 4458h is the original 32-bit extender marker; no extender ran.
-        m.cpu.eax=(s.mode==Mode::ExtenderToResize)?
+        m.cpu.eax=(s.mode==Mode::ExtenderToResize ||
+                    s.mode==Mode::ExtenderHostResize)?
             0x44581606u:0x00001606u;
         return;
     }
