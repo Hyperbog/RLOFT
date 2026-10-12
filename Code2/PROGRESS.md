@@ -53,3 +53,37 @@ Original CODE.2 F7CC..F7DA always calls 1C368 with T index 0x3F and a pointer in
 ### 2026-10-10 source callback-address correction
 
 Original F790 E8 sites `F7D3/F91C/FA9D/FB5A/FC78` and the spell-scribe reader at `116E2` all target `1C368`, **not** `2C368`. The canonical `Application21Boundary` had 28 stale textual references to `call_2c368`, now renamed to `call_1c368` / `call_1c368_local` without any other source edit. Original 21-edge F790 manifest passes; current source blob `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e`. Fresh full-file C++17 compilation and DOS runtime equivalence remain unverified; historical object-byte totals remain unchanged. See [original code proof](F790_STACK_LOCAL_TEXT_PREREAD_20261010.md).
+
+## 2026-10-11 original `375FE` post-certification semantic correction
+
+Canonical recompilation source execution uncovered an original CODE.2 defect
+inside the previously byte-accounted `375FE..37641` DOS-vector installer.
+The original instructions at `37607` and `3760C` **write** the incoming
+old 32-bit far-callback offset to DGROUP `105F2h` and selector word to
+`105F6h`. The earlier C++ had `(void)old_offset; (void)old_selector`
+and omitted both side effects. Original `3761E` reads byte `12662h`
+for DOS extender mode (not global `105FCh`, which is `argc` created
+by `3968E`). Independently re-decoded exact original bytes:
+
+```text
+37607   A3 F2 05 01 00             MOV [105F2], EAX
+3760C   66 89 15 F6 05 01 00       MOV [105F6], DX
+3761E   A0 62 26 01 00             MOV AL, [12662]
+37623   3C 02 72 10 3C 06 77 0C   unsigned mode 2..6 selection
+```
+
+The `code2::function_375fe` canonical C++ signature now accepts the
+original `Machine&`, saves both live words before selecting the
+vector-install callback, and preserves the original handler/vector logic.
+Callsites in canonical `Recomp/` now pass the actual DOS mode byte from
+DGROUP `12662h`. Its independent 256-input compiled-source matrix
+asserts both exact original stores and vector selection. Original
+`CODE.2` SHA-256 and 17 original complete relevant instruction-span
+digests are pinned in
+`Recomp/tools/verify_original_game_entry_oracle.py`; every source
+digest was independently authenticated against the supplied original.
+
+This is an evidence-backed **semantic fix**, not additional object-byte
+coverage. Original coverage remains 239,698/239,698, semantic correctness
+is still subject to future original-DOS execution comparisons, and the
+native-engine workstreams are untouched.
