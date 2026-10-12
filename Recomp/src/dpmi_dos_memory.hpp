@@ -52,7 +52,6 @@ public:
         if(next_selector_>0xFFF8u)
             return {true,0x8011u,0u,largest_free()};
         const auto selector=static_cast<std::uint16_t>(next_selector_);
-        next_selector_+=8u; // Unique, descriptor-aligned guest selectors.
         Block b{static_cast<std::uint16_t>(candidate),selector,paragraphs};
         // The descriptor is installed only for this live 0100 allocation.
         // The 0006 base is a linear address; the segment remains separate.
@@ -60,6 +59,7 @@ public:
                                static_cast<std::uint32_t>(paragraphs)*16u))
             return {true,0x8011u,0u,largest_free()};
         blocks_.emplace(selector,b);
+        next_selector_+=8u; // Consume selector only after successful registration.
         // Fresh blocks are initialized for test determinism, not DOS parity.
         std::fill(real_mode_.begin()+candidate*16u,
                   real_mode_.begin()+(candidate+paragraphs)*16u,0u);
