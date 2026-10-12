@@ -309,6 +309,13 @@ void source_cd97_followup(bool original_loaded) {
         verify_or_initialize(addr+2u,
             i==0u?0xFD6Eu:i==1u?0x10438u:0x10E81u);
     }
+    if(s.mode==Mode::ExtenderCd97Constructors) {
+        // Five nonzero original static DOS stdio stream flag records
+        // 539C..5404, and the terminal zero stream at 541E.
+        constexpr u32 flags[6]={1u,2u,2u,3u,2u,0u};
+        for(unsigned i=0;i<6u;++i)
+            verify_or_initialize(0x539Cu+i*0x1Au+0x0Cu,flags[i]);
+    }
     s.source_psp[0x80u]=0u; // owner-controlled empty PSP command tail
     s.source_env[0u]=0u; s.source_env[1u]=0u;
     s.source_env[4u]=0u; // empty environment and executable-path tail
@@ -329,6 +336,17 @@ void source_cd97_followup(bool original_loaded) {
     b.write16=&cd97_write16;
     b.runtime_call=&cd97_runtime_call;
     code1::function_cd97(s.machine,b,regs);
+    if(s.mode==Mode::ExtenderCd97Constructors &&
+       (s.source_nodes!=5u || s.source_constructor_allocs!=6u ||
+        s.source_break_calls!=1u ||
+        code1::load_le16(s.dgroup.data()+0x55B0u)!=s.machine.cpu.ss ||
+        code1::load_le32(s.dgroup.data()+0x8E84u)==0u ||
+        code1::load_le32(s.dgroup.data()+0x30A0u)==0u ||
+        code1::load_le32(s.dgroup.data()+0x309Cu)!=1u ||
+        code1::load_le32(s.dgroup.data()+0x8E80u)!=1u ||
+        s.source_heap.allocation_count()!=0u || s.bad_heap_access))
+        throw std::runtime_error(
+            "CODE.1 original FCE8 constructors did not allocate guest stdio/argv state");
     if(s.dgroup[0x531Eu]!=2u ||
        code1::load_le32(s.dgroup.data()+0x55CCu)!=1u ||
        code1::load_le32(s.dgroup.data()+0x55D0u)!=0x8000u ||
@@ -572,9 +590,11 @@ void execute(Mode mode,const std::vector<u8>* original) {
        mode==Mode::ExtenderCd97Constructors)
         assert_true(s.host_break.successful_resizes()>=1u &&
                     s.dgroup.size()==
-                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:0xA000u) &&
+                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:
+                         mode==Mode::ExtenderCd97Constructors?0xB000u:0xA000u) &&
                     code1::load_le32(s.dgroup.data()+0x52f0u)==
-                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:0xA000u) &&
+                        (mode==Mode::ExtenderCd97BreakHeap?0x12000u:
+                         mode==Mode::ExtenderCd97Constructors?0xB000u:0xA000u) &&
                     s.machine.cpu.es==0x30u,
                     "original CODE.1 CCDE host-backed 4KiB resize mismatch");
     if(mode==Mode::ExtenderCd97Startup ||
@@ -584,6 +604,11 @@ void execute(Mode mode,const std::vector<u8>* original) {
                     "CODE1_FCE8_ORIGINAL_CTOR_DISPATCH=3_SOURCE_RECORDS\\n"
                     "CODE1_FC98_HEAP_MINIMUM=SOURCE_10D1C\\n"
                     "CODE1_GAME_ENTRY_508C=HOST_STOP_BOUNDARY\\n";
+    if(mode==Mode::ExtenderCd97Constructors)
+        std::cout<<"CODE1_FCE8_10E81_10438_FD6E_SOURCE_CONSTRUCTORS=PASS\\n"
+                    "CODE1_STARTUP_STDIO_RECORDS=5_ORIGINAL_SOURCE_ALLOCATED\\n"
+                    "CODE1_STARTUP_ARGV_ALLOCATION=SOURCE_104E0\\n"
+                    "CODE1_STARTUP_GUEST_BREAK=SOURCE_10DD7\\n";
     if(mode==Mode::ExtenderCd97BreakHeap)
         std::cout<<"CODE1_CD97_MODE2_10DD7_DS_BREAK_ALLOC_FREE=PASS\\n"
                     "CODE1_SOURCE_HEAP_PRESEEDED_ARENA=NO\\n";
