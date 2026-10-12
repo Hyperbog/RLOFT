@@ -92,7 +92,9 @@ struct Session {
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
     std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;
     std::unique_ptr<rloft_recomp::DosParagraphMemory> dos_heap_memory;
-    bool source_dos_fallback=false;
+    bool source_dos_fallback=false,source_break_growth=false;
+    u32 source_break_end=0x30000u;
+    unsigned source_break_resizes=0,source_break_allocs=0;
     unsigned source_dos_requests=0,source_dos_releases=0;
     unsigned source_dpmi_denials=0;
     rloft_recomp::DpmiSelectorDescriptors host_startup_descriptors;
@@ -140,7 +142,21 @@ void dos21(code2::Machine& m) noexcept {
     const u16 ax=static_cast<u16>(m.cpu.eax);
     if(ax==0x3000u) {
         ++current->version_calls;
-        m.cpu.eax=0x00001606u;  // AL major 6; AH minor 22
+        if(current->source_break_growth) {
+            m.cpu.eax=0x44581606u; // Phar Lap extender identity
+            m.cpu.ebx=(m.cpu.ebx&0xFFFFFF00u)|0x32u; // BL='2' -> mode 2
+        } else m.cpu.eax=0x00001606u;  // DOS 6.22 fixture
+    }else if(current->source_break_growth &&
+              (ax&0xFF00u)==0x4A00u) {
+        // Original Phar Lap 35418: AH=4Ah requests BX 4KiB pages,
+        // not standard DOS AH=4Ah paragraph-resize semantics.
+        auto& s=*current;
+        if(static_cast<u16>(m.cpu.es)!=0x30u ||
+           (static_cast<u32>(static_cast<u16>(m.cpu.ebx))<<12u)!=
+             s.source_break_end)
+            stop("SOURCE_BREAK_STARTUP_AH4A_INVALID_RESIZE");
+        ++s.source_break_resizes;
+        m.cpu.eax&=0xFFFF00FFu;
     }else if(ax==0xFF00u) {
         ++current->ff00_calls;
         // R04 host-DPMI scenario advertises a real 0006 selector-base
@@ -269,6 +285,9 @@ u32 host_heap_dos_selector_base(u16 selector) noexcept {
 }
 bool host_heap_owned(Session& s,u32 linear,std::size_t size) noexcept {
     if(linear>s.data.size() || size>s.data.size()-linear)return false;
+    if(s.source_break_growth)
+        return linear>=0x30000u && linear<=s.source_break_end &&
+               size<=s.source_break_end-linear;
     if(s.source_dos_fallback) {
         if(linear<kHostDosAlias || !s.dos_heap_memory)return false;
         return s.dos_heap_memory->translate(linear-kHostDosAlias,size)==
@@ -306,6 +325,21 @@ void host_heap_free(u32 root,u32 payload) noexcept {
 }
 void host_heap_free_initial(u32 p) noexcept {
     host_heap_free(0x12624u,p);
+}
+u32 host_break_limit() noexcept {return current->source_break_end-1u;}
+u32 host_break_extend(u32 target) noexcept {
+    auto& s=*current;
+    ++s.source_break_resizes;
+    if(!s.source_break_growth || target<=s.source_break_end ||
+       target>s.data.size() || target>0x200000u)return 0xFFFFFFFFu;
+    const u32 previous=s.source_break_end;
+    s.source_break_end=target;
+    ++s.source_break_allocs;
+    return previous;
+}
+u32 host_heap_39e1c(u32 n) noexcept {
+    ++current->host_heap_growths;
+    return code2::function_39e1c(current->machine,current->heap_growth,n);
 }
 u32 host_heap_39d4d(u32 n) noexcept {
     ++current->host_heap_growths;
@@ -1111,7 +1145,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          MouseResetBranch mouse_branch=MouseResetBranch::Stop,
          const std::filesystem::path* host_root=nullptr,
          bool use_host_dpmi=false,bool multi_resource_probe=false,
-         bool source_host_heap=false,bool source_dos_fallback=false) {
+         bool source_host_heap=false,bool source_dos_fallback=false,
+         bool source_break_growth=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -1121,8 +1156,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.extended=extended;
     state.source_host_heap=source_host_heap;
     state.source_dos_fallback=source_dos_fallback;
-    require(!source_dos_fallback || source_host_heap,
-            "DOS fallback requires source-driven continuous startup");
+    state.source_break_growth=source_break_growth;
+    require(!(source_dos_fallback && source_break_growth) &&
+            (!source_dos_fallback || source_host_heap) &&
+            (!source_break_growth || source_host_heap),
+            "choose one source-backed original memory mode");
     require(!source_host_heap || extended,"host heap requires initializers");
     state.execute_application=execute_application;
     state.advance_to_sound_file=advance_to_sound_file;
@@ -1185,6 +1223,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         // Machine.data binds the final, non-reallocating host aperture.
     }
     state.psp[0x2c]=0x2c;state.psp[0x2d]=0;
+    if(source_break_growth)
+        code2::store_le32(state.psp.data()+0x5Cu,state.source_break_end);
     // PSP:80h command tail is four bytes ("  /?") and a DOS carriage return.
     state.psp[0x80]=4;
     state.psp[0x81]=' ';state.psp[0x82]=' ';
@@ -1308,7 +1348,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
             state.heap_growth.free_37c45=&host_heap_free_initial;
             state.heap.arena_alloc=&host_heap_alloc;
             state.heap.arena_free=&host_heap_free;
-            state.heap.grow_heap=&host_heap_39d4d;
+            if(source_break_growth) {
+                state.heap_growth.lsl_ds=&host_break_limit;
+                state.heap_growth.limit_3a467=&host_break_extend;
+                state.heap.grow_heap=&host_heap_39e1c;
+            }else state.heap.grow_heap=&host_heap_39d4d;
         }else state.heap.arena_alloc=&fixture_arena_alloc;
         state.environment.alloc=&fixture_alloc;
         state.environment.memset_30d30=&fixture_fill;
@@ -1329,8 +1373,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         stop("ORIGINAL_ENTRY_RETURNED_WITHOUT_RUNTIME");
     }
     current=nullptr;
-    require(state.version_calls==1 && state.ff00_calls==1 &&
-            state.dpmi_calls==(source_host_heap?1u:0u)+
+    require(state.version_calls==1 &&
+            state.ff00_calls==(source_break_growth?0u:1u) &&
+            state.dpmi_calls==(source_host_heap&&!source_break_growth?1u:0u)+
                 (mouse_branch==MouseResetBranch::Present ||
                               mouse_branch==MouseResetBranch::MemoryHandoff?1u:
                               mouse_branch==MouseResetBranch::FreeBoundary ||
@@ -1640,7 +1685,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         }
         if(source_host_heap) {
             const u32 node=code2::load_le32(state.data.data()+0x12624u);
-            require((source_dos_fallback?
+            require((source_break_growth?
+                        (node>=0x30000u && node<state.source_break_end):
+                        source_dos_fallback?
                         (node>=kHostDosAlias && node<kHostDosAlias+0xA0000u):
                         (node>=rloft_recomp::DpmiLinearMemory::kFirstLinear)) &&
                     !state.arena_seeded &&
@@ -1731,9 +1778,14 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     "SOURCE_HOST_SEEK_AFTER_READ=PASS\\n";
     }
     if(source_host_heap) {
-        require(!state.arena_seeded &&
-                state.host_heap_growths>=1u &&
-                (source_dos_fallback?
+        require(!state.arena_seeded && state.host_heap_growths>=1u &&
+                (source_break_growth?
+                    (state.source_break_allocs>=1u &&
+                     state.source_break_resizes>=2u &&
+                     state.source_break_end>0x30000u &&
+                     state.host_heap_allocs==0u &&
+                     state.dpmi_linear_memory->allocation_count()==0u):
+                 source_dos_fallback?
                     (state.host_heap_allocs==0u &&
                      state.source_dpmi_denials>=1u &&
                      state.source_dos_requests==2u &&
@@ -1745,8 +1797,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 host_heap_owned(state,code2::load_le32(
                        state.data.data()+0x12624u)+0x2Cu,4u) &&
                 state.host_heap_releases==0u,
-                "initializer source did not establish tracked DPMI/DOS heap");
-        if(source_dos_fallback)
+                "initializer source did not establish tracked memory heap");
+        if(source_break_growth)
+            std::cout<<"ORIGINAL_STARTUP_SOURCE_39E1C_EXTENDER_BREAK=PASS\\n";
+        else if(source_dos_fallback)
             std::cout<<"ORIGINAL_STARTUP_SOURCE_DOS48_FALLBACK=PASS\\n"
                         "ORIGINAL_STARTUP_DPMI_0501_DENIED=YES\\n";
         else std::cout<<"ORIGINAL_STARTUP_SOURCE_DPMI_HEAP=PASS\\n";
