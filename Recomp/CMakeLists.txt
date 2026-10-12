@@ -231,4 +231,10 @@ endif()
 if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_unseeded_host_dpmi_arena_growth
         COMMAND rloft_code2_original_dpmi_heap_gate)
+    # Continuous original entry -> four source initializers and game entry,
+    # separate from the historical source-startup preseeded allocator mode.
+    add_test(NAME canonical_code2_startup_initializers_unseeded_host_dpmi_heap
+        COMMAND rloft_code2_startup_gate --through-initializers-host-dpmi)
+    add_test(NAME canonical_code2_startup_game_entry_unseeded_host_dpmi_heap
+        COMMAND rloft_code2_startup_gate --enter-game-host-dpmi)
 endif()
