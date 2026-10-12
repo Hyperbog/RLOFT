@@ -1,8 +1,11 @@
 name: DOSDis temporary Linux-hosted Windows desktop cross-build
-# TEMP only for PR #14. DO NOT MERGE. Canonical Windows Actions remains manual-only.
+# TEMP push-only verification on one isolated branch. DO NOT MERGE.
+# Canonical desktop Actions remains manual-only, no permanent push trigger.
 on:
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - dosdis-windows-byte-search-gate-20261011-1f8b6b
 permissions:
   contents: read
 jobs:
