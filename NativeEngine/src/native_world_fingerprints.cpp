@@ -71,6 +71,9 @@ std::string native_world_payload_fingerprints_json(
             original.begin()+static_cast<std::ptrdiff_t>(end));
         std::array<std::size_t,7> boundary{};
         for(unsigned k=0;k<7;++k)boundary[k]=read32(record,1U+4U*k);
+        const std::vector<std::uint8_t> retained_header(
+            level.original_header.begin(),level.original_header.end());
+        assert_same(record,boundary[0],boundary[0]+0x2A4,retained_header);
 
         std::vector<std::uint8_t> cells;
         cells.reserve(level.cell_words.size()*2U);
@@ -120,6 +123,7 @@ std::string native_world_payload_fingerprints_json(
            <<",\"cells\":"<<level.cell_words.size()
            <<",\"controls\":"<<level.controls.size()
            <<",\"commands\":"<<commands
+           <<",\"header_sha256\":\""<<native_sha256_hex(retained_header)
            <<",\"cells_sha256\":\""<<native_sha256_hex(cells)
            <<"\",\"controls_sha256\":\""<<native_sha256_hex(controls)
            <<"\",\"events_sha256\":\""<<native_sha256_hex(events)

@@ -37,6 +37,10 @@ std::vector<std::uint8_t> level_record() {
         dword(rec,1U+4U*n,cuts[n]);
     word(rec,b0+1,w);
     word(rec,b0+3,h);
+    // First entry of original A and fifth automap-style bank.
+    word(rec,b0+0x00A,0x3171);
+    word(rec,b0+0x20A+2U*63U,0x1271);
+    rec[b0+0x290]=0xFF;
     word(rec,b0+0x28A,1); // family A
     word(rec,b0+0x28C,1); // family C
     word(rec,b0+0x28E,1); // family B
@@ -96,6 +100,12 @@ void run() {
     const auto& level=world.level(22);
     assert(level.id==22 && level.width==2 && level.height==2);
     assert(level.cell_words.size()==4);
+    assert(level.resource_lookup(0,0)==0x3171);
+    assert(level.resource_lookup(4,63)==0x1271);
+    assert(level.original_header[0x290]==0xFF);
+    must_reject([&]{static_cast<void>(level.resource_lookup(5,0));});
+    must_reject([&]{static_cast<void>(level.resource_lookup(0,64));});
+    assert(fingerprints.find("\"header_sha256\":\"")!=std::string::npos);
     assert(level.cell(0,0)==0x2400);
     assert(level.cell(1,0)==0x003F);
     assert(level.cell(0,1)==0x8001);

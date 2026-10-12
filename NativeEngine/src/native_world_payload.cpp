@@ -39,6 +39,16 @@ std::vector<std::uint8_t> bytes_between(
 }
 }
 
+std::uint16_t NativeLevelPayload::resource_lookup(
+    unsigned bank,unsigned code) const {
+    if(bank>=5U || code>=64U)
+        throw std::out_of_range("original level resource table lookup");
+    const auto offset=0x00AU+std::size_t(bank)*128U+
+                      std::size_t(code)*2U;
+    return static_cast<std::uint16_t>(original_header.at(offset)) |
+           static_cast<std::uint16_t>(original_header.at(offset+1U))<<8U;
+}
+
 std::uint16_t NativeLevelPayload::cell(unsigned x,unsigned y) const {
     if(x>=width || y>=height)
         throw std::out_of_range("native world cell outside original grid");
@@ -87,6 +97,9 @@ NativeWorldPayload decode_native_world_payload(
         level.id=id;
         level.width=source.width;
         level.height=source.height;
+        const auto header=bytes_between(
+            record,cut[0],cut[0]+level.original_header.size());
+        std::copy(header.begin(),header.end(),level.original_header.begin());
 
         // Keep the original 16-bit words, including every unclassified bit.
         const auto cell_start=cut[0]+0x2A4;

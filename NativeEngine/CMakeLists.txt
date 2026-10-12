@@ -29,7 +29,8 @@ add_library(rloft_native_assets STATIC
   src/native_world_system.cpp
   src/native_world_payload.cpp
   src/native_world_fingerprints.cpp
-  src/native_world_runtime.cpp)
+  src/native_world_runtime.cpp
+  src/native_scene_view.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -60,6 +61,10 @@ native_warnings(rloft_native_payload_audit)
 add_executable(rloft_native_world_runtime_audit src/native_world_runtime_audit_main.cpp)
 target_link_libraries(rloft_native_world_runtime_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_world_runtime_audit)
+# Original-topology-backed host first-person view PROBE (not DOS renderer).
+add_executable(rloft_native_scene_probe src/native_scene_probe_main.cpp)
+target_link_libraries(rloft_native_scene_probe PRIVATE rloft_native_assets)
+native_warnings(rloft_native_scene_probe)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -135,6 +140,11 @@ add_executable(native_world_runtime_tests tests/native_world_runtime_tests.cpp)
 target_link_libraries(native_world_runtime_tests PRIVATE rloft_native_assets)
 native_warnings(native_world_runtime_tests)
 add_test(NAME native_world_runtime_tests COMMAND native_world_runtime_tests)
+
+add_executable(native_scene_view_tests tests/native_scene_view_tests.cpp)
+target_link_libraries(native_scene_view_tests PRIVATE rloft_native_assets)
+native_warnings(native_scene_view_tests)
+add_test(NAME native_scene_view_tests COMMAND native_scene_view_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)

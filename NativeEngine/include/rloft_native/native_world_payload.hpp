@@ -20,6 +20,10 @@ struct NativeLevelPayload {
     unsigned id{};
     unsigned width{};
     unsigned height{};
+    // Original fixed 0x2A4 header includes five 64-word mapping banks.
+    // Preserve the entire source header including unresolved bytes.
+    std::array<std::uint8_t,0x2A4> original_header{};
+    [[nodiscard]] std::uint16_t resource_lookup(unsigned bank,unsigned code) const;
     std::vector<std::uint16_t> cell_words;
     std::vector<NativeOriginalControl> controls;
     // The three original 11-byte families, in A/B/C archive-section order.
