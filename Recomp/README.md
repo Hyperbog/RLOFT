@@ -1,5 +1,27 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+
+## Latest R04 CODE.1 source free-list checkpoint (2026-10-12)
+
+The original CODE.1 `DB5B -> 10590` reconstructed free-list path is
+now wired into both the host-DPMI and DOS-paragraph fallback source
+regressions. The tests exercise original `104E0` split, original
+`DB5B/10590` circular insertion and adjacent coalescence, followed by
+source `107CB` reclamation. The DPMI `1083F` relocation precondition
+also comes from an original `104E0` allocation instead of test-authored
+allocated-bit mutation. Only four authenticated original CODE.1
+DGROUP heap-list root words are seeded; all dynamic arenas remain
+host-owned and source-allocated.
+
+**CI for these new commits is not yet independently verified.** The
+last recorded successful Windows gate is still [#113](https://github.com/Hyperbog/RLOFT/actions/runs/38260777313),
+51/51 CTests. See
+[the CODE.1 DB5B/10590 source checkpoint](R04_CODE1_DB5B_SOURCE_FREE_LIST_20261012.md).
+
+**R04 remains NOT ACCEPTED; 3/12 = 25.00%.** The continuous alternative
+startup modes, unified selector semantics and original-DOS behavioral
+comparison are unresolved.
+
 ## Latest R04 checkpoint — DOS fallback, extender growth, free-list repair (2026-10-12)
 
 [Windows build #113](https://github.com/Hyperbog/RLOFT/actions/runs/38260777313)
