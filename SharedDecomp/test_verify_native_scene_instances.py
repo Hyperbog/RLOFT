@@ -24,13 +24,17 @@ def put32(b,pos,v):
 
 def source_fixture():
     init=bytearray(0x24+2+175*7+2+12*7)
-    for i,v in enumerate((0,3,5,7)):
+    for i,v in enumerate((0,2169,3316,4158)):
         put16(init,6+i*2,v)
     put16(init,0x24,175)
     for j in range(175):
         p=0x26+j*7
         init[p+4]=2
         init[p+5]=1
+    # Last descriptor explicitly closes the genuine 1147-entry
+    # class-one bank; the others stay at an in-range base.
+    put16(init,0x26+174*7,1146)
+    init[0x26+174*7+4]=1
     second=0x26+175*7
     put16(init,second,12)
     for j in range(12):
@@ -38,6 +42,7 @@ def source_fixture():
         init[p+4]=1
         init[p+5]=1
 
+    put16(init,second+2+11*7,75)
     npcs=bytearray(4+83*0x45)
     put32(npcs,0,83)
     put16(npcs,4+82*0x45+0x14,2)
@@ -45,6 +50,8 @@ def source_fixture():
     put32(objects,0,336)
     put16(objects,4+0x58*0x41+0x28,1)
     objects[4+0x58*0x41+0x2a]=1
+    put16(objects,4+335*0x41+0x28,841)
+    objects[4+335*0x41+0x2a]=1
 
     b0=29
     b1=b0+0x2a4+2*2*2
@@ -131,9 +138,7 @@ class NativeSceneInstancesOracleTests(unittest.TestCase):
         idx=4+0x58*0x41+0x28
         put16(objects,idx,0)
         source["OBJECTS.DAT"]=bytes(objects)
-        # Make another original type close class-two bank.
-        put16(objects,4+335*0x41+0x28,1)
-        objects[4+335*0x41+0x2a]=1
+        # The unchanged final definition still closes class-two bank.
         source["OBJECTS.DAT"]=bytes(objects)
         result=self.check(source=source)
         self.assertTrue(any(d["field"]=="resolved_source_bases_sha256"
@@ -167,7 +172,7 @@ class NativeSceneInstancesOracleTests(unittest.TestCase):
     def test_bad_init_allocation_rejected(self):
         src=dict(self.original)
         init=bytearray(src["INIT"])
-        init[0x26+4]=3 # bank class-1 len2, overrun
+        put16(init,0x26,1147) # base+stride exceeds 1147 entries
         src["INIT"]=bytes(init)
         with self.assertRaisesRegex(ValueError,"INIT shape"):
             self.check(source=src)
