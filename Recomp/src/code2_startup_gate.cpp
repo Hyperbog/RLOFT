@@ -740,8 +740,19 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
             "original DOS version writes not observed");
     require(code2::load_le16(state.data.data()+0x12660u)==1u,
             "source environment NO87 scan mismatch");
-    require(state.data[0x2BD10u]=='/' && state.data[0x2BD11u]=='?',
-            "original PSP command-tail whitespace handling mismatch");
+    if(advance_to_sound_file) {
+        if(sound_no_arguments) {
+            require(state.data[0x2BD10u]==0u,
+                    "original empty DOS command-tail staging differs");
+        } else {
+            require(std::memcmp(state.data.data()+0x2BD10u,
+                                "186496",7u)==0,
+                    "original numeric DOS command-tail staging differs");
+        }
+    } else {
+        require(state.data[0x2BD10u]=='/' && state.data[0x2BD11u]=='?',
+                "original PSP command-tail whitespace handling mismatch");
+    }
     require(code2::load_le32(state.data.data()+0x12638u)==0x2BD10u,
             "original argv/command staging pointer mismatch");
     require(code2::load_le16(state.data.data()+0x126ECu)==0x30u,
@@ -785,14 +796,19 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(item>=0x2C000u && item<0x2D500u &&
                 std::memcmp(state.data.data()+item,"no87=1",7)==0,
                 "original environment string was not copied by 3A2AD");
+        const bool source_audio_allocates=
+            advance_to_sound_file && sound_no_arguments;
         if(state.stream_nodes!=5u || state.allocation_calls!=8u ||
            state.aligned_allocations!=state.allocation_calls+
-               (advance_to_sound_file?1u:0u)) {
+               (source_audio_allocates?1u:0u)) {
             std::cerr<<"SOURCE_ALLOCATOR_ACCOUNTING_DIAGNOSTIC"
                      <<" stop="<<state.stop_reason
                      <<" stream_nodes="<<state.stream_nodes
                      <<" allocation_calls="<<state.allocation_calls
                      <<" aligned_allocations="<<state.aligned_allocations
+                     <<" argc="<<state.game_argc
+                     <<" original_argc="<<code2::load_le32(
+                         state.data.data()+0x105FCu)
                      <<" checked_alloc_calls="<<state.checked_alloc_calls
                      <<" file_open_calls="<<state.file_open_calls
                      <<" original_375fe_callback="<<state.dos_vector_callbacks
@@ -802,16 +818,24 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.data[0xF73Du]==0x04u &&
                 code2::load_le32(state.data.data()+0x2B74Cu)==0u,
                 "original stream initializer state mismatch");
-        require(state.game_argc==2u && state.game_argv!=0u &&
-                code2::load_le32(state.data.data()+0x2BD00u)==2u &&
-                code2::load_le32(state.data.data()+0x2BD04u)==state.game_argv,
-                "original argv initializer did not publish argc/argv");
+        const u32 expected_argc=sound_no_arguments?1u:2u;
+        require(state.game_argc==expected_argc && state.game_argv!=0u &&
+                code2::load_le32(state.data.data()+0x2BD00u)==expected_argc &&
+                code2::load_le32(state.data.data()+0x2BD04u)==state.game_argv &&
+                code2::load_le32(state.data.data()+0x105FCu)==expected_argc,
+                "original 3968E argc/argv publication differs");
         const u32 argv1=code2::load_le32(state.data.data()+state.game_argv+4u);
-        require(argv1>=0x2C000u && argv1<0x2D500u &&
-                std::memcmp(state.data.data()+argv1,"/?",3)==0,
-                "original command-line token /? differs");
-        require(code2::load_le32(state.data.data()+state.game_argv+8u)==0u,
-                "argv final null pointer was not written");
+        if(sound_no_arguments) {
+            require(argv1==0u,"original argc=1 must terminate argv");
+        } else {
+            require(argv1>=0x2C000u && argv1<0x2D500u &&
+                    std::memcmp(state.data.data()+argv1,
+                                advance_to_sound_file?"186496":"/?",
+                                advance_to_sound_file?7u:3u)==0,
+                    "original DOS argv text differs");
+            require(code2::load_le32(state.data.data()+state.game_argv+8u)==0u,
+                    "original argc=2 argv terminator missing");
+        }
         require(code2::load_le32(state.data.data()+0x1270Cu)==0x8000u,
                 "post-initialization flag set by original 3A38A is absent");
         if(execute_application) {
@@ -847,11 +871,13 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.audio_init_calls==1u && state.far_install_calls==1u &&
                     state.far_target==0x2F2E0u &&
                     state.dos_vector_callbacks==1u &&
+                    code2::load_le32(state.data.data()+0x105F2u)==0x2F2E0u &&
+                    code2::load_le16(state.data.data()+0x105F6u)==
+                        state.machine.cpu.cs &&
                     state.vector_handler==0x37642u &&
                     state.vector_number==
-                        (code2::load_le32(state.data.data()+0x105FCu)>=2u &&
-                         code2::load_le32(state.data.data()+0x105FCu)<=6u
-                             ? 6u:0x24u) &&
+                        (state.data[0x12662u]>=2u &&
+                         state.data[0x12662u]<=6u?6u:0x24u) &&
                     state.vector_selector==
                         (state.vector_number==6u?0x24u:0u) &&
                     state.active_sound_base==0x1130u &&
@@ -878,12 +904,24 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                         rd32(0xF6F4u)==rd16(0x046Cu),
                         "canonical 290D0 -> 30CC4 RNG seed path was not executed");
                 const u32 env=rd32(0xF050u);
-                require(state.checked_alloc_calls==1u &&
-                        state.checked_fill_calls==1u &&
-                        env>=state.arena_start+0x0Au && env<state.arena_end-0x100u &&
-                        rd32(env-4u)==0x12345678u &&
-                        state.data[env+0x64u]==0u,
-                        "canonical 3104C / 37B34 / 30D30 audio buffer init mismatch");
+                if(sound_no_arguments) {
+                    require(state.checked_alloc_calls==1u &&
+                            state.checked_fill_calls==1u &&
+                            state.audio_atoi_calls==0u &&
+                            env>=state.arena_start+0x0Au &&
+                            env<state.arena_end-0x100u &&
+                            rd32(env-4u)==0x12345678u &&
+                            state.data[env+0x64u]==0u,
+                            "canonical argc=1 checked source audio buffer init mismatch");
+                } else {
+                    require(state.checked_alloc_calls==0u &&
+                            state.checked_fill_calls==0u &&
+                            state.audio_atoi_calls==1u &&
+                            state.audio_atoi_text==argv1 &&
+                            env==0x2D880u &&
+                            state.data[env+0x64u]==0u,
+                            "canonical argc=2 original argv audio descriptor path differs");
+                }
                 require(state.file_open_calls==1u &&
                         state.sound_config_path==0x143Cu &&
                         state.sound_config_mode==0x200u,
@@ -893,7 +931,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.arena_seeded &&
                 code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
                 code2::load_le32(state.data.data()+state.arena_header+0x18u)==
-                    (advance_to_sound_file?9u:8u) &&
+                    (source_audio_allocates?9u:8u) &&
                 code2::load_le32(state.data.data()+state.arena_header+0x1Cu)==1u,
                 "actual original 39838 arena allocation/split metadata differs");
         const u32 freeptr=code2::load_le32(state.data.data()+state.arena_header+0x0Cu);
