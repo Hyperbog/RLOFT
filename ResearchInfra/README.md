@@ -1,5 +1,23 @@
 # RLOFT shared Research Infrastructure (foundation)
 
+## Optional shared REA/Ghidra inspection (cross-project)
+
+[REA integration contract](REA.md) · [source adapter](rea_bridge.py) ·
+[asset-free regression tests](test_rea_bridge.py).
+
+The same canonical `rea_bridge.py` can inspect authorized project-owned
+native binaries from **any** RLOFT owning branch or an external project,
+by taking an absolute target path and recording the source SHA-256.
+For original DOS/4GW CODE.1/CODE.2, `prepare-le` authenticates the
+complete original SHA and extracts an explicitly bounded **private**
+raw-x86 code window using the existing authoritative LE object parser.
+Results stay in the ignored `.rloft-private/` directory; REA and Ghidra
+are optional analyst-installed tools, never gameplay/build dependencies.
+Windows REA currently does not admit DOS LE/raw-binary Ghidra targets;
+such provider work needs its supported Linux/macOS host. No workflow
+uploads original bytes and no milestone is accepted on REA evidence alone.
+
+
 **Canonical owner:** `code1-decompilation:ResearchInfra/`. Use this data/tooling from each workstream without wholesale cross-branch merges. `project_registry.json` is the branch-ownership manifest; actual HEADs and acceptance reports must always be checked live.
 
 The foundation is a **read-only, deterministic, standard-library-only Python indexer** of the canonical CODE.1/CODE.2 C++ source. It creates a machine-readable symbol and static direct-call index, detects missing reconstructed definitions, computes source identities, and generates short context packets for AI agents.
