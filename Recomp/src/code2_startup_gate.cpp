@@ -1032,6 +1032,16 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                         "original 312A0->37E77->37E99 DOS AH=3D open not executed");
                 if(advance_to_mouse) {
                     const auto base=rd32(0xF050u);
+                    // Original 2F2EC *modifies two loaded SOUND.CFG bytes*
+                    // after 312DC returns: env+64 and env+66 become 1.
+                    // Both addresses overlap the 59-byte block at env+3B.
+                    // Preserve byte-exact copy checks for all other positions.
+                    bool untouched_file_bytes_match=true;
+                    for(std::size_t i=0;i<state.audio_file_fixture.size();++i) {
+                        if(i==0x64u-0x3Bu || i==0x66u-0x3Bu)continue;
+                        if(state.data[base+0x3Bu+i]!=state.audio_file_fixture[i])
+                            untouched_file_bytes_match=false;
+                    }
                     require(state.audio_published_flags==0x41u &&
                             state.audio_descriptor_flags==0u &&
                             state.dos_file_reads==1u &&
@@ -1040,9 +1050,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                             state.mouse_reset_calls==1u &&
                             state.data[base+0x64u]==1u &&
                             state.data[base+0x66u]==1u &&
-                            std::memcmp(state.data.data()+base+0x3Bu,
-                                        state.audio_file_fixture.data(),
-                                        state.audio_file_fixture.size())==0,
+                            untouched_file_bytes_match,
                             "original 37E99/312EC/38106/312DC/380F8/33B44 source chain differs");
                 }
             }
