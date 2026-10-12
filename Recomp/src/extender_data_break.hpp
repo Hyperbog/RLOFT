@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <stdexcept>
 #include <vector>
 
 namespace rloft_recomp {
