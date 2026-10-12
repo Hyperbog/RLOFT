@@ -43,8 +43,8 @@ int run(const std::filesystem::path& root) {
         const auto catalogue=rloft_native::decode_native_world_material_catalogue(
             world_source,archive,split);
         rloft_native::NativeWorldRuntime world(world_source);
-        const unsigned level=0,col=6,row=0;
-        if(world.cell(level,col,row).code!=1U)
+        const unsigned level=0,col=5,row=0;
+        if(world.cell(level,col,row).code!=6U)
             throw std::runtime_error("original CODE.2 wall scene test cell changed");
         rloft_native::NativeIndexedVgaPlanes frame;
         std::size_t total_reads=0,total_writes=0;
@@ -63,7 +63,7 @@ int run(const std::filesystem::path& root) {
                  <<catalogue.candidate_slots<<","
                  <<"\"original_unique_wide_textures_validated\":"
                  <<catalogue.unique_wide_textures<<","
-                 <<"\"sample_level\":0,\"sample_cell\":[6,0],"
+                 <<"\"sample_level\":0,\"sample_cell\":[5,0],"
                  <<"\"sample_phase_dword\":21845,"
                  <<"\"sample_eh6_draws\":[";
         unsigned n=0;
