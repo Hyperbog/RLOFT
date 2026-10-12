@@ -142,7 +142,7 @@ void run() {
     assert(banks.init_descriptors[1].size()==12);
     const NativeResArchive archive(fake_res(compressed_shape(original_body)));
     const auto corpus=audit_native_res3_scene_corpus(init,archive);
-    assert(corpus.res3_entries==8);
+    assert(corpus.banks.res3_entries==8);
     assert(corpus.type7_shapes==8);
     assert(corpus.source_class_shapes[0]==3);
     assert(corpus.source_class_shapes[1]==2);
