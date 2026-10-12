@@ -29,7 +29,7 @@
       "scope": "DOS/4GW memory, heap growth and DPMI selector lifecycle is implemented without test-only allocations",
       "accepted": false,
       "evidence": "",
-      "limitation": "Original CODE.1 DB5B/10590 source split/coalescence and 107CB DPMI/DOS reclaim verified Windows #117 (51/51). Continuous original CODE.2 initializer/game-entry/audio/mouse startup now uses unseeded host DPMI 0501 or a source-selected 39C7B DOS48/49 fallback; Windows #122 55/55. Isolated CODE.2 39E1C break extension and 39A2C reclamation also pass. R04 remains NOT accepted: continuous original 39E1C startup branch, complete shared CODE.1/CODE.2 selector-base/limit ownership, unfixture CODE.1 startup, and independently observed original DOS/4GW memory parity remain open. See R04_CODE2_CONTINUOUS_DOS48_FALLBACK_20261012.md"
+      "limitation": "Original CODE.2 mode-2 Phar Lap 35418 to 39E1C DS-break continuous startup, game entry, sound and mouse verified (#125, 59/59), independent original-code x86 branch audit. Host CODE.2 DOS fallback/0100 selector issuance/0006 base+limit/0101 release share checked loader registry (#130, 59/59), with DpmiDosMemory injected owner. CODE.1 CCDE host DGROUP resize and 10AA9/104E0/DB5B/10590/107CB original source memory lifecycle share one guest session (#133, 60/60), with source-authenticated original heap-root verification. R04 remains NOT accepted: natural non-host-triggered CODE.1 heap-mode initialization and independent original DOS/4GW selector, memory-ownership, limit and error-path behavioral comparison are missing. See R04_MEMORY_RUNTIME_PROGRESS_AUDIT_20261012.md"
     },
     {
       "id": "R05",
