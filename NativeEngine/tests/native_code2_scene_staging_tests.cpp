@@ -70,6 +70,22 @@ int main(){
     assert(get16(near.record,0)==33); // 35798 rejected: screen X unchanged
     assert(get16(near.record,2)==0);
     assert(get16(near.record,4)==0x1249);
+    // Exhaustively cover all 65,536 original packed status/view words.
+    // The oracle uses direct bit extraction, independently of the
+    // source-encoded SHL EAX 7 / SHR AX 13 sequence in the implementation.
+    for(unsigned packed=0;packed<=0xffffU;++packed){
+        put16(source,0x14,packed);
+        const auto view=(packed>>6U)&7U;
+        const auto p=stage_native_code2_non_npc_2bbf4(
+            NativeCode2NonNpcFamily::InitPlaced,source,init,true,regs,8);
+        const auto q=stage_native_code2_non_npc_2bbf4(
+            NativeCode2NonNpcFamily::ObjectsLoose,source,objects,true,regs,8);
+        assert(p.passed_original_projection_gate &&
+               q.passed_original_projection_gate);
+        assert(get16(p.record,4)==0x1234U+3U*view);
+        assert(get16(q.record,4)==((0xfffaU+20U*view)&0xffffU));
+        assert(get16(p.record,2)==146U && get16(q.record,2)==146U);
+    }
     rejects([&]{static_cast<void>(stage_native_code2_non_npc_2bbf4(
         NativeCode2NonNpcFamily::InitPlaced,source,objects,true,regs,0));});
     rejects([&]{static_cast<void>(stage_native_code2_non_npc_2bbf4(
