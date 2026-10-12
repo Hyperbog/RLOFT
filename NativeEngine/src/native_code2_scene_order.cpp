@@ -23,7 +23,9 @@ void put_word(NativeCode2SceneRecord22& b,std::size_t offset,
 NativeCode2SceneOrder order_native_code2_scene_records_2c3f1(
     const std::vector<NativeCode2SceneRecord22>& records) {
     constexpr std::uint16_t kUntouchedSelectionCeiling=0x7D00U;
-    constexpr std::size_t kOriginalDoubleBufferBytes=0x1130U;
+    // Original C050 buffer stride is 0x2260 = 400 staged records.
+    // 2C2AF clears only the first 0x1130 bytes; it is NOT a capacity.
+    constexpr std::size_t kOriginalDoubleBufferBytes=0x2260U;
     constexpr std::size_t kRecordSize=22U;
     if(records.size()>kOriginalDoubleBufferBytes/kRecordSize)
         throw std::invalid_argument("CODE.2 scene record buffer exceeded");
