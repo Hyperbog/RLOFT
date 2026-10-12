@@ -14,6 +14,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <map>
 #include <filesystem>
 #include <string>
 #include <cstring>
@@ -83,6 +84,7 @@ struct Session {
     // Optional genuine host file I/O. Existing DOS/mouse/vector fixtures
     // remain explicit; this is not a complete DOS runtime.
     std::unique_ptr<rloft_recomp::ReadOnlyDosFiles> host_files;
+    std::map<u32,u32> host_descriptor_flags;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
 
@@ -364,14 +366,27 @@ void original_checked_memset(u32 dst,u32 byte,u32 count) noexcept {
 u8 original_dos_open_guest_read8(u32 addr) noexcept {
     return *segment(0x30u,addr,1u);
 }
+std::string guest_dos_basename(u32 off) {
+    // A DOS 8.3 path is at most 12 characters, plus its NUL byte.
+    // segment() verifies each guest byte before it reaches the host.
+    std::string name;
+    for(unsigned i=0;i<=12u;++i) {
+        const auto ch=seg8(0x30u,off+i);
+        if(ch==0u)return name;
+        name.push_back(static_cast<char>(ch));
+    }
+    stop("GUEST_DOS_PATH_UNTERMINATED_OR_OVERLONG");
+}
 code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
     ++current->dos_ah3d_open_calls;
     current->open_access_share=access_share;
-    if(path!=0x143Cu || access_share!=0u)
+    if(access_share!=0u || (!current->host_files && path!=0x143Cu))
         stop("ORIGINAL_DOS_AH3D_OPEN_ARGUMENTS_DIFFER");
     if(current->host_files) {
-        const auto result=current->host_files->open("sound.cfg",access_share);
-        if(result.carry)stop("HOST_DOS_AH3D_SOUND_OPEN_FAILED");
+        const auto name=guest_dos_basename(path);
+        const auto result=current->host_files->open(name,access_share);
+        if(result.carry)stop("HOST_DOS_AH3D_GUEST_PATH_OPEN_FAILED");
+        current->host_descriptor_flags[result.ax]=0u;
         return static_cast<code2::s32>(result.ax);
     }
     if(current->advance_to_mouse)return 5; // EXPLICIT test-only DOS handle
@@ -381,42 +396,67 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
 // reconstructed file wrappers. These callbacks do not read/modify game
 // installation files or pretend that the 59 bytes are authentic media.
 u32 original_read_descriptor_flags(u32 h) noexcept {
+    if(current->host_files) {
+        const auto it=current->host_descriptor_flags.find(h);
+        if(it==current->host_descriptor_flags.end())
+            stop("HOST_DOS_DESCRIPTOR_BAD_HANDLE");
+        return it->second;
+    }
     if(h!=5u)stop("ORIGINAL_DOS_DESCRIPTOR_UNEXPECTED_HANDLE");
     return current->audio_descriptor_flags;
 }
 bool original_descriptor_is_device(u32 h) noexcept {
-    if(h!=5u)stop("ORIGINAL_DOS_DEVICE_PROBE_BAD_HANDLE");
+    if(current->host_files && current->host_descriptor_flags.count(h)==0u)
+        stop("HOST_DOS_DEVICE_PROBE_BAD_HANDLE");
+    if(!current->host_files && h!=5u)
+        stop("ORIGINAL_DOS_DEVICE_PROBE_BAD_HANDLE");
     return false;
 }
 void original_publish_descriptor_flags(u32 h,u32 flags) noexcept {
-    if(h!=5u)stop("ORIGINAL_DOS_DESCRIPTOR_PUBLISH_BAD_HANDLE");
-    current->audio_descriptor_flags=flags;
-    current->audio_published_flags=flags;
+    if(current->host_files) {
+        auto it=current->host_descriptor_flags.find(h);
+        if(it==current->host_descriptor_flags.end())
+            stop("HOST_DOS_DESCRIPTOR_PUBLISH_BAD_HANDLE");
+        it->second=flags;
+    } else if(h!=5u)stop("ORIGINAL_DOS_DESCRIPTOR_PUBLISH_BAD_HANDLE");
+    if(h==5u) {
+        current->audio_descriptor_flags=flags;
+        current->audio_published_flags=flags;
+    }
 }
 code2::s32 original_dos_read_fixture(u32 h,u32 destination,u32 count) noexcept {
+    if(current->host_files) {
+        if(h>0xFFFFu || current->host_descriptor_flags.count(h)==0u)
+            stop("HOST_DOS_AH3F_BAD_DESCRIPTOR");
+        ++current->dos_file_reads;
+        const auto response=current->host_files->read(
+            static_cast<u16>(h),segment(0x30u,destination,count),count);
+        if(response.carry)stop("HOST_DOS_AH3F_READ_FAILED");
+        if(h==5u)current->audio_file_cursor+=response.ax;
+        return static_cast<code2::s32>(response.ax);
+    }
     if(h!=5u || count!=59u || current->audio_file_cursor!=0u)
         stop("ORIGINAL_DOS_SOUND_CFG_READ_ABI_CHANGED");
     ++current->dos_file_reads;
-    if(current->host_files) {
-        const auto response=current->host_files->read(
-            static_cast<u16>(h),segment(0x30u,destination,count),count);
-        if(response.carry)stop("HOST_DOS_AH3F_SOUND_READ_FAILED");
-        current->audio_file_cursor+=response.ax;
-        return static_cast<code2::s32>(response.ax);
-    }
     std::memcpy(segment(0x30u,destination,count),
                 current->audio_file_fixture.data(),count);
     current->audio_file_cursor=count;
     return static_cast<code2::s32>(count);
 }
 code2::s32 original_dos_close_fixture(u32 h) noexcept {
+    if(current->host_files) {
+        if(h>0xFFFFu || current->host_descriptor_flags.count(h)==0u)
+            stop("HOST_DOS_AH3E_BAD_DESCRIPTOR");
+        const auto response=current->host_files->close(static_cast<u16>(h));
+        if(response.carry)stop("HOST_DOS_AH3E_CLOSE_FAILED");
+        current->host_descriptor_flags.erase(h);
+        ++current->dos_file_closes;
+        if(h==5u)current->audio_descriptor_flags=0u;
+        return 0;
+    }
     if(h!=5u || current->audio_file_cursor!=59u)
         stop("ORIGINAL_DOS_SOUND_CFG_CLOSE_ABI_CHANGED");
     ++current->dos_file_closes;
-    if(current->host_files) {
-        const auto response=current->host_files->close(static_cast<u16>(h));
-        if(response.carry)stop("HOST_DOS_AH3E_SOUND_CLOSE_FAILED");
-    }
     current->audio_descriptor_flags=0u;
     return 0;
 }
@@ -642,8 +682,10 @@ u32 original_checked_source_open(u32 path,u32 mode) noexcept {
     ++current->file_open_calls;
     current->sound_config_path=path;
     current->sound_config_mode=mode;
-    if(path!=0x143Cu || mode!=0x200u ||
-       std::memcmp(segment(0x30u,path,10),"sound.cfg",10)!=0)
+    if(mode!=0x200u)stop("ORIGINAL_SOURCE_READONLY_MODE_UNSUPPORTED");
+    if(!current->host_files &&
+       (path!=0x143Cu ||
+        std::memcmp(segment(0x30u,path,10),"sound.cfg",10)!=0))
         stop("ORIGINAL_SOUND_CFG_OPEN_ABI_CHANGED");
     // Actual reconstructed 312A0 uses two stack slots; 37E77 reads an
     // additional inherited third slot. In read-only mode 0x200, 37E99
