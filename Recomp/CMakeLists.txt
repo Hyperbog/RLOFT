@@ -147,6 +147,8 @@ if(BUILD_TESTING)
         COMMAND rloft_code1_startup_gate --extender-host-resize-to-cd97)
     add_test(NAME canonical_code1_startup_cd97_mode2_source_10dd7_break_heap
         COMMAND rloft_code1_startup_gate --extender-host-resize-to-cd97-break-heap)
+    add_test(NAME canonical_code1_startup_cd97_original_source_stdio_argv_constructors
+        COMMAND rloft_code1_startup_gate --extender-host-resize-to-cd97-constructors)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
