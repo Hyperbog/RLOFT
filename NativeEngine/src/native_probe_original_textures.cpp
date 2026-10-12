@@ -38,8 +38,8 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
     if(width==0 || width>640U || height==0 || height>480U ||
        view.columns.size()!=width || view.camera.level>=32U)
         throw std::invalid_argument("invalid native original-texture host frame");
-    if(world.active_level()!=view.camera.level)
-        throw std::invalid_argument("native probe camera/world level mismatch");
+    // The viewer prepares the replacement frame before selecting the new
+    // active level; source level identity is explicit in the camera.
 
     const auto bank=native_world_palette_bank(view.camera.level);
     auto found=palettes_.find(bank);
