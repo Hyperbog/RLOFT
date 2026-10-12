@@ -141,3 +141,37 @@ The [complete game-entry integration record](GAME_ENTRY_20608_SOURCE_EXECUTION_2
 describes source evidence and acceptance boundaries. A passing new
 Windows build is required for these added paths. **Still not a
 DOS-accurate game boot or native engine.**
+
+## 2026-10-11 canonical startup now executes BOTH real audio entry paths
+
+[Windows canonical build #22](https://github.com/Hyperbog/RLOFT/actions/runs/38197663147)
+passed **15/15** tests at exact source checkout
+`4c10427ed1d73e7d2c9ad1b96db9e3e1f939ed0d`. This is
+source execution only, not DOS gameplay parity.
+
+The source now executes original `353A0→35418→3968E→20608→2F2EC`,
+including the **two genuinely different original argc branches**:
+`argc=1` calls original checked `3104C` allocator and original
+`30D30` memset; `argc=2` uses the literal PSP command-line
+argument parsed by the original `3968E` and original `35349`.
+Both default and explicitly configured environment modes are covered.
+The separate DOS/4GW extender selector byte `12662h` is **not
+argc**; it selects `375FE`'s interrupt mode. In canonical
+`Code2.cpp`, the actual original `375FE` code now also stores the
+incoming old far address/selector into DGROUP `105F2/105F6` as
+required by original x86 instructions. This fixes a concrete bug in
+the formerly byte-certified original C++ reconstruction.
+
+**Further source advancement:** from either argc branch, both original
+`312A0` and `37E77→37E99` DOS open-path functions are now
+executed and the process **halts at the actual external DOS AH=3Dh
+sound.cfg open call**. Its read access/share mask is checked against
+original encoded semantics. No synthetic success return is supplied
+from DOS, no hardware vectors are touched in the host, and no sound
+file is read by the CI fixture. See
+[full original game-entry and DOS-boundary evidence](GAME_ENTRY_20608_SOURCE_EXECUTION_20261011.md)
+and [separate CODE.2 semantic correction](../Code2/PROGRESS.md).
+
+The current branch's new DOS-service-boundary C++ additions require
+their **own exact-SHA passing Windows CTest**, independently of build
+#22 and of any future original DOS game/visual acceptance.
