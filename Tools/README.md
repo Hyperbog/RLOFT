@@ -14,3 +14,7 @@ All tools treat shipped Ravenloft bytes as immutable source evidence. Decoders
 follow the certified `Resources/` documentation, preserve canonical/native
 bytes alongside modern derivatives where useful, and keep unresolved semantics
 explicit rather than inventing them.
+
+## Optional shared REA research adapter
+
+[Optional shared REA analysis](REA_ANALYSIS.md) is available through the canonical `code1-decompilation:ResearchInfra/` checkout. It is local, read-only static analysis and **does not** install REA into this application's runtime, alter original game media, or certify original DOS/gameplay parity.
