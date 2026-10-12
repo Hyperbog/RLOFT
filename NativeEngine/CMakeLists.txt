@@ -33,7 +33,8 @@ add_library(rloft_native_assets STATIC
   src/native_scene_view.cpp
   src/native_type7_scene_shape.cpp
   src/native_scene_instances.cpp
-  src/native_sintab_raster.cpp)
+  src/native_sintab_raster.cpp
+  src/native_type7_vga_dispatch.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -77,6 +78,11 @@ native_warnings(rloft_native_res3_scene_audit)
 add_executable(rloft_native_sintab_raster_audit src/native_sintab_raster_audit_main.cpp)
 target_link_libraries(rloft_native_sintab_raster_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_sintab_raster_audit)
+
+# Original CODE.2 36B14/369D8 ordered VGA mask and EH7 descriptor tracing.
+add_executable(rloft_native_type7_vga_audit src/native_type7_vga_audit_main.cpp)
+target_link_libraries(rloft_native_type7_vga_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_type7_vga_audit)
 # Source-only original authored family A/B/C scene-instance resolver.
 # May run with the known 4234-count RES3 bank shape when original RES3 bytes
 # are not locally available, and reports that reduced evidence explicitly.
@@ -173,6 +179,11 @@ add_executable(native_sintab_raster_tests tests/native_sintab_raster_tests.cpp)
 target_link_libraries(native_sintab_raster_tests PRIVATE rloft_native_assets)
 native_warnings(native_sintab_raster_tests)
 add_test(NAME native_sintab_raster_tests COMMAND native_sintab_raster_tests)
+
+add_executable(native_type7_vga_dispatch_tests tests/native_type7_vga_dispatch_tests.cpp)
+target_link_libraries(native_type7_vga_dispatch_tests PRIVATE rloft_native_assets)
+native_warnings(native_type7_vga_dispatch_tests)
+add_test(NAME native_type7_vga_dispatch_tests COMMAND native_type7_vga_dispatch_tests)
 
 add_executable(native_scene_instances_tests tests/native_scene_instances_tests.cpp)
 target_link_libraries(native_scene_instances_tests PRIVATE rloft_native_assets)

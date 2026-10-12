@@ -60,6 +60,7 @@ jobs:
             build/native-source-ci/rloft_native_scene_probe
             build/native-source-ci/rloft_native_res3_scene_audit
             build/native-source-ci/rloft_native_sintab_raster_audit
+            build/native-source-ci/rloft_native_type7_vga_audit
             build/native-source-ci/rloft_native_scene_instances_audit
           if-no-files-found: error
           retention-days: 7
@@ -70,6 +71,7 @@ jobs:
           test -x build/native-source-ci/rloft_native_scene_probe
           test -x build/native-source-ci/rloft_native_res3_scene_audit
           test -x build/native-source-ci/rloft_native_sintab_raster_audit
+          test -x build/native-source-ci/rloft_native_type7_vga_audit
           test -x build/native-source-ci/rloft_native_scene_instances_audit
       - name: Assert no original media was added by source-only test
         run: |
