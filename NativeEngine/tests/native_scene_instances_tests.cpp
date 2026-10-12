@@ -23,7 +23,7 @@ NativeSceneDefinitionDirectory defs() {
     defs.banks.res3_entries=4234;
     defs.npc_definitions.assign(83,{0,0});
     defs.npc_definitions[9]={37,37};
-    defs.object_definitions.assign(336,{0,3316+0});
+    defs.object_definitions.assign(336,{0,0,3316});
     defs.object_definitions[0x58]={7,2,3316+7};
     defs.banks.init_descriptors[0].assign(175,{});
     defs.banks.init_descriptors[0][10]={12,0,1,1,0};
