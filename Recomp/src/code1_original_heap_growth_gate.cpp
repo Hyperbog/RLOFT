@@ -55,8 +55,15 @@ void linear_free(u32 handle) {
 void observe_original_free(u32 guest_ptr) {
     ++active->return_to_free_list;
     active->last_free_pointer=guest_ptr;
-    if(guest_ptr<4u || !active->memory.translate(guest_ptr-4u,4))
+    if(guest_ptr<4u || !active->memory.translate(guest_ptr-4u,4)) {
         active->invalid_memory=true;
+        return;
+    }
+    // The original source 10AA9 marks its new block allocated before
+    // calling DB5B. The DB5B/free-list adapter remains test-only here.
+    // Model only its released-bit contract, so original 107CB can reclaim
+    // the genuinely host-backed arena. Full DB5B linkage is still R04 work.
+    heap_write(guest_ptr-4u,heap_read(guest_ptr-4u)&~1u);
 }
 }
 int main() {
