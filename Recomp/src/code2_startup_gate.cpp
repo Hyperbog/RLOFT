@@ -1013,7 +1013,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                             env>=state.arena_start+0x0Au &&
                             env<state.arena_end-0x100u &&
                             rd32(env-4u)==0x12345678u &&
-                            state.data[env+0x64u]==0u,
+                            state.data[env+0x64u]==(advance_to_mouse?1u:0u),
                             "canonical argc=1 checked source audio buffer init mismatch");
                 } else {
                     require(state.checked_alloc_calls==0u &&
@@ -1021,7 +1021,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                             state.audio_atoi_calls==1u &&
                             state.audio_atoi_text==argv1 &&
                             env==0x2D880u &&
-                            state.data[env+0x64u]==0u,
+                            state.data[env+0x64u]==(advance_to_mouse?1u:0u),
                             "canonical argc=2 original argv audio descriptor path differs");
                 }
                 require(state.file_open_calls==1u &&
