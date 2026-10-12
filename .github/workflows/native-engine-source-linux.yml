@@ -56,10 +56,13 @@ jobs:
           path: |
             build/native-source-ci/rloft_native_payload_audit
             build/native-source-ci/rloft_native_world_audit
+            build/native-source-ci/rloft_native_world_runtime_audit
           if-no-files-found: error
           retention-days: 7
-      - name: Check standalone payload auditor exists
-        run: test -x build/native-source-ci/rloft_native_payload_audit
+      - name: Check native payload and persistent world runtime auditors exist
+        run: |
+          test -x build/native-source-ci/rloft_native_payload_audit
+          test -x build/native-source-ci/rloft_native_world_runtime_audit
       - name: Assert no original media was added by source-only test
         run: |
           test ! -f build/native-source-ci/LEVELS.DAT
