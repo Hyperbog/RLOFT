@@ -1,5 +1,44 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Latest R04 CODE.1 source startup checkpoint — 63/63 Windows CTests (2026-10-12)
+
+[Windows source build #147](https://github.com/Hyperbog/RLOFT/actions/runs/38323318475)
+passed **63/63 CTests** with the temporary diagnostics removed
+(code SHA `78d421ef71c2410efed3ea48a21363a9fa4d9eb7`).
+
+A corrected `CC1C→CCDE` Phar Lap DOS-version fixture supplies
+`BL='2'`; **original CODE.1 `CD97`** then publishes its own
+mode-2 byte. The real source `FCE8` ordered constructor table now
+executes original `10E81` five-stream initialization,
+`10438` stack-selector capture, and `FD6E` argv setup with the
+original `FE21` scanner and **source-owned 10AA9/10DD7/104E0
+guest heap**. Original `FC98→10D1C` sets the heap minimum and
+stops explicitly at the unimplemented `508C` gameplay call.
+The guest heap starts with an **empty allocator arena**, using
+only the four audited original static sentinel/root values.
+
+The regression first revealed an actual CODE.1 C++ reconstruction
+error at `10BB4: CMP ESI,EAX`: original x86 compares the **desired
+break-end address** against the previous break, not the requested
+increment. The byte-backed correction uses `desired<=old` and
+`desired-old`; 62/62 passed at Windows #138. A later constructor
+test exposed an **asset-free fixture error**—its initial circular-list
+sentinel words were missing. The original LE DGROUP was authenticated,
+the pinned values were restored in fixture setup, and 63/63 passed at
+Windows #146 and clean #147. The public CTest has a 12-second
+timeout to fail closed on renewed free-list loops.
+
+[Full original x86, CODE.1 static data and source-constructor
+audit](R04_CODE1_CD97_CONSTRUCTOR_HEAP_CHECKPOINT_20261012.md).
+
+**R04 remains NOT ACCEPTED. Whole-game progress remains
+R01–R03 = 3/12 (25.00%).** The host still stops at the original
+`508C` application entry. It has not authenticated original
+DOS/4GW runtime selector and memory behavior by independent emulator
+traces. CODE.1 allocator veneer caller chains also remain incomplete.
+These tests do not boot the game.
+
+
 ## Current R04 checkpoint — 60/60 source-backed DOS/DPMI memory tests (2026-10-12)
 
 [Windows canonical #133](https://github.com/Hyperbog/RLOFT/actions/runs/38320942043)
