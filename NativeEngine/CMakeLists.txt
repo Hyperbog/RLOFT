@@ -39,7 +39,8 @@ add_library(rloft_native_assets STATIC
   src/native_type6_column_sampler.cpp
   src/native_world_materials.cpp
   src/native_code2_wall_emission.cpp
-  src/native_code2_projection.cpp)
+  src/native_code2_projection.cpp
+  src/native_vga_rgb6_scanout.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -116,6 +117,11 @@ native_warnings(rloft_native_code2_wall_emission_audit)
 add_executable(rloft_native_code2_projection_audit src/native_code2_projection_audit_main.cpp)
 target_link_libraries(rloft_native_code2_projection_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_code2_projection_audit)
+
+# Original CODE.2 level palette table + COLORS DAC6 four-plane scanout.
+add_executable(rloft_native_vga_rgb6_scanout_audit src/native_vga_rgb6_scanout_audit_main.cpp)
+target_link_libraries(rloft_native_vga_rgb6_scanout_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_vga_rgb6_scanout_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -241,6 +247,11 @@ add_executable(native_code2_projection_tests tests/native_code2_projection_tests
 target_link_libraries(native_code2_projection_tests PRIVATE rloft_native_assets)
 native_warnings(native_code2_projection_tests)
 add_test(NAME native_code2_projection_tests COMMAND native_code2_projection_tests)
+
+add_executable(native_vga_rgb6_scanout_tests tests/native_vga_rgb6_scanout_tests.cpp)
+target_link_libraries(native_vga_rgb6_scanout_tests PRIVATE rloft_native_assets)
+native_warnings(native_vga_rgb6_scanout_tests)
+add_test(NAME native_vga_rgb6_scanout_tests COMMAND native_vga_rgb6_scanout_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
