@@ -52,6 +52,9 @@ add_executable(rloft_dos_readonly_files_test src/test_dos_readonly_files.cpp)
 set_target_properties(rloft_dos_readonly_files_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 # Stateful DOS conventional memory / selector transport, independently tested.
+add_executable(rloft_extender_data_break_test src/test_extender_data_break.cpp)
+set_target_properties(rloft_extender_data_break_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 add_executable(rloft_dos_paragraph_memory_test src/test_dos_paragraph_memory.cpp)
 set_target_properties(rloft_dos_paragraph_memory_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
@@ -114,6 +117,10 @@ if(BUILD_TESTING)
         COMMAND rloft_code1_original_dos_fallback_gate)
     add_test(NAME canonical_host_dos_ah48_49_4a_paragraph_memory
         COMMAND rloft_dos_paragraph_memory_test)
+    add_test(NAME canonical_pharlap_ah4a_4kib_guest_dgroup_resize
+        COMMAND rloft_extender_data_break_test)
+    add_test(NAME canonical_code1_original_ccde_ah4a_host_dgroup_resize
+        COMMAND rloft_code1_startup_gate --extender-host-resize)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
