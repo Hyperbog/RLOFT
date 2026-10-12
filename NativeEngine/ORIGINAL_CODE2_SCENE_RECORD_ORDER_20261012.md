@@ -25,9 +25,11 @@ original object-byte windows SHA-256-check as follows:
 
 Concrete x86 contracts:
 
-- `2C2AF` clears active scene array length `0x1130` bytes at
-  `0x27148 + active_buffer*0x2260`; record stride is `0x16` = 22.
-  Consequently one bank can contain at most **200** complete scene records.
+- `2C2AF` clears the first `0x1130` bytes (200 records) at
+  `0x27148 + active_buffer*0x2260`, but the active-buffer stride is
+  `0x2260` bytes (400 records). Record stride is `0x16` = 22;
+  all producer saturation checks use `0x190` (400). **The clear
+  length is not the scene capacity.**
 - `2C3F1` initializes best projected-size word to **`0x7D00`**.
   `2C426..2C43F` compares `MOVZX WORD [record+2]` using `JGE`
   and updates the selected ordinal only for a **strictly lower** value.
@@ -62,8 +64,9 @@ UndefinedBehaviorSanitizer. No original media has been committed.
 -Werror -UNDEBUG` built and ran the source and test above successfully.
 The full NativeEngine CMake suite and CI for this commit have **not yet
 been independently checked**, so the previous known 29/29 Linux suite is
-the latest accepted CI record. One new CTest is registered; 30/30 is
-not claimed without its exact-source CI run.
+the latest accepted CI record. This initial checkpoint registered one additional CTest; a second staging
+CTest is now also registered on the branch. Neither the 30/30 nor
+31/31 outcome is claimed until independently executed.
 
 **Next:** reconstruct the original `2B6D0..2C22E` actor/fixture/moving
 scene builders, live projection `35798`, original type dispatch in
