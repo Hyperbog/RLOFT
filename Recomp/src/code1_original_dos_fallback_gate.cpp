@@ -60,6 +60,7 @@ void free_adapter(u32 pointer) {
 int main(){
     try {
         Session s;
+        current=&s;
         s.dgroup.assign(code1::kDataObjectVirtualSize,0u);
         s.machine.data=s.dgroup.data();
         s.machine.cpu.ds=0x30u;
