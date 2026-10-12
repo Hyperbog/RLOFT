@@ -19,6 +19,8 @@
 namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 enum class GameConfig { Unset, Overrides, SignedWrap };
+// Hypothetical mouse hardware outcomes, NEVER a claim of DOS observation.
+enum class MouseResetBranch { Stop, Present, Absent };
 struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
     std::jmp_buf escape;
@@ -53,6 +55,7 @@ struct Session {
     bool advance_to_mouse=false;
     bool sound_no_arguments=false;
     GameConfig game_config=GameConfig::Unset;
+    MouseResetBranch mouse_branch=MouseResetBranch::Stop;
     bool arena_seeded=false;
     unsigned getenv_calls=0, atoi_calls=0, audio_init_calls=0, far_install_calls=0;
     u32 active_sound_base=0, active_sound_count=0, far_target=0;
@@ -403,9 +406,22 @@ u32 original_source_descriptor_close(u32 handle) noexcept {
     return static_cast<u32>(code2::function_380f8(
         current->dos_file_close,handle));
 }
-code2::Runtime100MouseResetResult stop_at_real_dos_int33_mouse_reset() noexcept {
+code2::Runtime100MouseResetResult controlled_mouse_reset() noexcept {
     ++current->mouse_reset_calls;
-    stop("STOP_BEFORE_DOS_INT33_MOUSE_RESET");
+    if(current->mouse_branch==MouseResetBranch::Stop)
+        stop("STOP_BEFORE_DOS_INT33_MOUSE_RESET");
+    if(current->mouse_branch==MouseResetBranch::Present)
+        return {0xFFFFu,3u};
+    return {0u,0u};
+}
+u32 stop_at_mouse_memory(u32 bytes,u32 a,u32 b) noexcept {
+    if(bytes!=0x40u || a!=0xFD14u || b!=0xFD18u)
+        stop("ORIGINAL_MOUSE_MEMORY_ARGUMENTS_DIFFER");
+    stop("STOP_BEFORE_DOS_30D80_MOUSE_MEMORY");
+}
+void stop_at_mouse_warning(u32 msg) noexcept {
+    if(msg!=0x15C8u)stop("ORIGINAL_MOUSE_WARNING_ARGUMENT_DIFFERS");
+    stop("STOP_BEFORE_DOS_311E8_MOUSE_WARNING");
 }
 u32 original_mouse_initialization() noexcept {
     return code2::function_33b44(current->machine,current->mouse_init);
@@ -696,7 +712,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          GameConfig game_config=GameConfig::Unset,
          bool advance_to_sound_file=false,bool sound_no_arguments=false,
          bool advance_to_mouse=false,
-         const std::vector<u8>* original_sound_cfg=nullptr) {
+         const std::vector<u8>* original_sound_cfg=nullptr,
+         MouseResetBranch mouse_branch=MouseResetBranch::Stop) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -707,6 +724,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.execute_application=execute_application;
     state.advance_to_sound_file=advance_to_sound_file;
     state.advance_to_mouse=advance_to_mouse;
+    state.mouse_branch=mouse_branch;
     if(original_sound_cfg) {
         require(original && advance_to_mouse,
                 "original SOUND.CFG requires original CODE.2 and mouse-boundary mode");
@@ -809,7 +827,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.dos_file_io.call_380f8=&original_source_descriptor_close;
     state.game_audio.call_312ec=&original_sound_config_read;
     state.game_audio.call_312dc=&original_sound_config_close;
-    state.mouse_init.int33_reset=&stop_at_real_dos_int33_mouse_reset;
+    state.mouse_init.int33_reset=&controlled_mouse_reset;
+    state.mouse_init.call_30d80=&stop_at_mouse_memory;
+    state.mouse_init.call_311e8=&stop_at_mouse_warning;
     state.game_audio.call_33b44=&original_mouse_initialization;
     state.startup.int21=&dos21;
     state.startup.int31=&dpmi31;
@@ -876,7 +896,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "default test unexpectedly passed original allocator boundary");
     }else{
         const char* required_stop=advance_to_mouse
-            ? "STOP_BEFORE_DOS_INT33_MOUSE_RESET"
+            ? mouse_branch==MouseResetBranch::Present
+                ? "STOP_BEFORE_DOS_30D80_MOUSE_MEMORY"
+                : mouse_branch==MouseResetBranch::Absent
+                    ? "STOP_BEFORE_DOS_311E8_MOUSE_WARNING"
+                    : "STOP_BEFORE_DOS_INT33_MOUSE_RESET"
             : advance_to_sound_file ? "STOP_BEFORE_ORIGINAL_DOS_AH3D_OPEN"
             : execute_application ? "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"
             : "STOP_BEFORE_ORIGINAL_GAME_ENTRY_20608";
@@ -1078,6 +1102,14 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     }
                     require(mouse_source_ok,
                             "original 37E99/312EC/38106/312DC/380F8/33B44 source chain differs");
+                    if(mouse_branch!=MouseResetBranch::Stop) {
+                        const u16 present=mouse_branch==MouseResetBranch::Present?0xFFFFu:0u;
+                        const u16 buttons=mouse_branch==MouseResetBranch::Present?3u:0u;
+                        require(rd16(0x2B7A2u)==present &&
+                                rd16(0x2B7A4u)==buttons &&
+                                rd16(0x2B7A6u)==0u,
+                                "canonical 33B44 source register stores differ");
+                    }
                 }
             }
         }
