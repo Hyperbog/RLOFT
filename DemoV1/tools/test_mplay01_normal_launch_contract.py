@@ -32,8 +32,10 @@ class NormalLaunchContract(unittest.TestCase):
     def test_packaging_is_explicit_and_reproducible(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         name = "Trace-Normal-Launch.cmd"
-        self.assertIn(f"Copy-Item DemoV1/Windows/{name} ", workflow)
-        self.assertIn(f"build/demo-v1/Release/{name}", workflow)
+        # Historical native-trace test remains source-only, not player release.
+        self.assertNotIn(f"Copy-Item DemoV1/Windows/{name} ", workflow)
+        self.assertNotIn(f"build/demo-v1/Release/{name}", workflow)
+        self.assertIn("Play-Original-Intro.cmd", workflow)
         self.assertIn('build-source-sha.txt', workflow)
         self.assertIn('workflow_dispatch:', workflow)
         # The host already accepts --dev-trace without --explore-level22.

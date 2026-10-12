@@ -86,6 +86,10 @@ if(Python3_Interpreter_FOUND)
     # native input mutation, Windows build dispatch or DOS acceptance.
     # Normal launch must not silently gain diagnostic-party shortcuts.
     add_test(
+        NAME original_front_end_showcase_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_front_end_showcase_contract.py")
+    add_test(
         NAME mplay01_normal_launch_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_mplay01_normal_launch_contract.py")
