@@ -124,7 +124,7 @@ std::string native_world_payload_fingerprints_json(
            <<",\"controls\":"<<level.controls.size()
            <<",\"commands\":"<<commands
            <<",\"header_sha256\":\""<<native_sha256_hex(retained_header)
-           <<",\"cells_sha256\":\""<<native_sha256_hex(cells)
+           <<"\",\"cells_sha256\":\""<<native_sha256_hex(cells)
            <<"\",\"controls_sha256\":\""<<native_sha256_hex(controls)
            <<"\",\"events_sha256\":\""<<native_sha256_hex(events)
            <<"\",\"automap_sha256\":\""<<native_sha256_hex(level.automap)

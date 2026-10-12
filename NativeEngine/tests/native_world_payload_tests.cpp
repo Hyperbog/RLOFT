@@ -106,6 +106,8 @@ void run() {
     must_reject([&]{static_cast<void>(level.resource_lookup(5,0));});
     must_reject([&]{static_cast<void>(level.resource_lookup(0,64));});
     assert(fingerprints.find("\"header_sha256\":\"")!=std::string::npos);
+    // JSON encoder must close 64-digit header digest before next field.
+    assert(fingerprints.find("\",\"cells_sha256\":\"")!=std::string::npos);
     assert(level.cell(0,0)==0x2400);
     assert(level.cell(1,0)==0x003F);
     assert(level.cell(0,1)==0x8001);
