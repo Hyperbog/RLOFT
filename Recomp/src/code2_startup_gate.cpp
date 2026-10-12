@@ -1045,7 +1045,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                               mouse_branch==MouseResetBranch::MemoryHandoff?1u:
                               mouse_branch==MouseResetBranch::FreeBoundary ||
                               mouse_branch==MouseResetBranch::RangeX ||
-                              mouse_branch==MouseResetBranch::RangeY?2u:0u),
+                              mouse_branch==MouseResetBranch::RangeY ||
+                              mouse_branch==MouseResetBranch::DiskSpace?2u:0u),
             "DOS service sequence differs from bounded original source");
     require(state.machine.cpu.interrupt_enable,"STI was not executed");
     require(code2::load_le16(state.code.data()+0x35675u)==0x30u,
