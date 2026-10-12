@@ -84,6 +84,12 @@ struct NativeRes3SceneBanks {
 struct NativeNpcShapeBase {
     std::uint16_t local_shape_base{};
     std::size_t absolute_shape_base{};
+    // Original NPCS.DAT definition bytes +0x18..+0x1A, used by
+    // original CODE.2 2B77A..2BA4F animation/orientation logic.
+    // Values retained as source metadata, not assumed state*stride.
+    std::uint8_t animation_stride{};
+    std::uint8_t cycle_divisor{};
+    std::uint8_t animation_span{};
 };
 struct NativeObjectShapeBase {
     std::uint16_t local_shape_base{};

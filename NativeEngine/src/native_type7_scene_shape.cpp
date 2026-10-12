@@ -234,8 +234,10 @@ NativeSceneDefinitionDirectory decode_native_scene_definitions(
         const auto local=word(npcs,4U+id*0x45U+0x14U);
         require(banks.contains(0,local),
                 "NPC definition local base exceeds original RES3 class zero");
+        const auto at=4U+id*0x45U;
         result.npc_definitions.push_back({
-            local,banks.absolute_id(0,local)});
+            local,banks.absolute_id(0,local),
+            npcs[at+0x18U],npcs[at+0x19U],npcs[at+0x1AU]});
         result.max_npc_local_base=std::max(
             result.max_npc_local_base,std::size_t(local));
     }
