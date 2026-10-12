@@ -1123,8 +1123,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(state.host_startup_descriptors.install(
                     0x30u,0x00050000u,0x2DD10u),
                 "CODE.2 original DGROUP selector installation failed");
-        // Watcom 39D4D checks this enable flag; setup remains bounded.
-        code2::store_le32(state.data.data()+0x12708u,1u);
+        // 39D4D checks the original runtime's 12708h enable flag.
+        // The actual reconstructed 3A395 setter is invoked below after
+        // Machine.data binds the final, non-reallocating host aperture.
     }
     state.psp[0x2c]=0x2c;state.psp[0x2d]=0;
     // PSP:80h command tail is four bytes ("  /?") and a DOS carriage return.
@@ -1171,6 +1172,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.env.begin());
     }
     state.machine.data=state.data.data();
+    if(source_host_heap)
+        require(code2::function_3a395(state.machine,1u)==0u,
+                "original 3A395 Watcom heap enable prior-state changed");
     state.machine.cpu.ds=0x30;state.machine.cpu.ss=0x30;
     if(source_host_heap)state.machine.cpu.es=0x24u;
     state.machine.cpu.cs=0x17;state.machine.cpu.esp=0x2DD10;
@@ -1713,6 +1717,8 @@ int main(int argc,char**argv) {
                mode=="--to-sound-config" || mode=="--to-sound-config-configured" ||
                mode=="--through-initializers-host-dpmi" ||
                mode=="--enter-game-host-dpmi" ||
+               mode=="--to-mouse-reset-host-dpmi-heap" ||
+               mode=="--to-sound-config-no-args-host-dpmi-heap" ||
                mode=="--to-sound-config-no-args" ||
                mode=="--to-sound-config-no-args-configured" ||
                mode=="--to-mouse-reset" ||
@@ -1730,7 +1736,8 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-y-range" ||
                mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
-                advance_to_mouse=(mode=="--to-mouse-reset-host-file" ||
+                advance_to_mouse=(mode=="--to-mouse-reset-host-dpmi-heap" ||
+                    mode=="--to-mouse-reset-host-file" ||
                     mode=="--to-mouse-reset-host-multifile" ||
                     mode=="--mouse-no-driver-to-dpmi-free" ||
                     mode=="--mouse-no-driver-to-x-range" ||
@@ -1750,11 +1757,14 @@ int main(int argc,char**argv) {
                     mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
                     advance_to_mouse);
-                sound_no_arguments=(mode=="--to-sound-config-no-args" ||
+                sound_no_arguments=(mode=="--to-sound-config-no-args-host-dpmi-heap" ||
+                    mode=="--to-sound-config-no-args" ||
                     mode=="--to-sound-config-no-args-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
-                host_source_heap=(mode=="--through-initializers-host-dpmi" ||
+                host_source_heap=(mode=="--to-mouse-reset-host-dpmi-heap" ||
+                                  mode=="--to-sound-config-no-args-host-dpmi-heap" ||
+                                  mode=="--through-initializers-host-dpmi" ||
                                   mode=="--enter-game-host-dpmi");
                 execute_application=(mode=="--enter-game-host-dpmi" ||
                     mode=="--enter-game" ||
