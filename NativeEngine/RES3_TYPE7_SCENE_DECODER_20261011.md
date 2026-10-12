@@ -113,3 +113,41 @@ microcode; rendering accurate EH7 shapes; original viewpoint/perspective,
 camera, lighting, EH6 sampling, palette composition, AI/events or a
 playable game. No \`demo-v1\` gameplay is linked. Windows release
 Actions stay manual-only.
+
+## Original-definition binding added
+
+The same native source now constructs \`NativeSceneDefinitionDirectory\`
+from **actual bytes** of \`NPCS.DAT\` and \`OBJECTS.DAT\`, not from game-
+agnostic object identifiers:
+
+- \`NPCS.DAT\`: 83 × 0x45-byte records; local scene shape at record
+  +0x14, and source class 0 absolute ID = base + local. Original
+  corpus maximum local base is **2149**, under the **2169** class-0 size.
+- \`OBJECTS.DAT\`: 336 × 0x41-byte records; source class 2 local shape
+  base at +0x28, stride at +0x2A; require
+  \`local + stride <= 842\`. Original corpus maximum allocation end is
+  exactly **842**, the class-2 bank boundary.
+- INIT class 1 and 3: the original 175+12 seven-byte descriptor tables
+  retain base/extent/stride/variant count/scene-influence bytes.
+  \`init_base_variant\` accepts an **explicit caller-supplied variant**
+  and converts only a provably bounded starting subframe into an
+  absolute RES3 ID. It cannot guess the current actor's facing, live
+  animation phase or renderer-chosen perspective suffix.
+
+The new corpus-audit command reads original INIT, RES3, NPCS.DAT and
+OBJECTS.DAT read-only, validates all four sources together, and
+emits separate SHA-256 source identities and definition counts. It
+does not export scene geometry or game payload bytes.
+
+**Independent original evidence checked:** the exact original
+\`DnD-Classics/MASTER\` INIT (Git blob \`aeb2e1575879047d64d6cc961c5ea59043b555a4\`,
+1,879 bytes) yields original bases \`[0,2169,3316,4158]\`,
+175 class-1 descriptors reaching 1,147, and 12 class-3
+descriptors reaching 76 with zero bad allocations. The supplied
+local original NPCS.DAT and OBJECTS.DAT have 83/336 records and
+maximum local ranges matching the archive study. Original RES3
+Git blob \`8bcae74169185139b08138a16814558879f6370d\`
+(size 5,228,638 bytes) is **known to be present** under the original
+branch, but has not been materialized into this local runtime or
+executed through the new decoder. C++ end-to-end RES3 acceptance
+remains open.

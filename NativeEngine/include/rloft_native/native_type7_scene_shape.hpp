@@ -75,6 +75,42 @@ struct NativeRes3SceneBanks {
     const std::vector<std::uint8_t>& original_init,
     std::size_t res3_entry_count);
 
+// Exact original NPCS/OBJECTS type-definition shape namespaces.
+// NPCS record size 0x45, local base +0x14; OBJECTS record size 0x41,
+// local base +0x28, optional stride +0x2A. Preserve type-index identity,
+// but leave live animation/view-subframe selection to later CODE.2 work.
+struct NativeNpcShapeBase {
+    std::uint16_t local_shape_base{};
+    std::size_t absolute_shape_base{};
+};
+struct NativeObjectShapeBase {
+    std::uint16_t local_shape_base{};
+    std::uint8_t shape_stride{};
+    std::size_t absolute_shape_base{};
+};
+struct NativeSceneDefinitionDirectory {
+    NativeRes3SceneBanks banks;
+    std::vector<NativeNpcShapeBase> npc_definitions;
+    std::vector<NativeObjectShapeBase> object_definitions;
+    std::size_t max_npc_local_base{};
+    std::size_t max_object_allocation_end{};
+
+    [[nodiscard]] std::size_t npc_shape_base(unsigned type_id) const;
+    [[nodiscard]] std::size_t object_shape_base(unsigned type_id) const;
+    [[nodiscard]] NativeSceneSourceDescriptor init_scene_descriptor(
+        unsigned source_class, unsigned type_id) const;
+    // An explicit input variant only. Does not silently assign facing or
+    // original perspective subframes; caller must have source proof.
+    [[nodiscard]] std::size_t init_base_variant(unsigned source_class,
+                                                unsigned type_id,
+                                                unsigned variant_index) const;
+};
+
+[[nodiscard]] NativeSceneDefinitionDirectory decode_native_scene_definitions(
+    const NativeRes3SceneBanks& banks,
+    const std::vector<std::uint8_t>& npc_dat,
+    const std::vector<std::uint8_t>& objects_dat);
+
 struct NativeRes3SceneCorpus {
     NativeRes3SceneBanks banks;
     std::size_t type7_shapes{};

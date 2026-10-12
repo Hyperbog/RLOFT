@@ -140,6 +140,49 @@ void run() {
     rejects([&]{static_cast<void>(banks.absolute_id(4,0));});
     assert(banks.init_descriptors[0].size()==175);
     assert(banks.init_descriptors[1].size()==12);
+    // Original NPCS/OBJECTS definition namespaces use a different
+    // per-definition width and offsets from INIT scene descriptors.
+    std::vector<std::uint8_t> npcs(4U+83U*0x45U,0);
+    std::vector<std::uint8_t> objects(4U+336U*0x41U,0);
+    u32(npcs,0,83);u32(objects,0,336);
+    u16(npcs,4U+82U*0x45U+0x14U,2);
+    u16(objects,4U+335U*0x41U+0x28U,1);
+    objects[4U+335U*0x41U+0x2AU]=1;
+    const auto definitions=decode_native_scene_definitions(
+        banks,npcs,objects);
+    assert(definitions.npc_definitions.size()==83);
+    assert(definitions.object_definitions.size()==336);
+    assert(definitions.npc_shape_base(82)==2);
+    assert(definitions.object_shape_base(335)==6);
+    assert(definitions.max_npc_local_base==2);
+    assert(definitions.max_object_allocation_end==2);
+    assert(definitions.init_scene_descriptor(1,3).shape_stride==2);
+    assert(definitions.init_base_variant(1,3,0)==3);
+    assert(definitions.init_base_variant(3,11,0)==7);
+    rejects([&]{static_cast<void>(definitions.npc_shape_base(83));});
+    rejects([&]{static_cast<void>(definitions.object_shape_base(336));});
+    rejects([&]{static_cast<void>(
+        definitions.init_scene_descriptor(2,0));});
+    rejects([&]{static_cast<void>(
+        definitions.init_base_variant(1,0,1));});
+
+    auto broken_npc=npcs;
+    u16(broken_npc,4U+82U*0x45U+0x14U,3);
+    rejects([&]{static_cast<void>(
+        decode_native_scene_definitions(banks,broken_npc,objects));});
+    auto broken_object=objects;
+    broken_object[4U+335U*0x41U+0x2AU]=2;
+    rejects([&]{static_cast<void>(
+        decode_native_scene_definitions(banks,npcs,broken_object));});
+    broken_object=objects;
+    u32(broken_object,0,335);
+    rejects([&]{static_cast<void>(
+        decode_native_scene_definitions(banks,npcs,broken_object));});
+    broken_npc=npcs;
+    broken_npc.pop_back();
+    rejects([&]{static_cast<void>(
+        decode_native_scene_definitions(banks,broken_npc,objects));});
+
     const NativeResArchive archive(fake_res(compressed_shape(original_body)));
     const auto corpus=audit_native_res3_scene_corpus(init,archive);
     assert(corpus.banks.res3_entries==8);

@@ -16,6 +16,10 @@ int run(const std::filesystem::path& original_install) {
         const rloft_native::NativeResArchive res3(original_res3);
         const auto corpus=rloft_native::audit_native_res3_scene_corpus(
             init,res3);
+        const auto npcs=media.read("NPCS.DAT");
+        const auto objects=media.read("OBJECTS.DAT");
+        const auto definitions=rloft_native::decode_native_scene_definitions(
+            corpus.banks,npcs,objects);
         // Read-only metadata; this does not export 4,234 decoded shapes
         // or the original compressed bytes. The hashes pin the inputs.
         auto json=rloft_native::native_res3_scene_corpus_json(corpus);
@@ -26,7 +30,20 @@ int run(const std::filesystem::path& original_install) {
         json+=",\"original_init_sha256\":\""+
               rloft_native::native_sha256_hex(init)+"\"";
         json+=",\"original_res3_sha256\":\""+
-              rloft_native::native_sha256_hex(original_res3)+"\"}\n";
+              rloft_native::native_sha256_hex(original_res3)+"\"";
+        json+=",\"original_npcs_sha256\":\""+
+              rloft_native::native_sha256_hex(npcs)+"\"";
+        json+=",\"original_objects_sha256\":\""+
+              rloft_native::native_sha256_hex(objects)+"\"";
+        json+=",\"npc_definition_count\":"+
+              std::to_string(definitions.npc_definitions.size());
+        json+=",\"object_definition_count\":"+
+              std::to_string(definitions.object_definitions.size());
+        json+=",\"max_npc_shape_local\":"+
+              std::to_string(definitions.max_npc_local_base);
+        json+=",\"max_object_allocation_end\":"+
+              std::to_string(definitions.max_object_allocation_end);
+        json+="}\n";
         std::cout<<json;
         return 0;
     }catch(const std::exception& error) {

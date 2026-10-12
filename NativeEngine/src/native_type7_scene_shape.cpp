@@ -173,6 +173,88 @@ NativeRes3SceneBanks decode_native_res3_scene_banks(
     return banks;
 }
 
+std::size_t NativeSceneDefinitionDirectory::npc_shape_base(
+    unsigned type_id) const {
+    if(type_id>=npc_definitions.size())
+        throw std::out_of_range("original NPC definition type id out of range");
+    return npc_definitions[type_id].absolute_shape_base;
+}
+std::size_t NativeSceneDefinitionDirectory::object_shape_base(
+    unsigned type_id) const {
+    if(type_id>=object_definitions.size())
+        throw std::out_of_range("original OBJECTS definition type id out of range");
+    return object_definitions[type_id].absolute_shape_base;
+}
+NativeSceneSourceDescriptor NativeSceneDefinitionDirectory::init_scene_descriptor(
+    unsigned source_class,unsigned type_id) const {
+    if(source_class!=1 && source_class!=3)
+        throw std::out_of_range("original INIT scene descriptor class must be 1 or 3");
+    const auto& table=banks.init_descriptors[source_class==1?0:1];
+    if(type_id>=table.size())
+        throw std::out_of_range("original INIT scene descriptor type id out of range");
+    return table[type_id];
+}
+std::size_t NativeSceneDefinitionDirectory::init_base_variant(
+    unsigned source_class,unsigned type_id,unsigned variant_index) const {
+    const auto desc=init_scene_descriptor(source_class,type_id);
+    if(variant_index>=desc.variant_count)
+        throw std::out_of_range("original INIT scene variant index out of range");
+    const auto local=std::size_t(desc.shape_base_local)+
+                     std::size_t(desc.shape_stride)*variant_index;
+    return banks.absolute_id(source_class,local);
+}
+
+NativeSceneDefinitionDirectory decode_native_scene_definitions(
+    const NativeRes3SceneBanks& banks,
+    const std::vector<std::uint8_t>& npcs,
+    const std::vector<std::uint8_t>& objects) {
+    auto full_count=[](const std::vector<std::uint8_t>& bytes,
+                       unsigned stride,unsigned expected,
+                       const char* label) {
+        require(bytes.size()>=4,"native source definition table truncated");
+        const auto count=std::size_t(bytes[0])|
+                         (std::size_t(bytes[1])<<8U)|
+                         (std::size_t(bytes[2])<<16U)|
+                         (std::size_t(bytes[3])<<24U);
+        require(count==expected && bytes.size()==4U+count*stride,label);
+        return count;
+    };
+    const auto npc_count=full_count(
+        npcs,0x45,83,"original NPCS definition count/stride invalid");
+    const auto object_count=full_count(
+        objects,0x41,336,"original OBJECTS definition count/stride invalid");
+    NativeSceneDefinitionDirectory result;
+    result.banks=banks;
+    result.npc_definitions.reserve(npc_count);
+    result.object_definitions.reserve(object_count);
+    for(std::size_t id=0;id<npc_count;++id) {
+        const auto local=word(npcs,4U+id*0x45U+0x14U);
+        require(banks.contains(0,local),
+                "NPC definition local base exceeds original RES3 class zero");
+        result.npc_definitions.push_back({
+            local,banks.absolute_id(0,local)});
+        result.max_npc_local_base=std::max(
+            result.max_npc_local_base,std::size_t(local));
+    }
+    for(std::size_t id=0;id<object_count;++id) {
+        const auto at=4U+id*0x41U;
+        const auto local=word(objects,at+0x28U);
+        const auto stride=objects[at+0x2AU];
+        // The original source permits an unused zero+zero placeholder.
+        require((banks.contains(2,local) ||
+                 (local==0 && stride==0)) &&
+                std::size_t(local)+stride<=banks.lengths[2],
+                "OBJECTS shape base/stride exceeds original RES3 class two");
+        result.object_definitions.push_back({
+            local,stride,banks.absolute_id(2,local)});
+        result.max_object_allocation_end=std::max(
+            result.max_object_allocation_end,std::size_t(local)+stride);
+    }
+    require(result.max_object_allocation_end==banks.lengths[2],
+            "original OBJECTS shapes do not close class-two RES3 bank");
+    return result;
+}
+
 NativeRes3SceneCorpus audit_native_res3_scene_corpus(
     const std::vector<std::uint8_t>& init,
     const NativeResArchive& archive) {
