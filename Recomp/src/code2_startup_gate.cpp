@@ -746,10 +746,20 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         require(item>=0x2C000u && item<0x2D500u &&
                 std::memcmp(state.data.data()+item,"no87=1",7)==0,
                 "original environment string was not copied by 3A2AD");
-        require(state.stream_nodes==5u && state.allocation_calls==8u &&
-                state.aligned_allocations==state.allocation_calls+
-                    (advance_to_sound_file?1u:0u),
-                "five original stream descriptors plus env/table/argv allocations not observed");
+        if(state.stream_nodes!=5u || state.allocation_calls!=8u ||
+           state.aligned_allocations!=state.allocation_calls+
+               (advance_to_sound_file?1u:0u)) {
+            std::cerr<<"SOURCE_ALLOCATOR_ACCOUNTING_DIAGNOSTIC"
+                     <<" stop="<<state.stop_reason
+                     <<" stream_nodes="<<state.stream_nodes
+                     <<" allocation_calls="<<state.allocation_calls
+                     <<" aligned_allocations="<<state.aligned_allocations
+                     <<" checked_alloc_calls="<<state.checked_alloc_calls
+                     <<" file_open_calls="<<state.file_open_calls
+                     <<" original_375fe_callback="<<state.dos_vector_callbacks
+                     <<'\n';
+            fail("five original stream descriptors plus env/table/argv allocations not observed");
+        }
         require(state.data[0xF73Du]==0x04u &&
                 code2::load_le32(state.data.data()+0x2B74Cu)==0u,
                 "original stream initializer state mismatch");
