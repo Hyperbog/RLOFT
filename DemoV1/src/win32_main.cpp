@@ -2448,6 +2448,9 @@ struct DemoCommandLine final {
     bool dev_inspect{};
     bool dev_interact{};
     bool dev_trace{};
+    // Explicitly select the original data installation for user field tests.
+    // This does NOT execute original R.EXE/CODE.1/CODE.2 machine code.
+    bool choose_install{};
     bool capture_render{};
     std::size_t capture_limit{16U};
     bool custom_capture_limit{};
@@ -2472,6 +2475,8 @@ DemoCommandLine command_line_options() {
                 result.dev_interact = true;
             } else if (arg == L"--dev-trace") {
                 result.dev_trace = true;
+            } else if (arg == L"--choose-install") {
+                result.choose_install = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
@@ -2483,6 +2488,7 @@ DemoCommandLine command_line_options() {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
                     "[--dev-inspect] [--dev-interact] [--dev-trace] "
+                    "[--choose-install] "
                     "[--capture-render] [--capture-frames=64] "
                     "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
@@ -2515,6 +2521,10 @@ DemoCommandLine command_line_options() {
         throw std::invalid_argument(
             "--capture-frames requires --capture-render or --dev-trace");
     }
+    if(result.choose_install && result.source) {
+        throw std::invalid_argument(
+            "--choose-install cannot be combined with an installation path");
+    }
     if(result.dev_trace && !result.custom_capture_limit)
         result.capture_limit=64U;
     return result;
@@ -2524,7 +2534,15 @@ int run(HINSTANCE instance) {
     const auto options = command_line_options();
     rloft::GameSource source;
 
-    if (const auto explicit_path = options.source) {
+    // A field report must identify its original installed-data source.
+    // Never silently fall back to the previously remembered installation
+    // when the dedicated normal-path diagnostic requests this chooser.
+    // Gameplay is STILL the incomplete native reimplementation.
+    if (options.choose_install) {
+        auto chosen = choose_valid_install(nullptr);
+        if (!chosen) return 2;
+        source = std::move(*chosen);
+    } else if (const auto explicit_path = options.source) {
         source = rloft::GameSource::open(*explicit_path);
         save_preferred_install(source.location().install_root);
     } else {

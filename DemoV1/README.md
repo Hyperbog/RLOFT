@@ -26,6 +26,22 @@ then passed **245/245**, produced a new Windows artifact, and committed its
 verified executable. This closes the Windows regression checkpoint, **not**
 the M-PLAY-01 normal-play field test or original DOS equivalence.
 
+## Player field observation: prototype versus original DOS runtime
+
+**October 11:** the owner reported that the bundled normal-trace launcher
+still opens the old Level 22 native demo. This is consistent with the
+source: `ravenloft_demo_v1.exe` is an incomplete C++ reconstruction
+using original asset data, **not the original DOS R.EXE or original
+CODE.1/CODE.2 execution**. Existing `CHARS` immediately enters its
+Level 22 native engine. The field milestone M-PLAY-01 is **not accepted**.
+
+The NEXT authorized Windows build will update the diagnostic command to
+`--dev-trace --choose-install` so the source installation is selected
+explicitly (instead of silently reusing a cached one). This **only
+clarifies provenance**; it does not make the complete game playable.
+Build #660 remains the last Windows-verified executable. Do not
+represent this source-only revision as built or DOS-faithful.
+
 ## Current player field-test checkpoint
 
 **[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; the Windows Full #660 compilation/test gate is accepted; independent DOS parity is unchanged. No build is dispatched by creating this checkpoint.

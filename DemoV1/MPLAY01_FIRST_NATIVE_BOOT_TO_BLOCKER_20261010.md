@@ -4,6 +4,45 @@
 **Type:** diagnostic field-test milestone within the **complete faithful original-game reimplementation**; **not** a partial-game release, DOS parity certification, a separate "Phase I", or permission to modernize.  
 **Established:** 2026-10-10. **Status:** latest Windows Full #660 compiled/tested/published; first ordinary user playthrough **not yet accepted**.
 
+## 2026-10-11 field observation: Level 22 is still the prototype
+
+**Player report (after #660):** `Trace-Normal-Launch.cmd` opens the old
+Level 22 native demo rather than the original full DOS game. This is a
+**valid product-scope and user-expectation blocker**, not a success result
+for M-PLAY-01. No new ordinary-play progress was established.
+
+**Code-based explanation:** the CMD calls `ravenloft_demo_v1.exe`
+and enables only `--dev-trace`. That executable is the **incomplete native
+C++ reconstruction**, not original `R.EXE` or the DOS `CODE.1/CODE.2`
+machine code. The host uses `GameSource` to read original media
+(`RES0`, `INIT`, `RES3`, `RES4`, `LEVELS.DAT`, etc.); this
+**does not imply executable or full-game parity**. Original CODE.2
+fresh-party initialization reaches level 22 at (4.5,4.5), facing 270.
+A pre-existing writable `CHARS` suppresses the intro/creation route
+and goes straight to the **same unfinished Level 22 native renderer**,
+which explains the immediately familiar screen.
+
+**Source remedy pending next authorized build:** the diagnostic wrapper
+now explicitly identifies itself as an incomplete native reconstruction,
+and passes `--choose-install` to require the user to select their
+**intended owned original-data installation**, bypassing previously
+remembered install paths. It never launches the DOS original. The new
+CLI rejects pairing this option with an explicit path, and retains the
+non-preview normal startup branch; source-only tests assert those
+properties. The original source files, game state, and existing
+renderer are unchanged. Windows compilation/execution of this new
+source revision remain **unverified**, and the previously published
+#660 ZIP cannot contain the fix. The original DOS parity and entire
+gameplay progression gates remain **open**.
+
+**Proper next implementation objective:** close the actual original
+startup/gameplay integration and complete source-faithful Level 22
+interactions, authored events, original renderer and state continuity.
+Do not mistake rebranding, selecting assets, a clean CTest run,
+or Level 22 resembling the original starting location for completion.
+Document the first real blocker in the native engine separately from
+this misleading launcher scope.
+
 ## Goal
 
 Give the player a reproducibly identified Windows build of the **existing native engine**, run it against their **legally owned, original** Ravenloft installation, follow the **ordinary startup and character/gameplay path** as far as it works, and record the **first blocking divergence** plus all previously working interactions. Do not require completion of the whole game before collecting this evidence. Do not substitute an artificial warp, test fixture, invented event or synthetic asset for actual progression.
@@ -56,11 +95,13 @@ This checkpoint is an observation and defect-triage gate. The separate project c
 
 ## Packaged no-shortcut field launcher
 
-`Trace-Normal-Launch.cmd` is staged beside the native EXE in the **next
-explicitly authorized** Windows Full/Quick artifact. Double-click it in an
-isolated owned-game installation; it launches only
-`ravenloft_demo_v1.exe --dev-trace` and follows the ordinary original
-intro → menu → CHARS/character creation → exploration path. It never
+`Trace-Normal-Launch.cmd` in the upcoming **separately authorized**
+Windows artifact is an opt-in diagnostic for the **incomplete native
+reimplementation**. It runs
+`ravenloft_demo_v1.exe --dev-trace --choose-install` and asks which
+original-data installation to read. It does **not** execute the original
+DOS game. Existing `CHARS` enters the still-incomplete native Level 22
+runtime; a disposable copy without `CHARS` can attempt the cold intro. It never
 uses `--explore-level22`, a temporary diagnostic party or dev-interact
 flags. The launcher does not write original files itself, but **normal
 gameplay may write CHARS and saves**, so a disposable runtime copy is

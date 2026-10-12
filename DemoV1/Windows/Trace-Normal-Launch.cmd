@@ -1,14 +1,19 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-rem M-PLAY-01 ordinary startup: NO Level 22 shortcut, injected party,
-rem interaction overrides, synthetic state, or original media modifications.
-rem The native game itself may write CHARS/SAVE. Use a disposable copy.
+rem M-PLAY-01 incomplete NATIVE reconstruction, NOT original R.EXE.
+rem This tool uses owned original data but DOES NOT execute the DOS game.
+rem No Level 22 warp, injected party or developer interaction overrides.
+rem Normal native startup MAY write CHARS/SAVE. Use an isolated copy.
 set "ROOT=%TEMP%\RLOFT-Demo-Diagnostics"
-echo Ravenloft M-PLAY-01: NORMAL LAUNCH plus read-only native trace.
+echo RAVENLOFT NATIVE REIMPLEMENTATION - INCOMPLETE FIELD TEST
+echo This is NOT the original DOS game and does NOT execute R.EXE.
+echo It loads selected original game DATA into the partial native engine.
+echo You will choose the exact original installation in a folder dialog.
+echo The native engine currently begins at Level 22 with existing CHARS.
+echo For a cold start, test a separate copy without CHARS.
 echo Use an isolated installation/runtime copy. Back up CHARS and SAVE.DAT.
-echo This launcher does NOT prevent normal original-game state writes.
-echo Follow the authentic intro/menu/creation path. No developer shortcut.
-echo F12 marks a frame once exploration starts. Exit the game to package it.
+echo The native engine may write files during normal play.
+echo F12 marks an exploration frame. Exit to package a report.
 echo.
 if not exist "%~dp0ravenloft_demo_v1.exe" (
   echo Native executable missing beside Trace-Normal-Launch.cmd.
@@ -16,13 +21,14 @@ if not exist "%~dp0ravenloft_demo_v1.exe" (
   exit /b 1
 )
 if exist "%ROOT%\latest-session.txt" del /q "%ROOT%\latest-session.txt"
-rem Deliberately do not forward arbitrary command-line flags to the game.
-rem Owned-media selection uses the ordinary install-discovery/folder UI.
-"%~dp0ravenloft_demo_v1.exe" --dev-trace
+rem Force an explicit folder chooser, preventing a silently cached install.
+rem Do not forward arbitrary options or enable the old preview warp.
+"%~dp0ravenloft_demo_v1.exe" --dev-trace --choose-install
 set "GAME_STATUS=%ERRORLEVEL%"
 if not exist "%ROOT%\latest-session.txt" (
-  echo No exploration trace was created. The normal game may have stopped
-  echo during intro, menus or character creation. Record a screenshot and
+  echo No exploration trace was created. The native engine may have stopped
+  echo before exploration or the original-media chooser was cancelled.
+  echo Record a screenshot and
   echo the first failed action; do NOT count this as a successful boot.
   echo Native game exit code: %GAME_STATUS%
   pause

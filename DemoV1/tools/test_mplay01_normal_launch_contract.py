@@ -15,7 +15,7 @@ class NormalLaunchContract(unittest.TestCase):
         text = WIN.read_text(encoding="utf-8")
         lines = [s.strip() for s in text.splitlines()]
         commands = [s for s in lines if s.lower().startswith('"%~dp0ravenloft_demo_v1.exe"')]
-        self.assertEqual(commands, ['"%~dp0ravenloft_demo_v1.exe" --dev-trace'])
+        self.assertEqual(commands, ['"%~dp0ravenloft_demo_v1.exe" --dev-trace --choose-install'])
         # Forbid forwarding arbitrary flags, injected parties or dev gameplay.
         self.assertNotIn('%*', text)
         for flag in ('--explore-level22', '--dev-inspect', '--dev-interact',
@@ -24,6 +24,9 @@ class NormalLaunchContract(unittest.TestCase):
         self.assertIn('latest-session.txt', text)
         self.assertIn('Compress-Archive', text)
         self.assertIn('CHARS and SAVE.DAT', text)
+        self.assertIn('does NOT execute R.EXE', text)
+        self.assertIn('exact original installation', text)
+        self.assertIn('without CHARS', text)
         self.assertNotRegex(text.lower(), r'del\s+[^\n]*\b(chars|save\.dat)\b')
 
     def test_packaging_is_explicit_and_reproducible(self):
@@ -37,6 +40,15 @@ class NormalLaunchContract(unittest.TestCase):
         source = HOST.read_text(encoding="utf-8")
         self.assertIn('arg == L"--dev-trace"', source)
         self.assertIn('result.dev_trace = true;', source)
+        self.assertIn('arg == L"--choose-install"', source)
+        self.assertIn('result.choose_install = true;', source)
+        self.assertIn('if (options.choose_install)', source)
+        self.assertIn('source = std::move(*chosen);', source)
+        self.assertIn('if(result.choose_install && result.source)', source)
+        # A diagnostic chooser must execute before saved-path/autodiscovery.
+        self.assertLess(source.index('if (options.choose_install)'),
+                        source.index('if (const auto saved = preferred_install())'))
+        self.assertIn('Gameplay is STILL the incomplete native reimplementation', source)
         self.assertGreaterEqual(source.count('options.dev_trace'), 3)
         self.assertTrue(re.search(r'\*startup_chars,false,false,16U,false,false,options\.dev_trace', source))
 
