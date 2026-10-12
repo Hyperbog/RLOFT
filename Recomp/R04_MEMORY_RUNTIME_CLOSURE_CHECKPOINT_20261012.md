@@ -4,6 +4,18 @@ Canonical owner: `code1-decompilation/Recomp/`. This is **not** `demo-v1`
 or `native-engine`. Original reconstructed `Code1/Code1.cpp` and
 `Code2/Code2.cpp` were not modified.
 
+## Subsequent independently verified original CODE.2 closure
+
+Windows [#98](https://github.com/Hyperbog/RLOFT/actions/runs/38254878225)
+passed **46/46**, including original CODE.2 `39A8A` host-DPMI
+`0503` relocation and `39A2C` source-driven `0502` reclamation,
+with no seeded arena in the test. Original byte disassembly at
+`39A3C..39A45` exposed a corrected arena-size comparison in the
+reconstructed `Code2/Code2.cpp`: failing Windows #97 now passes.
+See [the exact byte-level correction and source test](R04_CODE2_SOURCE_HEAP_RELOCATION_RECLAMATION_20261012.md).
+**The standalone lifecycle gate has passed; continuous startup and
+full DOS/4GW memory acceptance have not.**
+
 ## Decision
 
 **R04 remains NOT ACCEPTED.** The fixed whole-game score is
@@ -99,10 +111,12 @@ None of the original commercial media is included in Actions.
 
 ## Unmet acceptance conditions (do not flip R04 yet)
 
-1. Run compiled original **CODE.2 `39C7B/39D4D/39E1C/39A8A`**
-   heap establishment, growth, resize, release and OOM rollback through
-   live host-owned DPMI/DOS services. CODE.2 game-entry still seeds
-   a bounded synthetic `0x2B800/0x2C000..0x2D500` arena instead.
+1. Integrate live original **CODE.2 `39C7B/39D4D/39BBC/39A8A/39A2C`**
+   memory lifecycles into **continuous game-entry and initializer source**
+   without the bounded synthetic `0x2B800/0x2C000..0x2D500` arena.
+   The isolated source `39A8A` DPMI 0503 and `39A2C` DPMI 0502
+   lifecycles are now verified in Windows #98; DOS fallback / alternate
+   `39E1C` heap growth and original DOS parity still need work.
 2. Implement selector base/limit/descriptor state for source-required
    **DPMI `0006h`**, complete DOS/4GW and extender-specific memory
    ownership and 48/49/4A callback ABI, and unify memory mappings.
