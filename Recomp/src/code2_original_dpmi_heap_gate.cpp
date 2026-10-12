@@ -1,8 +1,8 @@
 // R04 CODE.2 source execution: an initially empty arena chain is grown by
 // actual reconstructed 37B42 -> 39D4D -> 39C7B -> DPMI 0501 -> 39BBC.
 // Source 39838/398E0 performs allocation, splitting, free and reuse.
-// An address-space mirror is necessary because Machine currently exposes only
-// a contiguous DGROUP pointer; this is NOT a complete DOS/4GW memory mapping.
+// A bounded shared linear aperture permits original Machine.data + guest
+// address to access the very same host-owned DPMI pages. Not DOS/4GW parity.
 #include "../../Code2/Code2.cpp"
 #include "dpmi_linear_memory.hpp"
 #include <cstdint>
@@ -15,8 +15,9 @@
 namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 struct Session {
-    rloft_recomp::DpmiLinearMemory memory;
+    // Both provider and original dg(m,linear) now share exact guest bytes.
     std::vector<u8> guest=std::vector<u8>(0x01100000u,0u);
+    rloft_recomp::DpmiLinearMemory memory;
     std::vector<std::pair<u32,u32>> owned; // (handle, linear base)
     code2::Machine machine{};
     code2::Runtime142Boundary dpmi{};
@@ -24,7 +25,9 @@ struct Session {
     code2::Runtime129Boundary heap{};
     bool bad=false;
     unsigned grow_calls=0, free_calls=0;
-    Session() {machine.data=guest.data();}
+    Session():memory(guest.data(),guest.size()) {
+        machine.data=guest.data();
+    }
 };
 thread_local Session* active=nullptr;
 u32 read(u32 p) noexcept {return code2::load_le32(active->guest.data()+p);}
@@ -42,9 +45,13 @@ code2::Runtime142Boundary::Dpmi0501Result allocate(u32 bytes) noexcept {
         (void)s.memory.release(r.handle);
         return {true,0u,0u,0u};
     }
-    // The original code writes directly through Machine.data. Track the
-    // authoritative host allocation, mirroring its pages into guest space.
-    std::memcpy(s.guest.data()+r.linear,block->bytes.data(),block->committed);
+    // Source writes through Machine.data now address host-owned DPMI pages.
+    if(s.memory.translate(r.linear,block->committed)!=
+       s.guest.data()+r.linear) {
+        s.bad=true;
+        (void)s.memory.release(r.handle);
+        return {true,0u,0u,0u};
+    }
     s.owned.emplace_back(r.handle,r.linear);
     return {false,r.linear,static_cast<u16>(r.handle>>16u),
             static_cast<u16>(r.handle)};
@@ -138,17 +145,15 @@ void test() {
     const u32 reused=code2::function_37b42(s.heap,60u);
     check(reused==small && s.memory.allocation_count()==2u,
           "original 39838 failed first-fit reuse without new host allocation");
-    // The currently reconstructed Machine cannot directly address provider
-    // pages. Explicitly validate the mirror before retiring each host block.
+    // Provider and reconstructed CODE.2 must retain one guest byte image.
+    // No end-of-test copy-back is permitted.
     for(const auto& [handle,base]:s.owned) {
         const auto* block=s.memory.block(handle);
         check(block!=nullptr && block->linear==base,
               "DPMI handle lost before host-backed snapshot");
         u8* host=s.memory.translate(base,block->committed);
-        check(host!=nullptr,"host provider translation missing");
-        std::memcpy(host,s.guest.data()+base,block->committed);
-        check(std::memcmp(host,s.guest.data()+base,block->committed)==0,
-              "host/guest page snapshot differs");
+        check(host==s.guest.data()+base,
+              "original CODE.2 did not write host-owned DPMI memory");
         check(!s.memory.release(handle).carry,"host release failed");
         check(s.memory.translate(base,1u)==nullptr,
               "released host allocation remained mapped");
@@ -160,7 +165,7 @@ void test() {
                "CODE2_HOST_DPMI_0501_TWO_ARENAS=PASS\n"
                "CODE2_SOURCE_FREE_SPLIT_REUSE_OOM=PASS\n"
                "CODE2_SOURCE_39A2C_39A8A_FULL_PARITY=NO\n"
-               "CODE2_UNIFIED_GUEST_PAGE_MAPPING=NO\n"
+               "CODE2_UNIFIED_GUEST_PAGE_MAPPING=YES\n"
                "R04_ACCEPTED=NO\n";
 }
 } // namespace
