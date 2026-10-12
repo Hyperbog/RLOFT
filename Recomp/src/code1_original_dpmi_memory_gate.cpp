@@ -12,7 +12,8 @@
 namespace {
 using u8=std::uint8_t;using u16=std::uint16_t;using u32=std::uint32_t;
 struct Session {
-    rloft_recomp::DpmiDosMemory dos;
+    rloft_recomp::DpmiSelectorDescriptors descriptors;
+    rloft_recomp::DpmiDosMemory dos{&descriptors};
     rloft_recomp::DpmiLinearMemory linear;
     std::array<u16,8> observed_selectors{};
     unsigned selectors=0,alloc_dos=0,release_dos=0,lookups=0;
@@ -91,6 +92,8 @@ u32 largest_dos_bytes(){return static_cast<u32>(active->dos.largest_free())*16u;
 int main() {
     try {
         Session s;
+        need(s.descriptors.install(0x30u,0x00050000u,0x00020000u),
+             "CODE.1 loader DGROUP descriptor installation failed");
         active=&s;
         code1::MidDpmiBoundaries b{};
         b.alloc_dos=&source_dos_allocate;
@@ -153,6 +156,10 @@ int main() {
         need(code1::function_6f74(b,owner_selector)==0 &&
              s.dos.allocation_count()==0u &&
              s.linear.allocation_count()==0u &&
+             s.descriptors.size()==1u &&
+             !s.descriptors.get_base(0x30u).carry &&
+             s.descriptors.get_base(0x30u).base()==0x00050000u &&
+             s.descriptors.get_base(retained_selector).carry &&
              !s.bad_access && s.header_writes==4u,
              "source DPMI header or lifetime invariants failed");
         need(s.alloc_dos==2u && s.release_dos==3u &&
