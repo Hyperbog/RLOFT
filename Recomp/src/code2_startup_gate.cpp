@@ -1569,6 +1569,25 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 }
             }
         }
+        if(source_host_heap) {
+            const u32 node=code2::load_le32(state.data.data()+0x12624u);
+            require(node>=rloft_recomp::DpmiLinearMemory::kFirstLinear &&
+                    !state.arena_seeded &&
+                    code2::load_le32(state.data.data()+node+0x18u)==
+                        (source_audio_allocates?9u:8u),
+                    "actual original source heap allocation count changed");
+            const u32 freeptr=code2::load_le32(state.data.data()+node+0x0Cu);
+            const u32 sentinel=node+0x20u;
+            require(freeptr>=node+0x2Cu &&
+                    freeptr<node+code2::load_le32(state.data.data()+node) &&
+                    code2::load_le32(state.data.data()+freeptr+4u)==sentinel &&
+                    code2::load_le32(state.data.data()+freeptr+8u)==sentinel &&
+                    code2::load_le32(state.data.data()+sentinel+4u)==freeptr &&
+                    code2::load_le32(state.data.data()+sentinel+8u)==freeptr &&
+                    state.dpmi_linear_memory->translate(freeptr,12u)==
+                        state.data.data()+freeptr,
+                    "original 39BBC/39838 DPMI free-list metadata differs");
+        } else {
         require(state.arena_seeded &&
                 code2::load_le32(state.data.data()+0x12624u)==state.arena_header &&
                 code2::load_le32(state.data.data()+state.arena_header+0x18u)==
@@ -1584,6 +1603,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 code2::load_le32(state.data.data()+sent+8u)==freeptr &&
                 code2::load_le32(state.data.data()+freeptr)>12u,
                 "real 39838 original arena free-list split/link invariants differ");
+        }
     }
     std::cout<<"CODE2_ORIGINAL_SOURCE_ENTRY=353A0\n"
              <<"ORIGINAL_PRIORITY_INITIALIZERS_EXECUTED="<<state.completed_initializers<<"/4\n"
