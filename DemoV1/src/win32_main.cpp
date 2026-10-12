@@ -2451,6 +2451,8 @@ struct DemoCommandLine final {
     // Explicitly select the original data installation for user field tests.
     // This does NOT execute original R.EXE/CODE.1/CODE.2 machine code.
     bool choose_install{};
+    // Opt-in original-front-end presentation, never gameplay or CHARS I/O.
+    bool front_end_only{};
     bool capture_render{};
     std::size_t capture_limit{16U};
     bool custom_capture_limit{};
@@ -2477,6 +2479,8 @@ DemoCommandLine command_line_options() {
                 result.dev_trace = true;
             } else if (arg == L"--choose-install") {
                 result.choose_install = true;
+            } else if (arg == L"--front-end-only") {
+                result.front_end_only = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
@@ -2488,7 +2492,7 @@ DemoCommandLine command_line_options() {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
                     "[--dev-inspect] [--dev-interact] [--dev-trace] "
-                    "[--choose-install] "
+                    "[--choose-install] [--front-end-only] "
                     "[--capture-render] [--capture-frames=64] "
                     "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
@@ -2524,6 +2528,10 @@ DemoCommandLine command_line_options() {
     if(result.choose_install && result.source) {
         throw std::invalid_argument(
             "--choose-install cannot be combined with an installation path");
+    }
+    if(result.front_end_only && result.explore_level22) {
+        throw std::invalid_argument(
+            "--front-end-only cannot use the retired Level 22 preview");
     }
     if(result.dev_trace && !result.custom_capture_limit)
         result.capture_limit=64U;
@@ -2584,7 +2592,12 @@ int run(HINSTANCE instance) {
     // cold-start presentation. A valid existing party enters the gameplay
     // import/level-load path directly; CHARS-absent startup continues through
     // the cinematic/menu/character workflow below.
-    auto startup_chars = source.read_runtime("CHARS");
+    // The original CODE.2 CHARS-present startup remains untouched in normal
+    // mode. Only the explicit, read-only front-end presentation hides CHARS
+    // from the startup choice, so the existing intros and title can be seen.
+    auto startup_chars = options.front_end_only
+        ? std::optional<std::vector<std::uint8_t>>{}
+        : source.read_runtime("CHARS");
 
     rloft::RavenloftBootAssets assets(std::move(source));
     Host host;
@@ -2755,6 +2768,16 @@ int run(HINSTANCE instance) {
 
         if (const auto click = host.consume_click()) {
             flow.select_startup_menu(*click);
+            // In the opt-in showcase only, make unimplemented menu items
+            // explicitly visible rather than appear to accept empty input.
+            if (options.front_end_only && (*click == 0 || *click == 1)) {
+                MessageBoxW(host.hwnd(),
+                    L"This original menu option is not yet implemented.\n"
+                    L"Character Creation is available.",
+                    L"Ravenloft title menu integration pending",
+                    MB_OK | MB_ICONINFORMATION);
+                continue;
+            }
 
             if (*click == rloft::BootFlow::kCharacterWorkflowMenuIndex) {
                 if (!fade_out(host, presenter, palette12)) return 0;
@@ -3756,6 +3779,20 @@ int run(HINSTANCE instance) {
                                     rloft::build_character_transfer(
                                         transfer,
                                         transfer_tables);
+                                // Showcase never deletes/writes an existing
+                                // CHARS file or enters the Level 22 prototype.
+                                if (options.front_end_only) {
+                                    host.set_character_mode(false);
+                                    MessageBoxW(host.hwnd(),
+                                        L"Original intro/title and character\n"
+                                        L"creation reached the transfer stage.\n\n"
+                                        L"The complete game runtime is still\n"
+                                        L"under reconstruction. No CHARS or\n"
+                                        L"SAVE files were modified.",
+                                        L"Ravenloft front-end checkpoint",
+                                        MB_OK | MB_ICONINFORMATION);
+                                    return 0;
+                                }
                                 const auto path =
                                     assets.source().runtime_output_path(
                                         "CHARS");
