@@ -1,5 +1,27 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Latest R04 audit — cross-thread reconciliation (2026-10-12)
+
+The 16 commits after the prior main-thread checkpoint `2ad11d1`
+were verified to modify **only `Recomp/`** and advance the
+**canonical memory-runtime R04 gate**, not NativeEngine or DemoV1.
+
+[Windows #96](https://github.com/Hyperbog/RLOFT/actions/runs/38252199410)
+passed **46/46 CTests** at `898898dae8992978df728043d560c44eb4213601`.
+The expanded source-backed CODE.2 heap witness allocates real host DPMI
+pages through original `37B42/39D4D/39C7B/39BBC` from an empty arena
+chain, then verifies split/free/reuse and out-of-memory behavior.
+The original CODE.1 DPMI `0006` selector and ownership-header tests
+also pass. A separate audit regression checks shared CODE.2 guest-byte
+`0503` relocation/rollback and stale-handle release.
+See [full cross-thread verification](R04_CROSS_THREAD_COMMIT_AUDIT_20261012.md).
+
+**R04 is still not accepted; recompilation is 3/12 = 25.00%.**
+Source-backed CODE.2 `39A8A` relocation and `39A2C` automatic
+reclamation, complete continuous startup, and authentic DOS/4GW parity
+remain open. The earlier dated build notes below are historical.
+
+
 ## R04 focused checkpoint — original CODE.1 host-backed heap execution (2026-10-12)
 
 [Windows source build #81](https://github.com/Hyperbog/RLOFT/actions/runs/38245588733)
