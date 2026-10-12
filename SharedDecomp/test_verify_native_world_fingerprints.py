@@ -55,10 +55,10 @@ class NativePayloadFingerprintTests(unittest.TestCase):
                                report if report is not None else self.native,
                                require_known=requires_known)
 
-    def test_all_256_field_digests_with_synthetic_native_shape(self):
+    def test_all_288_field_digests_with_synthetic_native_shape(self):
         result=self.check()
         self.assertEqual(result["status"],"ALL_32_ORIGINAL_SECTIONS_MATCH")
-        self.assertEqual(result["section_hashes_checked"],256)
+        self.assertEqual(result["section_hashes_checked"],288)
         self.assertFalse(result["compiled_native_binary_verified"])
         self.assertFalse(result["native_gameplay_parity_verified"])
         self.assertFalse(result["original_identity_pinned"])
@@ -77,6 +77,30 @@ class NativePayloadFingerprintTests(unittest.TestCase):
         self.assertEqual(result["first_divergence"]["field"],"input_levels_sha256")
         self.assertTrue(any(x["field"]=="levels/0/cells_sha256"
                             for x in result["differences"]))
+
+    def test_source_header_mutation_is_detected(self):
+        altered=bytearray(self.levels)
+        first=int.from_bytes(altered[4:8],"little")
+        # Header +0x290 is profile metadata; changing a byte here does
+        # not change the directory/controls/events structural boundaries.
+        altered[first+29+0x290]^=1
+        result=self.check(levels=bytes(altered))
+        self.assertEqual(result["status"],"DIFFERENT")
+        self.assertTrue(any(change["field"]=="levels/0/header_sha256"
+                            for change in result["differences"]))
+
+    def test_missing_native_header_digest_is_rejected(self):
+        candidate=copy.deepcopy(self.native)
+        candidate["levels"][22].pop("header_sha256")
+        with self.assertRaisesRegex(OracleError,"header_sha256"):
+            self.check(report=candidate)
+
+    def test_native_header_digest_mutation_finds_exact_level(self):
+        candidate=copy.deepcopy(self.native)
+        candidate["levels"][22]["header_sha256"]="f"*64
+        result=self.check(report=candidate)
+        self.assertEqual(result["first_divergence"]["field"],
+                         "levels/22/header_sha256")
 
     def test_one_native_control_hash_mutation_finds_level(self):
         candidate=copy.deepcopy(self.native)

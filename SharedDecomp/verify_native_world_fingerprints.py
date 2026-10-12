@@ -21,8 +21,8 @@ RESULT_SCHEMA = "rloft-original-native-payload-diff/v1"
 SOURCE_LIMIT = 8 * 1024 * 1024
 REPORT_LIMIT = 1024 * 1024
 SHA = re.compile(r"[0-9a-f]{64}\Z")
-HASH_FIELDS = ("cells_sha256", "controls_sha256", "events_sha256",
-               "automap_sha256", "annotations_sha256",
+HASH_FIELDS = ("header_sha256", "cells_sha256", "controls_sha256",
+               "events_sha256", "automap_sha256", "annotations_sha256",
                "family_a_sha256", "family_b_sha256", "family_c_sha256")
 
 
@@ -45,6 +45,11 @@ def expected_hashes(src: bytes, level: int, source_row: dict) -> dict:
     # The independently validated original_world_oracle.audit() already
     # checks every section boundary; calculate family SHA from raw source.
     evidence = {
+        # New 0x2A4 fixed header includes original renderer resource
+        # mapping tables and unresolved authoring bytes. It is hashed
+        # directly from original media, never copied from native metadata.
+        "header_sha256": hashlib.sha256(
+            rec[bounds[0]:bounds[0]+0x2a4]).hexdigest(),
         "cells_sha256": source_row["cells_sha256"],
         "controls_sha256": source_row["controls_sha256"],
         "events_sha256": source_row["events_sha256"],
