@@ -141,6 +141,12 @@ if(BUILD_TESTING)
         COMMAND rloft_code1_startup_gate --extender-host-resize)
     add_test(NAME canonical_code1_startup_ccde_to_original_source_dpmi_heap_lifetime
         COMMAND rloft_code1_startup_gate --extender-host-resize-to-source-heap)
+    # From the original CODE.1 CC1C/CCDE extender handshake through CD97:
+    # FCE8 original constructor table, FC98 original heap default setter.
+    add_test(NAME canonical_code1_startup_original_cd97_pharlap_mode2
+        COMMAND rloft_code1_startup_gate --extender-host-resize-to-cd97)
+    add_test(NAME canonical_code1_startup_cd97_mode2_source_10dd7_break_heap
+        COMMAND rloft_code1_startup_gate --extender-host-resize-to-cd97-break-heap)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
