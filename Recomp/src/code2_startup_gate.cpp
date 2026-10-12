@@ -266,22 +266,42 @@ std::int32_t host_heap_dos_allocate(u16 paragraphs) noexcept {
         stop("SOURCE_HEAP_DOS_FALLBACK_NOT_CONFIGURED");
     ++s.source_dos_requests;
     const auto r=s.dos_heap_memory->allocate(paragraphs);
-    return r.carry?-1:static_cast<std::int32_t>(r.ax);
+    if(r.carry)return -1;
+    const u32 physical=s.dos_heap_memory->physical_base(r.ax);
+    // The original 39C7B wrapper passes the returned DOS identity through
+    // selector-base translation. Register it with the SAME table as DS:30h.
+    // Using a real-mode segment as a selector remains explicit host policy.
+    if(!physical ||
+       !s.host_startup_descriptors.install(
+           r.ax,kHostDosAlias+physical,static_cast<u32>(paragraphs)*16u)) {
+        (void)s.dos_heap_memory->release(r.ax);
+        stop("SOURCE_HEAP_DOS_SELECTOR_REGISTRATION_FAILURE");
+    }
+    return static_cast<std::int32_t>(r.ax);
 }
 void host_heap_dos_release(u16 selector) noexcept {
     auto& s=*current;
-    if(!s.dos_heap_memory || s.dos_heap_memory->release(selector).carry)
-        stop("SOURCE_HEAP_DOS_RELEASE_INVALID_SELECTOR");
+    if(!s.dos_heap_memory ||
+       !s.host_startup_descriptors.descriptor(selector) ||
+       s.dos_heap_memory->release(selector).carry ||
+       !s.host_startup_descriptors.retire(selector))
+        stop("SOURCE_HEAP_DOS_RELEASE_INVALID_DESCRIPTOR_OR_BLOCK");
     ++s.source_dos_releases;
 }
 u32 host_heap_dos_selector_base(u16 selector) noexcept {
     auto& s=*current;
     if(!s.dos_heap_memory)stop("SOURCE_HEAP_DOS_SELECTOR_UNAVAILABLE");
     const u32 physical=s.dos_heap_memory->physical_base(selector);
-    if(!physical || s.dos_heap_memory->translate(physical,4u)!=
-                       s.data.data()+kHostDosAlias+physical)
+    const auto base=s.host_startup_descriptors.get_base(selector);
+    const auto* block=s.dos_heap_memory->block(selector);
+    if(!physical || base.carry || !block ||
+       !s.host_startup_descriptors.check(selector,0u,4u) ||
+       !s.host_startup_descriptors.check(
+           selector,0u,static_cast<u32>(block->paragraphs)*16u) ||
+       base.base()!=kHostDosAlias+physical ||
+       s.dos_heap_memory->translate(physical,4u)!=s.data.data()+base.base())
         stop("SOURCE_HEAP_DOS_SELECTOR_UNOWNED");
-    return kHostDosAlias+physical;
+    return base.base();
 }
 bool host_heap_owned(Session& s,u32 linear,std::size_t size) noexcept {
     if(linear>s.data.size() || size>s.data.size()-linear)return false;
@@ -1791,6 +1811,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                      state.source_dos_requests==2u &&
                      state.source_dos_releases==1u &&
                      state.dos_heap_memory->allocation_count()==1u &&
+                     state.host_startup_descriptors.size()==2u &&
+                     state.host_startup_descriptors.get_base(0x1001u).carry &&
                      state.dpmi_linear_memory->allocation_count()==0u):
                     (state.host_heap_allocs>=1u &&
                      state.dpmi_linear_memory->allocation_count()>=1u)) &&
@@ -1798,6 +1820,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                        state.data.data()+0x12624u)+0x2Cu,4u) &&
                 state.host_heap_releases==0u,
                 "initializer source did not establish tracked memory heap");
+        if(source_dos_fallback) {
+            const u32 node=code2::load_le32(state.data.data()+0x12624u);
+            const u16 selector=code2::load_le16(state.data.data()+node-4u);
+            const auto descriptor=state.host_startup_descriptors.get_base(selector);
+            require(selector==0x1003u && !descriptor.carry &&
+                    descriptor.base()==node-8u &&
+                    state.host_startup_descriptors.check(selector,8u,0x34u) &&
+                    !state.host_startup_descriptors.check(selector,0x1000u,1u) &&
+                    state.host_startup_descriptors.get_base(0x1001u).carry,
+                    "original DOS heap selector/base/limit/retirement mismatch");
+        }
         if(source_break_growth)
             std::cout<<"ORIGINAL_STARTUP_SOURCE_39E1C_EXTENDER_BREAK=PASS\\n";
         else if(source_dos_fallback)
