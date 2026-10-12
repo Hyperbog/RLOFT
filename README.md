@@ -8,7 +8,7 @@ This repository preserves and reverse-engineers the original DOS game and develo
 
 | Workstream | Owning project documents |
 | --- | --- |
-| Shared research infrastructure | [Deterministic source index and project ownership](ResearchInfra/README.md); [branch cleanup audit](docs/BRANCH_CLEANUP_AUDIT_20261011.md) |
+| Shared research infrastructure | [Deterministic source index and project ownership](ResearchInfra/README.md); [optional REA/Ghidra analysis for all projects](ResearchInfra/REA.md); [branch cleanup audit](docs/BRANCH_CLEANUP_AUDIT_20261011.md) |
 | Canonical recompilation | [Executable linker/startup and original LE-image integration](Recomp/README.md) |
 | Reconstructed executable CODE.1 | [`Code1/README.md`](Code1/README.md) |
 | Reconstructed executable CODE.2 | [`Code2/README.md`](Code2/README.md) |
