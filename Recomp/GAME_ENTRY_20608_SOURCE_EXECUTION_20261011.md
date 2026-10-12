@@ -84,6 +84,43 @@ path, that callback instead stops immediately before changing the host
 DOS/IVT vectors. This new test asserts all branches of the original
 8-bit mode selector, not game startup parity.
 
+## Beyond interrupt installation: canonical audio setup to sound.cfg open
+
+Two additional genuine-source integration paths, `--to-sound-config` and
+`--to-sound-config-configured`, extend the same original
+`353A0 -> 20608 -> 2F2EC` execution chain:
+
+```
+2F2EC -> 375FE  original far-vector/selector mode selection
+       -> 30BB4  original vector 9/8/0 backup/install
+       -> 290D0 -> 30CC4  original game RNG seed write
+       -> 3104C -> 37B34 -> 37B42 -> 39838  checked allocation
+       -> 30D30 -> 379D0  original checked memory fill
+       -> 312A0 -> 37E77  original sound.cfg DOS file open: STOP
+```
+
+**Only the external DOS interrupt table is a bounded test fixture.** The
+three vector entries 9, 8 and 0 start with distinct sentinel
+offset+selector pairs. The CTests check original `30BB4` stores the
+*actual prior* IVT values in DGROUP `F576/F57A`, `F582/F586`,
+`F57C/F580`, then installs the three genuine code handlers `308F8`,
+`30708` and `30B54`, and sets `F575`. The prior 375FE far vector
+is captured in the same bounded test-only IVT. **No host DOS/Windows
+interrupts are changed.**
+
+The assertions verify original `290D0->30CC4` seeding;
+`3104C/37B34` checked allocation through the actual reconstructed
+arena splitter, its ten-byte header and `12345678h` magic;
+original `30D30/379D0` zero fill; and source
+`312A0->37E77` opening argument `(sound.cfg,0x200)`. At that
+last original DOS I/O service, the test **stops fail-closed** rather than
+claiming to have opened real sound hardware files or entered gameplay.
+
+Two new CTests:
+`canonical_code2_source_runtime_to_sound_cfg_open` and
+`canonical_code2_configured_runtime_to_sound_cfg_open`.
+New Windows build / original DOS parity are separate gates.
+
 ## Independent original CODE.2 binary oracle
 
 `Recomp/tools/verify_original_game_entry_oracle.py` requires the untouched
