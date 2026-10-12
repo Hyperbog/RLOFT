@@ -1,5 +1,5 @@
 DOSDIS — SOURCE DEVELOPMENT ROADMAP AND BUILD-GATE POLICY
-Version: 1.1 | 2026-10-10
+Version: 1.2 | 2026-10-11 (DOSDis automatic build permission explicitly updated)
 Canonical branch: disassembler-foundation
 Source repository: https://github.com/Hyperbog/RLOFT
 Original DOS game collection: DnD-Classics / MASTER
@@ -17,26 +17,33 @@ accuracy claims. Confirm live Git HEAD instead of trusting a saved snapshot.
 
 PURPOSE
 -------
-Advance substantial batches of game-agnostic reverse engineering work without
-building Windows previews or invoking CI after every small source checkpoint.
-Treat source commits, successful compilation, synthetic verification, original
-byte verification, and user GUI acceptance as DIFFERENT levels of evidence.
+Advance game-agnostic reverse engineering with path-scoped automatic
+Windows desktop CI on relevant source/test changes, and allow the
+assistant to build, test and publish additional desktop previews as needed.
+Treat source commits, successful compilation, synthetic verification,
+original byte verification, and user GUI acceptance as DIFFERENT levels
+of evidence. No proprietary original game bytes may enter hosted CI.
 
 POLICY (NORMATIVE)
 ------------------
-1. "Continue" authorizes source editing, documentation, source-only regression
-   fixtures and commits. It does NOT authorize building, running tests, GitHub
-   Actions, publishing executables or modifying original game files.
-2. Build, execute tests, publish a preview or run CI ONLY after the owner
-   explicitly asks/approves. A roadmap gate marked READY is a request for
-   authorization, NOT permission to run the gate.
-3. Batch related changes (normally several coherent commits) before asking for
-   Windows execution. Stop earlier only for a significant runtime/ABI/schema
-   change, a safety concern, or a user request for an interactive preview.
+1. The owner **explicitly superseded the manual-only build rule on
+   2026-10-11**: source edits, synthetic test execution, Windows
+   desktop builds and preview publishing may proceed whenever needed,
+   without requesting separate authorization per run. Game binary
+   modification and proprietary original execution are NOT covered.
+2. The canonical .github/workflows/disassembler-core.yml now allows
+   workflow_dispatch, scoped push builds on disassembler-foundation
+   and scoped PR builds targeting that branch. Build/test failures
+   should be fixed and automatically reverified. Prevent irrelevant
+   doc or other project changes from triggering Windows builds.
+3. Prefer coherent source edits and prompt synthetic CI feedback,
+   avoiding unnecessary build cycles. Prior temporary owner-authorized
+   PR build gates are historical; new DOSDis builds no longer require
+   temporary PRs or repeated permission requests.
 4. Every source-only commit receives lightweight STATIC review: original-byte
    boundaries, overflow checks, null/malformed-input policy, public contracts,
    source identity, status/evidence labels, bounds, documentation, regression
-   fixture creation, branch HEAD and workflow manual-only state.
+   fixture creation, branch HEAD and current path-scoped automatic CI state.
    Such checks are not compilation and MUST NOT be reported as tests passed.
 5. No proprietary game bytes or executable archive content in development
    commits, synthetic fixtures, published artifacts or hosted CI. Known-answer
@@ -60,14 +67,17 @@ POLICY (NORMATIVE)
 10. Apply docs/INDEPENDENT_VALIDATION_POLICY.md as the NORMATIVE oracle,
     sampling, discrepancy, review and pass/fail contract. Use
     docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md for each accepted scope.
-    Builds, original corpus execution and CI remain owner-authorized only.
+    **Original-game execution and private owner-local oracle material
+    still require the appropriate separate authorization/evidence
+    controls; desktop build/test/CI permission is now standing.**
 
 EVIDENCE STATES
 ---------------
 PLANNED: scoped, no source change.
 IN PROGRESS: active implementation.
 SOURCE COMPLETE: committed; static review only; tests not run for that batch.
-COMPILED: owner-authorized Windows compile passed at the cited commit.
+COMPILED: Windows compiler succeeded at a pinned cited commit, irrespective
+  of automatic or manually triggered CI.
 SYNTHETIC VERIFIED: corresponding generated regression suites executed.
 ORIGINAL VERIFIED: exact-hash game source was checked and results recorded.
 GUI VERIFIED: the user exercised the named UI interaction successfully.
@@ -97,7 +107,7 @@ PHASE 0 — FOUNDATION AND REGRESSION CONTROL (ACTIVE, SOURCE-ONLY)
 R0.1 Keep repo contract, source-hash evidence and supported format matrix current.
 R0.2 Maintain positive, negative, malformed, truncation, collision, source-offset
      and adversarial graph mutation cases using exclusively synthetic bytes.
-R0.3 Keep manual-only GitHub workflow and fixed Windows build recipe; ensure
+R0.3 Keep path-scoped automatic GitHub Windows desktop CI and fixed build recipe; ensure
      smoke suites return nonzero on any assertion failure.
 R0.4 Record last compiled HEAD, original validation hashes, release artifacts
      and manual GUI acceptance separately from today's source HEAD.
@@ -322,6 +332,30 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW 2026-10-11 STANDING DOSDIS BUILD PERMISSION AND FIRST AUTO SUCCESS:
+- User explicitly removed the DOSDis manual build rule.
+  .github/workflows/disassembler-core.yml now auto-runs on scoped
+  pushes to disassembler-foundation and PRs targeting it,
+  retaining workflow_dispatch and desktop-only publishing.
+  Standalone CLI remains research-only; no proprietary originals
+  in CI; independent accuracy gates remain mandatory.
+- GitHub automatic #48 (38193637125) assigned a Windows runner,
+  compiled Core/Persistence, and found ONE WPF compiler error
+  CS0136 in MainWindow.xaml.cs from local fileOffset shadowing.
+  Corrected as canonical commit 15abeee277b2729028654c0b00865bb4d0c81b74.
+- GitHub automatic #49 (38193734386) SUCCESS: WPF desktop,
+  core, both smoke projects compiled; synthetic DosDis.Smoke
+  and DosDis.ProjectSmoke PASSED; one self-contained Win-x64
+  desktop preview published (NO CLI artifacts).
+  Artifact 11722213441, ZIP 66915474 bytes, SHA256
+  bf88b54660579ae4bfd038cd2f8a8a8622858d3abed97809b286f614f904a2d1.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38193734386
+  https://github.com/Hyperbog/RLOFT/actions/runs/38193734386/artifacts/11722213441
+- Owner WPF interaction for new Enter Find, per-byte Hex click
+  and source-bound highlights NOT YET VERIFIED; independently
+  validated full original-game ISA accuracy still PENDING.
+- Detailed report docs/DESKTOP_AUTO_BUILD_WIN49_20261011.md.
+HISTORICAL EARLIER GATES BELOW:
 NEW USER GUI INTERACTION REQUEST (2026-10-11) — SOURCE ONLY:
 - Owner confirms previous Windows desktop #44 navigation fixes
   work, and requests pressing Enter in Go To/Find to search;
