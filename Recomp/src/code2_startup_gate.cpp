@@ -1080,7 +1080,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
 int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
-        bool execute_application=false,advance_to_sound_file=false,sound_no_arguments=false;
+        bool execute_application=false,advance_to_sound_file=false,
+             sound_no_arguments=false,advance_to_mouse=false;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
         if(argc>=2) {
@@ -1091,19 +1092,32 @@ int main(int argc,char**argv) {
                mode=="--enter-game-signed-wrap" || mode=="--vector-mode-matrix" ||
                mode=="--to-sound-config" || mode=="--to-sound-config-configured" ||
                mode=="--to-sound-config-no-args" ||
-               mode=="--to-sound-config-no-args-configured") {
+               mode=="--to-sound-config-no-args-configured" ||
+               mode=="--to-mouse-reset" ||
+               mode=="--to-mouse-reset-configured" ||
+               mode=="--to-mouse-reset-no-args" ||
+               mode=="--to-mouse-reset-no-args-configured") {
+                advance_to_mouse=(mode=="--to-mouse-reset" ||
+                    mode=="--to-mouse-reset-configured" ||
+                    mode=="--to-mouse-reset-no-args" ||
+                    mode=="--to-mouse-reset-no-args-configured");
                 advance_to_sound_file=(mode=="--to-sound-config" ||
                     mode=="--to-sound-config-configured" ||
                     mode=="--to-sound-config-no-args" ||
-                    mode=="--to-sound-config-no-args-configured");
+                    mode=="--to-sound-config-no-args-configured" ||
+                    advance_to_mouse);
                 sound_no_arguments=(mode=="--to-sound-config-no-args" ||
-                    mode=="--to-sound-config-no-args-configured");
+                    mode=="--to-sound-config-no-args-configured" ||
+                    mode=="--to-mouse-reset-no-args" ||
+                    mode=="--to-mouse-reset-no-args-configured");
                 execute_application=(mode=="--enter-game" ||
                     mode=="--enter-game-config" || mode=="--enter-game-signed-wrap" ||
                     advance_to_sound_file);
                 if(mode=="--enter-game-config" ||
                    mode=="--to-sound-config-configured" ||
-                   mode=="--to-sound-config-no-args-configured")
+                   mode=="--to-sound-config-no-args-configured" ||
+                   mode=="--to-mouse-reset-configured" ||
+                   mode=="--to-mouse-reset-no-args-configured")
                     game_config=GameConfig::Overrides;
                 if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
                 extended=(mode=="--through-initializers" || execute_application);
@@ -1115,7 +1129,7 @@ int main(int argc,char**argv) {
             }
         }
         require(argc==original_index || argc==original_index+1,
-                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--to-sound-config|--to-sound-config-configured|--to-sound-config-no-args|--to-sound-config-no-args-configured|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
+                "usage: rloft_code2_startup_gate [--through-initializers|--enter-game|--enter-game-config|--enter-game-signed-wrap|--vector-mode-matrix|--to-sound-config|--to-sound-config-configured|--to-sound-config-no-args|--to-sound-config-no-args-configured|--to-mouse-reset|--to-mouse-reset-configured|--to-mouse-reset-no-args|--to-mouse-reset-no-args-configured|--termination-probe|--arena-roundtrip-probe|--env-rollback-probe] [CODE.2]");
         if(vector_matrix) {
             require(argc==original_index,"vector-mode probe does not use original data");
             interrupt_vector_matrix_probe();
@@ -1127,14 +1141,14 @@ int main(int argc,char**argv) {
             const auto fixture=synthetic_image();
             if(termination)termination_probe(fixture,false);
             else run(fixture,false,extended,execute_application,game_config,
-                     advance_to_sound_file,sound_no_arguments);
+                     advance_to_sound_file,sound_no_arguments,advance_to_mouse);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
             const auto image=rloft_recomp::OriginalLeImage::parse(b);
             if(termination)termination_probe(image,true);
             else run(image,true,extended,execute_application,game_config,
-                     advance_to_sound_file,sound_no_arguments);
+                     advance_to_sound_file,sound_no_arguments,advance_to_mouse);
         }
         return 0;
     } catch(const std::exception& e) {
