@@ -20,7 +20,7 @@ namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 enum class GameConfig { Unset, Overrides, SignedWrap };
 // Hypothetical mouse hardware outcomes, NEVER a claim of DOS observation.
-enum class MouseResetBranch { Stop, Present, Absent };
+enum class MouseResetBranch { Stop, Present, Absent, MemoryHandoff };
 struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
     std::jmp_buf escape;
@@ -70,6 +70,7 @@ struct Session {
     u32 original_open_create_slot=0xFFFFFFFFu;
     u8 open_access_share=0xFFu;
     unsigned dos_file_reads=0, dos_file_closes=0, mouse_reset_calls=0;
+    unsigned dpmi_mouse_simulation_calls=0;
     std::size_t audio_file_cursor=0;
     u32 audio_descriptor_flags=0, audio_published_flags=0;
     std::array<u8,59> audio_file_fixture{};
@@ -410,7 +411,8 @@ code2::Runtime100MouseResetResult controlled_mouse_reset() noexcept {
     ++current->mouse_reset_calls;
     if(current->mouse_branch==MouseResetBranch::Stop)
         stop("STOP_BEFORE_DOS_INT33_MOUSE_RESET");
-    if(current->mouse_branch==MouseResetBranch::Present)
+    if(current->mouse_branch==MouseResetBranch::Present ||
+       current->mouse_branch==MouseResetBranch::MemoryHandoff)
         return {0xFFFFu,3u};
     return {0u,0u};
 }
@@ -439,7 +441,35 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
         if(code2::load_le16(ctx+2u*i)!=expected[i])
             stop("ORIGINAL_DPMI_SEGMENT_SNAPSHOT_CHANGED");
     }
-    stop("STOP_BEFORE_DOS_INT31_0100_ALLOCATION");
+    if(current->mouse_branch!=MouseResetBranch::MemoryHandoff)
+        stop("STOP_BEFORE_DOS_INT31_0100_ALLOCATION");
+    // Synthetic DPMI allocation result only. Source 30D80 will then
+    // consume this AX/DX/carry frame and materialize its real-mode
+    // selector/segment fields. Never claim that DOS allocated anything.
+    code2::store_le32(out,0x2D60u); // guest 2D60:0000 -> DGROUP 2D600
+    code2::store_le16(out+0x0Cu,0x0060u);
+    out[0x18u]=0u;
+    return 0u;
+}
+u32 stop_at_original_int31_real_mode_mouse(u32 interrupt,u32* in,
+                                           u32* out,u16* segs) noexcept {
+    ++current->dpmi_mouse_simulation_calls;
+    if(interrupt!=0x31u || in!=out || in[0]!=0x0300u ||
+       in[1]!=0x0033u || in[5]!=0x2B770u ||
+       segs[0]!=current->machine.cpu.ds ||
+       code2::load_le32(segment(0x30u,0x2B770u+0x1Cu,4))!=0x53C1u ||
+       code2::load_le16(segment(0x30u,0x2B770u+0x22u,2))!=0x2D60u)
+        stop("ORIGINAL_33AA0_DPMI_0300_FRAME_CHANGED");
+    stop("STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION");
+}
+u32 original_mouse_33aa0(u32 frame) noexcept {
+    if(frame!=0x2B770u ||
+       current->mouse_branch!=MouseResetBranch::MemoryHandoff)
+        stop("ORIGINAL_33AA0_FRAME_OR_MODE_CHANGED");
+    code2::Runtime99Boundary b{};
+    b.ds_selector=current->machine.cpu.ds;
+    b.call_33a7c=&stop_at_original_int31_real_mode_mouse;
+    return code2::function_33aa0(b,frame);
 }
 u32 original_mouse_memory_via_30d80(u32 bytes,u32 a,u32 b) noexcept {
     if(bytes!=0x40u || a!=0xFD14u || b!=0xFD18u)
@@ -874,6 +904,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game_audio.call_312dc=&original_sound_config_close;
     state.mouse_init.int33_reset=&controlled_mouse_reset;
     state.mouse_init.call_30d80=&original_mouse_memory_via_30d80;
+    state.mouse_init.call_33aa0=&original_mouse_33aa0;
     state.dos_file_io.call_37a73=&original_dpmi_register_context;
     state.dos_file_io.call_33a7c=&stop_at_original_dpmi31;
     state.mouse_init.call_311e8=&original_mouse_warning_via_311e8;
@@ -911,7 +942,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     }
     current=nullptr;
     require(state.version_calls==1 && state.ff00_calls==1 &&
-            state.dpmi_calls==(mouse_branch==MouseResetBranch::Present?1u:0u),
+            state.dpmi_calls==(mouse_branch==MouseResetBranch::Present ||
+                              mouse_branch==MouseResetBranch::MemoryHandoff?1u:0u),
             "DOS service sequence differs from bounded original source");
     require(state.machine.cpu.interrupt_enable,"STI was not executed");
     require(code2::load_le16(state.code.data()+0x35675u)==0x30u,
@@ -945,8 +977,10 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "default test unexpectedly passed original allocator boundary");
     }else{
         const char* required_stop=advance_to_mouse
-            ? mouse_branch==MouseResetBranch::Present
-                ? "STOP_BEFORE_DOS_INT31_0100_ALLOCATION"
+            ? mouse_branch==MouseResetBranch::MemoryHandoff
+                ? "STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION"
+                : mouse_branch==MouseResetBranch::Present
+                    ? "STOP_BEFORE_DOS_INT31_0100_ALLOCATION"
                 : mouse_branch==MouseResetBranch::Absent
                     ? "STOP_BEFORE_DOS_INT21_AH09_MOUSE_WARNING"
                     : "STOP_BEFORE_DOS_INT33_MOUSE_RESET"
@@ -1152,12 +1186,22 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     require(mouse_source_ok,
                             "original 37E99/312EC/38106/312DC/380F8/33B44 source chain differs");
                     if(mouse_branch!=MouseResetBranch::Stop) {
-                        const u16 present=mouse_branch==MouseResetBranch::Present?0xFFFFu:0u;
-                        const u16 buttons=mouse_branch==MouseResetBranch::Present?3u:0u;
+                        const u16 present=mouse_branch==MouseResetBranch::Absent?0u:0xFFFFu;
+                        const u16 buttons=mouse_branch==MouseResetBranch::Absent?0u:3u;
                         require(rd16(0x2B7A2u)==present &&
                                 rd16(0x2B7A4u)==buttons &&
                                 rd16(0x2B7A6u)==0u,
                                 "canonical 33B44 source register stores differ");
+                        if(mouse_branch==MouseResetBranch::MemoryHandoff) {
+                            require(state.dpmi_mouse_simulation_calls==1u &&
+                                    rd32(0xFD14u)==0x2D600000u &&
+                                    rd16(0xFD18u)==0x0060u &&
+                                    rd32(0xFD10u)==0x2D600u &&
+                                    rd32(0x2B770u+0x1Cu)==0x53C1u &&
+                                    rd16(0x2B770u+0x22u)==0x2D60u,
+                                "canonical 30D80/33AA0 DPMI handoff differs");
+                        } else require(state.dpmi_mouse_simulation_calls==0u,
+                            "unexpected DPMI real-mode mouse simulation");
                     }
                 }
             }
@@ -1215,8 +1259,10 @@ int main(int argc,char**argv) {
                mode=="--to-mouse-reset-no-args" ||
                mode=="--to-mouse-reset-no-args-configured" ||
                mode=="--mouse-present-to-memory" ||
+               mode=="--mouse-present-to-real-mode" ||
                mode=="--mouse-absent-to-warning") {
-                advance_to_mouse=(mode=="--mouse-present-to-memory" ||
+                advance_to_mouse=(mode=="--mouse-present-to-real-mode" ||
+                    mode=="--mouse-present-to-memory" ||
                     mode=="--mouse-absent-to-warning" ||
                     mode=="--to-mouse-reset" ||
                     mode=="--to-mouse-reset-configured" ||
@@ -1242,6 +1288,7 @@ int main(int argc,char**argv) {
                     game_config=GameConfig::Overrides;
                 if(mode=="--enter-game-signed-wrap")game_config=GameConfig::SignedWrap;
                 if(mode=="--mouse-present-to-memory")mouse_branch=MouseResetBranch::Present;
+                if(mode=="--mouse-present-to-real-mode")mouse_branch=MouseResetBranch::MemoryHandoff;
                 if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
