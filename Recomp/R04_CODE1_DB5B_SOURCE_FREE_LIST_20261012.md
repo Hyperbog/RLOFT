@@ -38,6 +38,21 @@ the supplied original CODE.1 LE image, SHA-256
 No copyrighted image is added to the repository. This is still a
 bounded reconstructed-source fixture and not original DOS initialization.
 
+## Subsequent independent CI confirmation (supersedes pending note below)
+
+[Windows canonical build #117](https://github.com/Hyperbog/RLOFT/actions/runs/38271837071)
+at reconstructed-source commit `065a44edb135bc763199660ff6ae98665550a247`
+passed **51/51 CTests**, including the original compiled CODE.1
+`DB5B/10590` DPMI and DOS fallback split/coalesce tests introduced
+here. The earlier "Windows verification pending" paragraph below
+is **historical**, not a current blocker.
+
+[Windows canonical build #122](https://github.com/Hyperbog/RLOFT/actions/runs/38287503152)
+subsequently passed **55/55**, with four new continuous original
+CODE.2 DOS-fallback startup cases. The exact scope and remaining
+R04 boundaries are recorded in
+[`R04_CODE2_CONTINUOUS_DOS48_FALLBACK_20261012.md`](R04_CODE2_CONTINUOUS_DOS48_FALLBACK_20261012.md).
+
 ## Verification status and acceptance
 
 The new CODE.1 source changes are in:
