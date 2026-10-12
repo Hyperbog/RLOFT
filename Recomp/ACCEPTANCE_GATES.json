@@ -29,7 +29,7 @@
       "scope": "DOS/4GW memory, heap growth and DPMI selector lifecycle is implemented without test-only allocations",
       "accepted": false,
       "evidence": "",
-      "limitation": "Original CODE.2 continuous startup/4 initializers/game entry/sound/mouse reaches host DPMI 0501 heap with no seeded arena, Windows #106 (50/50). Original CODE.2 39A8A/39A2C and CODE.1 DPMI/DOS source lifecycles also separately verified. R04 NOT closed: CODE.1 DB5B full free-list, CODE.2 DOS fallback and 39E1C, cross-loader selector/extent ownership and independent original DOS memory parity remain unverified. See R04_CODE2_CONTINUOUS_HOST_DPMI_STARTUP_20261012.md"
+      "limitation": "Original CODE.2 continuous DPMI startup, host DPMI 0501-0503, 39A8A/39A2C, source 39C7B DOS 48/49 fallback, 39E1C alternate break growth, and byte-audited 398E0 circular free-list coalescence now verified in Windows #113 (51/51). R04 remains blocked: CODE.1 DB5B/10590 complete source free-list, DOS/39E1C continuous startup integration, unified selector/limit ownership across CODE.1/CODE.2, and independent original DOS memory behavior parity. See R04_CODE2_DOS_FALLBACK_BREAK_GROWTH_20261012.md"
     },
     {
       "id": "R05",
