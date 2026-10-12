@@ -1,5 +1,22 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Original CODE.2 scene staging and 400-record sorting — 2026-10-12
+
+[Detailed class-one/class-two staging and original-media proof](ORIGINAL_CODE2_NON_NPC_SCENE_STAGING_20261012.md):
+the independent native C++ core now handles original CODE.2
+placed/loose shape-base arithmetic, all 16-bit packed view variants,
+original `35798` projection and threshold gating as a **non-published
+scene-preparation stage**. The uploaded `OBJECTS.DAT` validated
+2,688 authentic definition/view cases with zero mismatches; 131,072
+independent synthetic combinations also passed. An audit corrected
+the scene-order capacity from 200 to **400** records based on original
+`0x2260` buffer stride and `0x190` producer saturation. Both
+new modules passed an isolated CMake 2/2 run and sanitizers. Original
+animation, source record producers beyond these bounded slices, full
+renderer dispatch and DOS-frame parity remain open. **31 registered
+native tests are not a 31/31 passing current-head CI claim**; the last
+independently accepted full Linux source run remains 29/29.
+
 ## Original CODE.2 2C3F1 scene draw-order source checkpoint (2026-10-12)
 
 [Exact original-byte selection and bounded native regression](ORIGINAL_CODE2_SCENE_RECORD_ORDER_20261012.md):
