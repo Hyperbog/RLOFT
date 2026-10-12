@@ -35,7 +35,8 @@ add_library(rloft_native_assets STATIC
   src/native_scene_instances.cpp
   src/native_sintab_raster.cpp
   src/native_type7_vga_dispatch.cpp
-  src/native_scene_frame_ranges.cpp)
+  src/native_scene_frame_ranges.cpp
+  src/native_type6_column_sampler.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -95,6 +96,11 @@ native_warnings(rloft_native_scene_instances_audit)
 add_executable(rloft_native_scene_frame_ranges_audit src/native_scene_frame_ranges_audit_main.cpp)
 target_link_libraries(rloft_native_scene_frame_ranges_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_scene_frame_ranges_audit)
+
+# CODE.2 338C8 portable fixed-point EH6 column rendering (not camera parity).
+add_executable(rloft_native_type6_strip_audit src/native_type6_strip_audit_main.cpp)
+target_link_libraries(rloft_native_type6_strip_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_type6_strip_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
@@ -200,6 +206,11 @@ add_executable(native_scene_frame_ranges_tests tests/native_scene_frame_ranges_t
 target_link_libraries(native_scene_frame_ranges_tests PRIVATE rloft_native_assets)
 native_warnings(native_scene_frame_ranges_tests)
 add_test(NAME native_scene_frame_ranges_tests COMMAND native_scene_frame_ranges_tests)
+
+add_executable(native_type6_column_sampler_tests tests/native_type6_column_sampler_tests.cpp)
+target_link_libraries(native_type6_column_sampler_tests PRIVATE rloft_native_assets)
+native_warnings(native_type6_column_sampler_tests)
+add_test(NAME native_type6_column_sampler_tests COMMAND native_type6_column_sampler_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
