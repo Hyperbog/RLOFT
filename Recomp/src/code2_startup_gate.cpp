@@ -414,10 +414,47 @@ code2::Runtime100MouseResetResult controlled_mouse_reset() noexcept {
         return {0xFFFFu,3u};
     return {0u,0u};
 }
-u32 stop_at_mouse_memory(u32 bytes,u32 a,u32 b) noexcept {
+void original_dpmi_register_context(u8* dst) noexcept {
+    // Original CODE.2 37A73 copies six segment words in ES,CS,SS,DS,FS,GS
+    // order into the private 30D52 register-call context.
+    code2::Runtime128Boundary ctx{};
+    const auto& cpu=current->machine.cpu;
+    ctx.es=cpu.es;ctx.cs=cpu.cs;ctx.ss=cpu.ss;
+    ctx.ds=cpu.ds;ctx.fs=cpu.fs;ctx.gs=cpu.gs;
+    std::array<u16,6> words{};
+    code2::function_37a73(ctx,words.data());
+    for(unsigned i=0;i<words.size();++i)
+        code2::store_le16(dst+2u*i,words[i]);
+}
+u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
+    ++current->dpmi_calls;
+    if(n!=0x31u || in==out ||
+       code2::load_le32(in)!=0x0100u ||
+       code2::load_le32(in+4u)!=5u)
+        stop("ORIGINAL_DPMI_0100_REQUEST_CHANGED");
+    const auto& cpu=current->machine.cpu;
+    const std::array<u16,6> expected{
+        cpu.es,cpu.cs,cpu.ss,cpu.ds,cpu.fs,cpu.gs};
+    for(unsigned i=0;i<expected.size();++i) {
+        if(code2::load_le16(ctx+2u*i)!=expected[i])
+            stop("ORIGINAL_DPMI_SEGMENT_SNAPSHOT_CHANGED");
+    }
+    stop("STOP_BEFORE_DOS_INT31_0100_ALLOCATION");
+}
+u32 original_mouse_memory_via_30d80(u32 bytes,u32 a,u32 b) noexcept {
     if(bytes!=0x40u || a!=0xFD14u || b!=0xFD18u)
         stop("ORIGINAL_MOUSE_MEMORY_ARGUMENTS_DIFFER");
-    stop("STOP_BEFORE_DOS_30D80_MOUSE_MEMORY");
+    u32 packed_segment=0u;
+    u16 selector=0u;
+    // Execute canonical 30D80 and 30D52 and reach 33A7C's DOS boundary.
+    // Output pointers are the original destination locations, represented
+    // as typed local storage; they cannot be written before INT31 succeeds.
+    const auto value=code2::function_30d80(
+        current->dos_file_io,static_cast<code2::s32>(bytes),
+        &packed_segment,&selector);
+    code2::store_le32(segment(0x30u,a,4),packed_segment);
+    code2::store_le16(segment(0x30u,b,2),selector);
+    return value;
 }
 void stop_at_mouse_warning(u32 msg) noexcept {
     if(msg!=0x15C8u)stop("ORIGINAL_MOUSE_WARNING_ARGUMENT_DIFFERS");
@@ -828,7 +865,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game_audio.call_312ec=&original_sound_config_read;
     state.game_audio.call_312dc=&original_sound_config_close;
     state.mouse_init.int33_reset=&controlled_mouse_reset;
-    state.mouse_init.call_30d80=&stop_at_mouse_memory;
+    state.mouse_init.call_30d80=&original_mouse_memory_via_30d80;
+    state.dos_file_io.call_37a73=&original_dpmi_register_context;
+    state.dos_file_io.call_33a7c=&stop_at_original_dpmi31;
     state.mouse_init.call_311e8=&stop_at_mouse_warning;
     state.game_audio.call_33b44=&original_mouse_initialization;
     state.startup.int21=&dos21;
@@ -863,7 +902,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     }
     current=nullptr;
     require(state.version_calls==1 && state.ff00_calls==1 &&
-            state.dpmi_calls==0,"DOS service sequence differs from bounded source");
+            state.dpmi_calls==(mouse_branch==MouseResetBranch::Present?1u:0u),
+            "DOS service sequence differs from bounded original source");
     require(state.machine.cpu.interrupt_enable,"STI was not executed");
     require(code2::load_le16(state.code.data()+0x35675u)==0x30u,
             "source startup did not save original DS through CODE selector");
@@ -897,7 +937,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     }else{
         const char* required_stop=advance_to_mouse
             ? mouse_branch==MouseResetBranch::Present
-                ? "STOP_BEFORE_DOS_30D80_MOUSE_MEMORY"
+                ? "STOP_BEFORE_DOS_INT31_0100_ALLOCATION"
                 : mouse_branch==MouseResetBranch::Absent
                     ? "STOP_BEFORE_DOS_311E8_MOUSE_WARNING"
                     : "STOP_BEFORE_DOS_INT33_MOUSE_RESET"
