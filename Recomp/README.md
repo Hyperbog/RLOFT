@@ -1,5 +1,26 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Current R04 focus: verified original CODE.2 0503/0502 lifecycle (2026-10-12)
+
+[Windows source gate #98](https://github.com/Hyperbog/RLOFT/actions/runs/38254878225)
+passed **46/46 CTests** after correcting a source-reconstruction defect in
+`Code2/Code2.cpp`: original CODE.2 instruction `39A43: CMP EAX,EDX`
+compares the full-free-block-plus-header length with the **arena size**,
+not the numeric arena pointer. The new regression exercises authentic
+reconstructed original `39A8A` DPMI `0503` resize/relocation,
+`37C37/398E0` free and coalescing, and original `39A2C` automatic
+DPMI `0502` reclamation with zero preseeded arena headers. Original
+source user bytes survive and old handles/linear mappings are retired.
+The test failed before this correction in Windows #97, and passed
+afterward in #98. See the
+[original-byte and lifecycle audit](R04_CODE2_SOURCE_HEAP_RELOCATION_RECLAMATION_20261012.md).
+
+**R04 remains unaccepted; 3/12 = 25.00%.** The next major obstacle is
+continuous original CODE.2 startup using the live source-backed heap
+instead of its historical fixture-initialized arena, followed by
+complete DOS/4GW original-behavior verification.
+
+
 ## Latest R04 audit — cross-thread reconciliation (2026-10-12)
 
 The 16 commits after the prior main-thread checkpoint `2ad11d1`
