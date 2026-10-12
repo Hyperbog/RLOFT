@@ -126,8 +126,8 @@ void run() {
     assert(narrow.levels[22][2].resource_slot_count==1);
     assert(narrow.frame_ranges_sha256!=frames.frame_ranges_sha256);
     broken_defs=definitions;
-    broken_defs.init_descriptors[0][10].shape_stride=255;
-    broken_defs.init_descriptors[0][10].variant_count=255;
+    broken_defs.banks.init_descriptors[0][10].shape_stride=255;
+    broken_defs.banks.init_descriptors[0][10].variant_count=255;
     rejects([&]{static_cast<void>(
         derive_native_authored_frame_ranges(a,broken_defs));});
     broken_defs=definitions;
