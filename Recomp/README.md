@@ -1,5 +1,31 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## Latest R04 checkpoint — DOS fallback, extender growth, free-list repair (2026-10-12)
+
+[Windows build #113](https://github.com/Hyperbog/RLOFT/actions/runs/38260777313)
+passed **51/51 CTests**. Compiled original CODE.2 now exercises
+`39C7B` DOS paragraph allocation fallback, probe rollback, and original
+`39A2C` DOS selector reclamation against a separate shared guest
+conventional-memory aperture. An additional source test executes original
+`39E1C` mode-2 DS-limit/break extension, multiple adjacent arena
+extensions, full `398E0` free/coalescence and large-block reuse without
+new host allocation.
+
+The expanded source test exposed a **real reconstruction defect** in
+`Code2/Code2.cpp`: the old `398E0` search skipped the circular-list
+sentinel during high-address free insertion. The correction was checked
+against original x86 instructions `39939..39946`, including the
+`JA 3999E` sentinel insertion branch. The original binary was not
+changed. See
+[the verified CODE.2 DOS/39E1C source checkpoint](R04_CODE2_DOS_FALLBACK_BREAK_GROWTH_20261012.md).
+
+**R04 remains unaccepted; recompilation is 3/12 = 25.00%.**
+CODE.1 `DB5B/10590` source free-list integration, non-DPMI
+startup-mode linkage, unified selector/limit ownership and original
+DOS differential memory observations remain outstanding.
+The chronological status sections below are archival checkpoints.
+
+
 ## Current R04 checkpoint — continuous original CODE.2 host DPMI heap (2026-10-12)
 
 [Windows #106](https://github.com/Hyperbog/RLOFT/actions/runs/38257869955)
