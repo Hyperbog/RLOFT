@@ -41,6 +41,7 @@ add_library(rloft_native_assets STATIC
   src/native_code2_wall_emission.cpp
   src/native_code2_projection.cpp
   src/native_code2_scene_order.cpp
+  src/native_code2_scene_staging.cpp
   src/native_vga_rgb6_scanout.cpp
   src/native_source_scene_compositor.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
@@ -265,6 +266,12 @@ add_executable(native_code2_scene_order_tests tests/native_code2_scene_order_tes
 target_link_libraries(native_code2_scene_order_tests PRIVATE rloft_native_assets)
 native_warnings(native_code2_scene_order_tests)
 add_test(NAME native_code2_scene_order_tests COMMAND native_code2_scene_order_tests)
+
+# Source-verified CODE.2 INIT/OBJECTS geometry and 35798 projection gate.
+add_executable(native_code2_scene_staging_tests tests/native_code2_scene_staging_tests.cpp)
+target_link_libraries(native_code2_scene_staging_tests PRIVATE rloft_native_assets)
+native_warnings(native_code2_scene_staging_tests)
+add_test(NAME native_code2_scene_staging_tests COMMAND native_code2_scene_staging_tests)
 
 add_executable(native_source_scene_compositor_tests tests/native_source_scene_compositor_tests.cpp)
 target_link_libraries(native_source_scene_compositor_tests PRIVATE rloft_native_assets)
