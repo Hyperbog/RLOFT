@@ -15,7 +15,7 @@ struct Session {
     std::vector<u8> dgroup;
     code1::Machine machine{};
     bool invalid_memory=false, invalid_free=false;
-    unsigned allocations=0, releases=0, return_to_free_list=0;
+    unsigned allocations=0, resizes=0, releases=0, return_to_free_list=0;
     u32 last_free_pointer=0;
 };
 thread_local Session* active=nullptr;
@@ -41,6 +41,11 @@ void heap_write(u32 guest,u32 value) {
 code1::DpmiBlockResult linear_allocate(u32 bytes) {
     ++active->allocations;
     const auto result=active->memory.allocate(bytes);
+    return {result.carry,result.linear,result.handle};
+}
+code1::DpmiBlockResult linear_resize(u32 handle,u32 bytes) {
+    ++active->resizes;
+    const auto result=active->memory.resize(handle,bytes);
     return {result.carry,result.linear,result.handle};
 }
 void linear_free(u32 handle) {
@@ -118,11 +123,50 @@ int main() {
              session.memory.block(handle)==nullptr &&
              code1::load_le32(session.dgroup.data()+0x8e74u)==0u,
              "source 107CB left a stale guest arena or handle");
+
+        // Original 1083F requires an allocated terminal block. The source
+        // free-list callback is still a test observer, so only the terminal
+        // used bit is installed as an explicit bounded test precondition.
+        Session resizing;
+        resizing.dgroup.assign(code1::kDataObjectVirtualSize,0u);
+        resizing.machine.data=resizing.dgroup.data();
+        resizing.machine.cpu.ds=0x30u;
+        code1::store_le32(resizing.dgroup.data()+0x55ccu,1u);
+        resizing.dgroup[0x531eu]=1u;
+        active=&resizing;
+        auto growth=gb;
+        growth.resize_0503=&linear_resize;
+        need(code1::function_10aa9(resizing.machine,hb,growth,0x300u)==1u,
+             "source 10AA9 failed to establish resize arena");
+        const u32 before=code1::load_le32(resizing.dgroup.data()+0x8e74u);
+        const u32 old_handle=heap_read(before);
+        need(heap_read(before+0x14u)==0x0fe4u,
+             "resize setup source arena size changed");
+        heap_write(before+0x20u,heap_read(before+0x20u)|1u);
+        const u32 relocated=code1::function_1083f(
+            resizing.machine,hb,growth,before+0x20u,0x1200u);
+        const u32 after=code1::load_le32(resizing.dgroup.data()+0x8e74u);
+        need(relocated==after+0x24u && after!=before &&
+             resizing.resizes==1u && resizing.memory.block(old_handle)==nullptr &&
+             resizing.memory.translate(before,4u)==nullptr,
+             "source 1083F did not perform DPMI 0503 relocation");
+        const u32 new_handle=heap_read(after);
+        const auto* new_block=resizing.memory.block(new_handle);
+        need(new_block && new_block->linear==after &&
+             new_block->committed==0x2000u &&
+             heap_read(after+4u)==0x2000u &&
+             (heap_read(after+0x20u)&1u)==1u,
+             "source 1083F did not rebuild relocated arena");
+        need(!resizing.invalid_memory && !resizing.invalid_free &&
+             resizing.return_to_free_list==2u,
+             "source 1083F guest accesses or tail release invalid");
+        need(!resizing.memory.release(new_handle).carry,
+             "resize regression test cleanup failed");
         active=nullptr;
         std::cout<<"ORIGINAL_CODE1_SOURCE_10AA9_109C1_1069B=EXECUTED\n"
                     "DPMI_0501_HOST_ALLOCATION=YES\n"
                     "SOURCE_HEAP_ARENA_PRESEEDED=NO\n"
-                    "DPMI_0502_SOURCE_FREE=EXECUTED\n"
+                    "DPMI_0502_SOURCE_FREE=EXECUTED_AND_SOURCE_1083F_0503_RELOCATED\n"
                     "ORIGINAL_CODE1_109C1_OOM_REJECTED=YES\\n"
                     "ORIGINAL_DOS_PARITY=NO\n"
                     "GAME_BOOTED=NO\n";
