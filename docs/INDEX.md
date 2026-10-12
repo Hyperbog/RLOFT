@@ -7,6 +7,7 @@
 - [2026-10-11 branch cleanup audit](BRANCH_CLEANUP_AUDIT_20261011.md) — fourteen archived branch tips and obsolete workflow retirement.
 - [Shared-code synchronization register](SHARED_SOURCE_REGISTER.md) — exact shared blobs, intentional drift and source-proof gate.
 - [Four CODE.2 original initializers through the game-entry boundary](../Recomp/INITIALIZER_20608_INTEGRATION_20261011.md) — canonical source execution, original-byte witnesses and DOS allocator limitations.
+- [Original CODE.2 initializer/shutdown indirect callback candidates](../ResearchInfra/CODE2_INDIRECT_CALLBACK_TABLES_20261011.md) — four initializer targets and partially file-backed `3A228` termination target.
 - [Original-machine CFG and AI work-packet integration](../ResearchInfra/ORIGINAL_MACHINE_CFG_20261011.md) — optional authenticated CODE originals, independent x86 blocks and source-call overlays.
 - [Bulk original LE survey and DOSDis evidence cross-check](../ResearchInfra/BULK_CFG_DOSDIS_BRIDGE_20261011.md) — bounded candidate source-address coverage and fail-closed DOSDis schema-v1 bridge.
 - [CODE.1 B01A overlapping-original-instruction correction](../ResearchInfra/CODE1_B01A_OVERLAP_CORRECTION_20261011.md) — authenticated alternate-entry STOSB, compiled regression and shared-source synchronization.

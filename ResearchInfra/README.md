@@ -58,3 +58,7 @@ The existing canonical source index is still the source-only graph, not a decomp
 ## 2026-10-11 CODE.1 verified overlapping-instruction correction
 
 The independently authenticated broad-source survey found one **real** alternate-entry overlap at CODE.1 `B04C`. [Original-byte analysis and synchronized C++ fix](CODE1_B01A_OVERLAP_CORRECTION_20261011.md) document why the reconstructed even-length string append needed an explicit terminating zero write. The canonical compiled test checks real memory state; this is not DOS gameplay acceptance.
+
+## Authenticated initializer and termination indirect targets
+
+The [CODE.2 LE original callback table resolver](CODE2_INDIRECT_CALLBACK_TABLES_20261011.md) verifies the original scheduler call sites and discovers a **partially file-backed termination entry `3A228`**, whose target high byte is produced by LE virtual zero fill. Its output explicitly distinguishes statically available callback targets from dynamically confirmed DOS indirect calls. Use `python3 ResearchInfra/code2_callback_tables.py --code2 /private/CODE.2 --out build/research/code2_callbacks.json` with authenticated owner-local game files; synthetic regression tests exercise the physical/zero-filled byte boundary in CI.

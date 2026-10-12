@@ -24,3 +24,7 @@ python3 -m unittest discover -s ResearchInfra -p 'test_*.py' -v
 The two indirect calls have **one known original static callback-table configuration**. Actual targets can change if the game mutates the table, runtime priority flags or memory mappings. Therefore the output intentionally retains `runtime_target_proven=false`; it does not mark the original DOS call sites fully resolved in a global CFG.
 
 [Canonical post-initializer executable source integration](../Recomp/INITIALIZER_20608_INTEGRATION_20261011.md) separately executed the four source-owned initializer callbacks with bounded test fixtures and stopped at game entry `20608`. The shutdown `3A228` callback has not yet been executed as original DOS or native gameplay.
+
+### Source execution verification
+
+[Windows reconstructed C++ CI #38186890574](https://github.com/Hyperbog/RLOFT/actions/runs/38186890574) passed **5/5 tests** at `07e70d64e493dc1fd0a4a74547aca00706828e2a`. The fifth test sources `3962D→3A228` from the original reconstructed functions, then stops before `3A63E` DOS exit on an empty synthetic stream list. This is a bounded source callback witness, not real DOS process termination or game shutdown equivalence.
