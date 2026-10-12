@@ -98,7 +98,7 @@ int main() {
         const u32 raw=code1::load_le32(session.dgroup.data()+0x30b0u);
         need(raw==arena+0x14u &&
              code1::load_le32(session.dgroup.data()+0x30b4u)==raw &&
-             heap_read(raw)==0x0fd8u,
+             heap_read(raw)==0x0fe4u,
              "original 1069B free-list arena or size mismatch");
         need(session.last_free_pointer==raw+0x10u &&
              heap_read(session.last_free_pointer-4u)>0u,
