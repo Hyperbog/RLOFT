@@ -1473,8 +1473,11 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     require(state.checked_alloc_calls==1u &&
                             state.checked_fill_calls==1u &&
                             state.audio_atoi_calls==0u &&
-                            env>=state.arena_start+0x0Au &&
-                            env<state.arena_end-0x100u &&
+                            (source_host_heap?
+                                (state.dpmi_linear_memory->translate(
+                                    env,0x101u)==state.data.data()+env):
+                                (env>=state.arena_start+0x0Au &&
+                                 env<state.arena_end-0x100u)) &&
                             rd32(env-4u)==0x12345678u &&
                             state.data[env+0x64u]==(advance_to_mouse?1u:0u),
                             "canonical argc=1 checked source audio buffer init mismatch");
