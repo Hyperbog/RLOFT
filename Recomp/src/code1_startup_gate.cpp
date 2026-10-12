@@ -4,6 +4,7 @@
 #include "../../Code1/Code1.cpp"
 #include "original_le_image.h"
 #include "extender_data_break.hpp"
+#include "dpmi_linear_memory.hpp"
 #include <csetjmp>
 #include <cstdint>
 #include <fstream>
@@ -15,7 +16,8 @@
 
 namespace {
 using u8=std::uint8_t;using u16=std::uint16_t;using u32=std::uint32_t;
-enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize, ExtenderHostResize };
+enum class Mode { BeforeVersion, Dos6ToFf00, ExtenderToResize, ExtenderHostResize,
+                  ExtenderHostResizeHeap };
 struct Session {
     std::jmp_buf escape{};
     std::vector<u8> dgroup;
@@ -26,8 +28,111 @@ struct Session {
     rloft_recomp::ExtenderDataBreak host_break{0x30u,code1::kDataObjectVirtualSize};
     const char* boundary="NONE";
     bool dos6_branch=false,extender_branch=false;
+    rloft_recomp::DpmiLinearMemory source_heap;
+    unsigned source_0501=0,source_0502=0,source_db5b=0;
+    bool bad_heap_access=false;
 };
 thread_local Session* current=nullptr;
+u8* heap_dword(u32 guest) noexcept {
+    auto& s=*current;
+    if(guest&3u){s.bad_heap_access=true;return nullptr;}
+    if(guest<s.dgroup.size()) {
+        if(s.dgroup.size()-guest<4u){s.bad_heap_access=true;return nullptr;}
+        return s.dgroup.data()+guest;
+    }
+    auto* ptr=s.source_heap.translate(guest,4u);
+    if(!ptr)s.bad_heap_access=true;
+    return ptr;
+}
+u32 heap_read32(u32 guest) noexcept {
+    const auto* p=heap_dword(guest);
+    return p?code1::load_le32(p):0u;
+}
+void heap_write32(u32 guest,u32 value) noexcept {
+    auto* p=heap_dword(guest);
+    if(p)code1::store_le32(p,value);
+}
+code1::DpmiBlockResult heap_dpmi_0501(u32 bytes) {
+    ++current->source_0501;
+    const auto r=current->source_heap.allocate(bytes);
+    return {r.carry,r.linear,r.handle};
+}
+void heap_dpmi_0502(u32 handle) {
+    ++current->source_0502;
+    if(current->source_heap.release(handle).carry)
+        current->bad_heap_access=true;
+}
+void heap_source_10590(u32 payload,u16 ds,u32 arena) {
+    if(ds!=current->machine.cpu.ds || arena!=0x30B8u) {
+        current->bad_heap_access=true;
+        return;
+    }
+    code1::HeapCoreBoundaries h{};
+    h.read32=&heap_read32;
+    h.write32=&heap_write32;
+    code1::function_10590(h,payload,arena);
+}
+void heap_source_clear8(u32 address,u8 value) {
+    if(address!=0x8E78u || address>=current->dgroup.size()) {
+        current->bad_heap_access=true;
+        return;
+    }
+    current->dgroup[address]=value;
+}
+void heap_source_db5b(u32 payload) {
+    ++current->source_db5b;
+    code1::AllocBoundary a{};
+    a.ds=current->machine.cpu.ds;
+    a.call_10590=&heap_source_10590;
+    a.write_linear8=&heap_source_clear8;
+    code1::function_db5b(a,payload);
+}
+void source_heap_post_extender_handoff() {
+    auto& s=*current;
+    // These four root DWORDs are exact authenticated original CODE.1
+    // static LE data bytes. The asset-free variant supplies them as an
+    // explicit fixture; original-media mode must already contain them.
+    const auto initialize=[&](u32 offset,u32 value) {
+        code1::store_le32(s.dgroup.data()+offset,value);
+    };
+    initialize(0x30C0u,0x30D4u);
+    initialize(0x30C8u,0xFFFFFFFFu);
+    initialize(0x30D8u,0x30D4u);
+    initialize(0x30DCu,0x30D4u);
+    // These two original CODE.1 Watcom allocator preconditions are host-
+    // supplied here; the runtime has not yet reached natural game setup.
+    initialize(0x55CCu,1u);
+    s.dgroup[0x531Eu]=1u;
+    code1::HeapCoreBoundaries hb{};
+    hb.read32=&heap_read32;
+    hb.write32=&heap_write32;
+    hb.dpmi_free_0502=&heap_dpmi_0502;
+    code1::HeapGrowthBoundaries gb{};
+    gb.alloc_0501=&heap_dpmi_0501;
+    gb.free_db5b=&heap_source_db5b;
+    if(code1::function_10aa9(s.machine,hb,gb,0x300u)!=1u)
+        throw std::runtime_error("original CODE.1 10AA9 failed after CCDE");
+    const u32 arena=code1::load_le32(s.dgroup.data()+0x8E74u);
+    if(arena!=rloft_recomp::DpmiLinearMemory::kFirstLinear ||
+       s.source_heap.allocation_count()!=1u ||
+       s.source_0501!=1u || s.source_db5b!=1u ||
+       heap_read32(0x30D8u)!=arena+0x20u ||
+       heap_read32(arena+0x20u)!=0x0FD8u || s.bad_heap_access)
+        throw std::runtime_error("CCDE original DPMI heap metadata mismatch");
+    const u32 payload=code1::function_104e0(hb,0x80u,0x30B8u);
+    if(payload!=arena+0x24u || !(heap_read32(payload-4u)&1u))
+        throw std::runtime_error("CODE.1 original 104E0 did not split heap");
+    heap_source_db5b(payload);
+    if(heap_read32(arena+0x20u)!=0x0FD8u ||
+       heap_read32(0x30C0u)!=arena+0x20u || s.bad_heap_access)
+        throw std::runtime_error("CODE.1 original DB5B/10590 coalescing changed");
+    code1::function_107cb(s.machine,hb);
+    if(s.source_0502!=1u || s.source_db5b!=2u ||
+       s.source_heap.allocation_count()!=0u ||
+       code1::load_le32(s.dgroup.data()+0x8E74u)!=0u ||
+       heap_read32(0x30C0u)!=0x30D4u || s.bad_heap_access)
+        throw std::runtime_error("CODE.1 original 107CB leaked heap after CCDE");
+}
 [[noreturn]] void halt(const char* reason) noexcept {
     current->boundary=reason;
     std::longjmp(current->escape,1);
@@ -50,7 +155,8 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
         // Controlled DOS responses for *source-branch observation only*.
         // 4458h is the original 32-bit extender marker; no extender ran.
         m.cpu.eax=(s.mode==Mode::ExtenderToResize ||
-                    s.mode==Mode::ExtenderHostResize)?
+                    s.mode==Mode::ExtenderHostResize ||
+                    s.mode==Mode::ExtenderHostResizeHeap)?
             0x44581606u:0x00001606u;
         return;
     }
@@ -60,7 +166,8 @@ void original_dos_int21(code1::Machine& m,u8 number) noexcept {
            s.dos6_branch)
             halt("STOP_BEFORE_CODE1_DOS_INT21_FF00");
         if((s.mode==Mode::ExtenderToResize ||
-            s.mode==Mode::ExtenderHostResize) &&
+            s.mode==Mode::ExtenderHostResize ||
+            s.mode==Mode::ExtenderHostResizeHeap) &&
            ((m.cpu.eax>>8)&0xFFu)==0x4Au &&
            s.extender_branch) {
             if(s.mode==Mode::ExtenderToResize)
@@ -125,21 +232,28 @@ void execute(Mode mode,const std::vector<u8>* original) {
         } else if(branch==code1::StartupPath::FallThroughCcde) {
             s.extender_branch=true;
             if(mode!=Mode::ExtenderToResize &&
-               mode!=Mode::ExtenderHostResize)
+               mode!=Mode::ExtenderHostResize &&
+               mode!=Mode::ExtenderHostResizeHeap)
                 halt("CODE1_STARTUP_EXTENDER_BRANCH_CHANGED");
             (void)code1::translate_ccde_cd16(
-                s.machine,mode==Mode::ExtenderHostResize?0xA000u:0x5000u);
-            if(mode==Mode::ExtenderHostResize)
+                s.machine,(mode==Mode::ExtenderHostResize ||
+                           mode==Mode::ExtenderHostResizeHeap)?0xA000u:0x5000u);
+            if(mode==Mode::ExtenderHostResize ||
+               mode==Mode::ExtenderHostResizeHeap)
                 halt("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE");
         } else halt("CODE1_ORIGINAL_ENTRY_BRANCH_INVALID");
         halt("CODE1_SOURCE_RETURNED_BEFORE_EXPECTED_DOS_BOUNDARY");
     }
+    if(mode==Mode::ExtenderHostResizeHeap &&
+       s.boundary==std::string("STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE"))
+        source_heap_post_extender_handoff();
     current=nullptr;
     const char* expected=mode==Mode::BeforeVersion?
         "STOP_BEFORE_CODE1_DOS_INT21_AH30_VERSION":
         mode==Mode::Dos6ToFf00?
         "STOP_BEFORE_CODE1_DOS_INT21_FF00":
-        mode==Mode::ExtenderHostResize?
+        (mode==Mode::ExtenderHostResize ||
+         mode==Mode::ExtenderHostResizeHeap)?
         "STOP_AFTER_CODE1_ORIGINAL_AH4A_HOST_RESIZE":
         "STOP_BEFORE_CODE1_DOS_INT21_AH4A_RESIZE";
     assert_true(s.boundary==std::string(expected),"CODE1 DOS entry boundary incorrect");
@@ -152,12 +266,17 @@ void execute(Mode mode,const std::vector<u8>* original) {
     if(mode!=Mode::BeforeVersion)
         assert_true(s.dgroup[0x5326u]==6u && s.dgroup[0x5327u]==22u,
                     "original CC1C DOS major/minor publication differs");
-    if(mode==Mode::ExtenderHostResize)
+    if(mode==Mode::ExtenderHostResize ||
+       mode==Mode::ExtenderHostResizeHeap)
         assert_true(s.host_break.successful_resizes()==1u &&
                     s.dgroup.size()==0xA000u &&
                     code1::load_le32(s.dgroup.data()+0x52f0u)==0xA000u &&
                     s.machine.cpu.es==0x30u,
                     "original CODE.1 CCDE host-backed 4KiB resize mismatch");
+    if(mode==Mode::ExtenderHostResizeHeap)
+        std::cout<<"CODE1_CCDE_10AA9_DB5B_107CB_SHARED_SESSION=PASS\\n"
+                    "CODE1_SOURCE_HEAP_PRESEEDED_ARENA=NO\\n"
+                    "CODE1_POST_STARTUP_HEAP_ENABLE=HOST_TRIGGERED\\n";
     std::cout<<"ORIGINAL_CODE1_SOURCE_ENTRY=CC1C\n"
              <<"SOURCE_BRANCH="<<(mode==Mode::BeforeVersion?"FIRST_DOS_INTERRUPT":
                       mode==Mode::Dos6ToFf00?"CD17_TO_CD50":"CCDE")<<"\n"
@@ -177,6 +296,7 @@ int main(int argc,char** argv) {
             if(cmd=="--dos6-to-ff00") {mode=Mode::Dos6ToFf00;index=2;}
             else if(cmd=="--extender-to-resize") {mode=Mode::ExtenderToResize;index=2;}
             else if(cmd=="--extender-host-resize") {mode=Mode::ExtenderHostResize;index=2;}
+            else if(cmd=="--extender-host-resize-to-source-heap") {mode=Mode::ExtenderHostResizeHeap;index=2;}
             else if(cmd=="--stop-before-version") {index=2;}
         }
         assert_true(argc==index || argc==index+1,
