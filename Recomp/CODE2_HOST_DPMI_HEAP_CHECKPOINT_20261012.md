@@ -29,6 +29,18 @@ Canonical branch: `code1-decompilation`, **Recomp/**. Not `demo-v1` or `native-e
   it **does not** claim original `39A2C` automatic reclamation or
   `39A8A` relocation. This is a partial R04 witness only.
 
+## Verified status update — cross-thread R04 audit
+
+[Windows build #96](https://github.com/Hyperbog/RLOFT/actions/runs/38252199410)
+passed **46/46 CTests**, including the compiled original CODE.2
+unseeded host-DPMI heap witness and a new shared-aperture
+DPMI `0503h` grow/shrink relocation regression.
+The earlier **CI pending** statement below is historical, not the
+current verification state. Read the
+[R04 cross-thread commit audit](R04_CROSS_THREAD_COMMIT_AUDIT_20261012.md)
+for exact source SHAs, independently checked runs, and outstanding
+`39A2C/39A8A` original-source gaps. **R04 is still not accepted (3/12).**
+
 ## Verification
 
 The test and CMake registration were committed to the canonical branch.
