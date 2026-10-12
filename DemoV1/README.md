@@ -113,3 +113,7 @@ Run these from the **repository root**. The Windows GUI executable, DOS runtime 
 ## Research history
 
 The [archived development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md) preserves every prior entry from the former 126 KB README, including historical, superseded test counts and failures. Independent original-byte audit and subsystem documents remain in place for reproducibility. Do not retroactively reinterpret old `certified` headings as a guarantee of semantic parity.
+
+## Optional shared REA research adapter
+
+[Optional shared REA native-binary analysis](REA_ANALYSIS.md) is available through the canonical `code1-decompilation:ResearchInfra/` checkout. It is local, read-only static analysis and **does not** install REA into this application's runtime, alter original game media, or certify original DOS/gameplay parity.
