@@ -6,6 +6,7 @@
 #include "original_le_image.h"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
+#include "dpmi_linear_memory.hpp"
 #include <algorithm>
 #include <array>
 #include <csetjmp>
@@ -87,6 +88,11 @@ struct Session {
     std::map<u32,u32> host_descriptor_flags;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
+    std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;
+    code2::Runtime142Boundary heap_provider{};
+    code2::Runtime39d4dBoundary heap_growth{};
+    bool source_host_heap=false;
+    unsigned host_heap_allocs=0,host_heap_growths=0,host_heap_releases=0;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -190,6 +196,74 @@ u32 fixture_alloc(u32 bytes) noexcept {
 void fixture_fill(u32 off,u8 value,u32 count) noexcept {
     u8* p=segment(0x30u,off,count);
     std::fill_n(p,count,value);
+}
+// R04 live host-backed heap mode: the original source owns all arena headers,
+// allocations, free-list splits and coalescing. The host supplies only a
+// checked 0501 memory service and bounded arena-chain dispatch.
+code2::Runtime142Boundary::Dpmi0501Result host_heap_0501(u32 bytes) noexcept {
+    auto& s=*current;
+    const auto r=s.dpmi_linear_memory->allocate(bytes);
+    if(r.carry)return {true,0u,0u,0u};
+    const auto* b=s.dpmi_linear_memory->block(r.handle);
+    if(!b || s.dpmi_linear_memory->translate(r.linear,b->committed)!=
+             s.data.data()+r.linear)
+        stop("SOURCE_HEAP_DPMI_PAGE_MAPPING_FAILED");
+    ++s.host_heap_allocs;
+    return {false,r.linear,static_cast<u16>(r.handle>>16u),
+            static_cast<u16>(r.handle)};
+}
+void host_heap_0502(u32 handle) noexcept {
+    if(current->dpmi_linear_memory->release(handle).carry)
+        stop("SOURCE_HEAP_DPMI_FREE_INVALID_HANDLE");
+    ++current->host_heap_releases;
+}
+u32 host_heap_39c7b(u32 n) noexcept {
+    return code2::function_39c7b(current->machine,current->heap_provider,n);
+}
+u32 host_heap_39bbc(u32 n) noexcept {
+    return code2::function_39bbc(current->machine,n);
+}
+void host_heap_free(u32 root,u32 payload) noexcept {
+    auto& s=*current;
+    if(root!=0x12624u || payload<4u || payload>=s.data.size())
+        stop("SOURCE_HEAP_FREE_GUEST_BOUNDS");
+    for(u32 node=code2::load_le32(s.data.data()+root);node;) {
+        const u32 size=code2::load_le32(segment(0x30u,node,4u));
+        const u32 next=code2::load_le32(segment(0x30u,node+8u,4u));
+        if(size>0x2Cu && payload>=node+0x30u && payload<node+size) {
+            if(!s.dpmi_linear_memory->translate(payload,1u))
+                stop("SOURCE_HEAP_FREE_DPMI_UNOWNED");
+            code2::function_398e0(s.machine,node,payload);
+            ++s.arena_frees;
+            return;
+        }
+        node=next;
+    }
+    stop("SOURCE_HEAP_FREE_ARENA_MISSING");
+}
+void host_heap_free_initial(u32 p) noexcept {
+    host_heap_free(0x12624u,p);
+}
+u32 host_heap_39d4d(u32 n) noexcept {
+    ++current->host_heap_growths;
+    return code2::function_39d4d(current->machine,current->heap_growth,n);
+}
+u32 host_heap_alloc(u32 root,u32 req) noexcept {
+    auto& s=*current;
+    if(root!=0x12624u || !req || req>0xFFFFFFD4u)
+        stop("SOURCE_HEAP_ALLOC_ABI_CHANGED");
+    for(u32 node=code2::load_le32(s.data.data()+root);node;) {
+        const u32 next=code2::load_le32(segment(0x30u,node+8u,4u));
+        const u32 p=code2::function_39838(s.machine,node,req);
+        if(p) {
+            if(s.dpmi_linear_memory->translate(p,req)!=s.data.data()+p)
+                stop("SOURCE_HEAP_ALLOC_DPMI_UNOWNED");
+            ++s.aligned_allocations;
+            return p;
+        }
+        node=next;
+    }
+    return 0u;
 }
 void fixture_arena_free(u32 root,u32 payload) noexcept {
     Session& s=*current;
@@ -973,7 +1047,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          const std::vector<u8>* original_sound_cfg=nullptr,
          MouseResetBranch mouse_branch=MouseResetBranch::Stop,
          const std::filesystem::path* host_root=nullptr,
-         bool use_host_dpmi=false,bool multi_resource_probe=false) {
+         bool use_host_dpmi=false,bool multi_resource_probe=false,
+         bool source_host_heap=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -981,6 +1056,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
             img.objects[1].raw.size()==0x2DD10u,"CODE.2 LE geometry mismatch");
     Session state;
     state.extended=extended;
+    state.source_host_heap=source_host_heap;
+    require(!source_host_heap || extended,"host heap requires initializers");
     state.execute_application=execute_application;
     state.advance_to_sound_file=advance_to_sound_file;
     state.advance_to_mouse=advance_to_mouse;
@@ -1021,6 +1098,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.ivt[0u]={0x00009000u,0x0020u};
     state.data=img.objects[1].raw;
     state.code=img.objects[0].raw;
+    if(source_host_heap) {
+        require(code2::load_le32(state.data.data()+0x12624u)==0u,
+                "original heap chain was preseeded");
+        // The original LE static DGROUP bytes remain intact. Only the
+        // opt-in host aperture is extended to house guest linear DPMI pages.
+        state.data.resize(0x01100000u,0u);
+        state.dpmi_linear_memory=std::make_unique<
+            rloft_recomp::DpmiLinearMemory>(state.data.data(),state.data.size());
+        // Watcom 39D4D checks this enable flag; setup remains bounded.
+        code2::store_le32(state.data.data()+0x12708u,1u);
+    }
     state.psp[0x2c]=0x2c;state.psp[0x2d]=0;
     // PSP:80h command tail is four bytes ("  /?") and a DOS carriage return.
     state.psp[0x80]=4;
@@ -1127,7 +1215,16 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.startup.call_39589=&after_initializers;
     state.init.call_guest=&guest;
     if(extended) {
-        state.heap.arena_alloc=&fixture_arena_alloc;
+        if(source_host_heap) {
+            state.heap_provider.dpmi_alloc=&host_heap_0501;
+            state.heap_provider.release_dpmi_block=&host_heap_0502;
+            state.heap_growth.alloc_39c7b=&host_heap_39c7b;
+            state.heap_growth.init_arena_39bbc=&host_heap_39bbc;
+            state.heap_growth.free_37c45=&host_heap_free_initial;
+            state.heap.arena_alloc=&host_heap_alloc;
+            state.heap.arena_free=&host_heap_free;
+            state.heap.grow_heap=&host_heap_39d4d;
+        }else state.heap.arena_alloc=&fixture_arena_alloc;
         state.environment.alloc=&fixture_alloc;
         state.environment.memset_30d30=&fixture_fill;
         state.environment.free_37c37=&fixture_free;
@@ -1226,11 +1323,15 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "original environment or argv initializer did not run");
         const u32 table=code2::load_le32(state.data.data()+0x12688u);
         const u32 expected_env_entries=game_config==GameConfig::Unset?1u:5u;
-        require(table>=0x2C000u && table<0x2D500u &&
+        require((source_host_heap?
+                    state.dpmi_linear_memory->translate(table,4u)!=nullptr:
+                    (table>=0x2C000u && table<0x2D500u)) &&
                 code2::load_le32(state.data.data()+table+4u*expected_env_entries)==0u,
                 "original environment pointer-table terminator differs");
         const u32 item=code2::load_le32(state.data.data()+table);
-        require(item>=0x2C000u && item<0x2D500u &&
+        require((source_host_heap?
+                    state.dpmi_linear_memory->translate(item,7u)!=nullptr:
+                    (item>=0x2C000u && item<0x2D500u)) &&
                 std::memcmp(state.data.data()+item,"no87=1",7)==0,
                 "original environment string was not copied by 3A2AD");
         const bool source_audio_allocates=
@@ -1265,7 +1366,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         if(sound_no_arguments) {
             require(argv1==0u,"original argc=1 must terminate argv");
         } else {
-            require(argv1>=0x2C000u && argv1<0x2D500u &&
+            require((source_host_heap?
+                        state.dpmi_linear_memory->translate(argv1,7u)!=nullptr:
+                        (argv1>=0x2C000u && argv1<0x2D500u)) &&
                     std::memcmp(state.data.data()+argv1,
                                 advance_to_sound_file?"186496":"/?",
                                 advance_to_sound_file?7u:3u)==0,
@@ -1516,6 +1619,18 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     "SOURCE_HOST_INDEPENDENT_DESCRIPTORS=2\\n"
                     "SOURCE_HOST_SEEK_AFTER_READ=PASS\\n";
     }
+    if(source_host_heap) {
+        require(!state.arena_seeded &&
+                state.host_heap_growths>=1u &&
+                state.host_heap_allocs>=1u &&
+                state.dpmi_linear_memory->allocation_count()>=1u &&
+                code2::load_le32(state.data.data()+0x12624u)>=
+                    rloft_recomp::DpmiLinearMemory::kFirstLinear &&
+                state.host_heap_releases==0u,
+                "initializer source did not establish host-owned DPMI heap");
+        std::cout<<"ORIGINAL_STARTUP_SOURCE_DPMI_HEAP=PASS\\n"
+                    "ORIGINAL_STARTUP_HEAP_ARENA_PRESEEDED=NO\\n";
+    }
     if(host_root)require(state.host_files->open_handles()==0u &&
                          state.host_descriptor_flags.empty(),
                          "host DOS descriptors remained open");
@@ -1543,7 +1658,8 @@ int main(int argc,char**argv) {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false,advance_to_sound_file=false,
              sound_no_arguments=false,advance_to_mouse=false,
-             host_sound_file=false,host_dpmi=false,multi_host_resource=false;
+             host_sound_file=false,host_dpmi=false,multi_host_resource=false,
+             host_source_heap=false;
         MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -1554,6 +1670,8 @@ int main(int argc,char**argv) {
                mode=="--enter-game" || mode=="--enter-game-config" ||
                mode=="--enter-game-signed-wrap" || mode=="--vector-mode-matrix" ||
                mode=="--to-sound-config" || mode=="--to-sound-config-configured" ||
+               mode=="--through-initializers-host-dpmi" ||
+               mode=="--enter-game-host-dpmi" ||
                mode=="--to-sound-config-no-args" ||
                mode=="--to-sound-config-no-args-configured" ||
                mode=="--to-mouse-reset" ||
@@ -1595,7 +1713,10 @@ int main(int argc,char**argv) {
                     mode=="--to-sound-config-no-args-configured" ||
                     mode=="--to-mouse-reset-no-args" ||
                     mode=="--to-mouse-reset-no-args-configured");
-                execute_application=(mode=="--enter-game" ||
+                host_source_heap=(mode=="--through-initializers-host-dpmi" ||
+                                  mode=="--enter-game-host-dpmi");
+                execute_application=(mode=="--enter-game-host-dpmi" ||
+                    mode=="--enter-game" ||
                     mode=="--enter-game-config" || mode=="--enter-game-signed-wrap" ||
                     advance_to_sound_file);
                 if(mode=="--enter-game-config" ||
@@ -1619,7 +1740,8 @@ int main(int argc,char**argv) {
                 host_sound_file=(mode=="--to-mouse-reset-host-file" ||
                                  mode=="--to-mouse-reset-host-multifile");
                 multi_host_resource=(mode=="--to-mouse-reset-host-multifile");
-                extended=(mode=="--through-initializers" || execute_application);
+                extended=(mode=="--through-initializers" ||
+                          host_source_heap || execute_application);
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
                 failure_probe=(mode=="--env-rollback-probe");
@@ -1657,7 +1779,7 @@ int main(int argc,char**argv) {
             if(termination)termination_probe(fixture,false);
             else run(fixture,false,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,advance_to_mouse,
-                     nullptr,mouse_branch,nullptr,host_dpmi);
+                     nullptr,mouse_branch,nullptr,host_dpmi,false,host_source_heap);
         }else{
             const auto b=read_file(argv[original_index]);
             require(b.size()==558689u,"original CODE.2 size is incorrect");
@@ -1673,7 +1795,8 @@ int main(int argc,char**argv) {
             if(termination)termination_probe(image,true);
             else run(image,true,extended,execute_application,game_config,
                      advance_to_sound_file,sound_no_arguments,
-                     advance_to_mouse,sound_ptr,mouse_branch,nullptr,host_dpmi);
+                     advance_to_mouse,sound_ptr,mouse_branch,nullptr,
+                     host_dpmi,false,host_source_heap);
         }
         return 0;
     } catch(const std::exception& e) {
