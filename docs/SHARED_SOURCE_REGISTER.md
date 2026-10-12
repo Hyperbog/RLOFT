@@ -7,7 +7,7 @@
 | Path | Git blob SHA | Active consumers checked | State |
 | --- | --- | --- | --- |
 | `Code1/Code1.cpp` | `bdfe208db205fc3da467c3bf9d6710869096ddea` | `code1-decompilation`, `demo-v1`, `native-engine`, `disassembler-foundation`, `extractor-wpf-fluent` | **Exact shared blob after authenticated B01A alternate-entry terminator correction** |
-| `Code2/Code2.cpp` | `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e` | `code1-decompilation`, `demo-v1`, `disassembler-foundation` | **Identical** after original-byte-verified F790 sync |
+| `Code2/Code2.cpp` | `b6d4fb44bda916f892b65d84cf4ec3005affdc88` | `code1-decompilation`, `demo-v1`, `native-engine`, `disassembler-foundation` | **Exact shared blob**, original `37BC2` unrounded allocator ABI correction; extractor receives selective patch below |
 | `Code2/verify_f790_stack_local_preread.py` | `4e2afcb39eb751be5a58e9963ba0e8bd1a405d52` | Same three active consumers | **Identical**; source-only test, optional original CODE.2/T oracle |
 | `Code2/README.md` | `fc1681e828a0a6120d61e951549f1fd6345afeac` | Same three active consumers | **Identical**; correction and semantic caveat current |
 
@@ -15,6 +15,10 @@
 ### CODE.1 B01A shared semantic correction — 2026-10-11
 
 The owner-original CODE.1 SHA-256 and code-object B01A instruction span prove a deliberate branch into the second byte of A8 AA, executing STOSB at B04C. The previous canonical source omitted the byte terminator write on even-length source strings; correction was compiled and link-tested in Windows [run #38184924773](https://github.com/Hyperbog/RLOFT/actions/runs/38184924773), then selectively copied (exact new Git blob `bdfe208d…`) into all four active source consumers. [Detailed original-byte proof and downstream commit register](../ResearchInfra/CODE1_B01A_OVERLAP_CORRECTION_20261011.md). Preserved media/history branches remain intentionally older.
+
+### 2026-10-11 original CODE.2 allocator ABI correction and synchronization
+
+Original `37BC2: MOV EAX,EDI` and `37BC6: CALL 39838` prove the original request is *not rounded before dispatch*; source had double-rounded. The owner-canonical Windows [7/7 CTest gate #38190078813](https://github.com/Hyperbog/RLOFT/actions/runs/38190078813) passed after the source fix and original arena split/coalesce and rollback tests. All four active project consumers were updated without overwriting extractor-only drift. [Complete opcode, commit and original-file evidence](../Recomp/CODE2_ORIGINAL_ARENA_CLOSURE_20261011.md).
 
 ### Original witness for the CODE.2 correction
 
@@ -29,10 +33,10 @@ The native `OriginalRandom` per-die/final-bonus regression is `demo-v1` test-onl
 | `disassembler-g2-build-20261010` | `87f6638921c5…` | G2 candidate with seven tool source/doc differences versus foundation; keep original candidate build evidence |
 | `disassembler-g2-validation-20261010` | `87f6638921c5…` | G2 workflow validation candidate; preserve exact CI provenance |
 | `DnD-Classics` | `87f6638921c5…` | Original-game media preservation takes precedence |
-| `extractor-wpf-fluent` | `c3f16122e79c…` | Specialist extractor snapshot; inspect a real shared dependency before selective sync |
+| `extractor-wpf-fluent` | `a2312a69bf21…` | **Live active extractor:** independently different CODE.2 source; allocator `37BC2` fix patched *only* to matching source fragment, other drift preserved |
 | `preservation-backup-code1-2026-10-07` | `c3f16122e79c…` | Historical backup kept deliberately unchanged |
 
-**No source rewrite** is implied for original-media, backup, extractor or G2 candidate branches. The canonical disassembler **foundation** receives verified shared fixes; candidate review branches adopt them only after their author reconciles or promotes their distinct tool changes.
+**No original media or G2 review snapshot was rewritten.** The extractor is live, and its CODE.2 allocator correction was selectively synchronized as described above. The obsolete build/backup branch names listed historically are recovery **tags**, not among the seven live branches. The canonical disassembler **foundation** receives verified shared fixes; candidate review branches adopt them only after their author reconciles or promotes their distinct tool changes.
 
 ## Rules for maintaining this register
 
