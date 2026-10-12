@@ -5,6 +5,7 @@
 #include "rloft_native/native_win32_exploration.hpp"
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_scene_view.hpp"
+#include "rloft_native/native_probe_original_textures.hpp"
 #include "rloft_native/native_world_payload.hpp"
 
 #include <algorithm>
@@ -30,12 +31,15 @@ struct Preview {
     NativeWorldRuntime world;
     NativeProbeCamera camera;
     std::vector<std::uint8_t> pixels_bgra;
+    std::unique_ptr<NativeProbeOriginalTextures> source_textures;
+    unsigned last_source_texels{};
     std::size_t wall_hits{};
     std::size_t outside_rays{};
     bool last_step_blocked{};
 
-    explicit Preview(NativeWorldPayload original)
-        :world(std::move(original)) {
+    explicit Preview(NativeWorldPayload original,const NativeMedia& media)
+        :world(std::move(original)),
+         source_textures(std::make_unique<NativeProbeOriginalTextures>(media)) {
         choose_level(0U);
     }
 
@@ -78,33 +82,22 @@ struct Preview {
         // Verify the new pose and framebuffer before changing the
         // currently displayed level; bad source files fail closed.
         const auto view=trace_native_probe_view(world,candidate,kWidth,256);
-        std::vector<std::uint8_t> staged=convert(view);
+        const auto textured=source_textures->render(world,view,kWidth,kHeight);
+        std::vector<std::uint8_t> staged=textured.bgra;
         world.select_level(level);
         camera=candidate;
         wall_hits=view.rays_that_hit;
         outside_rays=view.rays_that_left_archive;
         pixels_bgra=std::move(staged);
+        last_source_texels=textured.original_texel_samples;
         last_step_blocked=false;
-    }
-
-    static std::vector<std::uint8_t> convert(const NativeProbeView& view) {
-        const auto rgb=render_native_probe_rgb(view,kWidth,kHeight);
-        if(rgb.size()!=std::size_t(kWidth)*kHeight*3U)
-            throw std::runtime_error("native preview source-frame size mismatch");
-        std::vector<std::uint8_t> bgra(std::size_t(kWidth)*kHeight*4U);
-        for(std::size_t i=0;i<std::size_t(kWidth)*kHeight;++i) {
-            bgra[4U*i]=rgb[3U*i+2U];
-            bgra[4U*i+1U]=rgb[3U*i+1U];
-            bgra[4U*i+2U]=rgb[3U*i];
-            bgra[4U*i+3U]=255U;
-        }
-        return bgra;
     }
 
     void redraw() {
         const auto view=trace_native_probe_view(world,camera,kWidth,256);
-        auto staged=convert(view);
-        pixels_bgra=std::move(staged);
+        const auto textured=source_textures->render(world,view,kWidth,kHeight);
+        pixels_bgra=textured.bgra;
+        last_source_texels=textured.original_texel_samples;
         wall_hits=view.rays_that_hit;
         outside_rays=view.rays_that_left_archive;
     }
@@ -132,7 +125,8 @@ std::wstring label(const Preview& state) {
     return L"Original LEVELS.DAT level " + std::to_wstring(state.camera.level) +
            L" / 31  |  Cell (" + std::to_wstring(x) + L", " +
            std::to_wstring(y) + L")  |  Walls " +
-           std::to_wstring(state.wall_hits) + L"/320" +
+           std::to_wstring(state.wall_hits) + L"/320  |  RES4 texels " +
+           std::to_wstring(state.last_source_texels) +
            (state.last_step_blocked?L"  |  BLOCKED":L"");
 }
 
@@ -149,7 +143,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
 
     SetTextColor(dc,RGB(245,189,103));
     RECT warning{20,41,bounds.right-20,68};
-    DrawTextW(dc,L"PROVISIONAL HOST RAYCAST / SYNTHETIC COLORS — NOT DOS GRAPHICS",
+    DrawTextW(dc,L"ORIGINAL RES4 + COLORS / PROVISIONAL HOST CAMERA — NOT DOS FRAME",
               -1,&warning,DT_SINGLELINE|DT_END_ELLIPSIS);
 
     const int available_width=std::max(1,int(bounds.right)-40);
@@ -255,7 +249,7 @@ void open_native_world_preview(HWND owner,const NativeMedia& original_media) {
     // No image extraction, save creation or writing into the original
     // installation. The view owns an immutable-source-derived world copy.
     auto session=std::make_unique<Preview>(
-        load_native_world_payload(original_media));
+        load_native_world_payload(original_media),original_media);
     const HINSTANCE instance=GetModuleHandleW(nullptr);
     WNDCLASSW klass{};
     klass.lpfnWndProc=preview_proc;
