@@ -27716,16 +27716,16 @@ static_assert(0x37B34u-0x37AFCu==56u);
 // 37B34..37B41: address-distinct allocation forwarding wrapper.
 [[nodiscard]] u32 function_37b34(Runtime129Boundary& b,u32 size) noexcept;
 
-// 37B42..37C36: core allocator. The binary rejects zero and >FFFFFFD4h,
-// rounds size upward to a four-byte boundary, enforces a 12-byte minimum,
-// searches arenas, then retries through the two encoded heap-growth paths.
+// 37B42..37C36: core allocator; reject zero or >FFFFFFD4h.
+// The encoded rounded/minimum-12 probe belongs to the cached arena search;
+// original 37BC2 MOV EAX,EDI forwards the UNROUNDED size to 39838.
+// The adapter still owns arena-chain traversal and DOS heap growth.
 [[nodiscard]] u32 function_37b42(Runtime129Boundary& b,u32 size) noexcept {
     if(size==0u || size>0xFFFFFFD4u)return 0u;
-    u32 request=(size+3u)&0xFFFFFFFCu;
-    if(request<12u)request=12u;
+    // Original rounded cache search is delegated, not silently replayed.
     u32 arena=0x12624u;
     for(;;){
-        const u32 p=b.arena_alloc?b.arena_alloc(arena,request):0u;
+        const u32 p=b.arena_alloc?b.arena_alloc(arena,size):0u;
         if(p!=0u)return p;
         if(b.grow_heap && b.grow_heap(size)!=0u)continue;
         if(b.grow_heap_alt && b.grow_heap_alt(size)!=0u)continue;
