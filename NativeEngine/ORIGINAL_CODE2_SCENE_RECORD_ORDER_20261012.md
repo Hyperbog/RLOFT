@@ -43,7 +43,7 @@ Concrete x86 contracts:
 
 `native_code2_scene_order.hpp/.cpp` performs precisely this
 bounded selection and byte mutation on **caller-supplied staged records**.
-It rejects input count greater than 200, and rejects *initial* projected
+It rejects input count greater than 400, and rejects *initial* projected
 size >= `0x7D00`: otherwise the original first-minimum search can leave
 a stale selection index. A fail-closed exception is deliberate host
 safety policy, **not a claim that the original DOS executable throws**.
@@ -51,7 +51,12 @@ safety policy, **not a claim that the original DOS executable throws**.
 `native_code2_scene_order_tests.cpp` independently computes expected
 stable projected-size ordering and checks the source high-byte marks,
 little-endian draw-ordinal writes, untouched fields, empty and all-tied
-inputs, 200-record budget, and invalid upper-bound inputs.
+inputs, 400-record budget, and invalid upper-bound inputs.
+
+**2026-10-12 corrective audit:** the original 0x1130 clear is half
+of the 0x2260-byte buffer; the initial 200-record limit was incorrect.
+This is now fixed and the 400-record path passes with AddressSanitizer and
+UndefinedBehaviorSanitizer. No original media has been committed.
 
 **Local standalone C++17 verification:** g++ `-Wall -Wextra -Wpedantic
 -Werror -UNDEBUG` built and ran the source and test above successfully.
