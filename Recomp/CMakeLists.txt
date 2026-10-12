@@ -14,6 +14,17 @@ add_executable(rloft_code1_startup_gate
 # arena, separate from the CODE.2 fixture-seeded startup tests.
 add_executable(rloft_code1_original_heap_growth_gate
     src/code1_original_heap_growth_gate.cpp)
+# Real source CODE.1 mid-runtime DPMI 0100/0006/0101 and
+# 0501/0502: source-written DOS/linear ownership headers.
+add_executable(rloft_code1_original_dpmi_memory_gate
+    src/code1_original_dpmi_memory_gate.cpp)
+set_target_properties(rloft_code1_original_dpmi_memory_gate PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code1_original_dpmi_memory_gate PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code1_original_dpmi_memory_gate PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
 # Original CODE.1 mode-1 fallback, DOS 48h/49h host paragraph lifecycle.
 add_executable(rloft_code1_original_dos_fallback_gate
     src/code1_original_dos_fallback_gate.cpp)
@@ -118,6 +129,8 @@ if(BUILD_TESTING)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
     add_test(NAME canonical_code1_original_10aa9_host_dpmi_heap_growth
         COMMAND rloft_code1_original_heap_growth_gate)
+    add_test(NAME canonical_code1_original_6f10_6fc0_6ff4_709c_host_dpmi_memory
+        COMMAND rloft_code1_original_dpmi_memory_gate)
     add_test(NAME canonical_code1_original_10aa9_dos48_fallback_and_dos49_reclaim
         COMMAND rloft_code1_original_dos_fallback_gate)
     add_test(NAME canonical_host_dos_ah48_49_4a_paragraph_memory
