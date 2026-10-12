@@ -133,6 +133,16 @@ void test() {
           "39BBC failed to link host-owned second arena");
     const u32 root=read(0x12624u);
     s.guest[small]=0xA5u;s.guest[big]=0x5Au;
+    u8* live_small=s.memory.translate(small,1u);
+    u8* live_big=s.memory.translate(big,1u);
+    check(live_small==s.guest.data()+small &&
+          live_big==s.guest.data()+big &&
+          *live_small==0xA5u && *live_big==0x5Au,
+          "original heap writes not visible in live host DPMI pages");
+    *live_small=0xB7u;
+    check(s.guest[small]==0xB7u,
+          "host DPMI write not visible to original CODE.2 source");
+    *live_small=0xA5u;
     // OOM must neither invent an arena nor destroy the two live blocks.
     const u32 rejected=code2::function_37b42(s.heap,0x01000000u);
     check(rejected==0u && s.memory.allocation_count()==2u &&
