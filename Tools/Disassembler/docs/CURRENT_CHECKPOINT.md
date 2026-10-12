@@ -6,7 +6,7 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
-## NEW user-requested Enter search and clickable Hex bytes — SOURCE ONLY
+## Enter/Hex source authored; Windows build gate #45–#47 blocked before runner allocation
 
 - Owner reports that the previous #44 navigation fixes work in their
   Windows application. New request: pressing **Enter** in Go To
@@ -35,10 +35,19 @@ normative evidence requirements or a Git status check.
   highlighting the selected row. Synthetic-only hex token,
   search, malformed-input, no-match, next-match, wrap, LE
   unbacked and nonzero window regression fixtures were authored.
+- Owner **authorized Build** on 2026-10-11. An isolated
+  temporary PR #14 attempted Windows build [#45](https://github.com/Hyperbog/RLOFT/actions/runs/38193004540),
+  Windows re-run, Linux cross-target [#46](https://github.com/Hyperbog/RLOFT/actions/runs/38193208259)
+  and branch-scoped Linux push [#47](https://github.com/Hyperbog/RLOFT/actions/runs/38193253571).
+  **ALL STOPPED BEFORE RUNNER ALLOCATION:** jobs `steps=[]`,
+  `runner_id=0`; 0 Windows billed milliseconds; no
+  .NET build, smoke execution or artifact. This does NOT
+  prove a compiler or code failure. The GitHub web UI
+  runner/allocation/billing/permissions message must be checked.
+  The canonical manual-only workflow remained unchanged.
 - Current preview #44 **does not include these additions**.
-  No new Windows build, smoke execution or actual GUI interaction
-  has occurred on this new source. Owner authorization for a
-  new desktop-only build gate remains necessary.
+  Source still NOT COMPILED and GUI feature NOT ACCEPTED.
+  [Full blocked-build #45–#47 record](DESKTOP_BYTE_SEARCH_WINDOWS_BUILD_20261011_GATE45_BLOCKED.md).
 - [Full Enter-search/clickable-hex scope and acceptance checklist](DESKTOP_BYTE_SEARCH_AND_HIGHLIGHT_20261011.md).
   Prior build #44 remains Windows compiled/synthetic verified;
   original G2 decoder accuracy and DOS runtime unchanged/pending.
