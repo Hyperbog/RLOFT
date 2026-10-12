@@ -973,7 +973,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          const std::vector<u8>* original_sound_cfg=nullptr,
          MouseResetBranch mouse_branch=MouseResetBranch::Stop,
          const std::filesystem::path* host_root=nullptr,
-         bool use_host_dpmi=false) {
+         bool use_host_dpmi=false,bool multi_resource_probe=false) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -992,6 +992,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "host DPMI 0100/0101 requires original mouse source path");
         state.dpmi_dos_memory=std::make_unique<rloft_recomp::DpmiDosMemory>();
     }
+    if(multi_resource_probe)require(host_root!=nullptr,
+            "multi-resource source probe requires a host installation root");
     if(host_root) {
         require(advance_to_mouse && original_sound_cfg!=nullptr,
                 "host DOS file mode needs explicit 59-byte comparison input");
@@ -1472,7 +1474,46 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
              <<"IMAGE_INPUT="<<(original?"ORIGINAL_LE_GEOMETRY_VERIFIED":"SYNTHETIC_FIXTURE")<<"\n"
              <<"SOUND_CFG_INPUT="<<(host_root?"HOST_READ_ONLY_SERVICE":
                    original_sound_cfg?"ORIGINAL_FILE":"SYNTHETIC_FIXTURE")<<'\n';
-    if(host_root)require(state.host_files->open_handles()==0u,
+    if(multi_resource_probe) {
+        // Independent source-wrapper postlude AFTER the authentic compiled
+        // startup reaches its real external mouse boundary. Not a claim
+        // that original game flow naturally opens this second asset here.
+        constexpr u32 path=0x2D900u, buf1=0x2DA00u,buf2=0x2DA80u;
+        constexpr char name[]="objects.dat";
+        std::memcpy(state.data.data()+path,name,sizeof(name));
+        current=&state;
+        const auto fd1=code2::function_37e77(
+            state.dos_file_open,path,0x200u,0xFFFFFFFFu);
+        const auto fd2=code2::function_37e77(
+            state.dos_file_open,path,0x200u,0xFFFFFFFFu);
+        require(fd1==5 && fd2==6,
+                "original 37E77 two-descriptor source open failed");
+        require(code2::function_38106(state.dos_file_read,5u,buf1,17u)==17,
+                "original 38106 first descriptor partial read failed");
+        require(code2::function_38106(state.dos_file_read,6u,buf2,50u)==50,
+                "original 38106 independent descriptor read failed");
+        const auto pos1=state.host_files->seek(5u,-17,1u);
+        const auto pos2=state.host_files->seek(6u,0,1u);
+        require(!pos1.carry && pos1.offset()==0u &&
+                !pos2.carry && pos2.offset()==50u,
+                "host AH42 cursor independence after original reads failed");
+        require(code2::function_38106(state.dos_file_read,5u,buf1,32u)==32,
+                "original 38106 read after host seek failed");
+        for(unsigned i=0;i<32u;++i)
+            require(state.data[buf1+i]=='Z',
+                    "first original CODE.2 multi-file read bytes differ");
+        for(unsigned i=0;i<50u;++i)
+            require(state.data[buf2+i]=='Z',
+                    "second original CODE.2 multi-file read bytes differ");
+        (void)code2::function_380f8(state.dos_file_close,5u);
+        (void)code2::function_380f8(state.dos_file_close,6u);
+        current=nullptr;
+        std::cout<<"ORIGINAL_CODE2_MULTIFILE_WRAPPERS=37E77_38106_380F8\\n"
+                    "SOURCE_HOST_INDEPENDENT_DESCRIPTORS=2\\n"
+                    "SOURCE_HOST_SEEK_AFTER_READ=PASS\\n";
+    }
+    if(host_root)require(state.host_files->open_handles()==0u &&
+                         state.host_descriptor_flags.empty(),
                          "host DOS descriptors remained open");
     if(use_host_dpmi) {
         require(state.dpmi_dos_memory->allocation_count()==
@@ -1491,7 +1532,7 @@ int main(int argc,char**argv) {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
         bool execute_application=false,advance_to_sound_file=false,
              sound_no_arguments=false,advance_to_mouse=false,
-             host_sound_file=false,host_dpmi=false;
+             host_sound_file=false,host_dpmi=false,multi_host_resource=false;
         MouseResetBranch mouse_branch=MouseResetBranch::Stop;
         GameConfig game_config=GameConfig::Unset;
         int original_index=1;
@@ -1506,6 +1547,7 @@ int main(int argc,char**argv) {
                mode=="--to-sound-config-no-args-configured" ||
                mode=="--to-mouse-reset" ||
                mode=="--to-mouse-reset-host-file" ||
+               mode=="--to-mouse-reset-host-multifile" ||
                mode=="--to-mouse-reset-configured" ||
                mode=="--to-mouse-reset-no-args" ||
                mode=="--to-mouse-reset-no-args-configured" ||
@@ -1519,6 +1561,7 @@ int main(int argc,char**argv) {
                mode=="--mouse-no-driver-to-disk-query" ||
                mode=="--mouse-absent-to-warning") {
                 advance_to_mouse=(mode=="--to-mouse-reset-host-file" ||
+                    mode=="--to-mouse-reset-host-multifile" ||
                     mode=="--mouse-no-driver-to-dpmi-free" ||
                     mode=="--mouse-no-driver-to-x-range" ||
                     mode=="--mouse-no-driver-to-y-range" ||
@@ -1562,7 +1605,9 @@ int main(int argc,char**argv) {
                 host_dpmi=(mode=="--mouse-dpmi-to-real-mode" ||
                            mode=="--mouse-dpmi-to-disk-query");
                 if(mode=="--mouse-absent-to-warning")mouse_branch=MouseResetBranch::Absent;
-                host_sound_file=(mode=="--to-mouse-reset-host-file");
+                host_sound_file=(mode=="--to-mouse-reset-host-file" ||
+                                 mode=="--to-mouse-reset-host-multifile");
+                multi_host_resource=(mode=="--to-mouse-reset-host-multifile");
                 extended=(mode=="--through-initializers" || execute_application);
                 termination=(mode=="--termination-probe");
                 arena_probe=(mode=="--arena-roundtrip-probe");
@@ -1587,7 +1632,8 @@ int main(int argc,char**argv) {
             const auto expected=read_file((root/"SOUND.CFG").string().c_str());
             require(expected.size()==59u,"host SOUND.CFG must contain 59 bytes");
             run(synthetic_image(),false,true,true,GameConfig::Unset,
-                true,false,true,&expected,MouseResetBranch::Stop,&root);
+                true,false,true,&expected,MouseResetBranch::Stop,&root,
+                false,multi_host_resource);
         } else if(vector_matrix) {
             require(argc==original_index,"vector-mode probe does not use original data");
             interrupt_vector_matrix_probe();
