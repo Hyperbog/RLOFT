@@ -124,8 +124,9 @@ int main(){
     assert(output.planes_sha256()==prior);
     world.replace_cell_code(0,1,0,1);
 
-    // Full original WORD-level source phase range, both reflected paths.
-    for(unsigned index=0;index<65536U;index+=17U) {
+    // Exhaustive 65,536 low-word phases x two CODE.2 paths x two signs:
+    // 262,144 source-backed selector/mirror cases, no sparse sampling.
+    for(unsigned index=0;index<65536U;++index) {
         for(const auto path:{
             NativeCode2WallPath::Banks3And2_32F8C,
             NativeCode2WallPath::Banks1And0_33124}) {
