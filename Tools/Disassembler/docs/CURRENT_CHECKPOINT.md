@@ -6,7 +6,41 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
-## Enter/Hex source authored; Windows build gate #45–#47 blocked before runner allocation
+## CURRENT — Automatic Windows desktop CI enabled; build #49 PASS
+
+- Owner expressly lifted the former DOSDis manual-build restriction:
+  the assistant may compile, run original-free synthetic tests and
+  publish **Windows WPF desktop-only** builds as needed, without
+  separate per-build approval. Canonical
+  `.github/workflows/disassembler-core.yml` now runs on scoped
+  pushes to `disassembler-foundation`, scoped PRs targeting it,
+  and manual `workflow_dispatch`; unrelated project/doc-only
+  edits do not trigger Windows builds. Original proprietary game
+  execution and independently sourced accuracy review remain
+  separately gated. CLI remains internal, no public CLI artifact.
+- The **canonical automatic [run #48](https://github.com/Hyperbog/RLOFT/actions/runs/38193637125)**
+  allocated a Windows runner and exposed one real C# desktop
+  compiler error `CS0136` (duplicate `fileOffset` local);
+  fixed in canonical `15abeee277b2729028654c0b00865bb4d0c81b74`.
+- The next automatic [Windows run #49](https://github.com/Hyperbog/RLOFT/actions/runs/38193734386)
+  **PASSED** WPF/Core/Persistence and both synthetic C# smoke
+  suites and published exactly one Windows desktop artifact,
+  no CLI. Source compiled: `15abeee277b2729028654c0b00865bb4d0c81b74`.
+  Artifact `11722213441`, ZIP 66,915,474 bytes,
+  ZIP SHA256 `bf88b54660579ae4bfd038cd2f8a8a8622858d3abed97809b286f614f904a2d1`.
+  [Download](https://github.com/Hyperbog/RLOFT/actions/runs/38193734386/artifacts/11722213441).
+- The new Enter/Go/Find, source-physical per-byte Hex click,
+  repeated byte search, and cross-tab highlight source is
+  **COMPILED + SYNTHETIC VERIFIED at #49**. Actual WPF user
+  interaction on CHECKSYS original and LE regression **PENDING**.
+  Do not imply build/synthetic success is an independent
+  original-game decoder or DOS runtime certificate.
+- **Current authoritative [build/policy record](DESKTOP_AUTO_BUILD_WIN49_20261011.md)**.
+  Older #45–#47 failure report below is historical: those
+  temporary PR jobs never started and are superseded for
+  compiled/synthetic evidence by successful canonical #49.
+
+## Historical temporary PR #45–#47 runner-allocation failures
 
 - Owner reports that the previous #44 navigation fixes work in their
   Windows application. New request: pressing **Enter** in Go To
@@ -253,12 +287,14 @@ normative evidence requirements or a Git status check.
 5. [Strahd executed sample evidence](G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md)
 6. [Normative independent validation policy](INDEPENDENT_VALIDATION_POLICY.md)
 
-**Guardrails:** canonical GitHub Actions remains
-`workflow_dispatch`-only; temporary PRs #6, #8, #11 and #13 are
-closed without merging. Source-only work
-and commits do not imply permission to build/test/dispatch CI. Always
-verify these facts against live GitHub state before acting. Do not
-commit original proprietary game bytes or private manifest excerpts.
+**Guardrails:** canonical DOSDis Windows desktop CI is
+**AUTOMATIC on scoped code/test pushes and PRs, plus manual dispatch**;
+the owner permanently authorized DOSDis builds/tests as needed on
+2026-10-11. Temporary PRs #6, #8, #11, #13, #14
+remain closed without merging. Do not commit proprietary original
+game bytes, private owner-local manifests, or unsupported decoder
+certifications. Original-game execution and independent accuracy
+claims remain separate explicit evidence/safety gates.
 
 **Maintenance:** Update this small handoff on every *substantial*
 checkpoint (or gate-state change), after verifying live HEAD/build
