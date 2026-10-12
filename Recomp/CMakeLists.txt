@@ -219,6 +219,15 @@ endif()
 
 # R04: original CODE.2 37B42 -> 39D4D -> 39C7B source allocation,
 # DPMI 0501 host page ownership; arena chain begins at zero (unseeded).
+add_executable(rloft_code2_original_dos_fallback_gate
+    src/code2_original_dos_fallback_gate.cpp)
+set_target_properties(rloft_code2_original_dos_fallback_gate PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code2_original_dos_fallback_gate PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code2_original_dos_fallback_gate PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
 add_executable(rloft_code2_original_dpmi_heap_gate
     src/code2_original_dpmi_heap_gate.cpp)
 set_target_properties(rloft_code2_original_dpmi_heap_gate PROPERTIES
@@ -231,6 +240,8 @@ endif()
 if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_unseeded_host_dpmi_arena_growth
         COMMAND rloft_code2_original_dpmi_heap_gate)
+    add_test(NAME canonical_code2_original_39c7b_dos_fallback_39e1c_break_growth
+        COMMAND rloft_code2_original_dos_fallback_gate)
     # Continuous original entry -> four source initializers and game entry,
     # separate from the historical source-startup preseeded allocator mode.
     add_test(NAME canonical_code2_startup_initializers_unseeded_host_dpmi_heap
