@@ -1191,7 +1191,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 (mouse_branch==MouseResetBranch::MemoryHandoff ||
                  mouse_branch==MouseResetBranch::DiskSpace),
                 "host DPMI 0100/0101 requires original mouse source path");
-        state.dpmi_dos_memory=std::make_unique<rloft_recomp::DpmiDosMemory>();
+        state.dpmi_dos_memory=std::make_unique<rloft_recomp::DpmiDosMemory>(
+            &state.host_startup_descriptors);
     }
     if(multi_resource_probe)require(host_root!=nullptr,
             "multi-resource source probe requires a host installation root");
