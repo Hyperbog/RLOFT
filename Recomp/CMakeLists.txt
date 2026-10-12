@@ -10,6 +10,17 @@ add_executable(rloft_recomp_link_gate
 add_executable(rloft_code1_startup_gate
     src/original_le_image.cpp
     src/code1_startup_gate.cpp)
+# Source-backed CODE.1 original 10AA9 heap growth from an empty host DPMI
+# arena, separate from the CODE.2 fixture-seeded startup tests.
+add_executable(rloft_code1_original_heap_growth_gate
+    src/code1_original_heap_growth_gate.cpp)
+set_target_properties(rloft_code1_original_heap_growth_gate PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code1_original_heap_growth_gate PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code1_original_heap_growth_gate PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
 add_executable(rloft_code2_startup_gate
     src/original_le_image.cpp
     src/code2_startup_gate.cpp)
@@ -84,6 +95,8 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME canonical_reconstruction_compiles_links_and_runs COMMAND rloft_recomp_link_gate)
     add_test(NAME original_le_image_and_fixup_integrity COMMAND rloft_original_image_gate)
+    add_test(NAME canonical_code1_original_10aa9_host_dpmi_heap_growth
+        COMMAND rloft_code1_original_heap_growth_gate)
     add_test(NAME canonical_code1_startup_to_first_original_dos_version
         COMMAND rloft_code1_startup_gate --stop-before-version)
     add_test(NAME canonical_code1_original_dos6_startup_via_cd17_cd50
