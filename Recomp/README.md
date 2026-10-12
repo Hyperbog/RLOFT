@@ -38,6 +38,31 @@ fingerprinting research.
 This project is strictly separate from `demo-v1` and `native-engine`. Do not
 invoke their full Windows build workflows from this target.
 
+## 2026-10-12 verified stateful host DOS/DPMI service progression
+
+[Windows canonical source build #60](https://github.com/Hyperbog/RLOFT/actions/runs/38242155253)
+passed **37/37 CTests** at source SHA
+`4f13ebda062f0db124acf52f8795ac368ab21696`.
+
+The DOS read-only file provider now implements `AH=42h` signed
+seek/position and independent guest cursors, including seek-after-EOF.
+Original compiled CODE.2 `37E77/38106/380F8` now has an opt-in
+**bounded guest-path/multiple-descriptor host bridge**. A separate
+original-source postlude reads an additional host-backed OBJECTS.DAT
+using two concurrent guest handles; its returned bytes are checked
+against an independent file snapshot. The postlude is NOT a natural
+gameplay resource access.
+
+New stateful DPMI DOS conventional-memory `INT31h AX=0100/0101`
+allocator/release and checked guest selector translation replace
+test-only allocation/free receipts in opt-in original compiled
+CODE.2 `30D80/30D52/30DE8` paths. Synthetic DOS PSP, INT31h 0300
+mouse simulation, INT33 mouse outcomes, interrupt vectors and game
+resource initialization remain bounded test fixtures. **R04 and R05
+are still unaccepted**; 3/12 whole-game gates = **25.00%**.
+
+[Full stateful runtime checkpoint](STATEFUL_DOS_FILE_DPMI_BRIDGE_CHECKPOINT_20261012.md).
+
 ## 2026-10-12 first host-backed original DOS file-service integration
 
 [Windows build #49](https://github.com/Hyperbog/RLOFT/actions/runs/38208279160)
