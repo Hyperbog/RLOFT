@@ -157,7 +157,7 @@ int main() {
              "original 1069B free-list arena or size mismatch");
         need(session.last_free_pointer==raw+0x10u &&
              heap_read(session.last_free_pointer-4u)==0x0fd8u &&
-             heap_read(0x30c0u)==arena+0x20u &&
+             heap_read(0x30c0u)==0x30d4u &&
              heap_read(0x30d8u)==arena+0x20u &&
              heap_read(0x30dcu)==arena+0x20u &&
              heap_read(arena+0x24u)==0x30d4u &&
