@@ -58,6 +58,13 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_sound_file_via_host_dos_provider
         COMMAND rloft_code2_startup_gate --to-mouse-reset-host-file
                 "${_dos_host_fixture}")
+    # A SECOND independent synthetic DOS 8.3 resource tests compiled
+    # original 37E77, 38106, 380F8 after the bounded mouse-stop witness.
+    string(REPEAT "Z" 127 _dos_host_objects_bytes)
+    file(WRITE "${_dos_host_fixture}/OBJECTS.DAT" "${_dos_host_objects_bytes}")
+    add_test(NAME canonical_code2_original_host_multifile_descriptor_and_seek
+        COMMAND rloft_code2_startup_gate --to-mouse-reset-host-multifile
+                "${_dos_host_fixture}")
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         # Pure standard-library tests. Validate authenticated-media
