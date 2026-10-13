@@ -413,9 +413,12 @@ struct State {
         const auto* mode=modes[resolution_index];
         const std::string resolution=std::to_string(render_target.width())+"x"+
                                      std::to_string(render_target.height());
+        const std::string actor_label=party?
+            (" | "+party->actors[0].name+" / "+party->actors[1].name):
+            std::string{};
         line(12,height-box_height+22,
             std::string(party?"RAVENLOFT PARTY / CODE.2 ENTRY":"RAVENLOFT 3D GPU")+
-            " | Level "+std::to_string(level)+
+            actor_label+" | Level "+std::to_string(level)+
             " | "+std::string(mode)+" "+resolution+" internal | AA "+
             std::to_string(render_target.actual_samples())+"x"+
             (mouse_look?" | Mouse look":" | Q/E keyboard")+
@@ -603,7 +606,13 @@ void title(HWND hwnd,const State& s) {
         (s.mouse_look?L"MOUSE LOOK":L"Q/E KEYBOARD LOOK")+
         L" | F1 controls, F2 native-to-4K, F3 filter, F4 AA, F8 map size"+
         (s.blocked?L" | BLOCKED":L"");
-    SetWindowTextW(hwnd,name.c_str());
+    const auto label=s.party?(
+        L" | "+std::wstring(s.party->actors[0].name.begin(),
+                              s.party->actors[0].name.end())+
+        L" / "+std::wstring(s.party->actors[1].name.begin(),
+                            s.party->actors[1].name.end())
+        ):std::wstring{};
+    SetWindowTextW(hwnd,(name+label).c_str());
 }
 LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     auto* s=reinterpret_cast<State*>(GetWindowLongPtrW(hwnd,GWLP_USERDATA));
