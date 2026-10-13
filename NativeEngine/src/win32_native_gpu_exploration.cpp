@@ -17,6 +17,7 @@
 #include "rloft_native/native_scene_target.hpp"
 #include "rloft_native/native_scene_frame_ranges.hpp"
 #include "rloft_native/native_session_profile.hpp"
+#include "rloft_native/native_party_inventory.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -74,6 +75,8 @@ struct State {
     NativeWorldRuntime world;
     // Null only for the explicitly separate technical viewport preview.
     std::optional<NativePartyStart> party;
+    std::optional<NativePartyInventory> initial_inventory;
+    bool show_inventory{};
     // Only present for an explicit native-only cross-launch resume.
     // Never used to bypass normal CODE.1 character creation.
     std::optional<NativeSessionProfile> resume_checkpoint;
@@ -133,6 +136,11 @@ struct State {
          original_colors(media.read("COLORS")) {
         camera.field_of_view_radians=75.0*kPi/180.0;
         if(party) {
+            // Decode exactly the 21 original CODE.1 inventory/equipment
+            // slots per actor and their known-item bits, authenticated
+            // against immutable OBJECTS.DAT. Not a live mutable inventory.
+            initial_inventory=inspect_native_party_inventory(
+                *party,media.read("OBJECTS.DAT"));
             // Consume existing independently verified original RES3 / NPCS /
             // INIT / OBJECTS compact-placement ledger. No provisional shape
             // frame, fake actor or world item is instantiated by this step.
@@ -629,6 +637,62 @@ struct State {
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
     }
+    void draw_party_inventory(int width,int height) {
+        if(!show_inventory||!party||!initial_inventory||!hud_font)return;
+        // Native inspector, NOT the recovered original CODE.2 inventory
+        // widget. Names/IDs/categories/identified bits all come from
+        // original 0x920 CHARS + immutable 336x65 OBJECTS.
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_TEXTURE_2D);
+        glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();
+        glOrtho(0,width,height,0,-1,1);
+        glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
+        const int left=16;
+        const int right=std::max(470,width/2);
+        const int top=std::max(12,(height-510)/2);
+        const int bottom=std::min(height-8,top+475);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(.045f,.06f,.078f,.96f);
+        glBegin(GL_QUADS);
+        glVertex2i(8,top);glVertex2i(std::min(width-8,right+455),top);
+        glVertex2i(std::min(width-8,right+455),bottom);
+        glVertex2i(8,bottom);
+        glEnd();
+        glDisable(GL_BLEND);
+        const auto line=[&](int x,int y,const std::string& value) {
+            glColor3f(.94f,.90f,.8f);
+            glRasterPos2i(x,y);
+            glListBase(hud_font-32);
+            glCallLists(static_cast<GLsizei>(value.size()),
+                        GL_UNSIGNED_BYTE,value.c_str());
+        };
+        line(left,top+23,"ORIGINAL CHARS / OBJECTS.DAT — F7 CLOSE — READ ONLY");
+        for(unsigned actor=0;actor<2U;++actor) {
+            const auto& inventory=initial_inventory->actors[actor];
+            const int x=actor==0U?left:right;
+            line(x,top+49,inventory.actor_name+" | "+
+                std::to_string(inventory.occupied_count)+
+                " OCCUPIED SOURCE SLOTS");
+            for(unsigned slot=0;slot<21U;++slot) {
+                const auto& entry=inventory.slots[slot];
+                std::string label=std::to_string(slot)+" "+
+                    native_inventory_slot_label(slot)+": ";
+                if(!entry.occupied)label+="--";
+                else {
+                    auto title=entry.source_name;
+                    if(title.size()>22U)title=title.substr(0,22U);
+                    label+=std::to_string(entry.object_id)+" "+title;
+                    label+=entry.identified?" [K]":" [?]";
+                }
+                line(x,top+72+slot*18U,label);
+            }
+        }
+        line(left,top+466,"K = original identified bit; ? = not identified. Equipment use pending.");
+        glMatrixMode(GL_PROJECTION);glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);glPopMatrix();
+        glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
+    }
     void draw_hud(int width,int height) {
         if(!hud_font)return; // OpenGL window still renders if GDI fonts fail.
         glDisable(GL_DEPTH_TEST);
@@ -693,7 +757,7 @@ struct State {
                 "Tab automap | +/- zoom | F5 source placement markers | F8 map size":
                 "Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
             line(12,y,party?
-                "F inspect | F6 native save | F9 restore | R reset | Esc close":
+                "F inspect | F6 save | F7 original inventory | F9 restore | R reset":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
             line(12,y,party?
                 "Map dots = NPC 9 / placed 62 63 64 | RES3 sprites + events pending":
@@ -836,6 +900,7 @@ struct State {
         render_target.present(window_width,window_height);
         automap_draw(window_width,window_height);
         draw_hud(window_width,window_height);
+        draw_party_inventory(window_width,window_height);
         glFlush();
         SwapBuffers(dc);
     }
@@ -969,6 +1034,8 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 s->save_native_session();
             } else if(wp==VK_F9 && s->party && !(lp&(1L<<30))) {
                 s->restore_native_session();
+            } else if(wp==VK_F7 && s->party && !(lp&(1L<<30))) {
+                s->show_inventory=!s->show_inventory;
             } else if(wp=='F' && s->party && !(lp&(1L<<30))) {
                 s->inspect_source_placement();
             } else if(wp==VK_F5 && s->party && !(lp&(1L<<30))) {
