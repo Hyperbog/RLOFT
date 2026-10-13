@@ -134,6 +134,54 @@ title Load Game selection remains explicitly unfinished, because
 a click hit alone cannot restore `WORK/SAVE.DAT` and the mutable
 `LEVnnn.DAT` files or reproduce the original mouse/modal screen.
 
+## Bounded original Load workflow result model (Part 17 continuation)
+
+A second **header-only C++17** source-mapped native component now
+captures original logical `07C70..07D42` without performing file IO:
+
+- `DemoV1/include/rloft/original_title_load_workflow.hpp` records
+  ordered steps to write both decimal digits at `6690/6691`,
+  set the `6692` separator NUL, enter WORK, clear its files, return to
+  the parent directory, copy `SAVE##` into WORK, restore the
+  backslash, enter shared loader `07938`, and close ten handles.
+- Inputs are the **observed original DOS return codes** for the
+  `33A5A` directory operations, `073A0` wildcard copier and
+  `07938` shared loader. It preserves the original distinction
+  between zero/nonzero for chdir and **exactly one** for copy failure.
+- WORK chdir failure returns status **1**, closes ten handles and
+  intentionally **leaves the template slash NUL**. Copy failure
+  restores the slash, reports error and retries **without** performing
+  the ten-handle return cleanup. Failed return-to-parent reports its
+  error but attempts copy regardless. The model forwards the shared
+  loader's return value unchanged even if it is a failure.
+- `DemoV1/tests/original_title_load_workflow_tests.cpp` tests all ten
+  decimal two-digit slots, original ordering, two distinct handle-close
+  exits, retry, unnormalized copier values and error combinations.
+  It is registered as standalone `original_title_load_workflow_tests`
+  and uses Release-active assertions.
+- The source-only `alpha_original_load_slot_source_contract_tests`
+  now checks the new C++ workflow and its registration and rejects
+  five deliberately reversed/omitted original-path mutations. The
+  optional full-file/hash pinned binary oracle was expanded by
+  **ten** exact CODE.2 opcode windows (`07CA9`, `07CBF`, `07CD7`,
+  `07CEB`, `07CF4`, `07D0A`, `07D0F`, `07D1F`, `07D28`, `07D3E`)
+  to **24** exact windows in total.
+
+Local verification in this continuation: an equivalent standalone
+GCC **14** C++17 semantic harness compiled with
+`-Wall -Wextra -Wpedantic -Werror -O2 -DNDEBUG` and passed, and the ten
+new binary windows were compared successfully against the original
+supplied `CODE.2`. These are **not** a claim that the full GitHub
+checkout and registered native CTest ran under Windows. The complete
+recreated loader, original file transactions, modal graphics, input and
+DOS comparison remain unresolved.
+
+The new model is **pure**: it does not call `std::filesystem`,
+does not write WORK, and cannot select a saved game at runtime. It
+specifies the original observable side-effect *order* so that later
+code cannot silently substitute an atomic modern save/load design or
+a `SAVE.DAT`-only recovery.
+
 ## Release blocker and implementation ownership
 
 The current native title action 1 deliberately displays **Load Game
