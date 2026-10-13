@@ -47,6 +47,7 @@ add_library(rloft_native_assets STATIC
   src/native_code2_backdrop.cpp
   src/native_type7_scene_shape.cpp
   src/native_scene_instances.cpp
+  src/native_scene_target.cpp
   src/native_sintab_raster.cpp
   src/native_type7_vga_dispatch.cpp
   src/native_scene_frame_ranges.cpp
@@ -291,6 +292,11 @@ add_executable(native_type7_vga_dispatch_tests tests/native_type7_vga_dispatch_t
 target_link_libraries(native_type7_vga_dispatch_tests PRIVATE rloft_native_assets)
 native_warnings(native_type7_vga_dispatch_tests)
 add_test(NAME native_type7_vga_dispatch_tests COMMAND native_type7_vga_dispatch_tests)
+
+add_executable(native_scene_target_tests tests/native_scene_target_tests.cpp)
+target_link_libraries(native_scene_target_tests PRIVATE rloft_native_assets)
+native_warnings(native_scene_target_tests)
+add_test(NAME native_scene_target_tests COMMAND native_scene_target_tests)
 
 add_executable(native_scene_instances_tests tests/native_scene_instances_tests.cpp)
 target_link_libraries(native_scene_instances_tests PRIVATE rloft_native_assets)
