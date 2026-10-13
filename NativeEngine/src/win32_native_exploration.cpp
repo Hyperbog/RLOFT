@@ -26,10 +26,11 @@ constexpr unsigned kRayWidth=256;
 constexpr unsigned kHeight=400;
 constexpr double kDosPixelAspect=2.0; // 320x400 indexed VGA shown as 640x400
 
-constexpr double kStep=0.18;
-constexpr double kTurn=0.12;
 constexpr double kPi=3.14159265358979323846;
 constexpr double kMouseSensitivity=0.0025;
+constexpr UINT_PTR kFrameTimer=1;
+constexpr double kMoveSpeed=1.8;
+constexpr double kTurnSpeed=1.8;
 
 struct Preview {
     NativeWorldRuntime world;
@@ -42,6 +43,8 @@ struct Preview {
     bool last_step_blocked{};
     bool mouse_look{};
     bool show_full_frame{};
+    bool smooth_filter{};
+    ULONGLONG previous_tick_ms{};
 
     explicit Preview(NativeWorldPayload original,const NativeMedia& media)
         :world(std::move(original)),
@@ -118,7 +121,9 @@ struct Preview {
         last_step_blocked=moved.blocked;
         // When the camera is in contact with a wall, do not redraw
         // a fake advancing view: unchanged position -> unchanged pixels.
-        if(moved.moved)redraw();
+        // Paint once on WM_TIMER instead of rendering on every OS
+        // key repeat or mouse message.
+        (void)moved;
     }
     void look(double mouse_dx,double mouse_dy) {
         camera.heading_radians+=mouse_dx*kMouseSensitivity;
@@ -126,14 +131,12 @@ struct Preview {
         camera.pitch_radians=std::clamp(
             camera.pitch_radians-mouse_dy*kMouseSensitivity,-0.8,0.8);
         last_step_blocked=false;
-        redraw();
     }
     void turn(double radians) {
         camera.heading_radians+=radians;
         if(camera.heading_radians>kPi)camera.heading_radians-=2*kPi;
         if(camera.heading_radians<-kPi)camera.heading_radians+=2*kPi;
         last_step_blocked=false;
-        redraw();
     }
 };
 
@@ -184,14 +187,30 @@ void paint(HWND window,const Preview& state,HDC dc) {
     if(state.pixels_bgra.size()==std::size_t(kWidth)*kHeight*4U) {
         BITMAPINFO info{};
         info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
-        info.bmiHeader.biWidth=kWidth;
-        info.bmiHeader.biHeight=-static_cast<LONG>(kHeight);
+        // GDI StretchDIBits cropping from a top-down 320x400 DIB
+        // varies across drivers (the reported screenshot displayed
+        // only a thin strip with the remaining viewport black).
+        // Explicitly materialize the exact authored viewport into
+        // a tightly packed top-down DIB before applying its aspect.
+        std::vector<std::uint8_t> cropped(
+            std::size_t(source_w)*source_h*4U);
+        for(int y=0;y<source_h;++y) {
+            const auto src=(std::size_t(y+source_y)*kWidth+
+                            unsigned(source_x))*4U;
+            const auto dst=std::size_t(y)*unsigned(source_w)*4U;
+            std::copy_n(state.pixels_bgra.begin()+src,
+                        std::size_t(source_w)*4U,
+                        cropped.begin()+dst);
+        }
+        info.bmiHeader.biWidth=source_w;
+        info.bmiHeader.biHeight=-static_cast<LONG>(source_h);
         info.bmiHeader.biPlanes=1;
         info.bmiHeader.biBitCount=32;
         info.bmiHeader.biCompression=BI_RGB;
-        SetStretchBltMode(dc,COLORONCOLOR);
-        StretchDIBits(dc,left,top,w,h,source_x,source_y,source_w,source_h,
-                      state.pixels_bgra.data(),&info,DIB_RGB_COLORS,SRCCOPY);
+        SetStretchBltMode(dc,state.smooth_filter?HALFTONE:COLORONCOLOR);
+        if(state.smooth_filter)SetBrushOrgEx(dc,0,0,nullptr);
+        StretchDIBits(dc,left,top,w,h,0,0,source_w,source_h,
+                      cropped.data(),&info,DIB_RGB_COLORS,SRCCOPY);
     }
     SetTextColor(dc,RGB(219,229,239));
     const auto info=label(state);
@@ -201,7 +220,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
     RECT controls{20,bounds.bottom-65,bounds.right-20,bounds.bottom-12};
     DrawTextW(dc,
       L"W/S = forward/back    A/D = strafe    Q/E = turn left/right\n"
-      L"M/right-click = mouse-look   V = viewport/full frame   PgUp/Dn = level\n"
+      L"M/right-click = mouse-look   V = viewport/full frame   N = filtering\n"
       L"R = respawn    Esc = close    Original media read-only.",
       -1,&controls,DT_WORDBREAK);
 }
@@ -257,28 +276,74 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         InvalidateRect(hwnd,nullptr,FALSE);
         return 0;
     case WM_MOUSEMOVE:
-        if(state->mouse_look && GetFocus()==hwnd) {
-            const auto center=mouse_anchor(hwnd);
-            const int x=static_cast<short>(LOWORD(lp));
-            const int y=static_cast<short>(HIWORD(lp));
-            const int dx=x-center.x,dy=y-center.y;
-            // SetCursorPos itself posts a zero-delta WM_MOUSEMOVE.
-            if(dx || dy) {
-                try {
-                    // Recenter before drawing, so drawing latency does
-                    // not lose physical mouse movement or cause edge stalls.
-                    if(!warp_mouse_center(hwnd))
-                        throw std::runtime_error("mouse recenter failed");
-                    state->look(std::clamp(double(dx),-200.0,200.0),
-                                std::clamp(double(dy),-200.0,200.0));
+        // Intentionally never recenter or redraw in WM_MOUSEMOVE.
+        // Cursor deltas are sampled/coalesced once per simulation tick;
+        // this avoids a SetCursorPos -> WM_MOUSEMOVE feedback loop and
+        // dozens of heavy original-VGA redraws per physical movement.
+        return 0;
+    case WM_TIMER:
+        if(wp==kFrameTimer && GetFocus()==hwnd) {
+            try {
+                const auto now=GetTickCount64();
+                const double dt=state->previous_tick_ms?
+                    std::clamp(double(now-state->previous_tick_ms)/1000.0,
+                               0.0,0.06):0.016;
+                state->previous_tick_ms=now;
+                bool changed=false;
+                if(state->mouse_look) {
+                    POINT current{};
+                    const auto center=mouse_anchor(hwnd);
+                    POINT screen=center;
+                    if(ClientToScreen(hwnd,&screen) && GetCursorPos(&current)) {
+                        const int dx=current.x-screen.x;
+                        const int dy=current.y-screen.y;
+                        if(dx||dy) {
+                            // Sample and recenter exactly ONCE per tick,
+                            // equivalent to SDL/pygame mouse.get_rel().
+                            SetCursorPos(screen.x,screen.y);
+                            state->look(std::clamp(double(dx),-160.0,160.0),
+                                        std::clamp(double(dy),-160.0,160.0));
+                            changed=true;
+                        }
+                    }
+                }
+                // Real-time SDL-style movement replaces OS WM_KEYDOWN
+                // autorepeat, preserving constant speed across PCs.
+                const auto down=[](int key) {
+                    return (GetAsyncKeyState(key)&0x8000)!=0;
+                };
+                const auto turn=int(down('E'))-int(down('Q'));
+                if(turn) {
+                    state->turn(double(turn)*kTurnSpeed*dt);
+                    changed=true;
+                }
+                const auto forward=int(down('W'))-int(down('S'));
+                const auto strafe=int(down('D'))-int(down('A'));
+                if(forward||strafe) {
+                    const double norm=std::max(1.0,std::hypot(
+                        double(forward),double(strafe)));
+                    const auto before_x=state->camera.column_position;
+                    const auto before_y=state->camera.row_position;
+                    state->move(kMoveSpeed*dt*forward/norm,
+                                kMoveSpeed*dt*strafe/norm);
+                    changed=changed ||
+                        state->camera.column_position!=before_x ||
+                        state->camera.row_position!=before_y;
+                }
+                if(changed) {
+                    state->redraw();
                     InvalidateRect(hwnd,nullptr,FALSE);
-                } catch(const std::exception&) {
-                    set_mouse_look(hwnd,*state,false);
+                } else if(state->last_step_blocked) {
+                    // Collision status refresh without falsely advancing
+                    // the rendered camera projection.
                     InvalidateRect(hwnd,nullptr,FALSE);
                 }
+            } catch(const std::exception&) {
+                if(state->mouse_look)set_mouse_look(hwnd,*state,false);
             }
+            return 0;
         }
-        return 0;
+        break;
     case WM_LBUTTONDOWN:
         SetFocus(hwnd);
         return 0;
@@ -292,6 +357,7 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         InvalidateRect(hwnd,nullptr,FALSE);
         return 0;
     case WM_KILLFOCUS:
+        state->previous_tick_ms=0;
         if(state->mouse_look) {
             set_mouse_look(hwnd,*state,false);
             InvalidateRect(hwnd,nullptr,FALSE);
@@ -301,12 +367,10 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         try {
             bool consumed=true;
             switch(wp) {
-            case 'W':case VK_UP:state->move(kStep,0);break;
-            case 'S':case VK_DOWN:state->move(-kStep,0);break;
-            case 'A':state->move(0,-kStep);break;
-            case 'D':state->move(0,kStep);break;
-            case 'Q':state->turn(-kTurn);break;
-            case 'E':state->turn(kTurn);break;
+            case 'W':case 'S':case 'A':case 'D':
+            case 'Q':case 'E':
+                // Held keys are sampled at uniform WM_TIMER intervals.
+                break;
             case 'M':
                 // Ignore Windows key-repeat; otherwise holding M can
                 // immediately undo the opt-in capture.
@@ -318,6 +382,7 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             case VK_NEXT:
                 state->choose_level((state->camera.level+31U)%32U);break;
             case 'V':state->show_full_frame=!state->show_full_frame;break;
+            case 'N':state->smooth_filter=!state->smooth_filter;break;
             case 'R':state->choose_level(state->camera.level);break;
             case VK_ESCAPE:DestroyWindow(hwnd);return 0;
             default:consumed=false;break;
@@ -345,6 +410,7 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         DestroyWindow(hwnd);
         return 0;
     case WM_NCDESTROY:
+        KillTimer(hwnd,kFrameTimer);
         if(state->mouse_look)set_mouse_look(hwnd,*state,false);
         SetWindowLongPtrW(hwnd,GWLP_USERDATA,0);
         delete state; // ownership transferred only after successful CreateWindow
@@ -375,6 +441,10 @@ void open_native_world_preview(HWND owner,const NativeMedia& original_media) {
     if(!window)
         throw std::runtime_error("unable to open native world preview");
     session.release();
+    if(!SetTimer(window,kFrameTimer,16U,nullptr)) {
+        DestroyWindow(window);
+        throw std::runtime_error("native preview timer setup failed");
+    }
     ShowWindow(window,SW_SHOW);
     UpdateWindow(window);
 }
