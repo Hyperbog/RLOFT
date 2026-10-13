@@ -1,5 +1,9 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Alpha 0.6 — authentic RES4 textures, 32 original maps, Windows media acceptance (2026-10-12)
+
+[Original media-backed textured interactive preview: successful Windows acceptance and exact binary hashes](ALPHA_ORIGINAL_RES4_TEXTURED_PREVIEW_ACCEPTANCE_20261012.md). The independent `rloft_native.exe` GUI now combines source-backed original `LEVELS.DAT` collision/material lookups, actual `RES4` 64×128 EH6 wall texels, exact per-level `COLORS` DAC6 banks and W/A/S/D + arrow-key exploration in its separate 320×200 interactive window. Source-only Linux passed; [isolated Windows/MSVC original-media acceptance #38325198679](https://github.com/Hyperbog/RLOFT/actions/runs/38325198679) passed **32/32 CTests** and a **32/32 authentic-level end-to-end smoke**, with 5,048 source-textured wall columns, 360,182 RES4 texels and 95 distinct source textures, all original source-file hashes unchanged. [Download the original Windows CI ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/38325198679/artifacts/11780003145). **This is Alpha 0.6 preview only:** camera ray paths, wall face selector, heights, floors, actors/events/party/saves and real DOS-frame parity remain open; no personally observed GUI GOG session is certified.
+
 ## Native Alpha 0.5: interactive original LEVELS.DAT preview (2026-10-12)
 
 [Native Windows world-preview integration and field acceptance](ALPHA_WORLD_PREVIEW_WINDOWS_20261012.md):
