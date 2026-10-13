@@ -17,6 +17,9 @@ struct NativeProbeTexturedFrame {
     std::vector<std::uint8_t> bgra;
     unsigned wall_columns{};
     unsigned original_texel_samples{};
+    unsigned preview_floor_texels{};
+    unsigned preview_ceiling_texels{};
+
     unsigned source_texture_decompressions{};
     bool original_code2_sampler_used{false};
     bool source_quadrant_state_used{false};
