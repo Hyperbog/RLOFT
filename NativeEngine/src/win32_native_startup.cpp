@@ -9,6 +9,7 @@
 #include "rloft/boot_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_creation_flow.hpp"
+#include "rloft/character_transfer.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -23,18 +24,20 @@ namespace {
 constexpr UINT_PTR kTick=31;
 constexpr unsigned kWidth=320,kHeight=400;
 constexpr int kMenu=18;
-constexpr int kCharacterOpening=19,kCharacterChoice=20;
+constexpr int kCharacterOpening=19,kCharacterChoice=20,kCharacterTransferred=21;
 constexpr std::array<unsigned,4> kLogoWaitMs{
     120U*1000U/18U,106U*1000U/18U,
     121U*1000U/18U,55U*1000U/18U};
 struct Preview {
     NativeStartupVisualSource source;
+    NativeMedia original_media;
     rloft::StartupPresenter presenter;
     rloft::BootFlow boot;
     rloft::CharacterCreationFlow creation;
     std::unique_ptr<rloft::CharacterCreationPresenter> character;
     std::unique_ptr<rloft::CharacterStatsModel> stats;
     std::array<std::optional<rloft::CharacterStatsModel>,2> actor_stats{};
+    std::optional<rloft::CharacterTransferImage> completed_party;
     bool stats_editor{},final_decision{},name_entry{},existing_actor_decision{};
     bool name_cursor_on{true};
     int selected_stat{-1},existing_actor{-1};
@@ -53,7 +56,8 @@ struct Preview {
     rloft::Palette6 palette{};
     std::vector<std::uint8_t> bgra;
     explicit Preview(const NativeMedia& media)
-        :source(media),presenter(source),bgra(std::size_t(kWidth)*kHeight*4U) {
+        :source(media),original_media(media),presenter(source),
+         bgra(std::size_t(kWidth)*kHeight*4U) {
         // This window inspects the original no-CHARS cold presentation
         // only. It never creates a fabricated party or bypasses CODE.1.
         boot.boot();
@@ -189,6 +193,42 @@ struct Preview {
         name_cursor_on=true;
         render_character_screen();
     }
+    void complete_character_transfer() {
+        if(!creation.both_present()||!creation.completed())
+            throw std::logic_error("CODE.1 transfer before both actors finished");
+        if(boot.snapshot().stage!=rloft::BootStage::CharacterCreation)
+            throw std::logic_error("CODE.1 transfer requires active supervisor state");
+        std::array<rloft::CharacterTransferActor,2> actors{};
+        for(std::size_t i=0;i<actors.size();++i) {
+            if(!actor_stats[i])
+                throw std::logic_error("CODE.1 transfer actor statistics missing");
+            actors[i].draft=creation.actor(int(i));
+            actors[i].stats=actor_stats[i]->value();
+        }
+        // Original 90 family/race equipment rows and OBJECTS.DAT conflict
+        // bits drive the *same* shared serializer as DemoV1. Native keeps
+        // the resulting 0x920 bytes in memory; never writes into game media.
+        const auto tables=rloft::CharacterTransferTables::from_original_bytes(
+            original_media.read("CODE.1"),
+            original_media.read("OBJECTS.DAT"));
+        completed_party=rloft::build_character_transfer(actors,tables);
+        if(completed_party->size()!=0x920U)
+            throw std::logic_error("CODE.1 CHARS has incorrect byte length");
+        boot.finish_character_creation(rloft::LegacyResult::ContinueModuleCycle);
+        boot.supervisor_dispatch();
+        if(!boot.snapshot().chars_present||
+           boot.snapshot().stage!=rloft::BootStage::Code2Startup)
+            throw std::logic_error("CODE.1 status-10 CHARS dispatch failed");
+        phase=kCharacterTransferred;
+        refresh();
+        MessageBoxW(hwnd,
+            L"Original CODE.1 party data serialized to 0x920 bytes in memory.\n"
+            L"R.EXE status-10 dispatch has returned to CODE.2 startup.\n"
+            L"Playable world entry is not connected yet.\n"
+            L"No files were created or modified.",
+            L"CODE.1 transfer ready — world integration pending",
+            MB_OK|MB_ICONINFORMATION);
+    }
     void handle_character_click(int row,int column) {
         if(phase!=kCharacterChoice||name_entry)return;
         const auto hit_state=(final_decision||existing_actor_decision)?
@@ -260,11 +300,8 @@ struct Preview {
             stats_editor=false;selected_stat=-1;
         }
         if(creation.completed()) {
-            MessageBoxW(hwnd,
-                L"Both original CODE.1 actors are complete.\n"
-                L"The CHARS transfer and playable world handoff remain pending.\n"
-                L"No original game files have been modified.",
-                L"CODE.1 party completion — transfer pending",MB_OK|MB_ICONINFORMATION);
+            complete_character_transfer();
+            return;
         }
         if(creation.aborted()) {
             boot.finish_character_creation(rloft::LegacyResult::OrdinaryTermination);
@@ -450,7 +487,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(230,233,240));
         RECT help{14,whole.bottom-35,whole.right-10,whole.bottom-8};
         DrawTextW(dc,
-            session->phase==kCharacterOpening?
+            session->phase==kCharacterTransferred?
+                L"Original 0x920 CHARS in memory | CODE.2 world entry pending | Esc closes"
+                :(session->phase==kCharacterOpening?
                 L"Original CODE.1 70-frame opening | Esc closes"
                 :(session->phase==kCharacterChoice?
                     L"Original CODE.1 character choices (stats/CHARS pending) | Esc closes"
@@ -458,7 +497,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                         L"Original CODE.2 title menu | Select an item | Esc closes"
                         :(session->phase<0?
                     L"Original CINE00/CINE12 indexed ANM (sound pending) | Space skips | Esc closes"
-                    :L"Original RES0 startup presentation | Space skips to menu | Esc closes"))),
+                    :L"Original RES0 startup presentation | Space skips to menu | Esc closes")))),
             -1,&help,DT_LEFT|DT_SINGLELINE|DT_END_ELLIPSIS);
         EndPaint(hwnd,&ps);return 0;
     }
