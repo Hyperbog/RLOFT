@@ -26,7 +26,21 @@ int main(int argc,char** argv) {
         NativeProbeOriginalTextures materials(media);
         std::vector<std::uint8_t> frames;
         unsigned hit_rays=0,texels=0,nonempty_levels=0;
-        unsigned floors=0,ceilings=0;
+        unsigned floors=0,ceilings=0,upper_columns=0;
+        // Exact source-placed material regression from the field
+        // screenshot: original LEVELS.DAT level 1 (14,10), code 0x2c
+        // with +0x0200 upper tier, four authored wall resource IDs.
+        // This would have exposed the preview's old opposite-face/
+        // upper-tier mixup even when arbitrary 32-level draws passed.
+        const auto& screenshot_map=world.original().level(1U);
+        if(screenshot_map.cell(14U,10U)!=0x022cU ||
+           screenshot_map.original_header[9U]!=96U ||
+           screenshot_map.resource_lookup(0U,44U)!=497U ||
+           screenshot_map.resource_lookup(1U,44U)!=62U ||
+           screenshot_map.resource_lookup(2U,44U)!=499U ||
+           screenshot_map.resource_lookup(3U,44U)!=62U)
+            throw std::runtime_error(
+                "authored level-1 cell 14,10 wall axes/upper art changed");
         for(unsigned level=0;level<32;++level) {
             const auto& map=world.original().level(level);
             bool found=false;
@@ -76,6 +90,7 @@ int main(int argc,char** argv) {
             texels+=frame.original_texel_samples;
             floors+=frame.preview_floor_texels;
             ceilings+=frame.preview_ceiling_texels;
+            upper_columns+=frame.preview_upper_wall_columns;
             nonempty_levels+=frame.wall_columns>0U;
             // Verify the *native* camera input bridge on real source data:
             // changing direction must produce a valid second source frame.
@@ -96,7 +111,8 @@ int main(int argc,char** argv) {
                 throw std::runtime_error("native preview movement changed frame shape");
         }
         if(nonempty_levels!=32 || hit_rays==0 || texels==0 ||
-           materials.cache_size()==0 || floors==0 || ceilings==0)
+           materials.cache_size()==0 || floors==0 || ceilings==0 ||
+           upper_columns==0)
             throw std::runtime_error("original source preview emitted no authentic walls");
         std::cout<<"{\"schema\":\"native-real-original-interactive-preview-v1\","
                  <<"\"levels_loaded\":32,"
@@ -104,6 +120,7 @@ int main(int argc,char** argv) {
                  <<"\"original_res4_wall_columns\":"<<hit_rays<<","
                  <<"\"original_res4_texel_samples\":"<<texels<<","
                  <<"\"unique_eh6_textures_decoded\":"<<materials.cache_size()<<","
+                 <<"\"source_upper_wall_columns\":"<<upper_columns<<","
                  <<"\"source_floor_preview_texels\":"<<floors<<","
                  <<"\"source_ceiling_preview_texels\":"<<ceilings<<","
                  <<"\"frames_rgb6_bgra_sha256\":\""<<native_sha256_hex(frames)<<"\","
