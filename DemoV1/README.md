@@ -5,6 +5,32 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Part 18 — ONE continuous original frontend → first Level22 Alpha
+
+[Source, launch safety and player acceptance boundaries](PART18_CONTINUOUS_ALPHA_FRONTEND_TO_LEVEL22_20261013.md).
+
+The primary Windows Alpha artifact is
+**`Ravenloft-Continuous-Alpha-Windows-x64`**. Unzip it, copy your
+*owned original DOS installation files* once into the adjacent `Game/`
+directory, and double-click **`Play-Ravenloft-Alpha.cmd`**.
+There is **no folder picker or gameplay mode selection**. The launcher
+validates the binary and copies the original game files to a new disposable
+workspace, removes `CHARS` *only inside that copy*, and launches the
+**normal no-developer-flags** native path:
+
+`CINE00 → CINE12 → logos → title → CODE.1 character creation → exact
+CHARS on disk → CODE.2 reads CHARS → authored Level22 entry`.
+
+The owner-approved ANM/MIDI/SFX/title/card-animation/character-flow
+implementations remain source-locked against the established frontend
+snapshot; the player route avoids opt-in `--dev-trace` frame overhead.
+Existing `Play-Original-Intro.cmd` remains a separate **incomplete
+showcase** and must not be mistaken for this continuous Alpha.
+
+**Pre-Alpha**: an executable reaching Level22 is not evidence that its
+ground/sky/trees/assassin, original VGA frame rate, or sound and pixel
+parity are accepted. Prior owner visual failures remain P0 until verified.
+
 ## Part 17 — original title Load Game source oracle (2026-10-13)
 
 [Private CODE.2 07B94 selector verification and remaining full-save blocker](PART17_ALPHA_TITLE_LOAD_SLOT_ORACLE_20261013.md).
