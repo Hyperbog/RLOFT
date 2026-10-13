@@ -15,6 +15,7 @@
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_scene_target.hpp"
+#include "rloft_native/native_scene_frame_ranges.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -42,6 +43,11 @@ struct State {
     // Null only for the explicitly separate technical viewport preview.
     std::optional<NativePartyStart> party;
     std::optional<NativeAuthoredSceneDirectory> authored_scenes;
+    std::optional<NativeAuthoredFrameRangeDirectory> authored_frames;
+    std::optional<NativeRes3SceneBanks> scene_banks;
+    std::optional<NativeResArchive> source_res3;
+    // Distinct authentic RES3 base shapes are decoded lazily on F inspect.
+    std::map<std::size_t,NativeAuthoredBaseShapeEvidence> base_shape_cache;
     bool show_authored_markers{true};
     NativeGpuScene mesh;
     NativeProbeCamera camera;
@@ -81,6 +87,7 @@ struct State {
     // the 60 FPS OpenGL paint loop.
     std::vector<NativeAuthoredSceneInstance> discovered_placements;
     std::string inspected_source;
+    std::string inspected_shape;
 
     explicit State(NativeWorldPayload world_source,const NativeMedia& media,
                    std::optional<NativePartyStart> startup={})
@@ -94,15 +101,20 @@ struct State {
             // Consume existing independently verified original RES3 / NPCS /
             // INIT / OBJECTS compact-placement ledger. No provisional shape
             // frame, fake actor or world item is instantiated by this step.
-            const auto res3_count=
-                NativeResArchive(media.read("RES3")).entry_count();
+            source_res3.emplace(media.read("RES3"));
             const auto banks=decode_native_res3_scene_banks(
-                media.read("INIT"),res3_count);
+                media.read("INIT"),source_res3->entry_count());
+            scene_banks=banks;
             const auto definitions=decode_native_scene_definitions(
                 banks,media.read("NPCS.DAT"),media.read("OBJECTS.DAT"));
             authored_scenes=derive_native_authored_scene_instances(
                 world.original(),definitions);
+            authored_frames=derive_native_authored_frame_ranges(
+                *authored_scenes,definitions);
             const auto& first=authored_scenes->levels.at(party->level);
+            if(authored_frames->levels.at(party->level).size()!=first.size())
+                throw std::runtime_error(
+                    "authenticated Level22 scene and frame source record counts disagree");
             if(party->level==22U && first.size()!=111U)
                 throw std::runtime_error(
                     "Level22 original 1+110+0 scene placement inventory changed");
@@ -167,6 +179,7 @@ struct State {
         visibility_initialized=false;
         discovered_placements.clear();
         inspected_source.clear();
+        inspected_shape.clear();
         auto& seen=explored[level];
         if(seen.size()!=std::size_t(map.width)*map.height)
             seen.assign(std::size_t(map.width)*map.height,0);
@@ -391,8 +404,44 @@ struct State {
                         object.source_class==1U?"PLACED":"LOOSE")+
             " TYPE "+std::to_string(object.original_type_id)+
             " | RES3 BASE "+std::to_string(object.absolute_res3_base)+
-            " | SOURCE RECORD "+std::to_string(object.compact_record_index)+
-            " | HOST INSPECTION ONLY";
+            " | RECORD "+std::to_string(object.compact_record_index);
+        inspected_shape.clear();
+        if(!authored_frames||!scene_banks||!source_res3)
+            throw std::logic_error("source RES3 frame ledger not loaded");
+        // One-to-one original compact ordinal in the authenticated
+        // authored scene ledger; never infer a live animation/view index.
+        const auto& source=authored_scenes->levels.at(level);
+        const auto& legal=authored_frames->levels.at(level);
+        if(source.size()!=legal.size())
+            throw std::logic_error("source placement/frame range mismatch");
+        for(std::size_t i=0;i<source.size();++i) {
+            const auto& entry=source[i];
+            if(entry.source_class!=object.source_class||
+               entry.compact_record_index!=object.compact_record_index||
+               entry.original_type_id!=object.original_type_id)
+                continue;
+            const auto& range=legal[i];
+            if(range.source_class!=object.source_class||
+               range.compact_record_index!=object.compact_record_index||
+               range.first_absolute_res3_id!=object.absolute_res3_base)
+                throw std::logic_error("source frame range index corruption");
+            const auto frame_id=select_native_authored_res3_frame(
+                range,*scene_banks,0U,0U);
+            auto shape=base_shape_cache.find(frame_id);
+            if(shape==base_shape_cache.end()) {
+                const auto verified=probe_native_authored_base_eh7(
+                    range,*scene_banks,*source_res3);
+                shape=base_shape_cache.emplace(frame_id,verified).first;
+            }
+            inspected_shape=
+                "EH7 BASE ONLY "+std::to_string(frame_id)+
+                " | WIDTH "+std::to_string(shape->second.source_width)+
+                " | SPANS "+std::to_string(shape->second.raster_descriptors)+
+                " | LEGAL SLOTS "+std::to_string(range.resource_slot_count)+
+                " | LIVE FRAME / DRAW NOT KNOWN";
+            return;
+        }
+        throw std::logic_error("inspected placement absent from original scene directory");
     }
     void automap_draw(int width,int height) {
         if(!automap)return;
@@ -528,8 +577,11 @@ struct State {
                 "Map dots = NPC 9 / placed 62 63 64 | RES3 sprites + events pending":
                 "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
-        if(party&&!inspected_source.empty())
-            line(12,height-box_height-8,inspected_source);
+        if(party&&!inspected_source.empty()) {
+            line(12,height-box_height-32,inspected_source);
+            if(!inspected_shape.empty())
+                line(12,height-box_height-11,inspected_shape);
+        }
         glMatrixMode(GL_PROJECTION);glPopMatrix();
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
