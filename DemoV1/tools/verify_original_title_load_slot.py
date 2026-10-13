@@ -41,6 +41,18 @@ WINDOWS = {
     0x7CDC: 'c6 05 92 66 00 00 5c', # slash restored
     0x7CE6: '83 f8 01 74 24', # copy failed -> branch
 }
+# Original jumps matter: the failed chdir WORK returns WITHOUT
+# 07CDC restoring 6692 back to '\\'. Copy failure restores the slash,
+# shows original error and retries. The ten-handle cleanup is distinct.
+BRANCHES = {
+    0x7BD8: ('short', 0x74, 0x7BE2),
+    0x7CA3: ('near-conditional', 0x85, 0x7D1F),
+    0x7CBD: ('short', 0x74, 0x7CCD),
+    0x7CE9: ('short', 0x74, 0x7D0F),
+    0x7D08: ('short', 0x75, 0x7CF4),
+    0x7D1A: ('near-jump', 0xE9, 0x7BA4),
+    0x7D3C: ('short', 0x75, 0x7D28),
+}
 DATA_STRINGS = {
     0x668C: b'SAVE??\\SAVE.DAT\x00',
     0xC020: b'WORK\x00',
@@ -69,6 +81,34 @@ def original_oracle(data: bytes) -> None:
         displacement = int.from_bytes(data[at+1:at+5], 'little', signed=True)
         if at - base + 5 + displacement != target:
             raise ValueError(f'Original load CALL target differs at {at-base:05X}')
+    for logical, (kind, opcode, target) in BRANCHES.items():
+        at = base + logical
+        if kind == 'short':
+            if data[at] != opcode:
+                raise ValueError(f'CODE.2 short branch opcode {logical:05X}')
+            delta = int.from_bytes(data[at+1:at+2], 'little', signed=True)
+            actual = logical + 2 + delta
+        elif kind == 'near-conditional':
+            if data[at:at+2] != bytes((0x0F,opcode)):
+                raise ValueError(f'CODE.2 near conditional {logical:05X}')
+            delta = int.from_bytes(data[at+2:at+6], 'little', signed=True)
+            actual = logical + 6 + delta
+        elif kind == 'near-jump':
+            if data[at] != opcode:
+                raise ValueError(f'CODE.2 near jump {logical:05X}')
+            delta = int.from_bytes(data[at+1:at+5], 'little', signed=True)
+            actual = logical + 5 + delta
+        else:
+            raise ValueError(f'Unknown oracle branch kind {kind}')
+        if actual != target:
+            raise ValueError(
+                f'CODE.2 selector branch {logical:05X} -> {actual:05X}, '
+                f'expected {target:05X}')
+    # Both exit behaviors rely on the original source ORDER:
+    # 07C8C sets the mutable SAVE?? template slash to NUL;
+    # failed chdir branches to 07D1F, skipping 07CDC backslash reset.
+    if not (0x7C8C < 0x7CA3 < 0x7CDC < 0x7D1F):
+        raise ValueError('Original failure/slash mutation order differs')
     for offset, want in DATA_STRINGS.items():
         at = 0x75F24 + offset
         if data[at:at+len(want)] != want:
