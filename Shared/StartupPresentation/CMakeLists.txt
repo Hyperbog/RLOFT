@@ -10,3 +10,10 @@ if(MSVC)
 else()
   target_compile_options(rloft_shared_startup_presentation PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+add_executable(shared_original_startup_presenter_tests
+  tests/startup_presenter_tests.cpp)
+target_link_libraries(shared_original_startup_presenter_tests PRIVATE
+  rloft_shared_startup_presentation)
+add_test(NAME shared_original_startup_presenter_tests
+  COMMAND shared_original_startup_presenter_tests)
