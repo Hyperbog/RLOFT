@@ -40,10 +40,11 @@ struct Preview {
     std::optional<rloft::CharacterTransferImage> completed_party;
     bool stats_editor{},final_decision{},name_entry{},existing_actor_decision{};
     bool name_cursor_on{true};
-    int selected_stat{-1},existing_actor{-1};
+    int selected_stat{-1},existing_actor{-1},portrait_hover{-1};
     std::string pending_name;
     int character_frame{};
     ULONGLONG code1_started{};
+    ULONGLONG name_blink_at{};
     std::unique_ptr<rloft::AnmCinematic> cine00;
     std::unique_ptr<rloft::AnmCinematic> cine12;
     unsigned cinematic_wait_ms{14U};
@@ -150,7 +151,8 @@ struct Preview {
                 throw std::logic_error("CODE.1 existing actor missing saved statistics");
             character->existing_actor_decision_screen(
                 creation,existing_actor,*actor_stats[std::size_t(existing_actor)]);
-        } else character->screen(creation,stats.get(),selected_stat,stats_editor);
+        } else character->screen(
+            creation,stats.get(),selected_stat,stats_editor,portrait_hover);
         palette=character->palette();
         refresh();
     }
@@ -191,6 +193,7 @@ struct Preview {
             pending_name=std::move(candidate);
         }
         name_cursor_on=true;
+        name_blink_at=GetTickCount64()+500U;
         render_character_screen();
     }
     void complete_character_transfer() {
@@ -241,6 +244,7 @@ struct Preview {
                 name_entry=true;
                 pending_name.clear();
                 name_cursor_on=true;
+                name_blink_at=GetTickCount64()+500U;
             } else if(event==4) {
                 creation.finish_current_actor(false);
                 stats.reset();
@@ -293,6 +297,7 @@ struct Preview {
             return;
         }
         if(!creation.apply_event(event))return;
+        portrait_hover=-1;
         if(creation.state()==rloft::CharacterCreationState::StatsReview) {
             if(!stats)stats=std::make_unique<rloft::CharacterStatsModel>(source);
             stats->seed(original_tick());
@@ -326,7 +331,15 @@ struct Preview {
         refresh();
     }
     void advance() {
-        if(phase==kCharacterChoice||phase==kMenu)return;
+        if(phase==kCharacterChoice) {
+            if(name_entry&&GetTickCount64()>=name_blink_at) {
+                name_blink_at=GetTickCount64()+500U;
+                name_cursor_on=!name_cursor_on;
+                render_character_screen();
+            }
+            return;
+        }
+        if(phase==kCharacterTransferred||phase==kMenu)return;
         const auto elapsed=GetTickCount64()-phase_started;
         if(phase==kCharacterOpening) {
             if(elapsed>=14U) {
@@ -415,6 +428,34 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         }
         break;
     case WM_MOUSEMOVE:
+        if(session->phase==kCharacterChoice &&
+           !session->name_entry && !session->final_decision &&
+           !session->existing_actor_decision &&
+           session->creation.state()==
+               rloft::CharacterCreationState::PortraitChoice) {
+            const RECT bounds=image_rect(hwnd);
+            const int x=static_cast<short>(LOWORD(lp));
+            const int y=static_cast<short>(HIWORD(lp));
+            int next=-1;
+            if(x>=bounds.left&&x<bounds.right&&
+               y>=bounds.top&&y<bounds.bottom) {
+                const int column=(x-bounds.left)*int(kWidth)/
+                    (bounds.right-bounds.left);
+                const int row=(y-bounds.top)*int(kHeight)/
+                    (bounds.bottom-bounds.top);
+                const int event=rloft::CharacterCreationFlow::hit_test(
+                    session->creation.state(),row,column);
+                if(event>=1&&event<=6&&
+                   session->creation.available_choices()[std::size_t(event-1)])
+                    next=event-1;
+            }
+            if(session->portrait_hover!=next) {
+                session->portrait_hover=next;
+                try{session->render_character_screen();}
+                catch(const std::exception& e){report_failure(hwnd,e.what());}
+            }
+            return 0;
+        }
         if(session->phase==kMenu) {
             const RECT bounds=image_rect(hwnd);
             const int x=static_cast<short>(LOWORD(lp));
