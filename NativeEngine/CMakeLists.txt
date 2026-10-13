@@ -31,6 +31,7 @@ add_library(rloft_native_assets STATIC
   src/native_world_fingerprints.cpp
   src/native_world_runtime.cpp
   src/native_scene_view.cpp
+  src/native_gpu_world_mesh.cpp
   src/native_probe_original_textures.cpp
   src/native_code2_backdrop.cpp
   src/native_type7_scene_shape.cpp
@@ -147,9 +148,10 @@ set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
 if(WIN32)
   add_executable(rloft_native WIN32
     src/win32_native_assets.cpp
-    src/win32_native_exploration.cpp)
+    src/win32_native_exploration.cpp
+    src/win32_native_gpu_exploration.cpp)
   target_link_libraries(rloft_native PRIVATE
-    rloft_native_assets User32 Gdi32 Shell32 Ole32)
+    rloft_native_assets User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
   target_compile_definitions(rloft_native PRIVATE UNICODE _UNICODE
     "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\"")
   native_warnings(rloft_native)
@@ -218,6 +220,11 @@ add_executable(native_world_runtime_tests tests/native_world_runtime_tests.cpp)
 target_link_libraries(native_world_runtime_tests PRIVATE rloft_native_assets)
 native_warnings(native_world_runtime_tests)
 add_test(NAME native_world_runtime_tests COMMAND native_world_runtime_tests)
+
+add_executable(native_gpu_world_mesh_tests tests/native_gpu_world_mesh_tests.cpp)
+target_link_libraries(native_gpu_world_mesh_tests PRIVATE rloft_native_assets)
+native_warnings(native_gpu_world_mesh_tests)
+add_test(NAME native_gpu_world_mesh_tests COMMAND native_gpu_world_mesh_tests)
 
 add_executable(native_scene_view_tests tests/native_scene_view_tests.cpp)
 target_link_libraries(native_scene_view_tests PRIVATE rloft_native_assets)
