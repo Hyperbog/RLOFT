@@ -40,7 +40,7 @@ struct Preview {
     std::unique_ptr<rloft::CharacterStatsModel> stats;
     std::array<std::optional<rloft::CharacterStatsModel>,2> actor_stats{};
     std::optional<rloft::CharacterTransferImage> completed_party;
-    bool world_launched{};
+    HWND world_window{};
     bool stats_editor{},final_decision{},name_entry{},existing_actor_decision{};
     bool name_cursor_on{true};
     int selected_stat{-1},existing_actor{-1},portrait_hover{-1};
@@ -221,14 +221,24 @@ struct Preview {
     void enter_first_level() {
         if(!completed_party)
             throw std::logic_error("CODE.2 world entry requires source CHARS");
-        if(world_launched)return;
-        // The GPU renderer must validate Level 22's real collision grid and
-        // source party BEFORE the supervisor records completed world entry.
-        open_native_gpu_world_session(hwnd,original_media,*completed_party);
-        boot.finish_code2_startup(true,false);
+        if(world_window&&IsWindow(world_window)) {
+            SetForegroundWindow(world_window);
+            return;
+        }
+        const auto stage=boot.snapshot().stage;
+        if(stage!=rloft::BootStage::Code2Startup &&
+           stage!=rloft::BootStage::Exploration)
+            throw std::logic_error("CODE.2 party world session cannot begin here");
+        // The GPU renderer validates the real Level22 cell and original
+        // source party before the supervisor advances to gameplay.
+        // Reopen after the child closes is an explicit *fresh* session:
+        // native state persistence remains an open A4 requirement.
+        world_window=open_native_gpu_world_session(
+            hwnd,original_media,*completed_party);
+        if(stage==rloft::BootStage::Code2Startup)
+            boot.finish_code2_startup(true,false);
         if(boot.snapshot().stage!=rloft::BootStage::Exploration)
             throw std::logic_error("CODE.2 first-party world stage not reached");
-        world_launched=true;
     }
     void complete_character_transfer() {
         if(!creation.both_present()||!creation.completed())
@@ -484,8 +494,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             catch(const std::exception& e){report_failure(hwnd,e.what());}
             return 0;
         }
-        if(wp==VK_RETURN && session->phase==kCharacterTransferred &&
-           !session->world_launched) {
+        if(wp==VK_RETURN && session->phase==kCharacterTransferred) {
             try{session->enter_first_level();}
             catch(const std::exception& e){report_failure(hwnd,e.what());}
             return 0;
@@ -597,7 +606,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         RECT help{14,whole.bottom-35,whole.right-10,whole.bottom-8};
         DrawTextW(dc,
             session->phase==kCharacterTransferred?
-                L"Original 0x920 CHARS | Level 22 party entry | Esc closes"
+                L"Original CHARS party | Enter: open fresh Level 22 session | Esc closes"
                 :(session->phase==kCharacterOpening?
                 L"Original CODE.1 70-frame opening | Esc closes"
                 :(session->phase==kCharacterChoice?
