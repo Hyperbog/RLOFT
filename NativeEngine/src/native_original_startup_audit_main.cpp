@@ -1,6 +1,8 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_startup_visuals.hpp"
 #include "rloft/startup_presenter.hpp"
+#include "rloft/character_creation_presenter.hpp"
+#include "rloft/character_creation_flow.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -62,7 +64,35 @@ int main(int argc,char** argv) {
                     throw std::runtime_error("original startup DAC6 palette channel outside range");
             }
         }
+        // Original CODE.1: validate the same source-backed presenter that
+        // the Windows supervisor uses, including the full 70-frame opening.
+        rloft::CharacterCreationPresenter character(visuals);
+        std::array<std::uint64_t,3> character_hashes{};
+        for(int frame=0;
+            frame<rloft::CharacterCreationPresenter::kOpeningFrameCount;
+            ++frame) {
+            character.opening_frame(frame);
+            if(character.framebuffer().pixels().size()!=320U*400U)
+                throw std::runtime_error("original CODE.1 opening frame size");
+            if(frame==0)character_hashes[0]=checksum(character.framebuffer().pixels());
+            if(frame==69)character_hashes[1]=checksum(character.framebuffer().pixels());
+        }
+        rloft::CharacterCreationFlow creation;
+        character.screen(creation);
+        character_hashes[2]=checksum(character.framebuffer().pixels());
+        // Original CODE.1 event 3 selects the first unoccupied actor slot.
+        if(!creation.apply_event(3)||
+           creation.state()!=rloft::CharacterCreationState::SexChoice)
+            throw std::runtime_error("original CODE.1 actor choice handoff");
+        character.screen(creation);
+        if(character.framebuffer().pixels().size()!=320U*400U)
+            throw std::runtime_error("original CODE.1 first choice screen size");
         std::cout<<"{\"schema\":\"native-source-startup-v1\","
+                 <<"\"character_opening_frames\":70,"
+                 <<"\"character_controller_actor_and_sex\":true,"
+                 <<"\"character_frame_hashes\":["
+                 <<character_hashes[0]<<','<<character_hashes[1]<<','
+                 <<character_hashes[2]<<"],"
                  <<"\"original_res0_images_verified\":12,"
                  <<"\"menu_animation_and_selection_frames\":"<<source_frames<<","
                  <<"\"indexed_width\":320,\"indexed_height\":400,"
