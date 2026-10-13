@@ -220,6 +220,58 @@ int main(int argc,char** argv) {
         for(std::size_t family=0;family<15;++family)
             for(std::size_t race=0;race<6;++race)
                 static_cast<void>(original_tables.starting_loadout(family,race));
+        // Exercise the actual CODE.1 generator against the owner-supplied
+        // 90-row original starting-item table, and feed its output into the
+        // independent native CHARS inventory decoder. Actors below are
+        // explicitly synthetic AUDIT identities, never gameplay defaults.
+        std::array<rloft::CharacterTransferActor,2> transfer_fixture{};
+        for(unsigned i=0;i<2U;++i) {
+            auto& actor=transfer_fixture[i];
+            actor.draft.actor=static_cast<int>(i);
+            actor.draft.name=i==0U?"VERIFY A":"VERIFY B";
+            actor.draft.sex=static_cast<int>(i);
+            actor.draft.race=0; // Both class families use populated source rows
+            actor.draft.classes={{static_cast<int>(i),-1,-1}};
+            actor.draft.option=static_cast<int>(i);
+            actor.draft.face=static_cast<int>(i);
+            actor.stats.abilities.fill(12);
+            actor.stats.levels[0]=1;
+            actor.stats.hit_points=8+static_cast<int>(i);
+        }
+        const auto actual_transferred=rloft::build_character_transfer(
+            transfer_fixture,original_tables);
+        const auto actual_inventory=rloft_native::inspect_native_party_inventory(
+            rloft_native::decode_native_party_start(actual_transferred),
+            media.read("OBJECTS.DAT"));
+        if(actual_inventory.object_definitions!=336U ||
+           actual_inventory.actors[0].actor_name!="VERIFY A" ||
+           actual_inventory.actors[1].actor_name!="VERIFY B")
+            throw std::runtime_error(
+                "original CODE.1-generated actor CHARS inventory identity failed");
+        std::size_t original_starter_items=0U;
+        for(unsigned actor=0;actor<2U;++actor) {
+            const auto original=original_tables.starting_loadout(actor,0U);
+            for(unsigned slot=0;slot<21U;++slot) {
+                const auto& item=actual_inventory.actors[actor].slots[slot];
+                if(original.slots[slot]==-1) {
+                    if(item.occupied||item.object_id!=-1)
+                        throw std::runtime_error(
+                            "original CODE.1 empty actor item slot diverges");
+                    continue;
+                }
+                if(!item.occupied || item.object_id!=original.slots[slot])
+                    throw std::runtime_error(
+                        "CODE.1 starting loadout CHARS-to-native inventory mismatch");
+                ++original_starter_items;
+            }
+        }
+        // The pinned supplied CODE.1 rows class-family0/race0 and
+        // class-family1/race0 each contain five original source items.
+        // This explicitly covers populated *both-actor* transfer.
+        if(actual_inventory.occupied_total!=original_starter_items ||
+           original_starter_items!=10U)
+            throw std::runtime_error(
+                "original CODE.1 generated party has no validated starting gear");
         // Real original OBJECTS.DAT corpus + portable native read-only
         // inventory decoder. The CHARS values below are an AUDIT FIXTURE,
         // never a player party or a source save. Only object names, IDs,
@@ -304,6 +356,9 @@ int main(int argc,char** argv) {
                  <<"\"original_party_inventory_slots_per_actor\":21,"
                  <<"\"original_party_inventory_object6_12_verified\":true,"
                  <<"\"original_party_inventory_gameplay_verified\":false,"
+                 <<"\"original_generated_party_inventory_verified\":true,"
+                 <<"\"original_generated_party_starting_items\":"
+                 <<original_starter_items<<","
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
                  <<"\"character_frame_hashes\":["
