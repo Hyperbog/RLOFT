@@ -2,7 +2,7 @@
 
 ## Controlling product roadmap
 
-See [README](README.md) for the Alpha, Beta, and Final exit gates. Current GPU versions are technical previews, not a first playable Alpha. Next work is shared original startup, actual authored scenery and door behavior, party/world interaction, and safe profile saves. Keep `native-engine` as the sole native development branch. The input handedness fix is in the portable navigation helper and both Win32 viewers.
+See [README](README.md) for the Alpha, Beta, and Final exit gates. Current GPU versions are technical previews, not a first playable Alpha. Next work is shared original startup, actual authored scenery and door behavior, party/world interaction, and safe profile saves. Keep `native-engine` as the sole native development branch. The A/D input handedness fix is in the shared portable movement function and both Win32 viewers. A related GPU mouse-look blocker was also found: collision validation rejected vertical pitches above 0.9 while GPU free-look supports up to 1.42 radians; the bound is now consistent with GPU input and covered by regression. These are native-source/portable CI findings, not yet a new Windows release.
 
 ## CONTROLLING GPU Alpha 0.12 — native-to-4K offscreen FBO and clean native branches
 
