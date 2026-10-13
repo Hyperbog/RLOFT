@@ -38,7 +38,7 @@ bytes or original media paths. The isolated PowerShell runner prints
 only the last whitelisted stage, never raw diagnostic JSONL contents.
 
 The source-only boot-trace contract now rejects **10** deliberate
-negative cases; the sandbox field safety contract rejects **8**.
+negative cases; the sandbox field safety contract rejects **12**.
 Those tests and the CMake declarations are not substitutes for verified
 exact-checkout Windows execution. A reported `present.submitted`
 means only that the native host returned from its presentation call;
@@ -51,6 +51,39 @@ If the generated exploration ZIP ends with `exploration.load.failed`, investigat
 The isolated PowerShell field runner now displays only the last recognized **whitelisted** exploration initialization stage from the new diagnostic ZIP, not unfiltered event records; this leaves typed names and scan events out of console summaries. A source-only sandbox negative mutation rejects removing that stage whitelist.
 
 Original installation/game-source or window creation failures can still occur before either trace starts. For all runs use the protected-copy `Test-Alpha-Continuous-Game.cmd`; do not run the native prototype against the owner's original CHARS/SAVE.DAT.
+
+## Alpha field package byte identity and existing-party eligibility
+
+The next protected-copy field-runner hardening avoids two ways to generate
+misleading evidence without changing the engine's original-game paths.
+
+- Windows CI stages `ravenloft_demo_v1.exe.sha256` from the **actual built
+  Release EXE** and ships it with **both** field and original-intro
+  artifacts. `build-source-sha.txt` still names the compiled checkout; it
+  is a distinct source-identity claim, **not** a cryptographic guarantee
+  that any arbitrary EXE corresponds to that commit.
+- Before opening the original-installation folder picker, the Alpha
+  PowerShell field runner requires the checksum manifest, validates its
+  exact 64-hex + double-space + filename format and refuses to launch
+  if the packaged executable's SHA-256 differs. This guards accidental
+  stale/manual mixing of artifact files.
+- For the **existing-party** route, the runner verifies only the **copied**
+  CHARS where `GameSource::runtime_file` actually searches: the copied
+  install root or copied `RLOFT` child, in that priority. A CHARS file
+  elsewhere does not make the route eligible. The selected file must have
+  the original `0x920` (2336-byte) transfer length. No CHARS content is
+  printed, transmitted, deleted or modified by this check.
+- The cold route still deletes CHARS **only in the scratch copy**. The
+  original installation remains read-only to the runner, and the chosen
+  route is not silently relabeled after launch.
+- The standalone source-only `alpha_sandbox_normal_launch_contract_tests`
+  now rejects **12** negative variants including checksum tampering and
+  absent/malformed existing-party CHARS preflight.
+
+These checks do **not** prove a valid party can load, nor that the native
+first frame matches DOS. The newly staged checksum file is required by
+the new Alpha launcher; older manually assembled launch packages without
+this file are intentionally rejected.
 
 ## Validation still required
 
