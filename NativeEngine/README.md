@@ -1,5 +1,9 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Alpha A1 work underway — shared CODE.2/CODE.1 startup
+
+[Source-preserving A1 extraction checkpoint](ALPHA_A1_SHARED_ORIGINAL_STARTUP_20261012.md): the existing DemoV1 original supervisor boot and CODE.1 character-choice rule engines (including their source tests) were moved **byte-for-byte** to two neutral `Shared/` libraries consumed by both DemoV1 and NativeEngine on `native-engine`. Windows-native install selection now calls the actual shared CODE.2 boot model and reports cold-start versus source-CHARS-present original routing, read-only. [Native 35/35 CTests passed](https://github.com/Hyperbog/RLOFT/actions/runs/38343564098); [unchanged original DemoV1 boot/character tests 2/2 passed](https://github.com/Hyperbog/RLOFT/actions/runs/38343815405). This is boot **logic and rules extraction**, not the interactive original introduction, animated menu, character presenter, actual CHARS import or normal gameplay. The next step is adapter-backed sharing of the existing original animated presenters with the independent native `NativeMedia` original source reader. Native Win32 compile/desktop acceptance from this revision remains open.
+
 ## Product roadmap — Alpha → Beta → Final (controlling, 2026-10-12)
 
 **Product:** `NativeEngine/rloft_native.exe`, an independently built Windows replacement engine loading the player's owned Ravenloft files read-only. **Branch:** `native-engine` only. **Separate workstreams:** `DemoV1` (working source-traced startup and character creation), `code1-decompilation` (original behavior evidence), `DnD-Classics` (original source media), and asset-extraction/disassembly tools. Integrate proven implementations across modules; do not rename DemoV1 or fork a second gameplay rewrite.
