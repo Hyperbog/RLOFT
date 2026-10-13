@@ -40,6 +40,17 @@ WINDOWS = {
     0x7CCD: '68 20 c0 00 00 68 8c 66 00 00', # WORK, SAVE?? args
     0x7CDC: 'c6 05 92 66 00 00 5c', # slash restored
     0x7CE6: '83 f8 01 74 24', # copy failed -> branch
+    0x7CA9: 'e8 ca f6 ff ff',     # clear WORK before copy success known
+    0x7CBF: 'ff 35 b0 60 00 00',  # parent change error is displayed
+    0x7CD7: 'e8 c4 f6 ff ff',     # wildcard copy
+    0x7CEB: 'e8 48 fc ff ff',     # common loader, not inline SAVE.DAT
+    0x7CF4: 'ff b3 30 2b 01 00', # 10-handle success cleanup
+    0x7D0A: '89 f0 5e 5b c3',     # original returns loader status
+    0x7D0F: 'ff 35 c0 60 00 00', # copy failure message, then retry
+    0x7D1F: 'be 01 00 00 00',     # WORK chdir failure return 1
+    0x7D28: 'ff b3 30 2b 01 00', # separate failure cleanup loop
+    0x7D3E: '89 f0 5e 5b c3',     # returns status 1 after 10 closes
+
 }
 # Original jumps matter: the failed chdir WORK returns WITHOUT
 # 07CDC restoring 6692 back to '\\'. Copy failure restores the slash,
@@ -171,6 +182,47 @@ def native_source_guard(header: str, tests: str, cmake: str) -> None:
         raise ValueError('Native selector test omitted from CI')
 
 
+def load_workflow_source_guard(header: str, tests: str, cmake: str) -> None:
+    """Prevent a working-LOAD claim or source-reversing pure model change."""
+    required = (
+        'out.slot_tens=static_cast<char>(\'0\'+input.selected_slot/10U)',
+        'out.record(OriginalTitleLoadStep::MaskTemplateSlash);',
+        'out.template_slash_is_nul=true;',
+        'if (input.enter_work_result != 0) {',
+        'out.record(OriginalTitleLoadStep::ClearWorkFiles);',
+        'if (input.return_to_parent_result != 0) {',
+        'out.record(OriginalTitleLoadStep::ParentDirectoryError);',
+        'out.record(OriginalTitleLoadStep::CopySlotFiles,input.selected_slot);',
+        'out.record(OriginalTitleLoadStep::RestoreTemplateSlash);',
+        'out.template_slash_is_nul=false;',
+        'if (input.copy_result == 1) {',
+        'out.record(OriginalTitleLoadStep::CopyErrorAndRetry);',
+        'out.record(OriginalTitleLoadStep::EnterSharedLoader);',
+        'out.returned_status=input.shared_loader_result;',
+        'out.record(OriginalTitleLoadStep::CloseHandle,i);',
+    )
+    for part in required:
+        if part not in header:
+            raise ValueError('Original Load IO branch model changed: '+part)
+    if (header.index('out.record(OriginalTitleLoadStep::ClearWorkFiles);') >=
+            header.index('out.record(OriginalTitleLoadStep::CopySlotFiles,input.selected_slot);')):
+        raise ValueError('Original clears WORK before attempting copy')
+    if (header.index('out.record(OriginalTitleLoadStep::RestoreTemplateSlash);') >=
+            header.index('if (input.copy_result == 1) {')):
+        raise ValueError('Slash restored before copy failure branch')
+    if ('#undef NDEBUG' not in tests or
+            'OriginalTitleLoadEnd::WorkChdirFailed' not in tests or
+            'OriginalTitleLoadEnd::CopyFailedRetry' not in tests or
+            'OriginalTitleLoadEnd::SharedLoaderReturned' not in tests or
+            'check_handle_cleanup' not in tests):
+        raise ValueError('Pure original Load workflow tests not exhaustive')
+    if ('add_executable(original_title_load_workflow_tests' not in cmake or
+            'add_test(NAME original_title_load_workflow_tests' not in cmake):
+        raise ValueError('Original Load workflow tests omitted from CTest')
+    if '#include <filesystem>' in header or '#include <fstream>' in header:
+        raise ValueError('Unaccepted original Load model performs filesystem IO')
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root',type=Path,default=ROOT)
@@ -187,6 +239,30 @@ def main() -> int:
             tests=(args.root/'DemoV1/tests/original_title_load_slot_tests.cpp').read_text(encoding='utf-8')
             cmake=(args.root/'DemoV1/CMakeLists.txt').read_text(encoding='utf-8')
             native_source_guard(header,tests,cmake)
+            io_header=(args.root/'DemoV1/include/rloft/original_title_load_workflow.hpp').read_text(encoding='utf-8')
+            io_tests=(args.root/'DemoV1/tests/original_title_load_workflow_tests.cpp').read_text(encoding='utf-8')
+            load_workflow_source_guard(io_header,io_tests,cmake)
+            # Fail closed on five source-visible variants of broken semantics:
+            # changing copy-result compare, skip-chdir-parent message,
+            # changing non-atomic clear order, early template restore,
+            # suppressing ten file-handle closures.
+            mutations_io = (
+                ('if (input.copy_result == 1) {','if (input.copy_result != 1) {'),
+                ('out.record(OriginalTitleLoadStep::ParentDirectoryError);','/* error lost */'),
+                ('out.record(OriginalTitleLoadStep::ClearWorkFiles);','/* WORK clear lost */'),
+                ('out.record(OriginalTitleLoadStep::RestoreTemplateSlash);','/* slash lost */'),
+                ('out.record(OriginalTitleLoadStep::CloseHandle,i);','/* handles leaked */'),
+            )
+            for before,after in mutations_io:
+                if before not in io_header:
+                    raise ValueError('Unable to mutate original IO model: '+before)
+                bad_io=io_header.replace(before,after,1)
+                try:
+                    load_workflow_source_guard(bad_io,io_tests,cmake)
+                except ValueError:
+                    pass
+                else:
+                    raise ValueError('Original Load model mutation escaped: '+before)
             # Four regression mutations corrupt independent DOS facts.
             mutations = (
                 ('x >= 379', 'x >= 380'),
