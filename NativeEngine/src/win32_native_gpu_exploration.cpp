@@ -16,11 +16,14 @@
 #include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_scene_target.hpp"
 #include "rloft_native/native_scene_frame_ranges.hpp"
+#include "rloft_native/native_session_profile.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <optional>
@@ -37,6 +40,19 @@ constexpr double kMouseSensitivity=0.0020;
 constexpr double kMoveSpeed=2.05;
 constexpr double kTurnSpeed=1.9;
 constexpr double kRunSpeed=3.5;
+
+// Write native-only checkpoints under the user's app-data directory,
+// never adjacent to the original DOS game or the read-only ISO.
+std::filesystem::path native_quicksave_path() {
+    std::array<wchar_t,32768> root{};
+    const DWORD count=GetEnvironmentVariableW(
+        L"LOCALAPPDATA",root.data(),static_cast<DWORD>(root.size()));
+    if(count==0 || count>=root.size())
+        throw std::runtime_error(
+            "Windows LOCALAPPDATA directory is unavailable for native saves");
+    return std::filesystem::path(root.data()) /
+           L"RLOFT-Native" / L"Level22-Quicksave.rnp";
+}
 
 struct State {
     NativeWorldRuntime world;
@@ -444,6 +460,86 @@ struct State {
         }
         throw std::logic_error("inspected placement absent from original scene directory");
     }
+    void save_native_session() {
+        if(!party)
+            throw std::logic_error("native quicksave requires original CODE.1 party");
+        NativeSessionProfile state;
+        state.chars=party->chars;
+        state.original_world_sha256=world.snapshot().source_fingerprint_sha256;
+        state.level=level;
+        state.column=camera.column_position;
+        state.row=camera.row_position;
+        state.heading_radians=camera.heading_radians;
+        state.pitch_radians=camera.pitch_radians;
+        state.discovered_cells=explored.at(level);
+        const auto bytes=encode_native_session_profile(state,world);
+        const auto path=native_quicksave_path();
+        std::filesystem::create_directories(path.parent_path());
+        auto pending=path;
+        pending+=L".tmp";
+        // Replace the host profile only after all bytes have been written
+        // and the stream has successfully closed. Original DOS files are
+        // never touched. The previous save remains on write failure.
+        {
+            std::ofstream output(pending,std::ios::binary|std::ios::trunc);
+            if(!output)
+                throw std::runtime_error("cannot create native quicksave staging file");
+            output.write(reinterpret_cast<const char*>(bytes.data()),
+                         static_cast<std::streamsize>(bytes.size()));
+            output.flush();
+            if(!output)
+                throw std::runtime_error("native quicksave staging write failed");
+            output.close();
+            if(!output)
+                throw std::runtime_error("native quicksave staging close failed");
+        }
+        if(!MoveFileExW(pending.c_str(),path.c_str(),
+                        MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)) {
+            std::error_code ec;
+            std::filesystem::remove(pending,ec);
+            throw std::runtime_error(
+                "could not atomically replace native Level22 checkpoint");
+        }
+        inspected_source="NATIVE LEVEL22 SESSION CHECKPOINT SAVED";
+        inspected_shape="HOST CAMERA + CHARS + MAP DISCOVERY; NOT DOS SAVE.DAT";
+    }
+    void restore_native_session() {
+        if(!party)
+            throw std::logic_error("native quickload requires original CODE.1 party");
+        const auto path=native_quicksave_path();
+        std::ifstream input(path,std::ios::binary|std::ios::ate);
+        if(!input)
+            throw std::runtime_error("native Level22 quicksave is not present");
+        const auto end=input.tellg();
+        if(end<=0 || end>65536)
+            throw std::runtime_error("native quicksave byte count invalid");
+        std::vector<std::uint8_t> encoded(static_cast<std::size_t>(end));
+        input.seekg(0);
+        input.read(reinterpret_cast<char*>(encoded.data()),
+                   static_cast<std::streamsize>(encoded.size()));
+        if(!input)
+            throw std::runtime_error("native quicksave read was truncated");
+        // Decode fully, authenticate original world+CHARS, and verify
+        // source collision BEFORE mutating any running camera/map state.
+        const auto saved=decode_native_session_profile(encoded,world);
+        if(saved.chars!=party->chars)
+            throw std::runtime_error(
+                "native quicksave belongs to another CODE.1 character party");
+        if(saved.level!=level)
+            throw std::runtime_error(
+                "native quicksave level does not match active source world");
+        camera.column_position=saved.column;
+        camera.row_position=saved.row;
+        camera.heading_radians=saved.heading_radians;
+        camera.pitch_radians=saved.pitch_radians;
+        explored[level]=saved.discovered_cells;
+        blocked=false;
+        visibility_initialized=false;
+        previous_time=0;
+        mark_seen();
+        inspected_source="NATIVE LEVEL22 SESSION CHECKPOINT RESTORED";
+        inspected_shape="HOST CAMERA + ORIGINAL CHARS + DISCOVERY; GAME EVENTS PENDING";
+    }
     void automap_draw(int width,int height) {
         if(!automap)return;
         const auto& map=world.original().level(level);
@@ -587,7 +683,7 @@ struct State {
                 "Tab automap | +/- zoom | F5 source placement markers | F8 map size":
                 "Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
             line(12,y,party?
-                "F inspect known source placement | R reset | Esc close":
+                "F inspect | F6 native save | F9 restore | R reset | Esc close":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
             line(12,y,party?
                 "Map dots = NPC 9 / placed 62 63 64 | RES3 sprites + events pending":
@@ -852,6 +948,10 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 }
             } else if(wp==VK_F12 && !(lp&(1L<<30))) {
                 s->save_screenshot();
+            } else if(wp==VK_F6 && s->party && !(lp&(1L<<30))) {
+                s->save_native_session();
+            } else if(wp==VK_F9 && s->party && !(lp&(1L<<30))) {
+                s->restore_native_session();
             } else if(wp=='F' && s->party && !(lp&(1L<<30))) {
                 s->inspect_source_placement();
             } else if(wp==VK_F5 && s->party && !(lp&(1L<<30))) {
