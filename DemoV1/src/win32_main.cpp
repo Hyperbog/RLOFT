@@ -1045,7 +1045,6 @@ int run_exploration(
                              std::ios::binary|std::ios::trunc);
         if(latest)latest<<folder.string()<<"\n";
         host.set_session_trace(trace.get());
-        trace->event("exploration.load.begin");
     }
     const auto exploration_stage=[&](const char* stage) {
         if(!trace)return;
@@ -1055,6 +1054,7 @@ int run_exploration(
             trace.reset();
         }
     };
+    exploration_stage("exploration.load.begin");
     // CODE.2 expands/restores the mutable world immediately on level load.
     // Archive Level 22 uses the shipped RNG state/dice path; direct LEV022
     // state restores HP and actor state verbatim without consuming RNG.
@@ -1080,6 +1080,7 @@ int run_exploration(
     rloft::AutomapScreenPresenter automap_presenter(assets);
     rloft::PartyModalPresenter party_modal_presenter(assets);
     rloft::QuitConfirmPresenter quit_presenter(assets);
+    exploration_stage("exploration.presenters.ready");
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
