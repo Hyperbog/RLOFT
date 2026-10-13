@@ -408,6 +408,52 @@ struct State {
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
     }
+    void save_screenshot() {
+        if(!context || !dc)
+            throw std::runtime_error("OpenGL screenshot requires an active context");
+        wglMakeCurrent(dc,context);
+        RECT rect{};GetClientRect(hwnd,&rect);
+        const int w=std::max(1,int(rect.right)),h=std::max(1,int(rect.bottom));
+        if(w>7680 || h>4320)
+            throw std::runtime_error("GPU screenshot dimensions beyond safe limit");
+        const std::size_t pitch=(std::size_t(w)*3U+3U)&~std::size_t(3U);
+        std::vector<std::uint8_t> rgb(std::size_t(w)*h*3U);
+        std::vector<std::uint8_t> bgr(pitch*std::size_t(h),0);
+        glPixelStorei(GL_PACK_ALIGNMENT,1);
+        glReadBuffer(GL_FRONT);
+        glReadPixels(0,0,w,h,GL_RGB,GL_UNSIGNED_BYTE,rgb.data());
+        if(glGetError()!=GL_NO_ERROR)
+            throw std::runtime_error("OpenGL screenshot readback failed");
+        for(int y=0;y<h;++y)for(int x=0;x<w;++x){
+            const auto src=(std::size_t(y)*w+unsigned(x))*3U;
+            const auto dest=std::size_t(y)*pitch+std::size_t(x)*3U;
+            bgr[dest]=rgb[src+2U];bgr[dest+1U]=rgb[src+1U];bgr[dest+2U]=rgb[src];
+        }
+        SYSTEMTIME when{};GetLocalTime(&when);
+        wchar_t name[160]{};
+        wsprintfW(name,L"RLOFT_GPU_L%02u_%04u%02u%02u_%02u%02u%02u.bmp",
+            level,when.wYear,when.wMonth,when.wDay,
+            when.wHour,when.wMinute,when.wSecond);
+        const HANDLE file=CreateFileW(name,GENERIC_WRITE,0,nullptr,CREATE_NEW,
+            FILE_ATTRIBUTE_NORMAL,nullptr);
+        if(file==INVALID_HANDLE_VALUE)
+            throw std::runtime_error("Cannot create screenshot BMP in current directory");
+        BITMAPFILEHEADER head{};BITMAPINFOHEADER info{};
+        head.bfType=0x4D42;
+        head.bfOffBits=sizeof(head)+sizeof(info);
+        head.bfSize=head.bfOffBits+DWORD(bgr.size());
+        info.biSize=sizeof(info);info.biWidth=w;info.biHeight=h;
+        info.biPlanes=1;info.biBitCount=24;info.biCompression=BI_RGB;
+        info.biSizeImage=DWORD(bgr.size());
+        DWORD wrote=0;
+        const bool ok=
+            WriteFile(file,&head,sizeof(head),&wrote,nullptr)&&wrote==sizeof(head)&&
+            WriteFile(file,&info,sizeof(info),&wrote,nullptr)&&wrote==sizeof(info)&&
+            WriteFile(file,bgr.data(),DWORD(bgr.size()),&wrote,nullptr)&&wrote==bgr.size();
+        CloseHandle(file);
+        if(!ok){DeleteFileW(name);throw std::runtime_error("Screenshot was not completely written");}
+        MessageBoxW(hwnd,name,L"GPU screenshot saved",MB_OK|MB_ICONINFORMATION);
+    }
     void paint() {
         if(!context || !dc)return;
         wglMakeCurrent(dc,context);
