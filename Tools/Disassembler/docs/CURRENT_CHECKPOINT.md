@@ -1,5 +1,26 @@
 # DOSDis — compact current checkpoint
 
+## Latest P0 desktop package gate — Windows #60 PASS
+
+- Automatic [Windows run #60](https://github.com/Hyperbog/RLOFT/actions/runs/38343078919)
+  compiled `e97b85e8e538eb1445563776b0d3876de8493dc5`,
+  passed WPF/Core + both synthetic suites with **zero warnings
+  or errors**, and verified that the desktop publish contains
+  the pinned CODE.1 original-free benchmark manifest with
+  282 ranges and the correct 69,361/1,041/70,402 accounting.
+- Only desktop artifact `11787004768`, ZIP **66,931,509
+  bytes**, SHA256
+  `c214c3a1ed9b1e41bf433a54901b5453d745da0f3cb6c605897f29fd0676613f`.
+  [Download](https://github.com/Hyperbog/RLOFT/actions/runs/38343078919/artifacts/11787004768).
+  No CLI release or proprietary original bytes in hosted CI.
+- **Next acceptance:** local actual source-matched CODE.1
+  -> Analyze -> Benchmark… -> choose packaged
+  `benchmarks/strahd-code1-object1-classification.json`.
+  Report byte classification metrics and disagreements,
+  keeping original binaries/private byte excerpts local.
+  GUI usability, original-file score, instruction boundaries
+  and independent accuracy acceptance remain **PENDING**.
+
 ## P0 CODE.1 scored-byte workbench foundation — Windows #59 PASS
 
 - Review of Claude's project critique identified the largest
