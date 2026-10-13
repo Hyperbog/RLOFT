@@ -27,7 +27,7 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ("Join-Path $scratch 'CHARS'", player),
         ("Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'", player),
         ("Remove-Item -LiteralPath $candidate -Force", player),
-        ("$arguments = '\"' + $launchMediaRoot + '\"'", player),
+        ("$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'", player),
         ("$launchMediaRoot = $scratch", player),
         ("if (-not $hasRootMedia -and $hasNestedMedia) {", player),
         ("$launchMediaRoot = Join-Path $scratch 'RLOFT'", player),
@@ -45,6 +45,8 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ('if (character_flow.completed()) {', host),
         ('assets.source().read_runtime("CHARS");', host),
         ('return run_exploration(', host),
+        ('if (!options.dev_trace && !options.no_remember_install) {', host),
+        ('result.no_remember_install = true;', host),
         ('*code2_chars,', host),
     )
     for token, source in required:
@@ -53,12 +55,14 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
     # Original launch is no-flag, no chooser or developer warp. The PS
     # script's safety comments name the forbidden arguments, so examine
     # only the actual argument construction and Start-Process.
-    tail = player[player.index("$arguments = '\"' + $launchMediaRoot + '\"'"):]
+    tail = player[player.index("$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'"):]
     start = tail.index('Start-Process -FilePath $engine')
     if any(flag in tail[:start] for flag in
            ('--front-end-only', '--explore-level22', '--choose-install',
             '--dev-trace')):
         raise ValueError('continuous launch still has a diagnostic override')
+    if '--no-remember-install' not in player or '--dev-trace' in tail[:start]:
+        raise ValueError('Alpha must protect registry without enabling trace')
     for prohibited in ('FolderBrowserDialog', 'ShowDialog(', 'MessageBox]::Show',
                        'Read-Host', 'Remove-Item -LiteralPath $original',
                        'Remove-Item -LiteralPath $sourcePrefix'):
@@ -116,11 +120,11 @@ def main() -> int:
              "$scratch = $original"),
             ('player',"Remove-Item -LiteralPath $candidate -Force",
              "Remove-Item -LiteralPath $original -Force"),
-            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
+            ('player',"$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'",
              "$arguments = '--front-end-only \"' + $scratch + '\"'"),
-            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
+            ('player',"$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'",
              "$arguments = '--explore-level22 \"' + $scratch + '\"'"),
-            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
+            ('player',"$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'",
              "$arguments = '--choose-install'"),
             ('workflow','name: Ravenloft-Continuous-Alpha-Windows-x64',
              'name: Ravenloft-Front-End-Only'),
