@@ -7,6 +7,8 @@ on:
       - 'Shared/StartupPresentation/**'
       - 'Shared/BootFlow/**'
       - 'NativeEngine/src/native_startup_visuals.cpp'
+      - 'NativeEngine/src/native_original_startup_audit_main.cpp'
+      - 'NativeEngine/tests/native_startup_visuals_tests.cpp'
       - 'NativeEngine/src/win32_native_startup.cpp'
       - 'NativeEngine/include/rloft_native/native_startup_visuals.hpp'
       - 'NativeEngine/include/rloft_native/native_win32_startup.hpp'
@@ -63,8 +65,18 @@ jobs:
           })
           $audit = Join-Path (Get-Location) "build/native-assets-windows-x64/Release/rloft_native_startup_audit.exe"
           if (-not (Test-Path $audit)) { throw "Original startup audit was not built" }
-          & $audit $media
+          $reportText = & $audit $media
           if ($LASTEXITCODE -ne 0) { throw "Real original CODE.2/CODE.1 startup composition failed" }
+          $report = ($reportText | Out-String) | ConvertFrom-Json
+          if ($report.character_opening_frames -ne 70) {
+            throw "Expected 70 source-backed CODE.1 opening frames"
+          }
+          if ($report.character_equipment_rows_verified -ne 90) {
+            throw "Expected 90 original CODE.1 starting-equipment source rows"
+          }
+          if ($report.writes_to_original -ne 0) {
+            throw "Original media mutation detected in startup audit report"
+          }
           $after = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
