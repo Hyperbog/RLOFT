@@ -9,6 +9,7 @@
 #include "rloft_native/native_scene_view.hpp"
 #include "rloft_native/native_type6_texture.hpp"
 #include "rloft_native/native_palette_context.hpp"
+#include "rloft_native/native_code2_backdrop.hpp"
 #include "rloft_native/native_raster_colors.hpp"
 #include "rloft_native/native_assets.hpp"
 #include <algorithm>
@@ -35,6 +36,7 @@ struct State {
     NativeGpuScene mesh;
     NativeProbeCamera camera;
     NativeResArchive res4;
+    NativeCode2Backdrop backdrop;
     std::vector<std::uint8_t> original_colors;
     NativePalette6 palette;
     unsigned palette_bank{};
@@ -56,6 +58,7 @@ struct State {
     explicit State(NativeWorldPayload world_source,const NativeMedia& media)
         :world(std::move(world_source)),
          res4(media.read("RES4")),
+         backdrop(media.read("CODE.2")),
          original_colors(media.read("COLORS")) {
         camera.field_of_view_radians=75.0*kPi/180.0;
     }
@@ -319,6 +322,32 @@ struct State {
                      float(palette.rgb[color_base+1U])/63.f,
                      float(palette.rgb[color_base+2U])/63.f,1.f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        // Authentic CODE.2 33E28/33DE0 level-authored environment
+        // shading is visible behind geometry when header +0x05 is -1.
+        // A -1 outdoor ceiling MUST NOT become a solid fake roof.
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_TEXTURE_2D);
+        glMatrixMode(GL_PROJECTION);glLoadIdentity();
+        glOrtho(0,1,0,1,-1,1);
+        glMatrixMode(GL_MODELVIEW);glLoadIdentity();
+        const int pitch_px=std::clamp(
+            int(std::lround(camera.pitch_radians*100.0)),-96,96);
+        glBegin(GL_QUADS);
+        for(unsigned row=0;row<256U;++row) {
+            const auto ci=unsigned(backdrop.source_index(map,row,pitch_px));
+            const unsigned at=ci*3U;
+            glColor3f(float(palette.rgb[at])/63.f,
+                      float(palette.rgb[at+1U])/63.f,
+                      float(palette.rgb[at+2U])/63.f);
+            const float high=1.f-float(row)/256.f;
+            const float low=1.f-float(row+1U)/256.f;
+            glVertex2f(0.f,low);glVertex2f(1.f,low);
+            glVertex2f(1.f,high);glVertex2f(0.f,high);
+        }
+        glEnd();
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_2D);
+        glColor3f(1,1,1);
         glMatrixMode(GL_PROJECTION);glLoadIdentity();
         gluPerspective(75.0,double(width)/double(height),0.025,160.0);
         glMatrixMode(GL_MODELVIEW);glLoadIdentity();
@@ -460,8 +489,13 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             const double dt=s->previous_time?
                 std::clamp(double(now-s->previous_time)/1000.0,0.0,.06):.016;
             s->previous_time=now;
-            try {s->step(dt);s->paint();title(hwnd,*s);}
-            catch(const std::exception&) {
+            try {
+                s->step(dt);s->paint();
+                // Windows SetWindowText can invalidate the nonclient area.
+                // Never force an extra WM_PAINT for every 16-ms tick.
+                if((now/500U)!=((now-static_cast<ULONGLONG>(dt*1000))/500U))
+                    title(hwnd,*s);
+            } catch(const std::exception&) {
                 KillTimer(hwnd,kTimer);
                 if(s->mouse_look)mouse_mode(hwnd,*s,false);
                 MessageBoxW(hwnd,L"An original asset or GPU viewport call failed. "
