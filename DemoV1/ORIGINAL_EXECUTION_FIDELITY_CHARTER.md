@@ -1,3 +1,5 @@
+> **HISTORICAL CHARTER — SUPERSEDED OCTOBER 13, 2026.** The owner changed the deliverable to an **enhanced native PC port**. The active, authoritative engineering and release policy is [ENHANCED_PC_PORT_CHARTER.md](ENHANCED_PC_PORT_CHARTER.md). Statements below that require a complete original-DOS recreation **before** modernization, byte-exact CPU/VGA/IRQ parity, mandatory DOSBox differential acceptance, or retention of unsafe original behavior **no longer apply** to the PC port. This document remains solely as a research/fidelity record and may still inform mechanics and content reconstruction.
+
 # Ravenloft: Strahd's Possession — Original Game Code Reconstruction Charter
 
 **Non-negotiable project objective:** **Finish recreating the code necessary to run the COMPLETE ORIGINAL game first.** Reconstruct all required code, systems and original runtime behavior into one integrated, executable game. Only **after that entire recreation is finished** may work turn to modern-port design, bug fixes, enhancements, modding or QoL features.
