@@ -24,6 +24,8 @@ namespace {
 constexpr unsigned kWidth=320;
 constexpr unsigned kRayWidth=256;
 constexpr unsigned kHeight=400;
+constexpr double kDosPixelAspect=2.0; // 320x400 indexed VGA shown as 640x400
+
 constexpr double kStep=0.18;
 constexpr double kTurn=0.12;
 constexpr double kPi=3.14159265358979323846;
@@ -164,9 +166,12 @@ void paint(HWND window,const Preview& state,HDC dc) {
 
     const int available_width=std::max(1,int(bounds.right)-40);
     const int available_height=std::max(1,int(bounds.bottom)-175);
-    const double scale=std::min(double(available_width)/kWidth,
+    // CODE.2 320x400 VGA is displayed in a 640x400 DOS-shaped
+    // presentation: source pixels are twice as wide. Alpha 0.8 used
+    // 320x400 square host pixels, distorting the original view.
+    const double scale=std::min(double(available_width)/(kWidth*kDosPixelAspect),
                                 double(available_height)/kHeight);
-    const int w=std::max(1,int(kWidth*scale));
+    const int w=std::max(1,int(kWidth*kDosPixelAspect*scale));
     const int h=std::max(1,int(kHeight*scale));
     const int left=(int(bounds.right)-w)/2;
     const int top=78+(available_height-h)/2;
@@ -190,30 +195,41 @@ void paint(HWND window,const Preview& state,HDC dc) {
     RECT controls{20,bounds.bottom-65,bounds.right-20,bounds.bottom-12};
     DrawTextW(dc,
       L"W/S = forward/back    A/D = strafe    Q/E = turn left/right\n"
-      L"M = optional mouse-look (yaw + pitch)    PageUp/Down = level\n"
+      L"M = toggle mouse-look (capture ON/OFF)   PageUp/Down = level\n"
       L"R = respawn    Esc = close    Read-only source; host camera not DOS.",
       -1,&controls,DT_WORDBREAK);
 }
 
-// Raw Windows mouse deltas (no pointer recentering or acceleration).
-// Capture is OPTIONAL and OFF by default. Native Q/E remains available.
+// Explicit opt-in mouse capture. WM_MOUSEMOVE relative-to-client-center
+// works consistently with both physical and virtual mouse devices,
+// including remoting where WM_INPUT is not delivered. No game input
+// fires unless this window owns focus and the user enabled mouse look.
+POINT mouse_anchor(HWND hwnd) {
+    RECT rc{};
+    GetClientRect(hwnd,&rc);
+    POINT pt{(rc.left+rc.right)/2,(rc.top+rc.bottom)/2};
+    return pt;
+}
+bool warp_mouse_center(HWND hwnd) {
+    POINT center=mouse_anchor(hwnd);
+    return ClientToScreen(hwnd,&center) &&
+           SetCursorPos(center.x,center.y);
+}
 void set_mouse_look(HWND hwnd,Preview& state,bool enabled) {
     if(state.mouse_look==enabled)return;
-    RAWINPUTDEVICE device{};
-    device.usUsagePage=0x01;
-    device.usUsage=0x02; // Generic desktop mouse
-    device.dwFlags=enabled?0U:RIDEV_REMOVE;
-    device.hwndTarget=enabled?hwnd:nullptr;
-    if(!RegisterRawInputDevices(&device,1U,sizeof(device)))
-        throw std::runtime_error("unable to toggle Windows raw mouse input");
-    state.mouse_look=enabled;
     if(enabled) {
+        SetFocus(hwnd);
+        SetForegroundWindow(hwnd);
+        if(!warp_mouse_center(hwnd))
+            throw std::runtime_error("unable to center mouse for free-look");
+        state.mouse_look=true;
         SetCapture(hwnd);
         ShowCursor(FALSE);
     } else {
+        state.mouse_look=false;
         if(GetCapture()==hwnd)ReleaseCapture();
         ShowCursor(TRUE);
-        state.camera.pitch_radians=0.0; // restore native keyboard-only horizon
+        state.camera.pitch_radians=0.0;
         state.redraw();
     }
 }
@@ -234,36 +250,38 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_SIZE:
         InvalidateRect(hwnd,nullptr,FALSE);
         return 0;
-    case WM_INPUT:
-        if(state->mouse_look && GetForegroundWindow()==hwnd) {
-            UINT bytes=0;
-            if(GetRawInputData(reinterpret_cast<HRAWINPUT>(lp),
-                RID_INPUT,nullptr,&bytes,sizeof(RAWINPUTHEADER))==0U &&
-                bytes>=sizeof(RAWINPUT) && bytes<=4096U) {
-                std::vector<std::uint8_t> buffer(bytes);
-                if(GetRawInputData(reinterpret_cast<HRAWINPUT>(lp),
-                    RID_INPUT,buffer.data(),&bytes,sizeof(RAWINPUTHEADER))==bytes) {
-                    const auto* input=reinterpret_cast<const RAWINPUT*>(buffer.data());
-                    if(input->header.dwType==RIM_TYPEMOUSE &&
-                       !(input->data.mouse.usFlags&MOUSE_MOVE_ABSOLUTE)) {
-                        const auto dx=input->data.mouse.lLastX;
-                        const auto dy=input->data.mouse.lLastY;
-                        if(dx||dy) {
-                            try {
-                                state->look(double(dx),double(dy));
-                                InvalidateRect(hwnd,nullptr,FALSE);
-                            } catch(const std::exception&) {
-                                set_mouse_look(hwnd,*state,false);
-                            }
-                        }
-                    }
+    case WM_MOUSEMOVE:
+        if(state->mouse_look && GetFocus()==hwnd &&
+           GetForegroundWindow()==hwnd) {
+            const auto center=mouse_anchor(hwnd);
+            const int x=static_cast<short>(LOWORD(lp));
+            const int y=static_cast<short>(HIWORD(lp));
+            const int dx=x-center.x,dy=y-center.y;
+            // SetCursorPos itself posts a zero-delta WM_MOUSEMOVE.
+            if(dx || dy) {
+                try {
+                    // Recenter before drawing, so drawing latency does
+                    // not lose physical mouse movement or cause edge stalls.
+                    if(!warp_mouse_center(hwnd))
+                        throw std::runtime_error("mouse recenter failed");
+                    state->look(std::clamp(double(dx),-200.0,200.0),
+                                std::clamp(double(dy),-200.0,200.0));
+                    InvalidateRect(hwnd,nullptr,FALSE);
+                } catch(const std::exception&) {
+                    set_mouse_look(hwnd,*state,false);
+                    InvalidateRect(hwnd,nullptr,FALSE);
                 }
             }
         }
-        return DefWindowProcW(hwnd,msg,wp,lp);
+        return 0;
+    case WM_LBUTTONDOWN:
+        SetFocus(hwnd);
+        return 0;
     case WM_KILLFOCUS:
-        if(state->mouse_look)set_mouse_look(hwnd,*state,false);
-        InvalidateRect(hwnd,nullptr,FALSE);
+        if(state->mouse_look) {
+            set_mouse_look(hwnd,*state,false);
+            InvalidateRect(hwnd,nullptr,FALSE);
+        }
         return 0;
     case WM_KEYDOWN:
         try {
@@ -275,7 +293,12 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             case 'D':state->move(0,kStep);break;
             case 'Q':state->turn(-kTurn);break;
             case 'E':state->turn(kTurn);break;
-            case 'M':set_mouse_look(hwnd,*state,!state->mouse_look);break;
+            case 'M':
+                // Ignore Windows key-repeat; otherwise holding M can
+                // immediately undo the opt-in capture.
+                if((lp & (1L<<30))==0)
+                    set_mouse_look(hwnd,*state,!state->mouse_look);
+                break;
             case VK_PRIOR:
                 state->choose_level((state->camera.level+1U)%32U);break;
             case VK_NEXT:
