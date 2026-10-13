@@ -122,7 +122,16 @@ public static class CodeClassificationBenchmark
         int n = reference.ObjectByteLength;
         // Enforce an exact file-backed object and its independent byte hash.
         // This also rejects synthetic or malformed overlays with unbacked holes.
-        byte[] original = image.ReadStoredBytes(reference.ObjectNumber, 0, n);
+        byte[] original = new byte[n];
+        // The LE loader intentionally caps each read at 1 MiB. Bound
+        // allocations separately from chunked original-file reads.
+        const int chunkBytes = 64 * 1024;
+        for (int offset = 0; offset < n; offset += chunkBytes)
+        {
+            int take = Math.Min(chunkBytes, n - offset);
+            image.ReadStoredBytes(reference.ObjectNumber, (uint)offset, take)
+                .CopyTo(original, offset);
+        }
         string objectSha = Convert.ToHexString(SHA256.HashData(original));
         if (!string.Equals(objectSha, reference.ObjectSha256, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Benchmark object byte SHA-256 is not the asserted reference object.");
