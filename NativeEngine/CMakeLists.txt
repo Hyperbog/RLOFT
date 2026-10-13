@@ -156,7 +156,7 @@ if(WIN32)
     src/win32_native_gpu_exploration.cpp
     src/native_win32_gl_target.cpp)
   target_link_libraries(rloft_native PRIVATE
-    rloft_native_assets User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
+    rloft_native_assets rloft_native_shared_boot User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
   target_compile_definitions(rloft_native PRIVATE UNICODE _UNICODE
     "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\"")
   native_warnings(rloft_native)
