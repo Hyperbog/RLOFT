@@ -162,6 +162,35 @@ std::size_t select_native_authored_res3_frame(
             "selected original RES3 frame outside owning source allocation");
     return r.first_absolute_res3_id+offset;
 }
+NativeAuthoredBaseShapeEvidence probe_native_authored_base_eh7(
+    const NativeAuthoredFrameRange& range,
+    const NativeRes3SceneBanks& banks,
+    const NativeResArchive& original_res3) {
+    require(banks.res3_entries==original_res3.entry_count() &&
+            banks.res3_entries>0,
+            "original RES3 base probe bank/archive cardinality mismatch");
+    const auto id=select_native_authored_res3_frame(range,banks,0U,0U);
+    require(id<original_res3.entry_count(),
+            "source-authored base EH7 frame outside original archive");
+    const auto shape=decode_native_type7_scene_shape(original_res3.entry(id));
+    require(shape.structure_verified &&
+            shape.source_width>=64U &&
+            shape.source_width<=128U,
+            "source-authored original base frame has invalid EH7 geometry");
+    NativeAuthoredBaseShapeEvidence result;
+    result.absolute_res3_id=id;
+    result.source_width=shape.source_width;
+    result.x_min=shape.x_min;
+    result.x_max=shape.x_max;
+    result.y_min=shape.y_min;
+    result.y_max=shape.y_max;
+    result.raster_descriptors=shape.total_descriptors;
+    result.decoded_body_bytes=shape.decoded_body_bytes;
+    result.original_entry_sha256=shape.original_entry_sha256;
+    result.original_body_sha256=shape.decoded_body_sha256;
+    return result;
+}
+
 std::string native_authored_frame_ranges_json(
     const NativeAuthoredFrameRangeDirectory& dir) {
     std::ostringstream out;
