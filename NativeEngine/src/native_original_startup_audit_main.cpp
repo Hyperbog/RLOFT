@@ -1,5 +1,8 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_startup_visuals.hpp"
+#include "rloft_native/native_world_payload.hpp"
+#include "rloft_native/native_world_runtime.hpp"
+#include "rloft_native/native_party_start.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_creation_flow.hpp"
@@ -8,6 +11,7 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 namespace {
 std::uint64_t checksum(const std::vector<std::uint8_t>& pixels) {
@@ -65,6 +69,15 @@ int main(int argc,char** argv) {
                     throw std::runtime_error("original startup DAC6 palette channel outside range");
             }
         }
+        auto levels=load_native_world_payload(media);
+        NativeWorldRuntime world(std::move(levels));
+        const auto& first=world.original().level(NativePartyStart::kFirstLevel);
+        if(first.width!=30U||first.height!=15U ||
+           world.normal_collision(NativePartyStart::kFirstLevel,4U,4U)!=
+               NativeCollision::Passable ||
+           first.cell(4U,4U)!=0x0000U)
+            throw std::runtime_error(
+                "original Level22 first-party spawn conflicts with LEVELS.DAT");
         const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
             media.read("CODE.1"),media.read("OBJECTS.DAT"));
         // Validate all real 90 family/race rows and original object ID
@@ -97,6 +110,8 @@ int main(int argc,char** argv) {
         if(character.framebuffer().pixels().size()!=320U*400U)
             throw std::runtime_error("original CODE.1 first choice screen size");
         std::cout<<"{\"schema\":\"native-source-startup-v1\","
+                 <<"\"original_first_party_level\":22,"
+                 <<"\"original_first_party_spawn_cell_passable\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
