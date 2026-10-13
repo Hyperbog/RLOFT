@@ -177,7 +177,7 @@ std::wstring label(const Preview& state) {
            (state.last_step_blocked?L"  |  BLOCKED":L"");
 }
 
-void paint(HWND window,const Preview& state,HDC dc) {
+void paint_contents(HWND window,const Preview& state,HDC dc) {
     RECT bounds{};
     GetClientRect(window,&bounds);
     HBRUSH black=static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
@@ -303,6 +303,41 @@ void paint(HWND window,const Preview& state,HDC dc) {
       L"M/right-click = look  Tab = automap  +/- = map zoom  N = filter\n"
       L"R = respawn    Esc = close    Original media read-only.",
       -1,&controls,DT_WORDBREAK);
+}
+
+// Render the entire CPU VGA reference into a memory DC and publish with
+// one BitBlt. Painting the backdrop, 320x400 source scanout, automap and
+// labels straight into the visible DC exposed intermediate partial frames
+// during WM_PAINT and resizing, especially on remote desktops.
+void paint(HWND window,const Preview& state,HDC dc) {
+    RECT bounds{};
+    GetClientRect(window,&bounds);
+    const int width=bounds.right-bounds.left;
+    const int height=bounds.bottom-bounds.top;
+    if(width<=0||height<=0)return;
+    HDC staging=CreateCompatibleDC(dc);
+    if(!staging) {
+        paint_contents(window,state,dc);
+        return;
+    }
+    HBITMAP bitmap=CreateCompatibleBitmap(dc,width,height);
+    if(!bitmap) {
+        DeleteDC(staging);
+        paint_contents(window,state,dc);
+        return;
+    }
+    const auto old=SelectObject(staging,bitmap);
+    if(!old || old==HGDI_ERROR) {
+        DeleteObject(bitmap);
+        DeleteDC(staging);
+        paint_contents(window,state,dc);
+        return;
+    }
+    paint_contents(window,state,staging);
+    BitBlt(dc,0,0,width,height,staging,0,0,SRCCOPY);
+    SelectObject(staging,old);
+    DeleteObject(bitmap);
+    DeleteDC(staging);
 }
 
 // Explicit opt-in mouse capture. WM_MOUSEMOVE relative-to-client-center
