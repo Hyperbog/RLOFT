@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-#include "rloft/resource_assets.hpp"
+#include "rloft/startup_visual_source.hpp"
 
 namespace rloft {
 
