@@ -72,6 +72,11 @@ int main() {
     assert(bytes.size()==8U+4U+64U+0x920U+4U+32U+4U+64U+64U);
     const auto restored=decode_native_session_profile(bytes,world);
     assert(restored.chars==source.chars);
+    // A later process must reconstruct the two legitimate CODE.1 actors
+    // entirely from their original preserved transfer, not a fake party.
+    const auto party=decode_native_party_start(restored.chars);
+    assert(party.actors[0].name=="ALPHA");
+    assert(party.actors[1].name=="BETA");
     assert(restored.original_world_sha256==source.original_world_sha256);
     assert(restored.level==22 && restored.column==4.5 && restored.row==4.5);
     assert(restored.heading_radians==source.heading_radians);
