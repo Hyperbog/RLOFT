@@ -5,7 +5,8 @@ add_library(rloft_shared_startup_presentation STATIC
   src/anm_cinematic.cpp
   src/character_creation_presenter.cpp
   src/character_palette_remap.cpp
-  src/character_stats.cpp)
+  src/character_stats.cpp
+  src/character_transfer.cpp)
 target_compile_features(rloft_shared_startup_presentation PUBLIC cxx_std_17)
 # CODE.1 source choice/state machine is the same neutral shared implementation.
 target_link_libraries(rloft_shared_startup_presentation PUBLIC
