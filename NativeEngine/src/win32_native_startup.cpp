@@ -13,6 +13,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <stdexcept>
 #include <string>
@@ -32,7 +33,14 @@ struct Preview {
     rloft::BootFlow boot;
     rloft::CharacterCreationFlow creation;
     std::unique_ptr<rloft::CharacterCreationPresenter> character;
+    std::unique_ptr<rloft::CharacterStatsModel> stats;
+    std::array<std::optional<rloft::CharacterStatsModel>,2> actor_stats{};
+    bool stats_editor{},final_decision{},name_entry{},existing_actor_decision{};
+    bool name_cursor_on{true};
+    int selected_stat{-1},existing_actor{-1};
+    std::string pending_name;
     int character_frame{};
+    ULONGLONG code1_started{};
     std::unique_ptr<rloft::AnmCinematic> cine00;
     std::unique_ptr<rloft::AnmCinematic> cine12;
     unsigned cinematic_wait_ms{14U};
@@ -124,6 +132,148 @@ struct Preview {
         } else throw std::runtime_error("original startup preview phase outside bounded range");
         refresh();
     }
+    void render_character_screen() {
+        if(!character)throw std::logic_error("CODE.1 source presenter is absent");
+        if(name_entry) {
+            if(!stats)throw std::logic_error("CODE.1 name entry lacks stats");
+            character->name_entry_screen(creation,*stats,pending_name,name_cursor_on);
+        } else if(final_decision) {
+            if(!stats)throw std::logic_error("CODE.1 final choice lacks stats");
+            character->final_decision_screen(creation,*stats);
+        } else if(existing_actor_decision) {
+            if(existing_actor<0||existing_actor>=2||
+               !actor_stats[std::size_t(existing_actor)])
+                throw std::logic_error("CODE.1 existing actor missing saved statistics");
+            character->existing_actor_decision_screen(
+                creation,existing_actor,*actor_stats[std::size_t(existing_actor)]);
+        } else character->screen(creation,stats.get(),selected_stat,stats_editor);
+        palette=character->palette();
+        refresh();
+    }
+    [[nodiscard]] std::uint32_t original_tick() const noexcept {
+        // INT8 at 1193182 / 65536 Hz, relative to CODE.1 startup epoch.
+        const auto elapsed=GetTickCount64()-code1_started;
+        return std::uint32_t((elapsed*1193182ULL)/(65536ULL*1000ULL));
+    }
+    void handle_name_key(unsigned key) {
+        if(!name_entry)return;
+        if(key==13U) {
+            const int actor=creation.draft().actor;
+            if(actor<0||actor>=2||!stats)
+                throw std::logic_error("CODE.1 cannot accept nameless actor state");
+            actor_stats[std::size_t(actor)]=*stats;
+            creation.finish_current_actor(true,pending_name);
+            stats.reset();
+            name_entry=false;
+            final_decision=false;
+            stats_editor=false;
+            pending_name.clear();
+            selected_stat=-1;
+        } else if(key==8U) {
+            if(!pending_name.empty())pending_name.pop_back();
+        } else {
+            // CODE.1 function_2DFC accepts ASCII uppercase, digits, space;
+            // the original RES0 font determines the strict pixel-width cap.
+            if(key>='a'&&key<='z')key-='a'-'A';
+            const bool valid=(key>='A'&&key<='Z')||
+                (key>='0'&&key<='9')||key==' ';
+            if(!valid||pending_name.size()>=15U)return;
+            auto candidate=pending_name+char(key);
+            const auto font=source.res0_font(0);
+            unsigned width=0U;
+            for(const auto ch:candidate)
+                width+=font.widths[std::uint8_t(ch)];
+            if(width>=0x30U)return;
+            pending_name=std::move(candidate);
+        }
+        name_cursor_on=true;
+        render_character_screen();
+    }
+    void handle_character_click(int row,int column) {
+        if(phase!=kCharacterChoice||name_entry)return;
+        const auto hit_state=(final_decision||existing_actor_decision)?
+            rloft::CharacterCreationState::ActorChoice:creation.state();
+        const int event=rloft::CharacterCreationFlow::hit_test(
+            hit_state,row,column);
+        if(event<0)return;
+        if(final_decision) {
+            if(event==3) {
+                name_entry=true;
+                pending_name.clear();
+                name_cursor_on=true;
+            } else if(event==4) {
+                creation.finish_current_actor(false);
+                stats.reset();
+                final_decision=false;
+                stats_editor=false;
+                selected_stat=-1;
+            } else return;
+            render_character_screen();
+            return;
+        }
+        if(existing_actor_decision) {
+            if(event!=3&&event!=4)return;
+            creation.resolve_existing_actor(existing_actor,event==3);
+            if(event==4)actor_stats[std::size_t(existing_actor)].reset();
+            existing_actor=-1;
+            existing_actor_decision=false;
+            render_character_screen();
+            return;
+        }
+        const auto state=creation.state();
+        if(state==rloft::CharacterCreationState::StatsReview) {
+            if(!stats)throw std::logic_error("CODE.1 statistics were not generated");
+            if(stats_editor) {
+                if(event==0) {
+                    stats_editor=false;selected_stat=-1;
+                } else if(event==8) {
+                    const int index=(row-0x60)/10;
+                    selected_stat=(row>=0x60&&(index<6||index==10))?
+                        index:-1;
+                } else if((event==7||event==9)&&selected_stat>=0) {
+                    stats->adjust(creation.draft(),selected_stat,event==7);
+                }
+            } else if(event==0) {
+                creation.apply_event(0);stats.reset();
+            } else if(event==7) {
+                stats->generate(creation.draft());
+            } else if(event==8) {
+                final_decision=true;
+            } else if(event==9) {
+                stats_editor=true;selected_stat=-1;
+            }
+            render_character_screen();
+            return;
+        }
+        if(state==rloft::CharacterCreationState::ActorChoice &&
+           (event==3||event==4) && creation.actor_present(event-3)) {
+            existing_actor=event-3;
+            existing_actor_decision=true;
+            render_character_screen();
+            return;
+        }
+        if(!creation.apply_event(event))return;
+        if(creation.state()==rloft::CharacterCreationState::StatsReview) {
+            if(!stats)stats=std::make_unique<rloft::CharacterStatsModel>(source);
+            stats->seed(original_tick());
+            stats->generate(creation.draft());
+            stats_editor=false;selected_stat=-1;
+        }
+        if(creation.completed()) {
+            MessageBoxW(hwnd,
+                L"Both original CODE.1 actors are complete.\n"
+                L"The CHARS transfer and playable world handoff remain pending.\n"
+                L"No original game files have been modified.",
+                L"CODE.1 party completion — transfer pending",MB_OK|MB_ICONINFORMATION);
+        }
+        if(creation.aborted()) {
+            boot.finish_character_creation(rloft::LegacyResult::OrdinaryTermination);
+            boot.supervisor_dispatch();
+            DestroyWindow(hwnd);
+            return;
+        }
+        render_character_screen();
+    }
     void begin_character() {
         // Real source presentation begins only after the CODE.2 supervisor
         // dispatched the selected character workflow to CODE.1.
@@ -132,6 +282,7 @@ struct Preview {
         boot.supervisor_dispatch();
         character=std::move(prepared);
         character_frame=0;
+        code1_started=GetTickCount64();
         phase=kCharacterOpening;
         palette=character->palette();
         phase_started=GetTickCount64();
@@ -148,10 +299,12 @@ struct Preview {
                     character->opening_frame(character_frame);
                 else {
                     phase=kCharacterChoice;
-                    character->screen(creation);
+                    render_character_screen();
                 }
-                palette=character->palette();
-                refresh();
+                if(phase==kCharacterOpening) {
+                    palette=character->palette();
+                    refresh();
+                }
             }
             return;
         }
@@ -217,6 +370,13 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             return 0;
         }
         break;
+    case WM_CHAR:
+        if(session->phase==kCharacterChoice&&session->name_entry) {
+            try{session->handle_name_key(unsigned(wp));}
+            catch(const std::exception& e){report_failure(hwnd,e.what());}
+            return 0;
+        }
+        break;
     case WM_MOUSEMOVE:
         if(session->phase==kMenu) {
             const RECT bounds=image_rect(hwnd);
@@ -248,30 +408,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 const int row=(y-bounds.top)*int(kHeight)/
                               (bounds.bottom-bounds.top);
                 if(session->phase==kCharacterChoice) {
-                    const int event=rloft::CharacterCreationFlow::hit_test(
-                        session->creation.state(),row,column);
-                    if(event<0)return 0;
-                    // CODE.1's stats generation, naming and CHARS commit
-                    // require a separate original-state integration milestone.
-                    if(session->creation.state()==
-                       rloft::CharacterCreationState::PortraitChoice &&
-                       event>=1&&event<=6) {
-                        MessageBoxW(hwnd,
-                            L"Original CODE.1 statistic generation, naming and\n"
-                            L"CHARS transfer are not yet integrated.\n"
-                            L"No character was saved or fabricated.",
-                            L"CODE.1 Alpha integration boundary",
-                            MB_OK|MB_ICONINFORMATION);
-                        return 0;
-                    }
-                    if(session->creation.apply_event(event)) {
-                        if(session->creation.state()==
-                           rloft::CharacterCreationState::StatsReview)
-                            throw std::logic_error(
-                                "source CODE.1 stats generation is not integrated");
-                        session->character->screen(session->creation);
-                        session->refresh();
-                    }
+                    session->handle_character_click(row,column);
                     return 0;
                 }
                 const int selected=rloft::StartupPresenter::
