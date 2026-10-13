@@ -77,6 +77,15 @@ int main() {
     const auto party=decode_native_party_start(restored.chars);
     assert(party.actors[0].name=="ALPHA");
     assert(party.actors[1].name=="BETA");
+    // Model a cold process restart: build the source world independently,
+    // then deserialize the on-disk record without access to the original
+    // NativeWorldRuntime or the prior camera/party objects.
+    const auto fresh_install_world=original_fixture();
+    const auto cold=decode_native_session_profile(bytes,fresh_install_world);
+    assert(cold.chars==source.chars);
+    assert(cold.discovered_cells==source.discovered_cells);
+    assert(cold.column==source.column&&cold.row==source.row);
+    assert(encode_native_session_profile(cold,fresh_install_world)==bytes);
     assert(restored.original_world_sha256==source.original_world_sha256);
     assert(restored.level==22 && restored.column==4.5 && restored.row==4.5);
     assert(restored.heading_radians==source.heading_radians);
