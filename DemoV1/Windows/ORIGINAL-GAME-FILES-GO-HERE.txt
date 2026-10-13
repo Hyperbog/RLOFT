@@ -1,0 +1,20 @@
+RAVENLOFT: STRAHD'S POSSESSION -- ORIGINAL GAME DATA
+
+Copy your owned original DOS installation files into this Game folder.
+If your copy has a RLOFT subfolder, retain it intact.
+
+Required originals include RES0, INIT, T, CODE.1, CODE.2,
+CINE00.ANM, CINE12.ANM and the other original RES/ANM/DAT assets.
+No original proprietary game files are bundled with the native Alpha.
+
+Then double-click Play-Ravenloft-Alpha.cmd in the parent directory.
+
+The launcher makes a fresh temporary COPY of Game, removes CHARS ONLY
+from that disposable copy to force the full intro, then executes the
+ordinary game with no developer warp, without using --front-end-only.
+The created party CHARS and Level22 state remain in the temporary
+run folder printed in the console after the game exits.
+Your original Game files, CHARS and SAVE.DAT remain unchanged.
+
+This is an incomplete native recreation; real DOS machine instructions
+are not executed. The Level22 scene and gameplay remain Pre-Alpha.
