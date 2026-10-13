@@ -120,6 +120,37 @@ void run() {
     assert(world.cell(22,4,3).explored);
     assert(!world.cell(21,4,3).explored);
 
+    // The interactive alpha requires an actual footprint: a blocked
+    // movement must never change camera position or subsequently stretch
+    // its projected first-person frame.
+    auto protected_camera=camera;
+    const auto near_wall=move_native_probe_camera_clearance(
+        world,protected_camera,0.8,0.0);
+    assert(near_wall.moved && near_wall.blocked);
+    assert(protected_camera.column_position>=3.7);
+    assert(protected_camera.column_position<=3.75);
+    assert(std::abs(protected_camera.row_position-3.5)<1e-9);
+    const auto contact_x=protected_camera.column_position;
+    const auto contact_y=protected_camera.row_position;
+    const auto contact_view=trace_native_probe_view(
+        world,protected_camera,5,64);
+    const auto contact_frame=render_native_probe_rgb(contact_view,5,16);
+    const auto refused=move_native_probe_camera_clearance(
+        world,protected_camera,0.18,0.0);
+    assert(refused.blocked && !refused.moved);
+    assert(protected_camera.column_position==contact_x);
+    assert(protected_camera.row_position==contact_y);
+    assert(render_native_probe_rgb(
+        trace_native_probe_view(world,protected_camera,5,64),5,16)==
+        contact_frame);
+    const auto slide=move_native_probe_camera_clearance(
+        world,protected_camera,0.18,0.12);
+    assert(slide.moved && slide.blocked); // tangent slide along wall
+    assert(protected_camera.column_position==contact_x);
+    assert(protected_camera.row_position>contact_y);
+    rejects([&] {static_cast<void>(move_native_probe_camera_clearance(
+        world,protected_camera,0.2,0.0,0.49));});
+
     const auto original_x=camera.column_position;
     assert(!move_native_probe_camera(world,camera,1.1,0.0));
     assert(camera.column_position==original_x); // all-or-nothing blocked
