@@ -48,6 +48,14 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         "$argv = '--dev-trace \"' + $scratch + '\"'",
         "Start-Process -FilePath $engine -ArgumentList $argv",
         "Get-Content -LiteralPath $identity -Raw",
+        "$hashFile = Join-Path $package 'ravenloft_demo_v1.exe.sha256'",
+        "$hashRecord -cnotmatch '^([0-9a-fA-F]{64})  ravenloft_demo_v1\\.exe$'",
+        "Get-FileHash -LiteralPath $engine -Algorithm SHA256",
+        "$actualExeHash.Equals($expectedExeHash, [StringComparison]::OrdinalIgnoreCase)",
+        "$partyRoot = Join-Path $scratch 'CHARS'",
+        "$partyChild = Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'",
+        "if ($null -eq $partyFile) {",
+        "if ($partySize -ne 0x920) {",
         "$session -eq $previous",
         "StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)",
         "Compress-Archive -LiteralPath $sessionPath",
@@ -71,6 +79,13 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         'Write-Host "Last exploration initialization checkpoint: $lastPreload"' not in ps):
         raise ValueError("field runner prints unfiltered diagnostic events")
     before_launch = ps.index("$process = Start-Process")
+    if ps.index("$hashFile = Join-Path") > ps.index("Add-Type -AssemblyName"):
+        raise ValueError("EXE integrity checked after original media picker")
+    if ps.index("if ($partySize -ne 0x920)") > before_launch:
+        raise ValueError("existing-party route validated only after launch")
+    checksum = "build/demo-v1/Release/ravenloft_demo_v1.exe.sha256"
+    if workflow.count(checksum) < 3 or "Get-FileHash -LiteralPath $packageExe -Algorithm SHA256" not in workflow:
+        raise ValueError("native executable checksum is not staged in both artifacts")
     for prior in (
         "if ($copyStatus -ge 8)",
         "Get-ChildItem -LiteralPath $scratch -Filter 'CHARS'",
@@ -125,6 +140,33 @@ def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         except (ValueError,AssertionError):
             continue
         raise ValueError(f"unsafe Alpha field launcher mutation {i} survived")
+    # Reject a disabled checksum verifier or a fabricated existing
+    # party before the native executable touches the isolated media.
+    checksum_bypass=ps.replace(
+        "$actualExeHash.Equals($expectedExeHash, [StringComparison]::OrdinalIgnoreCase)",
+        "$true",1)
+    size_bypass=ps.replace("if ($partySize -ne 0x920) {",
+                           "if ($false) {",1)
+    absent_bypass=ps.replace("if ($null -eq $partyFile) {",
+                             "if ($false) {",1)
+    lost_package=workflow.replace(
+        "Get-FileHash -LiteralPath $packageExe -Algorithm SHA256",
+        "Get-FileHash -LiteralPath $packageExe -Algorithm MD5",1)
+    for label,bad_ps,bad_workflow in (
+        ("checksum bypass",checksum_bypass,workflow),
+        ("invalid CHARS bypass",size_bypass,workflow),
+        ("missing CHARS bypass",absent_bypass,workflow),
+        ("unverified package checksum",ps,lost_package),
+    ):
+        if bad_ps==ps and bad_workflow==workflow:
+            raise ValueError(label+" negative mutation failed")
+        try:
+            check(cmd,bad_ps,bad_workflow,host,intro)
+        except (ValueError,AssertionError):
+            pass
+        else:
+            raise ValueError(label+" passed source safety contract")
+
     # Seventh mutation would print raw JSONL events instead of only
     # whitelisted symbolic checkpoints.
     raw_stage=ps.replace(
@@ -181,7 +223,7 @@ def main()->int:
         mutate(cmd,ps,workflow,host,intro)
     except (ValueError,AssertionError,OSError) as exc:
         p.exit(1,"ALPHA_SANDBOX_FIELD_REJECTED: "+str(exc)+"\n")
-    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 8 unsafe variants rejected")
+    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 12 unsafe variants rejected")
     return 0
 
 if __name__=="__main__":
