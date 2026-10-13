@@ -2,6 +2,10 @@
 // native Load Game transaction or Windows screenshot acceptance.
 #include "rloft/original_title_load_slot.hpp"
 
+// Release CTest uses /DNDEBUG; keep all exhaustive assertions live.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cstdint>
 #include <initializer_list>
