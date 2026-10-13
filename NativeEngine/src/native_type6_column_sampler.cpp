@@ -31,6 +31,9 @@ Prepared prepare(const NativeType6ProjectedColumn& r) {
             t.height==128U &&
             t.pixels.size()==std::size_t(t.width)*128U,
             "type-6 source must be one authentic 32/64 by 128 indexed texture");
+    require(r.host_source_rows>=1U && r.host_source_rows<=128U &&
+            r.host_vertical_offset>=-256 && r.host_vertical_offset<=256,
+            "original host upper wall source rows/offset invalid");
     require(r.original_source_column<t.width && r.viewport_x<320U &&
             r.projected_height>=1U && r.projected_height<=256U &&
             r.active_400_line_page<=1U &&
@@ -38,7 +41,8 @@ Prepared prepare(const NativeType6ProjectedColumn& r) {
             r.host_pitch_pixels>=-96 && r.host_pitch_pixels<=96,
             "original type-6 column/height/VGA page out of bounds");
     const int original_y=int(r.working_region_top_row)+
-                int((256U-r.projected_height)/2U)+r.host_pitch_pixels;
+                int((256U-r.projected_height)/2U)+r.host_pitch_pixels+
+                r.host_vertical_offset;
     const int first=std::max(original_y,int(r.working_region_top_row));
     const int last=std::min(original_y+int(r.projected_height),
                             int(r.working_region_top_row+256U));
@@ -46,9 +50,9 @@ Prepared prepare(const NativeType6ProjectedColumn& r) {
             "type-6 pitched wall outside host presentation viewport");
     // CODE.2 338D3..338E5: unsigned source phase stride. For positive
     // height <=256 the final decoded source row cannot exceed 127.
-    constexpr std::uint32_t source_domain=0x800000U;
+    const auto source_domain=r.host_source_rows<<16U;
     const auto step=source_domain/r.projected_height;
-    require(step>0 && (std::uint64_t(r.projected_height-1U)*step>>16U)<128U,
+    require(step>0 && (std::uint64_t(r.projected_height-1U)*step>>16U)<r.host_source_rows,
             "original type-6 source step exceeds 128-texel column");
     return {&t,r.original_source_column,r.viewport_x,
             r.active_400_line_page,unsigned(first),r.projected_height,
