@@ -56,6 +56,7 @@ public partial class MainWindow : Window
         CancelAnalysisButton.IsEnabled = false;
         ExportAnalysisButton.IsEnabled = false;
         ExportDiagnosticButton.IsEnabled = true;
+        BenchmarkButton.IsEnabled = false;
         // The read-only TextBox consumes mouse-up while implementing drag
         // selection. Listen even when handled so a normal click can select
         // an individual byte without breaking drag-to-copy behavior.
@@ -111,6 +112,12 @@ public partial class MainWindow : Window
         string Evidence, FlowAddress? LeNavigationTarget,
         Dos16Address? MzNavigationTarget = null, string SourceText = "");
     private sealed record IntelligenceRow(string Name, string DisplayValue, string Evidence);
+    private sealed record BenchmarkFindingRow(int ObjectNumber, int Begin,
+        int EndExclusive, string Kind)
+    {
+        public string OffsetText => $"{ObjectNumber}:0x{Begin:X8}";
+        public string EndText => $"{ObjectNumber}:0x{EndExclusive:X8}";
+    }
 
     private void SetWorking(bool value, string? status = null)
     {
@@ -133,6 +140,7 @@ public partial class MainWindow : Window
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
         ExportAnalysisButton.IsEnabled = !value && (_graph is not null || _mzGraph is not null);
         ExportDiagnosticButton.IsEnabled = !value;
+        BenchmarkButton.IsEnabled = !value && _image is not null && _graph is not null;
         if (status != null) StatusText.Text = status;
     }
     private void Error(string context, Exception error)
@@ -206,6 +214,9 @@ public partial class MainWindow : Window
             ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
             _allReferences = Array.Empty<ReferenceRow>();
+            BenchmarkFindingsGrid.ItemsSource = null;
+            BenchmarkSummaryText.Text =
+                "Open and analyze an LE file, then choose Benchmark… to import a SHA-bound classification reference.";
             RefreshReferences();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
             {
@@ -301,6 +312,8 @@ public partial class MainWindow : Window
                 await Task.Run(() => project.SaveAnalysis(graph));
             }
             _graph = graph;
+            BenchmarkFindingsGrid.ItemsSource = null;
+            BenchmarkSummaryText.Text = "Analysis changed; rerun Benchmark against a SHA-bound reference.";
             ShowAnalysis(graph);
             Trace(DiagnosticStage.AnalysisCompleted, instructionCount: graph.Instructions.Count);
             ExportAnalysisButton.IsEnabled = true;
@@ -353,6 +366,92 @@ public partial class MainWindow : Window
             Error("MZ analysis failed", ex);
         }
         finally { SetWorking(false); }
+    }
+
+    private async void Benchmark_Click(object sender, RoutedEventArgs e)
+    {
+        if (_working || _artifact is null || _image is null || _graph is null)
+            return;
+        var picker = new OpenFileDialog
+        {
+            Title = "Select independent, SHA-bound LE classification reference",
+            Filter = "Classification reference (*.json)|*.json",
+            CheckFileExists = true
+        };
+        string shippedBenchmarks = Path.Combine(AppContext.BaseDirectory, "benchmarks");
+        if (Directory.Exists(shippedBenchmarks))
+            picker.InitialDirectory = shippedBenchmarks;
+        if (picker.ShowDialog(this) != true) return;
+        // Keep original binaries local. The manifest itself contains
+        // code/data offsets and SHA identifiers, never executable bytes.
+        BinaryArtifact artifact = _artifact;
+        LeImage image = _image;
+        FlowAnalysisResult graph = _graph;
+        SetWorking(true, "Verifying reference SHA, LE object mapping and candidate bytes…");
+        try
+        {
+            string path = picker.FileName;
+            CodeClassificationScore score = await Task.Run(() =>
+            {
+                if (new FileInfo(path).Length > 512 * 1024)
+                    throw new InvalidDataException("Benchmark reference is too large.");
+                CodeClassificationReference reference =
+                    CodeClassificationBenchmark.ParseReference(File.ReadAllText(path));
+                return CodeClassificationBenchmark.Score(artifact, image, graph, reference);
+            });
+            if (!ReferenceEquals(_artifact, artifact) || !ReferenceEquals(_graph, graph))
+                return;
+            string precision = score.CandidateBytePrecision is { } p
+                ? p.ToString("P2", CultureInfo.InvariantCulture) : "undefined (no candidate bytes)";
+            string recall = score.TranslatedByteRecall is { } q
+                ? q.ToString("P2", CultureInfo.InvariantCulture) : "undefined";
+            BenchmarkSummaryText.Text =
+                $"External audited translation-ledger comparison; reference status: {score.ReferenceStatus}. " +
+                $"LE object {score.ObjectNumber}, {score.ObjectByteLength:N0} bytes. " +
+                $"Candidate-byte precision {precision}; translated-byte recall {recall}. " +
+                $"Candidate on audited translation {score.CandidateOnTranslated:N0}; " +
+                $"candidate on excluded {score.CandidateOnExcluded:N0}; " +
+                $"unclassified translation {score.UnclassifiedTranslated:N0}; " +
+                $"excluded abstentions {score.UnclassifiedExcluded:N0}. " +
+                (score.AnalysisTruncated ? "ANALYSIS TRUNCATED. " : "") +
+                (score.FindingsTruncated ? "Disagreement list TRUNCATED. " : "") +
+                "This does not validate ISA decoding, boundaries, execution or decompiled semantics.";
+            BenchmarkFindingsGrid.ItemsSource = score.FalsePositiveExclusionSpans
+                .Concat(score.MissedTranslationSpans)
+                .OrderBy(x => x.Begin)
+                .Select(x => new BenchmarkFindingRow(score.ObjectNumber,
+                    x.Begin, x.EndExclusive, x.Kind)).ToArray();
+            MainTabs.SelectedIndex = 3;
+            StatusText.Text = $"Audited byte benchmark: precision {precision}, recall {recall}; " +
+                $"source SHA + independent object SHA verified.";
+        }
+        catch (Exception ex)
+        {
+            Error("Unable to score classification reference", ex);
+        }
+        finally { SetWorking(false); }
+    }
+
+    private void BenchmarkFindingsGrid_MouseDoubleClick(
+        object sender, MouseButtonEventArgs e)
+    {
+        if (_working || _image is null || _artifact is null ||
+            BenchmarkFindingsGrid.SelectedItem is not BenchmarkFindingRow finding)
+            return;
+        long? originalFileOffset = _image.ToFileOffset(finding.ObjectNumber,
+            checked((uint)finding.Begin));
+        if (originalFileOffset is not >= 0 or > int.MaxValue)
+        {
+            StatusText.Text = "Benchmark finding has no original-file-backed position.";
+            return;
+        }
+        // Inspect, don't implicitly decode or classify the disagreements.
+        MainTabs.SelectedIndex = 1;
+        SelectPhysicalBytes(checked((int)originalFileOffset.Value), 1,
+            preserveGoQuery: false);
+        StatusText.Text = $"Benchmark {finding.Kind}: object {finding.ObjectNumber} " +
+            $"offset 0x{finding.Begin:X8}, original file+0x{originalFileOffset:X8}. " +
+            "This view does not change the graph or original source.";
     }
 
     private void CancelAnalysis_Click(object sender, RoutedEventArgs e)
