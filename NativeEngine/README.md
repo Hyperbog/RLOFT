@@ -1,5 +1,49 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Product roadmap — Alpha → Beta → Final (controlling, 2026-10-12)
+
+**Product:** `NativeEngine/rloft_native.exe`, an independently built Windows replacement engine loading the player's owned Ravenloft files read-only. **Branch:** `native-engine` only. **Separate workstreams:** `DemoV1` (working source-traced startup and character creation), `code1-decompilation` (original behavior evidence), `DnD-Classics` (original source media), and asset-extraction/disassembly tools. Integrate proven implementations across modules; do not rename DemoV1 or fork a second gameplay rewrite.
+
+### Current product state: technical preview, NOT playable Alpha
+
+- **Verified:** native install selection/ISO resource loading; immutable source world across all 32 maps; authentic RES4 wall and floor/ceiling texture IDs; GPU spatial mesh and collision-category checks; 6,204 original compact world actor/fixture/item placements and bounded RES3 frame allocation metadata (not yet drawn); original CODE.2 and VGA diagnostic primitives; automated Windows and portable tests.
+- **Actual user field result:** 3D viewport runs but prior GPU exception and incorrect controls have been reported; fixed-axis A/D hand-off is now in the shared navigation path. Live GUI acceptance, stable FPS, and real game entry are separate gates.
+- **Not yet implemented for normal gameplay:** original title/creation integrated into *this* native executable, actual party/session, complete source-placed RES3 objects/scenery/trees, dynamic doors and interaction/event VM, enemy AI/combat/spells, inventory/equipment, sound, writable saves, complete quest progression, and full DOS frame parity.
+- Versioned `Alpha 0.12` describes the **technical viewport artifact**, not satisfaction of the playable-Alpha exit criteria below. Do not mark Alpha complete on the strength of 34/34 CTests.
+
+### Alpha — FIRST PLAYABLE original-route vertical slice
+
+**Build target:** source-installed launch → original logos/introduction/title → ordinary CODE.1 creation **or** existing CHARS import → valid party and player state → authentic world entry without shortcuts → move/look/automap → interact with at least one source-authored fixture and stateful door → one original scripted encounter, with inventory/combat where encountered → writable *profile* save → exit, restart and reload to the same state.
+
+**Implementation order and dependencies:**
+
+1. **A0 — platform and session ownership:** preserve native install read-only; create a writable profile, separate display renderer from game state, unify portable movement/door state, require exact reproduction of source-level collisions; maintain a single `native-engine` branch. Correct A/D, snapshot/restore, per-level persistent mutation and renderer independent player input.
+2. **A1 — original startup re-use:** adapt *existing* DemoV1 `BootFlow`, `AnmCinematic`, `StartupPresenter` and `CharacterCreationFlow` through shared source modules; require normal CODE.2→CODE.1→CODE.2 transfer and original 0x920 CHARS payload. Do **not** create a second cinematic, title menu, or character generator.
+3. **A2 — authored world entities:** bind original `LEVELS.DAT` 6,204 placements + `INIT`/`NPCS.DAT`/`OBJECTS.DAT` and source `RES3` EH7 frames to visible scene content. Prioritize placed level geometry, multipart outdoor trees and static objects, correct depth/collision, and source-frame choice. Preserve no-draw 147. Reconstruct special doors from original state records, not from fake cube geometry.
+4. **A3 — first gameplay loop:** source actor/party positions, at least one interactive original event and inventory transition; portable simulation independent of GPU and presentation; dialog/UI and first original encounter flow. Record any behavior still provisional.
+5. **A4 — profile persistence and real field acceptance:** saves/loads never write to the installation; original CHARS import and own profile format distinguish source and native provenance; automated process restart and round-trip; hands-on Windows run through original menu, first action, encounter, save/reload.
+
+**Alpha exit gate:** independently packaged asset-free x64 EXE; reproducible CI pass from exact SHA with relevant original-media audits; recorded uninterrupted end-to-end *owner-played* route above, including post-relaunch state; no mandatory debug teleport or fabricated party; known divergences documented. **Open until those are measured.**
+
+### Beta — CONTENT COMPLETE original campaign
+
+- Implement all original explorable levels, placement/event transitions, door/secret/teleport/quest triggers, stateful scene animation and dialogue.
+- Complete class/party rules, equipment, inventory, spells, status, combat/AI, rests, experience and progression using original-file behavior and CODE.1/CODE.2 evidence, including original item and monster tables.
+- Complete original cinematics/title/menus, runtime UI, automap, palettes, sound/music and save compatibility strategy (native profile format plus explicitly verified original import/export only).
+- Complete playthrough from new party to canonical ending on a regular Windows installation, with source-authenticated checkpoints at major quest transitions. Include save/reload at every major chapter, regression and performance budgets for native, HD and 4K; controller/accessibility and mod API only where they do not block content completeness.
+- **Beta exit:** all original campaign content reachable and finishable with no progression-blocking bug, original media immutable, no crashes/corrupt saves in bounded endurance runs; known frame/audio/DOS-behavior differences categorized, not hidden.
+
+### Final — FAITHFUL, STABLE, DISTRIBUTABLE
+
+- Close high-priority DOS behavior/frame/audio differences against recorded original reference cases (camera/raycast, wall-state selection, actor occlusion, UI/cinematics, timers); prove actual equivalence where claimed, explicitly document irreducible platform differences.
+- Verified clean Windows installation and update/uninstall, input/controller/screen-mode compatibility, high-DPI 4K performance, crash diagnostics, corrupt-file recovery, backup/migration, and stable reversible mod/resource overlay format.
+- Full campaign regression, saves and alternate quest/party scenarios across original media versions; licensing audit and **zero proprietary game data** in any redistributed release.
+- **Final exit:** repeatable artifact/source hashes; zero known P0/P1 release blockers; independently reproducible first-to-last playthrough, safe saves and upgrades, documented compatibility/performance matrix and maintained source-grounded evidence.
+
+### Build/release rule
+
+**Advance gates, not labels.** A successful Windows compiler or a 32-map headless screenshot check certifies only that specific subsystem. Original data decoding ≠ scene fidelity; headless CI ≠ live GPU acceptance; a working camera ≠ playable game; DemoV1's frontend success ≠ native frontend integration. Maintain separate checkmarks for *implemented*, *CI validated*, *owner field validated* and *DOS behavior compared*. All new work should close one of A0–A4 or a later named Beta/Final gap. Do not add isolated reconstruction suites unless required to fix a concrete user-facing issue.
+
 ## Native Alpha 0.12 — original v0.7 internal resolution modes and native branch consolidation
 
 [Accepted Windows real-original-data source/build and branch-cleanup report](ALPHA012_V07_INTERNAL_RESOLUTION_CONTROLS_AND_BRANCH_CLEANUP_20261012.md). The independent Win32 GPU view now implements the *actual legacy v0.7* five internal render target resolutions **Native/Auto, 1280×720, 1920×1080, 2560×1440, 3840×2160** on F2, using WGL framebuffer objects with aspect-preserving presentation and independent F11 fullscreen (rather than window-size cycling). F1 controls HUD, Shift sprint, owner-requested reversed horizontal mouse-look, F3 nearest/bilinear/mipmap filtering, F4 0/2/4× MSAA when supported, F8 map panel sizes 150/210/300, F12 BMP screenshot and Tab minimap are present; original keyboard Q/E and optional M mouse remain. New original-media audit verifies **444 distinct source RES4 GPU-use materials** across 32 maps. [Windows #38340993133](https://github.com/Hyperbog/RLOFT/actions/runs/38340993133) passed **34/34 native CTests**, full source-media audit and actual GitHub Actions cleanup of **11 obsolete native acceptance branches**. `native-engine` is now the **only native-engine branch**; unrelated project branches, default branch and DnD-Classics original files preserved. The reported GPU runtime error is now **diagnosable with its real exception text**, not yet physically resolved on the user's GPU. Original CODE.2 VGA reference view, live scenery/actors, the old v0.7 editor/mod overrides and DOS frame fidelity are separate incomplete milestones.
