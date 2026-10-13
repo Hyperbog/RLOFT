@@ -1,9 +1,25 @@
-# Ravenloft: Strahd's Possession — native engine
+# Ravenloft: Strahd's Possession — enhanced native PC port
 
 **Active development branch:** `demo-v1`  
-**Goal:** faithfully recreate **the complete original DOS game** as a native executable before any modernization. The player-facing Level 22 walkaround is retired. The priority is the preserved original intro, title and character-creation sequence.
+**Goal:** create a **complete enhanced native Windows PC port** of Ravenloft. Preserve all authored game content and established cinematics/audio/character creation, but use modern display/input/timing/audio and safe port-native saves. **Exact original DOS execution or DOSBox parity is no longer a release requirement.** [Active port charter](ENHANCED_PC_PORT_CHARTER.md) supersedes the former original-fidelity mandate. The priority remains one working intro → creation → genuinely rendered playable Level 22 → entire campaign.
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
+
+## Active policy — enhanced Windows PC port (October 13, 2026)
+
+The project owner superseded the historical strict DOS recreation charter.
+**Read [ENHANCED_PC_PORT_CHARTER.md](ENHANCED_PC_PORT_CHARTER.md) first**, and
+use the [new Alpha/Beta/Final roadmap](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md).
+We no longer need instruction-perfect decompilation, DOSBox playback parity,
+VGA planar/IRQ/BIOS timer cloning, or destructive original save quirks as
+release gates. Retain and reuse the original DOS research **only where it
+unlocks game content, rules, assets, scripts, gameplay or compatibility**.
+A complete playable modern port takes precedence over theoretical exactness.
+
+Current priority: preserve functioning splash/intro/audio/lady-cat/card
+animation and character creation; fix the actual blank/flickering Level 22
+world, missing environmental scenery and audio; then connect campaign-wide
+mechanics, levels and robust port saves. Windows x64 is the first target.
 
 ## Part 18 — ONE continuous original frontend → first Level22 Alpha
 
@@ -27,9 +43,7 @@ snapshot; the player route avoids opt-in `--dev-trace` frame overhead.
 Existing `Play-Original-Intro.cmd` remains a separate **incomplete
 showcase** and must not be mistaken for this continuous Alpha.
 
-**Pre-Alpha**: an executable reaching Level22 is not evidence that its
-ground/sky/trees/assassin, original VGA frame rate, or sound and pixel
-parity are accepted. Prior owner visual failures remain P0 until verified.
+**Pre-Alpha**: merely reaching Level 22 does not establish that its ground, sky, trees, backgrounds or assassin are visible, or that sound, performance and controls work. Prior owner-observed blank/flickering scene and missing audio are P0 port issues. Bit-exact DOS VGA/frame parity is no longer required.
 
 ## Part 17 — original title Load Game source oracle (2026-10-13)
 
@@ -86,15 +100,7 @@ remains Pre-Alpha.**
 **Current classification: Pre-Alpha.** See the
 [release milestones, criteria and blocker order](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md)
 and the [machine-readable gate ledger](RELEASE_GATES.json).
-Alpha is the **authentic opening** (CINE00/CINE12, splash/logo
-screens, all title menu actions, CODE.1 creation and CHARS handoff)
-through the **first playable Level22 scene and basic input**.
-The full Level22 quest, its mist/Level23 transition and remaining
-campaign belong to Beta. The retired Level22 developer warp is
-not a release milestone. Beta is the entire original campaign
-from title to ending. Final requires faithful
-original DOS state, raster, time, sound, inputs and persistence.
-No modernization before completing the original game.
+Under the **enhanced port charter**, Alpha is the continuous native intro, title and two-person character creation through **actually visible and playable Level 22** with sound and responsive controls. The full Level 22 quest, later levels and port-native save/load belong to Beta. Final includes complete game content, smooth modern rendering, scalable displays, reliable sound, input/options and safe persistence. Original DOS bit/IRQ/VGA parity and DOS-format saves are optional, not release gates. Historical reports below retain their old project terminology for research continuity.
 
 Latest verified exact-checkout Windows Full:
 [#676](https://github.com/Hyperbog/RLOFT/actions/runs/38346121349),
@@ -219,7 +225,7 @@ Full build or normal-path field test.
 4. [Preservation and integration roadmap](PRESERVATION_INTEGRATION_ROADMAP.md) — full-game scope and inter-system dependencies.
 5. [Research iteration playbook](RESEARCH_ITERATION_PLAYBOOK.md) — repeatable preflight, faster original-byte oracles, safe concurrent commits and measurable process corrections.
 
-**Source priority:** the original version-identified game binaries/files control; `Code1/Code1.cpp` and `Code2/Code2.cpp` are the primary reconstructed implementation references, never substitutes for independent executable-byte and DOS-behavior validation. Do not fill unknown behavior with invented gameplay or placeholder artwork.
+**Source priority:** reuse original data and already-reconstructed `Code1/Code1.cpp`, `Code2/Code2.cpp`, and native `DemoV1` systems to preserve intended gameplay and content. Original-byte/DOS research is a tool for resolving real unknowns, **not** mandatory proof for every modern renderer, timer, input or safety improvement. Do not silently replace authored story/game mechanics with placeholders.
 
 ## Where to work
 
@@ -243,9 +249,9 @@ cmake --build build/native
 ctest --test-dir build/native --output-on-failure
 ```
 
-Run these from the **repository root**. The Windows GUI executable, DOS runtime fidelity, shader/pixel timing, and resource-backed gameplay require separately authorized and independently verified Windows/original-game testing. Passing `ctest` is not a DOS equivalence claim. Tests must retain active assertions under Release, as configured in the CMake suite.
+Run these from the **repository root**. The Windows GUI executable, audiovisual quality, input responsiveness, save behavior and resource-backed gameplay need actual Windows playtests. Passing `ctest` alone is not proof of player-visible quality. Full DOS playback comparison is optional. Tests must retain active assertions under Release, as configured in the CMake suite.
 
-**Full Windows builds now run automatically on relevant `demo-v1` pushes**, by owner authorization after the repository became public. Passing CI remains distinct from end-to-end game fidelity. Original copyrighted game assets are required for game execution and should not be added to source commits.
+**Full Windows builds now run automatically on relevant `demo-v1` pushes**, by owner authorization after the repository became public. Passing CI remains distinct from actual player gameplay acceptance. Original copyrighted game assets are required for game execution and should not be added to source commits.
 
 ## Research history
 
