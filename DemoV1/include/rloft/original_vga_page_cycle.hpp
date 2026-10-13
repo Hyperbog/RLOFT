@@ -35,6 +35,23 @@ public:
             0xA0000U + (original.draw_page_c050 << 15U);
     }
 
+    // 1F1C9..1F1EB, the EXACT DRAW ENTRY PREFIX:
+    // MOVZX EAX,BYTE[C050], CALL 291B0(EAX), then load
+    // DWORD[C050] AGAIN to calculate FDBC. The independent
+    // selected page EF4D must be updated before the ground base.
+    // This does NOT model the remainder of original 1F1C8
+    // (1EDAC, 334C4, 22220/FF50, upper/lower scene raster).
+    static void enter_ground_draw_1f1c8_prefix(
+        OriginalVgaPageCycleState& original,
+        const OriginalVgaPageCycleCallbacks& callbacks) {
+        select_then_store_291b0(
+            original,
+            static_cast<std::uint8_t>(original.draw_page_c050),
+            callbacks);
+        // Re-read after callback; don't cache its pre-selection C050.
+        calculate_fdbc_1f1d6(original);
+    }
+
     // 1EA78..1EA8D: PUSH DWORD[C050], CALL 1A510,
     // XOR BYTE[C050],01h, ADD ESP,4, RET.
     // Do NOT use EF4D as the display argument. Do NOT toggle

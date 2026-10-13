@@ -49,6 +49,27 @@ CI also checks a read-only source contract. Optional
 `--original /private/CODE.2` verifies full original identity,
 all three instruction windows and both initial DGROUP fields.
 
+## Verified original ground draw-entry prefix (follow-up)
+
+Original object-1 `1F1C9..1F1D5` contains
+`MOVZX EAX,BYTE[C050]; PUSH EAX; CALL 291B0`.
+It then executes `1F1D6` and re-reads **DWORD[C050]** before
+storing the calculated `FDBC`. The original `1F1C9` 13-byte
+instruction window was authenticated separately.
+
+`enter_ground_draw_1f1c8_prefix` now composes those two
+operations in original order, including callback mutation
+visibility. A non-callback initial page 1 chooses `EF4D=1`,
+`FDBC=0xA8000`. A unit test also simulates the 29FEC
+service changing C050 from 1 to 0; 291B0 still stores
+EF4D=1 but the subsequent FDBC read sees 0 and computes
+`0xA0000`. This test demonstrates ordering, **not evidence
+that original 29FEC itself changes C050**.
+
+This remains only the entry prefix; rest of 1F1C8 includes
+1EDAC/334C4 and the actual raster and overlays, and still
+requires DOS call-site and frame evidence before live binding.
+
 ## Remaining Alpha blockers
 
 This model has **not** been wired to Win32 presentation. To

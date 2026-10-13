@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 SHA="853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
 ORIGINAL_WINDOWS={
+    0x1F1C9:"0f b6 05 50 c0 00 00 50 e8 da 9f 00 00",
     0x1EA78:"ff 35 50 c0 00 00 e8 8d ba ff ff 80 35 50 c0 00 00 01 83 c4 04 c3",
     0x291B0:"0f b6 44 24 04 50 e8 31 0e 00 00 83 c4 04 8a 44 24 04 a2 4d ef 00 00 c3",
     0x1F1D6:"a1 50 c0 00 00 c1 e0 0f 05 00 00 0a 00 83 c4 04 a3 bc fd 00 00",
@@ -23,6 +24,9 @@ def contract(header:str,test:str,cmake:str)->None:
             "original.draw_page_c050 << 15U",
             "const auto pushed=original.draw_page_c050",
             "callbacks.present_1a510(pushed);",
+            "enter_ground_draw_1f1c8_prefix(",
+            "static_cast<std::uint8_t>(original.draw_page_c050)",
+            "calculate_fdbc_1f1d6(original);",
             "original.draw_page_c050 ^= 1U;",
             "const auto page=static_cast<std::uint8_t>(argument);",
             "callbacks.select_29fec(static_cast<std::uint32_t>(page));",
@@ -33,6 +37,8 @@ def contract(header:str,test:str,cmake:str)->None:
         (test,(
             "#undef NDEBUG",
             "s.ground_base_fdbc==0xA8000U",
+            "Model::enter_ground_draw_1f1c8_prefix(draw,draw_cb);",
+            "draw.ground_base_fdbc==0xA0000U",
             "s.ground_base_fdbc==0xA0000U",
             "s.draw_page_c050==0xF0000100U",
             "s.selected_page_ef4d==0xABU",

@@ -51,6 +51,43 @@ int main() {
     assert(s.draw_page_c050==0U); // independent video-page domains
     assert((order==std::vector<std::string>{"present","select"}));
 
+    // 1F1C8 calls 291B0(C050 low byte) BEFORE FDBC. The page
+    // selector can have effects before 1F1D6 reads the full DWORD.
+    State draw{1U,0U,0xDEADBEEFU};
+    OriginalVgaPageCycleCallbacks draw_cb{};
+    draw_cb.select_29fec=[&](std::uint32_t page) {
+        assert(page==1U);
+        assert(draw.selected_page_ef4d==0U); // before 291B0 store
+        assert(draw.ground_base_fdbc==0xDEADBEEFU); // before FDBC
+        assert(draw.draw_page_c050==1U);
+    };
+    Model::enter_ground_draw_1f1c8_prefix(draw,draw_cb);
+    assert(draw.selected_page_ef4d==1U);
+    assert(draw.draw_page_c050==1U);
+    assert(draw.ground_base_fdbc==0xA8000U);
+
+    // 291B0's provider can update guest page globals: original
+    // 1F1D6 loads C050 AGAIN afterward, not the old pushed page.
+    draw={1U,0U,0xF00DU};
+    draw_cb.select_29fec=[&](std::uint32_t page) {
+        assert(page==1U && draw.selected_page_ef4d==0U);
+        draw.draw_page_c050=0U;
+    };
+    Model::enter_ground_draw_1f1c8_prefix(draw,draw_cb);
+    assert(draw.draw_page_c050==0U);
+    assert(draw.selected_page_ef4d==1U); // original 291B0 input
+    assert(draw.ground_base_fdbc==0xA0000U); // post-callback C050
+
+    // Any missing 29FEC dependency rejects BEFORE either store.
+    draw={1U,0U,0xCAFEU};
+    bool no_draw_callback=false;
+    try {
+        Model::enter_ground_draw_1f1c8_prefix(draw,{});
+    } catch(const std::invalid_argument&) {no_draw_callback=true;}
+    assert(no_draw_callback && draw.draw_page_c050==1U);
+    assert(draw.selected_page_ef4d==0U);
+    assert(draw.ground_base_fdbc==0xCAFEU);
+
     // 1EA78 XORs only BIT ZERO of the LOW BYTE, preserving high
     // bytes of DWORD[C050] even for unexpected guest memory values.
     s={0xA1B2C3D5U,7U,0x12345678U};
