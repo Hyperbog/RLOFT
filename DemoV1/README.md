@@ -14,7 +14,9 @@ presenters were constructed. Source-safe stage IDs distinguish initial
 load failure, world-state initialization failure and presenter readiness.
 The early trace pointer is detached on exceptions and ordinary launches
 without `--dev-trace` remain non-instrumented. A source-only regression
-guards the ordering and seven deliberate negative mutations. **This is
+guards the ordering and seven deliberate negative mutations. The isolated
+field runner reports only the last whitelisted initialization checkpoint
+rather than printing potentially private raw input events. **This is
 not a verified current-HEAD Windows build, a played Level22 frame, or
 original DOS parity; the release remains Pre-Alpha.**
 
