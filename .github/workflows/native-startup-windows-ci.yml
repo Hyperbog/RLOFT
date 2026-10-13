@@ -31,6 +31,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check out original owner-source media read-only for startup validation
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-source
+          persist-credentials: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/RLOFT
+          sparse-checkout-cone-mode: false
       - name: Install Python for native original-media fixture
         uses: actions/setup-python@v5
         with:
@@ -40,6 +49,30 @@ jobs:
         run: |
           & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Render actual original startup source without modifying game media
+        shell: pwsh
+        run: |
+          $media = Join-Path (Get-Location) "original-source/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          if (-not (Test-Path (Join-Path $media "RES0"))) {
+            throw "Original installed game RES0 is absent"
+          }
+          $files = @("RES0", "COLORS", "INIT")
+          $before = @($files | ForEach-Object {
+            (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
+          })
+          $audit = Join-Path (Get-Location) "build/native-assets-windows-x64/Release/rloft_native_startup_audit.exe"
+          if (-not (Test-Path $audit)) { throw "Original startup audit was not built" }
+          & $audit $media
+          if ($LASTEXITCODE -ne 0) { throw "Real original RES0/COLORS startup composition failed" }
+          $after = @($files | ForEach-Object {
+            (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
+          })
+          for ($i = 0; $i -lt $files.Length; ++$i) {
+            if ($before[$i] -cne $after[$i]) {
+              throw "Original game $($files[$i]) changed during startup audit"
+            }
+          }
+          Write-Host "NATIVE_REAL_ORIGINAL_CODE2_STARTUP_SOURCE_PASS"
       - name: Preserve checksum-tagged media-free Windows package
         uses: actions/upload-artifact@v4
         with:
