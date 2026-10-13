@@ -432,7 +432,9 @@ struct State {
             line(12,y,"W/A/S/D move | Shift sprint | Q/E turn | Mouse: M/right-click to capture");y+=dy;
             line(12,y,"F2 resolution (Auto > 720p > 1080p > 1440p > 4K) | F3 filtering");y+=dy;
             line(12,y,"F4 AA (Off / 2x / 4x) | F11 fullscreen | F12 screenshot");y+=dy;
-            line(12,y,"Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
+            line(12,y,party?
+                "Tab automap | +/- map zoom | F8 map size | debug noclip DISABLED":
+                "Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
             line(12,y,party?
                 "Level22 first-party state | R reset | Esc release mouse / close":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
