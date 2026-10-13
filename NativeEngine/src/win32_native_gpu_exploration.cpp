@@ -394,6 +394,7 @@ struct State {
         if(!hit) {
             inspected_source=
                 "NO AUTHORED PLACEMENT IN HOST INSPECTION CONE";
+            inspected_shape.clear();
             return;
         }
         // Source record identity only: do not label an original scenery
