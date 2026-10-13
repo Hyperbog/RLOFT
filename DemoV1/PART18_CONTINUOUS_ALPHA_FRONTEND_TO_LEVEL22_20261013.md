@@ -51,11 +51,14 @@ None of those are suitable for this **single-route player Alpha**.
    source SHA, rejects filesystem links, clones `Game/` to a fresh
    `%TEMP%/RLOFT-Continuous-Alpha/<unique>` directory, and removes
    preexisting `CHARS` **only inside that disposable copy**.
-4. It then invokes the **unmodified default native game** with exactly
-   one argument: the copied installation path. It does not pass
-   `--front-end-only`, `--explore-level22`, `--dev-trace`, or a
-   special gameplay flag. CODE.1 writes CHARS in the disposable copy
-   and the original-source-mapped CODE.2 handoff reopens those bytes.
+4. It then invokes the **ordinary native game** with the copied
+   media directory plus a tooling-only `--no-remember-install` flag.
+   That flag prevents the temporary path from replacing the owner's
+   remembered original installation in the Windows registry; it does
+   not alter guest gameplay, frames or audio. It does not pass
+   `--front-end-only`, `--explore-level22` or `--dev-trace`.
+   CODE.1 writes CHARS in the disposable copy and the original-source-
+   mapped CODE.2 handoff reopens those bytes.
 5. The game proceeds directly to the partial native Level22 runtime.
    The launcher neither writes nor deletes the owner’s original
    `Game/CHARS`, `SAVE.DAT` or `SAVE##/LEVnnn.DAT`.
