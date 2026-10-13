@@ -5,6 +5,27 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Alpha → Beta → Final: release acceptance (2026-10-12)
+
+**Current classification: Pre-Alpha.** See the
+[release milestones, criteria and blocker order](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md)
+and the [machine-readable gate ledger](RELEASE_GATES.json).
+Alpha is an internal continuous normal-startup→Level22 original ending
+checkpoint, **not a revived standalone Level22 demo**. Beta is the
+entire original campaign from title to ending. Final requires faithful
+original DOS state, raster, time, sound, inputs and persistence.
+No modernization before completing the original game.
+
+Latest verified exact-checkout Windows Full:
+[#667](https://github.com/Hyperbog/RLOFT/actions/runs/38340609115),
+source `11d1df416ea41a46b40ed55cb40f89e7c95ac636`,
+**250/250 CTests passed**. The following executable refresh is
+documentation/binary-only, not a new gameplay test. Windows CI
+passes do **not** establish native normal-play field acceptance or
+original-DOS parity. The historical build/status paragraphs below
+are retained as dated evidence, not automatically current.
+
+
 ## Original intro / character-creation build (2026-10-11)
 
 The owner has retired the standalone Level 22 demo as a player-facing

@@ -1,0 +1,473 @@
+{
+  "schema_version": 1,
+  "owner_branch": "demo-v1",
+  "product": "Ravenloft: Strahd's Possession — faithful full native original-game recreation",
+  "release_policy": "DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md",
+  "current_classification": "pre-alpha",
+  "current_distribution": "original-intro and character-creation preview only",
+  "observed_windows_ci": {
+    "run_number": 667,
+    "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38340609115",
+    "source_sha": "11d1df416ea41a46b40ed55cb40f89e7c95ac636",
+    "ctests_passed": 250,
+    "ctests_total": 250,
+    "qualifies_as_original_dos_parity": false
+  },
+  "evidence_types": [
+    "source_oracle",
+    "windows_ci",
+    "native_field",
+    "dos_comparison",
+    "package_audit",
+    "owner_acceptance"
+  ],
+  "stages": [
+    {
+      "id": "alpha",
+      "label": "Internal continuous-original-game acceptance",
+      "scope": "One real continuously playable normal launch through all authored Level 22 systems and its genuine frame-20 Level23 loader boundary; not a standalone Level22 product.",
+      "gates": [
+        {
+          "id": "ALPHA-BOOT",
+          "name": "Original cold start, menus and character creation",
+          "pass_when": "CINE/title and every original menu choice function or clearly documented source-exact unavailable behavior; CODE.1 creation naturally reaches CODE.2 gameplay via CHARS.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Unimplemented menu options 0/1, incomplete normal startup field verification."
+          ]
+        },
+        {
+          "id": "ALPHA-PARTY",
+          "name": "CHARS handoff and original existing-party start",
+          "pass_when": "New and existing party paths preserve exact 0x920 CHARS, actor/equipment bytes, supervisor ordering and party world initialization in ordinary launch.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Disk handoff passes Windows regression but has not been field-/DOS-compared."
+          ]
+        },
+        {
+          "id": "ALPHA-VIEW",
+          "name": "Initial and traversed Level22 3D/HUD VGA",
+          "pass_when": "Correct original palette, scene geometry, floor/ceiling, walls, sprites, occlusion and UI under ordinary play including source depth-dependent FF50.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Source depth/FF50/ES writes and full DOS indexed-frame comparison remain unaccepted."
+          ]
+        },
+        {
+          "id": "ALPHA-INPUT",
+          "name": "Movement, collisions, interaction and clocks",
+          "pass_when": "Original keyboard/mouse and IRQ cadence drive movement, collision, doors, automap, pickups and menu hitboxes from normal startup.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Win32 scan stream not source-proven bridged to F590/F572 original IRQ."
+          ]
+        },
+        {
+          "id": "ALPHA-COMBAT",
+          "name": "Level22 combat, NPC reaction and AI",
+          "pass_when": "Player combat, original Assassin behavior/death and four authored drops work in ordinary game path with original dice, order, state and timing.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original full combat/AI/cadence interaction remains unaccepted."
+          ]
+        },
+        {
+          "id": "ALPHA-ITEMS",
+          "name": "Inventory and essential spell/rest controls",
+          "pass_when": "Normal Level22 game includes source-correct pickup, cursor, equipment, usable items, menus and source-available essential spell/rest functions without dev actions.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Unfinished original item use, spells, rest and overlay actions."
+          ]
+        },
+        {
+          "id": "ALPHA-MIST",
+          "name": "All-relic Level22 story and original exit",
+          "pass_when": "Original four-relic predicate and quest action play the 22-frame mist sequence and frame-20 level-23 load with persistent party/world state.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Story mist and original frame-20 live event/transition unaccepted."
+          ]
+        },
+        {
+          "id": "ALPHA-AUDIO",
+          "name": "Original initial audio/video chronology",
+          "pass_when": "CINEx, original title/game music, effects, palette fades and milestone-specific pacing match DOS for the accepted route.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original source audio, presentation and timing comparison incomplete."
+          ]
+        },
+        {
+          "id": "ALPHA-BUILD",
+          "name": "Reproducible exact-source full Windows CI",
+          "pass_when": "On the Alpha candidate SHA, clean Full Windows compile, all CTests, recorded EXE hash and original-free artifact succeed with no test skips affecting accepted path.",
+          "requires": [
+            "windows_ci",
+            "package_audit"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Historical Full #667 passes, but no accepted Alpha candidate SHA/field run exists."
+          ]
+        },
+        {
+          "id": "ALPHA-FIELD",
+          "name": "Owner field and independent DOS acceptance",
+          "pass_when": "Owner accepts a protected-copy normal Windows play session and matched original DOS state/frames/ticks for the entire Alpha route.",
+          "requires": [
+            "native_field",
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "No accepted normal-route, original-DOS comparative Level22 field session."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beta",
+      "label": "Complete original campaign playable",
+      "scope": "The same Alpha engine runs all original authored story routes from startup to real ending, including save/load. Remaining fidelity differences explicitly tracked and non-blocking.",
+      "gates": [
+        {
+          "id": "BETA-CAMPAIGN",
+          "name": "Real startup-to-ending original campaign",
+          "pass_when": "Playable actual original progression via authored triggers/levels with continuous party/world data; final original ending without cheats, skip controls or synthetic transitions.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original all-level story event graph/end-to-end route unimplemented and untested."
+          ]
+        },
+        {
+          "id": "BETA-WORLD",
+          "name": "All original levels and transitions",
+          "pass_when": "All relevant authored level records/cells, gates, objects, script events, world changes and returns from original data work in story order.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "General level loader does not establish source event-driven exits or campaign completion."
+          ]
+        },
+        {
+          "id": "BETA-SYSTEMS",
+          "name": "Complete game rules and stats",
+          "pass_when": "Source-equivalent party creation/progression, equipment, conditions, rests, time, inventory, NPC combat, resource rules and UI functionality work across campaign.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Cross-level original gameplay mechanics incomplete."
+          ]
+        },
+        {
+          "id": "BETA-SPELLS",
+          "name": "Complete original magic system",
+          "pass_when": "Original spell books, casting/prayer/memorization, durations, effects, resistances, targets and leveling rules work on authored campaign routes.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original live magic/rest system incomplete."
+          ]
+        },
+        {
+          "id": "BETA-AI",
+          "name": "All relevant enemy/NPC behaviors",
+          "pass_when": "Monster/actor AI, conditions, combat, movement, encounters and death/reward state operate at original tick/rng order in every visited level.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "AI/timing/encounter acceptance incomplete."
+          ]
+        },
+        {
+          "id": "BETA-SAVE",
+          "name": "Whole-world save and load round-trip",
+          "pass_when": "Exact compatible original party and world persistence survives exit, level changes, reloads and changed world inventory/events without losing state.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Current SAVE/LOAD subsystem is partial; complete mutable-world round-trip unavailable."
+          ]
+        },
+        {
+          "id": "BETA-AV",
+          "name": "All original presentation and sound assets",
+          "pass_when": "All original world surfaces, RES animations, CINE/music/sfx and relevant overlays route through source-authentic render/audio systems without placeholder substitutes.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original compositing and sound dispatch incomplete."
+          ]
+        },
+        {
+          "id": "BETA-ERRORS",
+          "name": "Original option/input/error paths",
+          "pass_when": "All original menu choices, normal setup, in-game options, keyboard/mouse, cancellation and recoverable failures work with unchanged original semantics.",
+          "requires": [
+            "native_field",
+            "dos_comparison"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Unfinished menu options and DOS IRQ input bridge."
+          ]
+        },
+        {
+          "id": "BETA-CANDIDATE",
+          "name": "Full Windows Beta candidate and regression",
+          "pass_when": "All reconstructed gameplay/serialization/presentation CTests pass on exact candidate Windows SHA; successful protected-copy all-game field logs and original-media integrity manifest.",
+          "requires": [
+            "windows_ci",
+            "package_audit",
+            "native_field"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "No complete campaign candidate or full-game regression/field evidence."
+          ]
+        },
+        {
+          "id": "BETA-TRIAGE",
+          "name": "All material blockers cleared",
+          "pass_when": "No known reproducible blocker prevents original campaign completion or corrupts user saves; residual fidelity mismatches tracked with original evidence and fix priority.",
+          "requires": [
+            "native_field",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Critical campaign-blocking systems and original-DOS mismatches remain."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "final",
+      "label": "Original-game faithful final release",
+      "scope": "The entire shipped DOS game's behavior, authentic data and presentation are accepted in the native executable; no game-facing modernization is incorporated.",
+      "gates": [
+        {
+          "id": "FINAL-STATE",
+          "name": "Gameplay state/rules parity",
+          "pass_when": "Across original campaign and representative edge branches, movement, combat, magic, RNG, AI, scripts and all mutable global state compare equal to original DOS.",
+          "requires": [
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original full gameplay/state differential acceptance unavailable."
+          ]
+        },
+        {
+          "id": "FINAL-VIDEO",
+          "name": "Indexed VGA, palette and animation parity",
+          "pass_when": "Original pixels/page masks/overdraw, texture span/occlusion, modal UI, fades, text and cinematic frame/palette chronology match supported DOS capture cases.",
+          "requires": [
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Indexed VGA depth and ES/video selector callbacks still unverified."
+          ]
+        },
+        {
+          "id": "FINAL-CLOCK",
+          "name": "Original interrupts, inputs and time parity",
+          "pass_when": "Keyboard/mouse event services, port/IRQ/BIOS/PIT timing, animation dwell, RNG call ordering and clock state match original in supported conditions.",
+          "requires": [
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "IRQ/clock/input cross-runtime traces unaccepted."
+          ]
+        },
+        {
+          "id": "FINAL-AUDIO",
+          "name": "Original music/effects parity",
+          "pass_when": "Original music driver tracks, event effects, trigger ordering, mixing and supported device behavior are accepted against original capture.",
+          "requires": [
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original audio device/mix/timing equivalence unresolved."
+          ]
+        },
+        {
+          "id": "FINAL-PERSIST",
+          "name": "Original save/state compatibility",
+          "pass_when": "Create, restore, migrate if explicitly supported, exit and reenter original games preserving format and mutable world flags at all tested points.",
+          "requires": [
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Full-world compatible SAVE/LOAD not accepted."
+          ]
+        },
+        {
+          "id": "FINAL-CONTENT",
+          "name": "All original content and ending branches",
+          "pass_when": "All relevant original levels, endings, scripted event paths, menu/input branches, spells/items and patch-variant scope have complete source/evidence coverage.",
+          "requires": [
+            "source_oracle",
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original campaign/endings and byte-verified content coverage incomplete."
+          ]
+        },
+        {
+          "id": "FINAL-ERRORS",
+          "name": "Quirks, edge cases, and absence of unfaithful substitutes",
+          "pass_when": "Known original quirks, relevant errors, odd event sequencing and supported missing-resource behavior are preserved; no invented game behavior or standalone-dev shortcuts.",
+          "requires": [
+            "source_oracle",
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Original errors and side effects not exhaustively accepted."
+          ]
+        },
+        {
+          "id": "FINAL-BUILD",
+          "name": "Reproducible clean final signed-off native build",
+          "pass_when": "A pinned Full Windows clean build, CTests, runtime smoke, source/asset integrity checks, artifact hash, supported install paths and safe save handling pass.",
+          "requires": [
+            "windows_ci",
+            "package_audit",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Final source candidate and independently audited package do not exist."
+          ]
+        },
+        {
+          "id": "FINAL-DOC",
+          "name": "Release evidence and licensing preservation",
+          "pass_when": "Game assets never embedded in public source/artifact, user-supplied original install supported, licensing/provenance, known version and user instructions verified.",
+          "requires": [
+            "package_audit",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "Final owner-media installation and packaging acceptance pending."
+          ]
+        },
+        {
+          "id": "FINAL-SIGNOFF",
+          "name": "Complete-game original fidelity owner acceptance",
+          "pass_when": "Owner accepts replayable normal startup-to-ending field and DOS differential report and closes all material original-game fidelity gaps.",
+          "requires": [
+            "native_field",
+            "dos_comparison",
+            "owner_acceptance"
+          ],
+          "status": "open",
+          "evidence": [],
+          "blocked_by": [
+            "No complete DOS-vs-native acceptance report/signoff."
+          ]
+        }
+      ]
+    }
+  ]
+}
