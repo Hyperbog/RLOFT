@@ -42,7 +42,8 @@ int main() {
     ExplorationRuntimeFrame frame{};
     frame.original_c6d8_ray_count=3U; // synthetic C6D8 fixture
     frame.original_c738_scale_count=127U; // original SINTAB fixture
-    frame.scene_video_page=1U;
+    frame.scene_video_page=0U; // mutable native EF4D
+    frame.initial_code2_ground_draw_page_c050=1U; // immutable C050
     // Authentic original 34998 SINTAB-derived perspective exists even
     // though the RES4 ground source is not yet routed into presentation.
     frame.ground_perspective_ready=true;
@@ -165,6 +166,13 @@ int main() {
     assert(tsv.find("provenance\tnative-preview-not-original-DOS")!=
            std::string::npos);
     assert(tsv.find("source_revision\tlocal-unversioned")!=
+           std::string::npos);
+    assert(tsv.find("scene_video_page\t0")!=std::string::npos);
+    assert(tsv.find("scene_page_source\tEF4D-native-selected-not-C050")!=
+           std::string::npos);
+    assert(tsv.find("original_initial_C050_ground_draw_page\t1")!=
+           std::string::npos);
+    assert(tsv.find("original_live_C050_ground_draw_page\tunverified")!=
            std::string::npos);
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
            std::string::npos);

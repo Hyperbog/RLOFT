@@ -150,6 +150,12 @@ void ExplorationFrameCapture::write(
             <<"cell\t"<<position.cell_x<<"\t"<<position.cell_y<<"\n"
             <<"facing\t"<<position.facing<<"\n"
             <<"scene_video_page\t"<<unsigned(runtime.scene_video_page)<<"\n"
+            <<"scene_page_source\tEF4D-native-selected-not-C050\n"
+            <<"original_initial_C050_ground_draw_page\t"
+            <<(runtime.initial_code2_ground_draw_page_c050
+               ?std::to_string(*runtime.initial_code2_ground_draw_page_c050)
+               :"unavailable")<<"\n"
+            <<"original_live_C050_ground_draw_page\tunverified\n"
             <<"scene_individual_columns_mode\t"
             <<unsigned(runtime.scene_individual_columns_mode?1U:0U)<<"\n"
             <<"source_coordinate_fixed\t"

@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Original CODE.2 C050=1 vs EF4D=0 separate page domains;
+    # immutable initial source is never called live DOS draw state.
+    add_test(
+        NAME original_ground_c050_ef4d_domain_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_c050_ef4d_domains.py")
     # Pre-Alpha field diagnostic: original install must only be READ,
     # and normal game must execute on a unique disposable copy.
     add_test(

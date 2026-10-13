@@ -85,12 +85,15 @@ void ExplorationRuntime::initialize_gameplay_state(
     // resource sets can omit it, leaving the diagnostic VGA trace absent.
     scene_vga_masks_.reset();
     scene_video_page_ = 0U;
+    initial_code2_ground_draw_page_c050_.reset();
     scene_individual_columns_mode_ = false;
     if (source.contains("CODE.2")) {
         scene_vga_masks_.emplace(
             Type7VgaPlaneMaskModel::load(source));
         scene_video_page_ =
             scene_vga_masks_->initial_video_page();
+        initial_code2_ground_draw_page_c050_=
+            scene_vga_masks_->initial_ground_draw_page_c050();
         scene_individual_columns_mode_ =
             scene_vga_masks_->initial_individual_columns_mode();
     }
@@ -512,6 +515,8 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
         renderer_tables_,session_.facing);
     out.ground_perspective_ready=true;
     out.scene_video_page = scene_video_page_;
+    out.initial_code2_ground_draw_page_c050 =
+        initial_code2_ground_draw_page_c050_;
     out.scene_individual_columns_mode =
         scene_individual_columns_mode_;
 

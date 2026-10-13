@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/type7_vga_plane_masks.hpp"
 
 #include <array>
@@ -48,6 +51,8 @@ std::vector<std::uint8_t> fake_code2() {
         }
     }
     code2[kDataFileStart + 0xC029U] = 1U;
+    code2[kDataFileStart + 0xC050U] = 1U; // original DWORD=1
+    code2[kDataFileStart + 0xEF4DU] = 0U; // independent EF4D=0
     return code2;
 }
 
@@ -68,6 +73,8 @@ int main() {
         rloft::Type7VgaPlaneMaskModel::from_code2(code2);
     assert(model.initial_individual_columns_mode());
     assert(model.initial_video_page() == 0U);
+    assert(model.initial_ground_draw_page_c050() == 1U);
+    assert(model.initial_ground_fdbc() == 0xA8000U);
 
     // Every 369D8 mask table slot in the active domain is checked against
     // the certified bytes and every plane union covers its run width.
@@ -166,6 +173,28 @@ int main() {
     } catch (const std::runtime_error&) {
         rejected = true;
     }
+    assert(rejected);
+
+    // C050 is independently validated as a full 0/1 DWORD.
+    auto altered_ground=code2;
+    altered_ground[kDataFileStart+0xC050U]=0U;
+    const auto p0=rloft::Type7VgaPlaneMaskModel::from_code2(
+        altered_ground);
+    assert(p0.initial_ground_fdbc()==0xA0000U);
+    assert(p0.initial_video_page()==0U);
+    altered_ground=code2;
+    altered_ground[kDataFileStart+0xC050U]=2U;
+    rejected=false;
+    try {
+        (void)rloft::Type7VgaPlaneMaskModel::from_code2(altered_ground);
+    } catch (const std::runtime_error&) {rejected=true;}
+    assert(rejected);
+    altered_ground=code2;
+    altered_ground[kDataFileStart+0xC051U]=1U;
+    rejected=false;
+    try {
+        (void)rloft::Type7VgaPlaneMaskModel::from_code2(altered_ground);
+    } catch (const std::runtime_error&) {rejected=true;}
     assert(rejected);
 
     auto corrupt = code2;

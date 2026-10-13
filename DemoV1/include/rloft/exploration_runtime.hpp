@@ -104,7 +104,10 @@ struct ExplorationRuntimeFrame final {
     std::optional<std::string> scene_vga_trace_failure;
     // Failures isolated to one original source, not fatal to the frame.
     std::vector<Type7VgaSceneTraceFailure> scene_vga_scene_failures;
+    // Native EF4D selected page, not original ground draw C050.
     std::uint8_t scene_video_page{};
+    // Initial CODE.2 source only, NEVER live mutable C050.
+    std::optional<std::uint8_t> initial_code2_ground_draw_page_c050;
     bool scene_individual_columns_mode{};
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
@@ -305,6 +308,7 @@ private:
     std::string ground_source_failure_;
     std::optional<Type7VgaPlaneMaskModel> scene_vga_masks_;
     std::uint8_t scene_video_page_{};
+    std::optional<std::uint8_t> initial_code2_ground_draw_page_c050_{};
     bool scene_individual_columns_mode_{};
     std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};

@@ -54,15 +54,27 @@ public:
         return initial_individual_columns_mode_;
     }
 
-    // CODE.2 original data object byte EF4D is the initial 0/1 page.
+    // EF4D is the separately selected-page state (291B0), not
+    // DWORD C050 which 1F1D6 uses to select the ground draw page.
     [[nodiscard]] std::uint8_t initial_video_page() const noexcept {
         return initial_video_page_;
+    }
+
+    // Immutable startup CODE.2 data only. The actual game later
+    // toggles C050; never report this initial byte as live DOS RAM.
+    [[nodiscard]] std::uint8_t initial_ground_draw_page_c050() const noexcept {
+        return initial_ground_draw_page_c050_;
+    }
+    [[nodiscard]] std::uint32_t initial_ground_fdbc() const noexcept {
+        return 0xA0000U+
+            (static_cast<std::uint32_t>(initial_ground_draw_page_c050_)<<15U);
     }
 
 private:
     std::array<std::array<std::uint8_t, 32>, 3> plane_tables_{};
     bool initial_individual_columns_mode_{};
     std::uint8_t initial_video_page_{};
+    std::uint8_t initial_ground_draw_page_c050_{};
 };
 
 } // namespace rloft

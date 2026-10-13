@@ -54,6 +54,19 @@ Type7VgaPlaneMaskModel Type7VgaPlaneMaskModel::from_code2(
         throw std::runtime_error(
             "CODE.2 initial VGA page is outside 0..1");
     }
+    // 1F1D6 reads a full DWORD[C050]; shipped original stores
+    // 01 00 00 00, independently of initial BYTE[EF4D]=0.
+    constexpr std::size_t kGroundPageAt=kCode2Object2FileOffset+0xC050U;
+    if(kGroundPageAt+4U>code2_bytes.size())
+        throw std::runtime_error("CODE.2 lacks initial C050 DWORD");
+    const std::uint32_t c050=
+        static_cast<std::uint32_t>(code2_bytes[kGroundPageAt]) |
+        (static_cast<std::uint32_t>(code2_bytes[kGroundPageAt+1U])<<8U) |
+        (static_cast<std::uint32_t>(code2_bytes[kGroundPageAt+2U])<<16U) |
+        (static_cast<std::uint32_t>(code2_bytes[kGroundPageAt+3U])<<24U);
+    if(c050>1U)
+        throw std::runtime_error("initial CODE.2 C050 outside 0/1 VGA pages");
+    model.initial_ground_draw_page_c050_=static_cast<std::uint8_t>(c050);
     for (std::size_t plane = 0U;
          plane < kMaskOffsets.size(); ++plane) {
         const auto start =
