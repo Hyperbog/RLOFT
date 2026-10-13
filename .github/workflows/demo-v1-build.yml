@@ -145,6 +145,19 @@ jobs:
           $packageHash = (Get-FileHash -LiteralPath $packageExe -Algorithm SHA256).Hash.ToLowerInvariant()
           Set-Content -NoNewline -Path build/demo-v1/Release/ravenloft_demo_v1.exe.sha256 -Value "$packageHash  ravenloft_demo_v1.exe"
 
+      - name: Verify continuous launcher parses in Windows PowerShell
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          $launcher = (Resolve-Path 'DemoV1/Windows/Play-Ravenloft-Alpha.ps1').Path
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            $launcher, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | Out-String | Write-Error
+            exit 1
+          }
+
       - name: Stage continuous normal-game Alpha launch (no picker)
         shell: pwsh
         run: |
