@@ -164,6 +164,14 @@ void run() {
 
     const auto right=native_relative_movement(0.0,0.0,1.0,2.0,0.05);
     assert(std::abs(right.delta_rows+0.1)<1e-9);
+    auto steep_look=camera;
+    steep_look.pitch_radians=1.40;
+    const auto pitch_motion=move_native_probe_camera_clearance(
+        world,steep_look,0.0,0.0);
+    assert(!pitch_motion.moved);
+    steep_look.pitch_radians=1.43;
+    rejects([&]{static_cast<void>(move_native_probe_camera_clearance(
+        world,steep_look,0.0,0.0));});
     const auto original_x=camera.column_position;
     assert(!move_native_probe_camera(world,camera,1.1,0.0));
     assert(camera.column_position==original_x); // all-or-nothing blocked
