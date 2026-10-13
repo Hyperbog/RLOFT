@@ -59,7 +59,7 @@ jobs:
           if (-not (Test-Path (Join-Path $media "RES0"))) {
             throw "Original installed game RES0 is absent"
           }
-          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "OBJECTS.DAT", "T", "COLORS", "INIT")
+          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "OBJECTS.DAT", "LEVELS.DAT", "T", "COLORS", "INIT")
           $before = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
@@ -73,6 +73,10 @@ jobs:
           }
           if ($report.character_equipment_rows_verified -ne 90) {
             throw "Expected 90 original CODE.1 starting-equipment source rows"
+          }
+          if ($report.original_first_party_level -ne 22 -or
+              -not $report.original_first_party_spawn_cell_passable) {
+            throw "Original LEVELS.DAT level22 (4,4) party start was not certified"
           }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
