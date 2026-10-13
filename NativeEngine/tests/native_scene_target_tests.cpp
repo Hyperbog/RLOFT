@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include <utility>
 
 using namespace rloft_native;
 namespace {
@@ -49,12 +50,12 @@ int main() {
     // wins; ties select the closer placement.
     const auto straight=at(22,62,2*65536+32768,2*65536+32768);
     const auto other=at(22,63,2*65536+32768,3*65536+32768);
-    const auto near=at(22,9,1*65536+32768,2*65536+32768,0);
+    const auto near=at(22,9,1*65536+49152,2*65536+32768,0);
     const std::vector<NativeAuthoredSceneInstance> source{other,straight,near};
     auto chosen=select_native_authored_scene_target(
         world,22,source,1.5,2.5,0.,2.5,0.5);
     assert(chosen && chosen->original.original_type_id==9U);
-    assert(chosen->distance_cells>0.0 && chosen->distance_cells<0.1);
+    assert(std::abs(chosen->distance_cells-0.25)<1e-10);
     // Do not allow targets outside the cone or radius.
     assert(!select_native_authored_scene_target(
         world,22,std::vector<NativeAuthoredSceneInstance>{other},
