@@ -57,7 +57,7 @@ jobs:
           if (-not (Test-Path (Join-Path $media "RES0"))) {
             throw "Original installed game RES0 is absent"
           }
-          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "T", "COLORS", "INIT")
+          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "OBJECTS.DAT", "T", "COLORS", "INIT")
           $before = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
