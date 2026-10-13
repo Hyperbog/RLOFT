@@ -49,7 +49,7 @@ NativePartyStart party_fixture() {
     ch16(chars,0x248U+0x40U+2U*19U,6U);
     // The original +12B bitset is independent of the object definition.
     chars[0x12BU]=0x01U; // slot0 known, ring and hand unknown.
-    chars[0x248U+0x12CU]=0x08U; // slot 19 known
+    chars[0x248U+0x12DU]=0x08U; // bit 19 = third known-mask byte, 0x08
     return decode_native_party_start(chars);
 }
 template<class F> void rejects(F fn) {
