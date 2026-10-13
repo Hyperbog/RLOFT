@@ -42,6 +42,7 @@ add_library(rloft_native_assets STATIC
   src/native_scene_view.cpp
   src/native_startup_visuals.cpp
   src/native_party_start.cpp
+  src/native_party_inventory.cpp
   src/native_session_profile.cpp
   src/native_gpu_world_mesh.cpp
   src/native_probe_original_textures.cpp
@@ -263,6 +264,11 @@ add_executable(native_session_profile_tests tests/native_session_profile_tests.c
 target_link_libraries(native_session_profile_tests PRIVATE rloft_native_assets)
 native_warnings(native_session_profile_tests)
 add_test(NAME native_session_profile_tests COMMAND native_session_profile_tests)
+
+add_executable(native_party_inventory_tests tests/native_party_inventory_tests.cpp)
+target_link_libraries(native_party_inventory_tests PRIVATE rloft_native_assets)
+native_warnings(native_party_inventory_tests)
+add_test(NAME native_party_inventory_tests COMMAND native_party_inventory_tests)
 
 add_executable(native_party_start_tests tests/native_party_start_tests.cpp)
 target_link_libraries(native_party_start_tests PRIVATE rloft_native_assets rloft_shared_boot)
