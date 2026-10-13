@@ -18,6 +18,7 @@ on:
       - 'NativeEngine/include/rloft_native/native_startup_visuals.hpp'
       - 'NativeEngine/include/rloft_native/native_win32_startup.hpp'
       - 'NativeEngine/src/win32_native_assets.cpp'
+      - 'NativeEngine/Windows/Build-NativeAssets-Windows.ps1'
       - 'NativeEngine/CMakeLists.txt'
       - '.github/workflows/native-startup-windows-ci.yml'
   workflow_dispatch:
