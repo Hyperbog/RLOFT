@@ -3,6 +3,7 @@
 #include "rloft_native/native_world_payload.hpp"
 #include "rloft_native/native_world_runtime.hpp"
 #include "rloft_native/native_party_start.hpp"
+#include "rloft_native/native_party_inventory.hpp"
 #include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_scene_target.hpp"
 #include "rloft_native/native_scene_frame_ranges.hpp"
@@ -219,6 +220,44 @@ int main(int argc,char** argv) {
         for(std::size_t family=0;family<15;++family)
             for(std::size_t race=0;race<6;++race)
                 static_cast<void>(original_tables.starting_loadout(family,race));
+        // Real original OBJECTS.DAT corpus + portable native read-only
+        // inventory decoder. The CHARS values below are an AUDIT FIXTURE,
+        // never a player party or a source save. Only object names, IDs,
+        // categories and RES1 graphic bases are source-asserted.
+        rloft_native::NativeCharsImage inventory_fixture{};
+        for(unsigned actor=0;actor<2U;++actor) {
+            const auto base=std::size_t(actor)*0x248U;
+            const std::string name=actor==0U?"AUDIT ONE":"AUDIT TWO";
+            for(std::size_t i=0;i<name.size();++i)
+                inventory_fixture[base+i]=static_cast<std::uint8_t>(name[i]);
+            inventory_fixture[base+0x1CU]=8U;
+            inventory_fixture[base+0x1EU]=8U;
+            for(std::size_t slot=0;slot<21U;++slot) {
+                inventory_fixture[base+0x40U+2U*slot]=0xffU;
+                inventory_fixture[base+0x41U+2U*slot]=0xffU;
+            }
+        }
+        inventory_fixture[0x40U]=6U; // original QUIVER type
+        inventory_fixture[0x12BU]=1U; // slot0 known
+        inventory_fixture[0x248U+0x40U]=12U; // original LEATHER ARMOR
+        const auto inventory=rloft_native::inspect_native_party_inventory(
+            rloft_native::decode_native_party_start(inventory_fixture),
+            media.read("OBJECTS.DAT"));
+        if(inventory.object_definitions!=336U ||
+           inventory.occupied_total!=2U ||
+           inventory.live_inventory_emulation_verified ||
+           inventory.actors[0].slots[0].object_id!=6 ||
+           inventory.actors[0].slots[0].source_name!="QUIVER" ||
+           inventory.actors[0].slots[0].source_category!=1U ||
+           inventory.actors[0].slots[0].absolute_res1_ui_id!=174U ||
+           !inventory.actors[0].slots[0].identified ||
+           inventory.actors[1].slots[0].object_id!=12 ||
+           inventory.actors[1].slots[0].source_name!="LEATHER ARMOR" ||
+           inventory.actors[1].slots[0].source_category!=4U ||
+           inventory.actors[1].slots[0].absolute_res1_ui_id!=180U ||
+           inventory.actors[1].slots[0].identified)
+            throw std::runtime_error(
+                "original OBJECTS.DAT item identities or CHARS equipment field mapping changed");
         // Original CODE.1: validate the same source-backed presenter that
         // the Windows supervisor uses, including the full 70-frame opening.
         rloft::CharacterCreationPresenter character(visuals);
@@ -259,6 +298,10 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_live_eh7_frames_verified\":false,"
                  <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
+                 <<"\"original_party_inventory_definitions\":336,"
+                 <<"\"original_party_inventory_slots_per_actor\":21,"
+                 <<"\"original_party_inventory_object6_12_verified\":true,"
+                 <<"\"original_party_inventory_gameplay_verified\":false,"
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
                  <<"\"character_frame_hashes\":["
