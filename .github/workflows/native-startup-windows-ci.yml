@@ -99,6 +99,9 @@ jobs:
           if (($report.original_first_level_source_type_counts -join ',') -ne '1,52,42,16') {
             throw "Level22 source actor/placed type distribution changed"
           }
+          if (-not $report.original_first_level_npc9_original_pose_verified) {
+            throw "Original Level22 NPC9 fixed-point pose has not been validated"
+          }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
           }
