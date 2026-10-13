@@ -47,6 +47,8 @@ struct NativeProbeCamera {
     double row_position{};
     double heading_radians{};
     double field_of_view_radians{1.0471975511965976};
+    // Optional host-only mouse pitch: positive tilts view upward.
+    double pitch_radians{};
 };
 
 struct NativeProbeRay {
@@ -90,6 +92,20 @@ void apply_native_probe_visibility(NativeWorldRuntime& world,
 [[nodiscard]] bool move_native_probe_camera(
     const NativeWorldRuntime& world, NativeProbeCamera& camera,
     double delta_columns,double delta_rows);
+
+// Bounded swept host-footprint preview move. Unlike original DOS movement,
+// this is a safe circular player clearance with axis slide. Stops at walls
+// before entering a blocked cell, and reports contact rather than moving
+// the world forward through walls. Original DOS footprint is not proven.
+struct NativeProbeMoveResult {
+    bool moved{};
+    bool blocked{};
+    double applied_columns{};
+    double applied_rows{};
+};
+[[nodiscard]] NativeProbeMoveResult move_native_probe_camera_clearance(
+    const NativeWorldRuntime& world,NativeProbeCamera& camera,
+    double delta_columns,double delta_rows,double clearance=0.26);
 
 // Own experimental probe pixels. No original palette, textures, shapes or
 // SINTAB rasterizer are decoded or depicted here.
