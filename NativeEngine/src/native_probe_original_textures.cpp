@@ -249,11 +249,20 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
                 const int upper_center_top=int((256U-upper_h)/2U);
                 const int upper_offset=base_top-int(upper_h)-
                                        upper_center_top;
-                original_columns.push_back({
-                    &upper->second,source_column,x+32U,upper_h,
-                    0U,0U,working_top,pitch_pixels,
-                    upper_offset,upper_rows});
-                ++out.preview_upper_wall_columns;
+                // When optional mouse pitch moves the entire upper
+                // tier outside the 256-line view, do not enqueue an
+                // invalid VGA strip. Clipping a genuinely offscreen
+                // wall must never disable mouse-look.
+                const int upper_screen_top=base_top-int(upper_h)+
+                                           pitch_pixels;
+                const int upper_screen_bottom=base_top+pitch_pixels;
+                if(upper_screen_bottom>0 && upper_screen_top<256) {
+                    original_columns.push_back({
+                        &upper->second,source_column,x+32U,upper_h,
+                        0U,0U,working_top,pitch_pixels,
+                        upper_offset,upper_rows});
+                    ++out.preview_upper_wall_columns;
+                }
             }
         }
         ++out.wall_columns;
