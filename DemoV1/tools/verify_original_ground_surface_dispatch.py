@@ -15,6 +15,9 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 SOURCE_SHA="853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
 CODE_BASE=0x3AF24
+# Entire original 33E28..33E6A inclusive: no direct FF50 or nested
+# calls, but ES:EDI REP STOS means its alias safety remains open.
+UPPER_FILL_33E28_SHA256="8e9622be88f5265cddb916d4cc41ff0ee1c93714952ce31d7a37863495844da0"
 
 # All windows begin on disassembled instruction boundaries.
 WINDOWS={
@@ -62,8 +65,25 @@ def check_original(path:Path)->None:
     for at,expected in CALLS.items():
         if obj[at]!=0xE8 or at+5+struct.unpack_from("<i",obj,at+1)[0]!=expected:
             raise AssertionError(f"original 1F1C8 call mismatch 0x{at:05x}")
+    # 1F30E CMP FF50,0; 1F315 JLE +52 -> 1F369:
+    # the chosen no-upper-draw path performs no intervening call.
+    assert obj[0x1F315:0x1F317]==bytes.fromhex("7e52")
+    assert 0x1F317+0x52==0x1F369
+
+    fill=obj[0x33E28:0x33E6B]
+    if hashlib.sha256(fill).hexdigest()!=UPPER_FILL_33E28_SHA256:
+        raise AssertionError("33E28 upper fill function bytes differ")
+    # The full 67-byte source has NO direct memory operand FF50
+    # and NO near-E8 callback. But ES:EDI can alias memory until
+    # the selector is proven, so it is NOT auto-certified pure.
+    if bytes.fromhex("50ff0000") in fill or b"\xe8" in fill:
+        raise AssertionError("33E28 contains unreviewed call/FF50 operand")
+    if bytes.fromhex("f3aa") not in fill:
+        raise AssertionError("33E28 ES:EDI source side effect missing")
+
     print(f"PASS: {len(WINDOWS)} original upper/lower mode windows, "
           f"{len(CALLS)} original near-call targets")
+    print("PASS: 1F315 direct no-upper-draw branch and exact 33E28 ES writer")
     print("PASS: 1F369 C026 second-stage branch occurs after original upper calls")
 
 def check_native()->None:
@@ -84,6 +104,9 @@ def check_native()->None:
         "input.original_c026!=0U || input.original_c027!=0U",
         "original_c026==0U",
         "OriginalGroundFF50SourceModel::from_22220",
+        "plan_lower_after_skipped_upper(",
+        "upper.action!=OriginalUpperSurfaceAction::SkipNonpositiveFF50",
+        "upper,upper.initial_upper_ff50,",
     ):
         assert part in header,part
     for part in (
@@ -92,6 +115,9 @@ def check_native()->None:
         "LA::Fill33DE0","LA::SkipNonpositiveFF50",
         "140,1U","248,1U",
         "numeric_limits<std::int32_t>::min()",
+        "proved_lower->computed_lower_ff50==-189",
+        "UA::Fill33E28",
+        "!Model::plan_lower_after_skipped_upper(",
     ):
         assert part in tests,part
     assert "NAME original_ground_surface_dispatch_tests" in cmake

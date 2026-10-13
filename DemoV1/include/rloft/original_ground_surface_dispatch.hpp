@@ -123,6 +123,32 @@ public:
             : OriginalLowerSurfaceAction::SkipNonpositiveFF50;
         return lower;
     }
+
+    // Original 1F30E: after FF50<=0, JLE goes DIRECTLY to 1F369.
+    // The 34A74 upper draw, 33E28 ES:EDI fill, and both overlay
+    // routines are skipped. Thus this one upper path cannot change
+    // FF50 between 1F29D/1F2A5 and the lower 1F377 reload.
+    //
+    // The other upper paths require the actual post-upper FF50.
+    // In particular, 33E28 has no nested E8 calls or direct DGROUP
+    // FF50 reference, but its REP STOS uses ES:EDI; until runtime
+    // ES-to-VGA aliasing is independently accepted, treating it as
+    // an unconditional FF50-preserving operation is not permitted.
+    //
+    // Read-only numeric stage projection. It must NOT be attached to
+    // the native raster without live C026/C027/258A8 + 22220 and
+    // DOS frame validation. No host pixels, RNG or game state touched.
+    [[nodiscard]] static constexpr
+    std::optional<OriginalLowerSurfaceStage> plan_lower_after_skipped_upper(
+        const OriginalUpperSurfaceStage& upper,
+        std::uint8_t original_c026,
+        std::uint8_t original_kind_258b1) noexcept {
+        if(upper.action!=OriginalUpperSurfaceAction::SkipNonpositiveFF50)
+            return std::nullopt;
+        return plan_lower(
+            upper,upper.initial_upper_ff50,
+            original_c026,original_kind_258b1);
+    }
 };
 
 } // namespace rloft

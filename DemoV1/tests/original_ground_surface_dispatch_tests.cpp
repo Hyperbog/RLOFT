@@ -90,6 +90,68 @@ int main() {
     upper=Model::plan_upper(base);
     assert(upper && upper->action==UA::Textured34A74);
 
+    // No-upper-call branch: 1F30E JLE 1F369 executes neither
+    // VGA fill, 34A74 nor selected-actor overlays. Therefore the
+    // exact post-upper FF50 is source-proven from the initial stage.
+    OriginalUpperSurfaceInput skipped_mode=base;
+    skipped_mode.original_selected_258a8=0xFFU;
+    skipped_mode.original_c027=1U;
+    skipped_mode.original_c026=1U;
+    skipped_mode.original_nearest_22220=127*8;
+    const auto skipped=Model::plan_upper(skipped_mode);
+    assert(skipped && skipped->action==UA::SkipNonpositiveFF50);
+    assert(skipped->initial_upper_ff50==-63);
+    const auto proved_lower=Model::plan_lower_after_skipped_upper(
+        *skipped,1U,0x21U);
+    assert(proved_lower);
+    assert(proved_lower->post_upper_ff50==-63);
+    assert(proved_lower->computed_lower_ff50==-189);
+    assert(proved_lower->action==LA::SkipNonpositiveFF50);
+    assert(proved_lower->original_flat_fill_kind_258b1==0x21U);
+    const auto no_lower_raster=Model::plan_lower_after_skipped_upper(
+        *skipped,0U,0x33U);
+    assert(no_lower_raster);
+    assert(no_lower_raster->action==LA::Fill33DE0);
+    assert(no_lower_raster->post_upper_ff50==-63);
+    assert(no_lower_raster->computed_lower_ff50==-63);
+
+    // No post-call FF50 can be invented for a path with an upper
+    // draw. 33E28 has ES:EDI writes whose video-selector alias is
+    // not accepted; reject it even though it has no direct FF50
+    // instruction or nested call. Textured/overlay paths likewise
+    // require an observed post-upper FF50 before 1F377.
+    skipped_mode.original_c027=0U;
+    auto unknown_upper=Model::plan_upper(skipped_mode);
+    assert(unknown_upper && unknown_upper->action==UA::Fill33E28);
+    assert(!Model::plan_lower_after_skipped_upper(
+        *unknown_upper,1U,0U));
+    skipped_mode.original_c027=1U;
+    skipped_mode.original_nearest_22220=408;
+    unknown_upper=Model::plan_upper(skipped_mode);
+    assert(unknown_upper && unknown_upper->action==UA::Textured34A74);
+    assert(!Model::plan_lower_after_skipped_upper(
+        *unknown_upper,1U,0U));
+    skipped_mode.original_selected_258a8=2U;
+    skipped_mode.original_kind_258b0=0x2CU;
+    unknown_upper=Model::plan_upper(skipped_mode);
+    assert(unknown_upper && unknown_upper->action==UA::Overlay29B40);
+    assert(!Model::plan_lower_after_skipped_upper(
+        *unknown_upper,0U,0U)); // even when C026 skips floor texture
+    skipped_mode.original_kind_258b0=1U;
+    skipped_mode.original_c028=1U;
+    unknown_upper=Model::plan_upper(skipped_mode);
+    assert(unknown_upper && unknown_upper->action==UA::Overlay314B0);
+    assert(!Model::plan_lower_after_skipped_upper(
+        *unknown_upper,1U,0U));
+
+    // Explicitly test the old assumption that FF50 cannot be
+    // updated while upper 34A74/overlays run: only plan_lower()
+    // with the actual supplied callback-result value is valid.
+    auto mutable_upper=*unknown_upper;
+    mutable_upper.action=UA::Fill33E28;
+    assert(!Model::plan_lower_after_skipped_upper(
+        mutable_upper,1U,0U));
+
     // Critical source order: 1F377 reads global FF50 again AFTER
     // 29B40/314B0/33E28/34A74 and any opaque callback writes.
     base.original_nearest_22220=16;
@@ -128,4 +190,9 @@ int main() {
         *constant_plan,128,1U,0U);
     static_assert(constant_lower.action==LA::Textured34A74,
                   "original C026=1 lower texture");
+    // Same constexpr source guard: 33E28 is deliberately not an
+    // accepted no-call/no-write stage until VGA ES alias is proven.
+    static_assert(!Model::plan_lower_after_skipped_upper(
+        *constant_plan,1U,0U).has_value(),
+        "original filled upper stage still needs live post-draw FF50");
 }
