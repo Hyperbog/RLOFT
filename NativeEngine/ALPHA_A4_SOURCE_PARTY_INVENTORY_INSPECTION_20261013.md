@@ -30,6 +30,20 @@ The new `rloft_native_startup_audit` checks every definition and a **separately 
 
 It verifies the first actor has known slot0 and the second actor has a different occupied slot0 without a known mark. There are exactly two fixture item instances. The verification publishes `original_party_inventory_definitions=336`, `original_party_inventory_slots_per_actor=21`, `original_party_inventory_object6_12_verified=true` and `original_party_inventory_gameplay_verified=false`. Windows original-media CI fails if those source fields diverge.
 
+### End-to-end original CODE.1 starting equipment
+
+The real media audit also constructs two *audit-only* actors with the existing neutral `rloft::build_character_transfer` using actual original `CODE.1` family/race rows, then decodes **that exact 0x920 CHARS transfer** with `inspect_native_party_inventory` and compares all 21 slots per actor. These are not gameplay defaults.
+
+Independent original `CODE.1` bytes (DGROUP `0x3E724`, table `0x0988`, family stride `0xA8`, race stride `0x1C`) confirm:
+
+| Original class-family/race row | Nonempty source slots (slot:object ID) | Items |
+|---|---|---:|
+| family 0 / race 0 | `0:43, 1:302, 14:252, 16:14, 17:27` | 5 |
+| family 1 / race 0 | `0:307, 14:254, 15:34, 16:14, 17:30` | 5 |
+| **Total** | | **10** |
+
+This is now a pinned native Windows original-media acceptance field: `original_generated_party_inventory_verified=true` and `original_generated_party_starting_items=10`, with both actors and every empty source slot validated. It verifies original CODE.1 → CHARS → native inventory integration without manufacturing any characters for the real game.
+
 `native_party_inventory_tests` uses a tiny self-contained **336-record test catalogue** and synthetic valid CODE.1 actor records to exercise empty `0xFFFF`, real object ID **0**, equipment slot/known-mask decoding, actor-level source identity, UI icons, category and name extraction, exact source-size rejection, invalid category/UI index/name, and out-of-range IDs. Packaging now requires this new test; full suite expected **42** CTests.
 
 ## What is still required for genuine gameplay
