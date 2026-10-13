@@ -25,7 +25,12 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ("/E /XJ /R:1 /W:1", player),
         ("$chars = @(Get-ChildItem -LiteralPath $scratch -Filter 'CHARS'", player),
         ("Remove-Item -LiteralPath $entry.FullName -Force", player),
-        ("$arguments = '\"' + $scratch + '\"'", player),
+        ("$arguments = '\"' + $launchMediaRoot + '\"'", player),
+        ("$launchMediaRoot = $scratch", player),
+        ("if (-not $hasRootMedia -and $hasNestedMedia) {", player),
+        ("$launchMediaRoot = Join-Path $scratch 'RLOFT'", player),
+        ("$hasGogRoot = Test-Path -LiteralPath (Join-Path $original 'game.gog')", player),
+        ("$hasGogNested = Test-Path -LiteralPath (Join-Path $nested 'game.gog')", player),
         ("Start-Process -FilePath $engine -ArgumentList $arguments", player),
         ('Play-Ravenloft-Alpha.ps1', cmd),
         ('powershell.exe -NoProfile -ExecutionPolicy Bypass', cmd),
@@ -46,7 +51,7 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
     # Original launch is no-flag, no chooser or developer warp. The PS
     # script's safety comments name the forbidden arguments, so examine
     # only the actual argument construction and Start-Process.
-    tail = player[player.index("$arguments = '\"' + $scratch + '\"'"):]
+    tail = player[player.index("$arguments = '\"' + $launchMediaRoot + '\"'"):]
     start = tail.index('Start-Process -FilePath $engine')
     if any(flag in tail[:start] for flag in
            ('--front-end-only', '--explore-level22', '--choose-install',
@@ -63,6 +68,9 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
     copy = player.index('& robocopy.exe $original $scratch')
     remove = player.index('Remove-Item -LiteralPath $entry.FullName')
     launch = player.index('Start-Process -FilePath $engine')
+    # GameSource::open requires nested loose media at the actual RLOFT path.
+    if not remove < player.index("$launchMediaRoot = $scratch") < launch:
+        raise ValueError('Actual media root must resolve after temporary copy')
     if not copy < remove < launch:
         raise ValueError('isolated copy, CHARS cold start, then real launch required')
     if ('--front-end-only' in cmd or '--explore-level22' in cmd
@@ -106,11 +114,11 @@ def main() -> int:
              "$scratch = $original"),
             ('player',"Remove-Item -LiteralPath $entry.FullName -Force",
              "Remove-Item -LiteralPath $original -Force"),
-            ('player',"$arguments = '\"' + $scratch + '\"'",
+            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
              "$arguments = '--front-end-only \"' + $scratch + '\"'"),
-            ('player',"$arguments = '\"' + $scratch + '\"'",
+            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
              "$arguments = '--explore-level22 \"' + $scratch + '\"'"),
-            ('player',"$arguments = '\"' + $scratch + '\"'",
+            ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
              "$arguments = '--choose-install'"),
             ('workflow','name: Ravenloft-Continuous-Alpha-Windows-x64',
              'name: Ravenloft-Front-End-Only'),
