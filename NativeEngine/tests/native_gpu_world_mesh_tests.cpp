@@ -48,7 +48,7 @@ int main() {
            !mesh.original_dos_frame_verified);
     assert(mesh.lower_wall_faces>0U);
     assert(mesh.upper_wall_faces>0U);
-    assert(mesh.floor_faces>0U && mesh.ceiling_faces>0U);
+    assert(mesh.floor_faces>0U && mesh.ceiling_faces==0U);
         assert(mesh.textured_triangles.count(31U)); // X upper: 10+20+1
         // Distinct X/Y bank IDs are not compass-facing texture substitutes.
     assert(mesh.textured_triangles.count(11U)); // X lower
