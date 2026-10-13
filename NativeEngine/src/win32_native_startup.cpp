@@ -618,8 +618,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_PAINT: {
         PAINTSTRUCT ps{};HDC screen=BeginPaint(hwnd,&ps);
         RECT whole{};GetClientRect(hwnd,&whole);
-        const int ww=std::max(1,whole.right-whole.left);
-        const int wh=std::max(1,whole.bottom-whole.top);
+        const int ww=std::max(1,static_cast<int>(whole.right-whole.left));
+        const int wh=std::max(1,static_cast<int>(whole.bottom-whole.top));
         HDC staging=CreateCompatibleDC(screen);
         HBITMAP pixels=staging?CreateCompatibleBitmap(screen,ww,wh):nullptr;
         HGDIOBJ original=pixels?SelectObject(staging,pixels):nullptr;
