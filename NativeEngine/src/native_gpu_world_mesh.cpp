@@ -69,13 +69,17 @@ NativeGpuScene build_native_gpu_scene(const NativeWorldRuntime& world,
                        {float(x+1),float(y+1),0,float(x+1),float(y+1)},
                        {float(x),float(y+1),0,float(x),float(y+1)});
             ++scene.floor_faces;
-            auto& ceil=ceil_id<0?scene.fallback_ceiling:
-                               scene.textured_triangles[tex_id(ceil_id)];
-            quad(ceil,{float(x),float(y),ceiling_z,float(x),float(y)},
-                      {float(x),float(y+1),ceiling_z,float(x),float(y+1)},
-                      {float(x+1),float(y+1),ceiling_z,float(x+1),float(y+1)},
-                      {float(x+1),float(y),ceiling_z,float(x+1),float(y)});
-            ++scene.ceiling_faces;
+            // Signed -1 original header ceiling selector means the
+            // CODE.2 shaded environment behind the scene: NEVER
+            // fabricate a flat roof covering the outdoor sky.
+            if(ceil_id>=0) {
+                auto& ceil=scene.textured_triangles[tex_id(ceil_id)];
+                quad(ceil,{float(x),float(y),ceiling_z,float(x),float(y)},
+                          {float(x),float(y+1),ceiling_z,float(x),float(y+1)},
+                          {float(x+1),float(y+1),ceiling_z,float(x+1),float(y+1)},
+                          {float(x+1),float(y),ceiling_z,float(x+1),float(y)});
+                ++scene.ceiling_faces;
+            }
             continue;
         }
         const unsigned code=cell.code;
