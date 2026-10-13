@@ -122,8 +122,35 @@ void run() {
         current,ledger,22,1));});
     current.mark_reached_by_view(22,3,1);
     assert(native_marked_scene_instance_candidates(current,ledger,22,3).size()==3);
+    // The GPU automap uses a separate host-session reveal mask, never
+    // DOS 0x0040 visibility bytes. Preserve authentic source placement order.
+    std::vector<std::uint8_t> discovered(25,0);
+    assert(native_explored_scene_instance_candidates(
+        current,ledger,22,discovered,3).empty());
+    discovered[2U*5U+1U]=1;
+    discovered[3U*5U+2U]=1;
+    const auto discovered_two=native_explored_scene_instance_candidates(
+        current,ledger,22,discovered,3);
+    assert(discovered_two.size()==2);
+    assert(discovered_two[0].source_class==0);
+    assert(discovered_two[0].x_position_16_16==0x18000);
+    assert(discovered_two[1].source_class==1);
+    assert(discovered_two[1].y_position_16_16==0x30000);
+    rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
+        current,ledger,22,discovered,1));});
+    rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
+        current,ledger,22,std::vector<std::uint8_t>(24),3));});
+    rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
+        current,ledger,32,discovered,3));});
+    auto unauthenticated=ledger;
+    unauthenticated.original_compact_families_sha256[0]='0'==
+        unauthenticated.original_compact_families_sha256[0]?'1':'0';
+    rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
+        current,unauthenticated,22,discovered,3));});
     current.clear_transient_visibility(22);
     assert(native_marked_scene_instance_candidates(current,ledger,22,3).empty());
+    assert(native_explored_scene_instance_candidates(
+        current,ledger,22,discovered,3).size()==2);
     assert(current.cell(22,1,2).explored);
     assert(!current.cell(21,1,2).explored);
     rejects([&]{static_cast<void>(native_marked_scene_instance_candidates(
