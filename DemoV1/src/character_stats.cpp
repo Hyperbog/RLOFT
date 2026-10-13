@@ -8,7 +8,7 @@
 namespace rloft {
 
 CharacterStatTables CharacterStatTables::from_assets(
-    const RavenloftBootAssets& assets) {
+    const CharacterVisualSource& assets) {
     CharacterStatTables tables;
 
     for (std::size_t i = 0; i < tables.progression.size(); ++i) {
@@ -48,7 +48,7 @@ CharacterStatTables CharacterStatTables::from_assets(
 }
 
 CharacterStatsModel::CharacterStatsModel(
-    const RavenloftBootAssets& assets)
+    const CharacterVisualSource& assets)
     : tables_(CharacterStatTables::from_assets(assets)) {}
 
 CharacterStatsModel::CharacterStatsModel(
