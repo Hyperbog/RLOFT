@@ -50,6 +50,7 @@ constexpr int kTitleCursor = 4209;
 constexpr int kWorldPreview = 4210;
 constexpr int kGpuWorldPreview = 4211;
 constexpr int kSourceStartup = 4212;
+constexpr int kNativeResume = 4213;
 
 std::wstring unicode(std::string_view utf8) {
     const auto n=MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
@@ -144,6 +145,7 @@ struct State {
     HWND world_preview_button{};
     HWND gpu_world_preview_button{};
     HWND startup_button{};
+    HWND resume_button{};
     unsigned palette_bank{12};
     bool auto_palette{true};
     bool title_cursor_active{true};
@@ -427,14 +429,15 @@ void layout(State& state) {
     RECT r{};GetClientRect(state.window,&r);
     if(state.button) MoveWindow(state.button,24,82,230,34,TRUE);
     if(state.startup_button) MoveWindow(state.startup_button,268,82,218,34,TRUE);
+    if(state.resume_button) MoveWindow(state.resume_button,268,125,256,34,TRUE);
     if(state.gpu_world_preview_button)
         MoveWindow(state.gpu_world_preview_button,498,82,242,34,TRUE);
     if(state.world_preview_button)
         MoveWindow(state.world_preview_button,754,82,170,34,TRUE);
     if(state.report_widget) {
-        const int left=24,top=132;
+        const int left=24,top=173;
         const int width=std::max(200, int(r.right)-370);
-        const int height=std::max(150, int(r.bottom)-166);
+        const int height=std::max(150, int(r.bottom)-207);
         MoveWindow(state.report_widget,left,top,width,height,TRUE);
     }
     const int x=std::max(245,int(r.right)-320);
@@ -569,9 +572,15 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 754,82,170,34,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kWorldPreview)),
                 instance,nullptr);
+            state->resume_button=CreateWindowExW(0,L"BUTTON",
+                L"Continue Native Level22 Quicksave (F9)",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                268,125,256,34,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kNativeResume)),
+                instance,nullptr);
             state->report_widget=CreateWindowExW(WS_EX_CLIENTEDGE,L"EDIT",state->status.c_str(),
                 WS_CHILD|WS_VISIBLE|WS_VSCROLL|ES_MULTILINE|ES_READONLY|
-                ES_AUTOVSCROLL,24,132,640,500,hwnd,
+                ES_AUTOVSCROLL,24,173,640,459,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kResults)),instance,nullptr);
             state->archive_control=CreateWindowExW(0,L"COMBOBOX",nullptr,
                 WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_DROPDOWNLIST|WS_VSCROLL,
@@ -610,7 +619,8 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 932,418,108,27,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kTitleCursor)),
                 instance,nullptr);
-            if(!state->button||!state->report_widget||!state->archive_control||
+            if(!state->button||!state->resume_button||
+               !state->report_widget||!state->archive_control||
                !state->index_control||!state->go_control||
                !state->previous_control||!state->next_control||
                !state->palette_control||!state->title_cursor_control||
@@ -649,6 +659,24 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                     catch(const std::exception& error) {
                         MessageBoxW(hwnd,unicode(error.what()).c_str(),
                             L"Original CODE.2 startup unavailable",MB_OK|MB_ICONWARNING);
+                    }
+                }
+                return 0;
+            }
+            if(LOWORD(wparam)==kNativeResume && HIWORD(wparam)==BN_CLICKED) {
+                if(!state->media) {
+                    MessageBoxW(hwnd,L"Choose the original game installation first.",
+                                L"Original media required",MB_OK|MB_ICONINFORMATION);
+                } else {
+                    try {
+                        // Explicit native checkpoint continuation. Does NOT
+                        // impersonate an original DOS CODE.2 menu route.
+                        rloft_native::open_native_gpu_saved_world_session(
+                            hwnd,*state->media);
+                    } catch(const std::exception& error) {
+                        MessageBoxW(hwnd,unicode(error.what()).c_str(),
+                            L"Native Level22 checkpoint could not be restored",
+                            MB_OK|MB_ICONWARNING);
                     }
                 }
                 return 0;
@@ -823,7 +851,9 @@ int run(HINSTANCE instance) {
     const bool raster_test=argc==3&&option==L"--verify-raster";
     const bool from_arg=argc==3&&option==L"--install";
     const bool play_arg=argc==3&&option==L"--play";
-    const bool invalid=argc!=1&&!headless&&!raster_test&&!from_arg&&!play_arg;
+    const bool resume_arg=argc==3&&option==L"--resume";
+    const bool invalid=argc!=1&&!headless&&!raster_test&&
+        !from_arg&&!play_arg&&!resume_arg;
     LocalFree(argv);
     if(headless||raster_test)return inspect_headless(source,raster_test);
     if(invalid)return 64;
@@ -847,12 +877,15 @@ int run(HINSTANCE instance) {
         if(SUCCEEDED(initialized))CoUninitialize();
         return 2;
     }
-    if(from_arg||play_arg)install(state,source);
+    if(from_arg||play_arg||resume_arg)install(state,source);
     ShowWindow(hwnd,SW_SHOW);
     UpdateWindow(hwnd);
     if(play_arg&&state.media&&state.boot_route_ready)
         PostMessageW(hwnd,WM_COMMAND,
             MAKEWPARAM(kSourceStartup,BN_CLICKED),0);
+    if(resume_arg&&state.media)
+        PostMessageW(hwnd,WM_COMMAND,
+            MAKEWPARAM(kNativeResume,BN_CLICKED),0);
     MSG msg{};
     while(GetMessageW(&msg,nullptr,0,0)>0) {
         TranslateMessage(&msg);
