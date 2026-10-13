@@ -802,7 +802,6 @@ void open_native_gpu_window(HWND owner,std::unique_ptr<State> state) {
     UpdateWindow(window);
     SetFocus(window);
 }
-} // namespace
 
 void open_native_gpu_world_preview(HWND owner,const NativeMedia& media) {
     open_native_gpu_window(owner,
