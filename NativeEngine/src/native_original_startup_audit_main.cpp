@@ -4,6 +4,8 @@
 #include "rloft_native/native_world_runtime.hpp"
 #include "rloft_native/native_party_start.hpp"
 #include "rloft_native/native_party_inventory.hpp"
+#include "rloft_native/native_party_item_icon.hpp"
+#include "rloft_native/native_palette_context.hpp"
 #include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_scene_target.hpp"
 #include "rloft_native/native_scene_frame_ranges.hpp"
@@ -272,6 +274,41 @@ int main(int argc,char** argv) {
            original_starter_items!=10U)
             throw std::runtime_error(
                 "original CODE.1 generated party has no validated starting gear");
+        // Inspect the *whole* original INIT[+02] RES1 inventory UI
+        // namespace, including serialized empty records. Never infer an
+        // animation frame or substitute placeholder icons in the native
+        // first-party HUD. Context source bank comes from CODE.2 level22.
+        if(rloft_native::native_world_palette_bank(22U)!=4U)
+            throw std::runtime_error("original Level22 palette table drifted");
+        const rloft_native::NativeResArchive res1(media.read("RES1"));
+        const auto first_level_palette=
+            rloft_native::decode_native_palette(media.read("COLORS"),4U);
+        const auto icon_corpus=
+            rloft_native::audit_native_party_item_icon_corpus(
+                res1,first_level_palette);
+        if(icon_corpus.examined!=168U ||
+           icon_corpus.nonempty<100U ||
+           icon_corpus.zero_length>21U ||
+           icon_corpus.decoded_pixels==0U ||
+           icon_corpus.original_ui_frame_palette_parity_verified)
+            throw std::runtime_error(
+                "original RES1 object UI bank EH1 frame0 source audit failed");
+        // Verify each genuine CODE.1 starting equipped UI ID passes the
+        // exact same original RES1 path as GPU F7 inventory presentation.
+        std::size_t starter_icon_slots=0U;
+        for(const auto& actor:actual_inventory.actors)
+            for(const auto& slot:actor.slots)
+                if(slot.occupied) {
+                    const auto icon=rloft_native::decode_native_party_item_icon(
+                        res1,slot.absolute_res1_ui_id,first_level_palette);
+                    if(icon.original_res1_id!=slot.absolute_res1_ui_id)
+                        throw std::runtime_error(
+                            "original CODE.1 starting item RES1 icon identity drifted");
+                    ++starter_icon_slots;
+                }
+        if(starter_icon_slots!=10U)
+            throw std::runtime_error(
+                "original CODE.1 starter icon link count changed");
         // Real original OBJECTS.DAT corpus + portable native read-only
         // inventory decoder. The CHARS values below are an AUDIT FIXTURE,
         // never a player party or a source save. Only object names, IDs,
@@ -359,6 +396,15 @@ int main(int argc,char** argv) {
                  <<"\"original_generated_party_inventory_verified\":true,"
                  <<"\"original_generated_party_starting_items\":"
                  <<original_starter_items<<","
+                 <<"\"original_res1_inventory_icon_records\":"
+                 <<icon_corpus.examined<<","
+                 <<"\"original_res1_inventory_icons_decoded\":"
+                 <<icon_corpus.nonempty<<","
+                 <<"\"original_res1_inventory_icons_empty\":"
+                 <<icon_corpus.zero_length<<","
+                 <<"\"original_res1_inventory_starter_icon_links\":"
+                 <<starter_icon_slots<<","
+                 <<"\"original_inventory_icon_live_ui_parity_verified\":false,"
 
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
