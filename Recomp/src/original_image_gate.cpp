@@ -1,4 +1,5 @@
 #include "original_le_image.h"
+#include "original_media_identity.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -76,6 +77,9 @@ void original_test(const std::string& file,std::size_t size,u32 fixes,u32 backwa
                    u32 code_size,u32 data_size,u32 code_base,u32 data_base,u32 entry) {
     const auto bytes=load_file(file);
     check(bytes.size()==size,"original file length differs from authenticated version");
+    check(size==277787u?rloft_recomp::is_original_code1(bytes):
+                          rloft_recomp::is_original_code2(bytes),
+          "supplied original file differs from pinned CODE SHA-256");
     const auto image=rloft_recomp::OriginalLeImage::parse(bytes);
     check(image.entry_object==1 && image.entry_offset==entry,"original entry mismatch");
     check(image.applied_fixups==fixes && image.backward_page_fixups==backwards,
@@ -93,6 +97,21 @@ void original_test(const std::string& file,std::size_t size,u32 fixes,u32 backwa
 int main(int argc,char**argv) {
     try {
         selftest();
+        // Essential identity verification: known NIST/RFC SHA-256 vectors,
+        // plus same-sized counterfeit retail images, without commercial CI.
+        check(rloft_recomp::sha256_hex({})==
+                  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "SHA-256 zero-length input vector differs");
+        check(rloft_recomp::sha256_hex(std::vector<u8>{'a','b','c'})==
+                  "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+              "SHA-256 abc reference vector differs");
+        check(rloft_recomp::sha256_hex(std::vector<u8>(1000000u,'a'))==
+                  "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
+              "SHA-256 million-byte reference vector differs");
+        check(!rloft_recomp::is_original_code1(std::vector<u8>(277787u)) &&
+              !rloft_recomp::is_original_code2(std::vector<u8>(558689u)),
+              "same-sized altered original passed pinned identity");
+
         if(argc==3){
             original_test(argv[1],277787u,2617u,1u,0x11302u,0x9E90u,0x10000u,0x30000u,0xCC1Cu);
             original_test(argv[2],558689u,9813u,6u,0x3A852u,0x2DD10u,0x10000u,0x50000u,0x353A0u);
