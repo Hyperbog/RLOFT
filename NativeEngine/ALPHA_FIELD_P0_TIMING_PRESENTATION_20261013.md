@@ -23,7 +23,9 @@ The supplied screenshot is an actual native first-party **Level22** HUD/3D world
 
 PR [#24](https://github.com/Hyperbog/RLOFT/pull/24), first Windows [run #124](https://github.com/Hyperbog/RLOFT/actions/runs/38481438055), **failed MSVC compilation**: the new offscreen Win32 startup paint measured two `LONG` client extents with `std::max(int,LONG)`. The failure is isolated to source `win32_native_startup.cpp`; the original archive was never altered and no CTests were run by that failed job. Commit `390020182679bfd422e96c487746b9adcb6f70b0` and QA mirror `0dc4292cd46e6bc439911d7f8172afc0ae86f084` explicitly convert both Win32 extents to `int`.
 
-A later QA patch `c3c78e10d1e2ff67a0021125828f2c8b25c4b5d2` adds the DIB-section fallback. It requires **fresh exact-head CI #128** ([run 38481934975](https://github.com/Hyperbog/RLOFT/actions/runs/38481934975)) with all **44 native CTests** and immutable original-media audit before accepting the source. Do not confuse a successful compile of one source file with a passing original-data audit.
+**Final source acceptance: Windows CI #128 PASSED.** QA revision `c3c78e10d1e2ff67a0021125828f2c8b25c4b5d2` ([run 38481934975](https://github.com/Hyperbog/RLOFT/actions/runs/38481934975)) built under Windows 2022 MSVC x64 with no source errors: **44/44 native CTests passed, zero failed**, the original-media startup audits succeeded (`NATIVE_ORIGINAL_ASSET_ENGINE_WINDOWS_BUILD_PASS`), and the native media-free package [artifact #11858210952](https://github.com/Hyperbog/RLOFT/actions/runs/38481934975/artifacts/11858210952) was uploaded. The QA PR #24 was merged into `native-engine` at `21d054ce2b15b7344d6323bd652bf305b32aaa30`.
+
+Run #126 ([link](https://github.com/Hyperbog/RLOFT/actions/runs/38481823278)) had already passed **44/44** with the timer/GDI composition changes and the MSVC `LONG` cast fix, but predated the final DIB-section strip repair. **Run #128 is the preferred field-test binary.** Neither run exercised an actual user Windows GPU/display and thus neither certifies visual flicker gone, correct CPU-VGA content or audible audio.
 
 ## Non-claims and remaining blockers
 
