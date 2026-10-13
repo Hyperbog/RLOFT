@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "owner_branch": "demo-v1",
-  "product": "Ravenloft: Strahd's Possession — faithful full native original-game recreation",
-  "release_policy": "DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md",
+  "product": "Ravenloft: Strahd's Possession — enhanced native PC port",
+  "release_policy": "DemoV1/ENHANCED_PC_PORT_CHARTER.md",
   "current_classification": "pre-alpha",
-  "current_distribution": "original-intro and character-creation preview only",
+  "current_distribution": "continuous opening-to-Level22 Windows Pre-Alpha candidate; owner gameplay and renderer acceptance pending",
   "observed_windows_ci": {
     "run_number": 676,
     "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38346121349",
@@ -24,125 +24,117 @@
   "stages": [
     {
       "id": "alpha",
-      "label": "Original startup and first playable level",
-      "scope": "The real original game's opening sequence through the first controllable Level 22 gameplay scene. Later levels and the complete first-level quest are not Alpha requirements.",
+      "label": "Continuous opening to first playable Level 22",
+      "scope": "A one-click, audiovisual native Windows start through two-person character creation into a visually correct and controllable Level 22; no DOS hardware parity required.",
       "gates": [
         {
           "id": "ALPHA-CINEMATIC",
-          "name": "Original intro cinematics",
-          "pass_when": "On a true CHARS-absent normal launch, original CINE00 and CINE12 both play with authentic visual frames, palette, synchronized sound, source-defined pacing and Esc handling; replaying menu item 0 plays CINE00 and returns to the title.",
+          "name": "Opening cinematics and sound",
+          "pass_when": "Cold native Windows play shows complete CINE00/CINE12 with recognizably correct frames, music, effects, speech, stable playback and responsive skip behavior without audio stutter.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Cinematic frame/audio/skip replay paths have no accepted actual-Windows and original-DOS comparative session."
+            "The one-click Windows build has not passed an owner-observed uninterrupted cinematic and audio test."
           ]
         },
         {
           "id": "ALPHA-SPLASH",
-          "name": "Original splash screens and logos",
-          "pass_when": "After the source-ordered cinematics, all DreamForge/SSI/splash/title splash frames, palettes, fades, delay stages and skip transitions appear in the actual normal game in the correct original sequence.",
+          "name": "DreamForge, SSI and TSR splash screens",
+          "pass_when": "All DreamForge, SSI, TSR and related logos appear in the intended order, fade smoothly, have stable visual presentation and lead directly to the game title.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original cold-start logo/title palette and timing sequence has not passed owner normal-path or DOS visual comparisons."
+            "The real player-facing startup has not been accepted for its logo ordering, display scaling and fade quality."
           ]
         },
         {
           "id": "ALPHA-TITLE",
-          "name": "Working animated original title screen",
-          "pass_when": "The reconstructed original title background, menu animation, hit regions, hover highlights, cursor resources and keyboard/mouse selections operate correctly during normal cold-start play.",
+          "name": "Responsive animated game title",
+          "pass_when": "Native title artwork, animated background, correct card and cursor states, menu highlights and navigation remain responsive and readable at supported window sizes.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Title animation and input selection have not been validated against actual original DOS and user Windows interactions."
+            "The full native title flow has not passed owner acceptance for animation, menu input and rendering."
           ]
         },
         {
           "id": "ALPHA-MENU",
-          "name": "All original title menu actions",
-          "pass_when": "Original menu action 0 replays the intro, action 1 opens and completes authentic Load Game semantics, action 2 enters character creation, and action 3 exits; each has source-authentic redraw, cancel and return behavior.",
+          "name": "Usable title actions without false success",
+          "pass_when": "Replay intro, new game and exit operate from the real title. An unfinished Load Game action must be clearly unavailable without corrupting state; functional loading is a Beta goal.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original menu action 1 calls 7B94 full SAVE selector, currently unimplemented; menu action 0 redraw parity also pending."
+            "No owner Windows test confirms all currently supported title actions; save loading remains unavailable."
           ]
         },
         {
           "id": "ALPHA-CHARACTER",
-          "name": "Complete original character-creation workflow",
-          "pass_when": "Normal menu selection 2 enters CODE.1 and both actors can complete original sex, race, class, stats, portrait, names, confirmation, edits and cancellation with accurate UI and input; no debug bypass.",
+          "name": "Smooth complete two-person character creation",
+          "pass_when": "A real new game lets users create two characters, including choices, names, portraits, stats, animations, the lady and cat, correct card-flip direction, synchronized sound and cancel/edit flow.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "CODE.1 opening presentation and every stage/cancel/actor boundary lack accepted full normal-path Windows/DOS field runs."
+            "The previously functioning creation and animation baseline has not been reaccepted in the continuous package."
           ]
         },
         {
           "id": "ALPHA-CHARS",
-          "name": "New-party and existing-party startup transfer",
-          "pass_when": "The completed original 0x920-byte CHARS file is committed only on normal creation, reread from disk by CODE.2 after original supervisor dispatch, and enters the existing-party import without altering source installation/saves.",
+          "name": "Reliable character creation to game-state transfer",
+          "pass_when": "Created characters enter the native level with correct names, classes, stats, portraits and equipment; a party can be carried forward without requiring a byte-for-byte original DOS CHARS ABI.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Disk handoff has source and CTest evidence but new/existing party startup paths have not passed matched DOS field acceptance."
+            "New party transfer must be observed on the normal continuous Windows game path, not just isolated source tests."
           ]
         },
         {
           "id": "ALPHA-LEVEL22",
-          "name": "First original playable level is rendered",
-          "pass_when": "Normal new-party startup reaches original Level 22 starting coordinates without warp; the initial authentic 3D walls, ground, characters, HUD, palette and audio draw successfully without crashes or obvious compositing defects.",
+          "name": "Visually complete Level 22 starting scene",
+          "pass_when": "Character creation seamlessly loads the authored Level 22 with visible ground, sky, distance, trees, assassin NPC, HUD, proper palette/composition and no blank viewport or flashing.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "First true normal-play Level22 frame and DOS indexed-frame/texture/ES/VGA provenance remain unaccepted."
+            "The previously observed empty/flickering first scene remains an unresolved high-priority native-rendering blocker."
           ]
         },
         {
           "id": "ALPHA-PLAY",
-          "name": "Basic first-level gameplay responds correctly",
-          "pass_when": "Inside the first level, keyboard/mouse movement, turning, collision, first interactions, UI menus and world/party continuity work on the normal route with usable timing and no synthetic replacement gameplay.",
+          "name": "Usable first-level controls and interaction",
+          "pass_when": "In the resulting Level 22, movement, turning, collision, camera frame pacing, basic NPC interaction and essential UI respond reliably to standard Windows keyboard and mouse.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Win32 input-to-original IRQ provenance, collision and initial interaction require live normal-path field testing."
+            "Smooth normal-input gameplay, usable frame pacing and first interactions have not been accepted on Windows."
           ]
         },
         {
           "id": "ALPHA-BUILD",
-          "name": "Reproducible Windows opening-sequence candidate",
-          "pass_when": "An exact-SHA Full Windows build and every registered CTest pass, and a locally original-data-backed cold-start package runs the real game without developer warp or unauthorized copyrighted media distribution.",
+          "name": "Reproducible one-click Windows Alpha artifact",
+          "pass_when": "A pinned Windows x64 build passes relevant automated regressions and publishes a self-contained native launcher with verified bytes, legal original-media setup and no recurring mode picker.",
           "requires": [
             "windows_ci",
             "package_audit"
@@ -150,147 +142,139 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "There is no accepted Alpha candidate tied to a complete player field walkthrough and media/packaging audit."
+            "The dedicated enhanced-port continuous artifact needs a completed exact-source build and install audit."
           ]
         },
         {
           "id": "ALPHA-FIELD",
-          "name": "Owner acceptance of intro-to-first-level Alpha",
-          "pass_when": "Owner accepts a repeatable protected-copy Windows run and comparative original DOS evidence covering cinematics, splash, title menu, character creation, CHARS handoff and the first controllable Level22 scene.",
+          "name": "Owner accepts continuous playable Level 22 Alpha",
+          "pass_when": "Owner completes a single-launch Windows test from cinematics, logos, title and two-person creation to a visibly correct and responsive Level 22 scene with audio, then accepts that Alpha scope.",
           "requires": [
             "native_field",
-            "dos_comparison",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "A matched ordinary cold-start Windows and original DOS opening-to-first-level walkthrough has not been accepted."
+            "No fully successful owner-observed native opening-to-Level22 audiovisual and interaction session exists."
           ]
         }
       ]
     },
     {
       "id": "beta",
-      "label": "Complete original campaign playable",
-      "scope": "After the accepted startup/first Level22 scene, the same engine completes the entire original Level22 quest, mist handoff into Level23 and all original campaign routes through the real ending with save/load.",
+      "label": "Full campaign playable with native saves",
+      "scope": "The complete authored campaign from title to ending on Windows, with functional mechanics, transitions and safe port-native save/load.",
       "gates": [
         {
           "id": "BETA-CAMPAIGN",
-          "name": "Real startup-to-ending original campaign",
-          "pass_when": "Playable actual original progression via authored triggers/levels with continuous party/world data; final original ending without cheats, skip controls or synthetic transitions.",
+          "name": "Start-to-ending playable campaign",
+          "pass_when": "A normal native Windows new game can progress through the complete original authored campaign to its ending using in-game controls, with no developer teleport or synthetic bypass.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original all-level story event graph/end-to-end route unimplemented and untested."
+            "The full authored campaign and end-to-end scripted progression remain unimplemented and untested."
           ]
         },
         {
           "id": "BETA-WORLD",
-          "name": "All original levels and transitions",
-          "pass_when": "All original levels and authored transitions function in story order, including full Level22 encounter/relic progression, original 22-frame mist and frame-20 Level23 handoff; world objects and scripts persist.",
+          "name": "Every authored level, quest and transition",
+          "pass_when": "All required levels, authored routes, quests, triggers, encounters, character/NPC placements and transitions function continuously; scenery and level identities are recognizable.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Full Level22 Assassin/relic/mist gameplay and later authored level transitions remain unaccepted; they are Beta campaign requirements, not Alpha boot requirements."
+            "Complete Level 22 story and subsequent authored level transitions have not passed end-to-end testing."
           ]
         },
         {
           "id": "BETA-SYSTEMS",
-          "name": "Complete game rules and stats",
-          "pass_when": "Source-equivalent party creation/progression, equipment, conditions, rests, time, inventory, NPC combat, resource rules and UI functionality work across campaign.",
+          "name": "Complete PC-port gameplay rules",
+          "pass_when": "Class and character rules, party state, movement, combat, statuses, inventory, equipment, rest, time, XP, and scripted world interactions remain coherent across campaign.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Cross-level original gameplay mechanics incomplete."
+            "Cross-level gameplay rules and systems are incomplete and need integrated field tests."
           ]
         },
         {
           "id": "BETA-SPELLS",
-          "name": "Complete original magic system",
-          "pass_when": "Original spell books, casting/prayer/memorization, durations, effects, resistances, targets and leveling rules work on authored campaign routes.",
+          "name": "Complete usable magic and rest",
+          "pass_when": "Spellbook/prayer/memorization and casting, effects, durations, targeting, defenses and recovery work throughout the full authored campaign on Windows.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original live magic/rest system incomplete."
+            "Live magic, leveling and rest systems have not been accepted for the full campaign."
           ]
         },
         {
           "id": "BETA-AI",
-          "name": "All relevant enemy/NPC behaviors",
-          "pass_when": "Monster/actor AI, conditions, combat, movement, encounters and death/reward state operate at original tick/rng order in every visited level.",
+          "name": "Reliable NPC and enemy behavior",
+          "pass_when": "Authored NPCs and monsters appear and behave coherently in exploration and combat; movement, attacks, deaths, drops and event triggers preserve intended encounter design.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "AI/timing/encounter acceptance incomplete."
+            "NPC encounters and combat behavior remain partially reconstructed and unaccepted in live gameplay."
           ]
         },
         {
           "id": "BETA-SAVE",
-          "name": "Whole-world save and load round-trip",
-          "pass_when": "Exact compatible original party and world persistence survives exit, level changes, reloads and changed world inventory/events without losing state.",
+          "name": "Safe complete-game native saves",
+          "pass_when": "Users can save, exit, relaunch and restore every required party, inventory, script, quest, level, NPC and world-state change safely using a versioned PC-port format.",
           "requires": [
             "native_field",
-            "dos_comparison"
+            "package_audit"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Current SAVE/LOAD subsystem is partial; complete mutable-world round-trip unavailable."
+            "Native-port save/load round trips and safe persistence have not been implemented across the campaign."
           ]
         },
         {
           "id": "BETA-AV",
-          "name": "All original presentation and sound assets",
-          "pass_when": "All original world surfaces, RES animations, CINE/music/sfx and relevant overlays route through source-authentic render/audio systems without placeholder substitutes.",
+          "name": "Complete authored graphics, audio and animation",
+          "pass_when": "Original authored backgrounds, sky, terrain, architecture, sprites, cutscenes, speech, sound and music render and play across all campaign levels without major missing assets.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original compositing and sound dispatch incomplete."
+            "Rendering, animation and sound still have missing or unaccepted real-game paths."
           ]
         },
         {
           "id": "BETA-ERRORS",
-          "name": "Original option/input/error paths",
-          "pass_when": "All original menu choices, normal setup, in-game options, keyboard/mouse, cancellation and recoverable failures work with unchanged original semantics.",
+          "name": "Robust Windows input, menus and failure paths",
+          "pass_when": "All required game menus and controls work reliably, including load/save, options, resume and quit; bad files and unsupported state yield safe errors instead of data corruption.",
           "requires": [
-            "native_field",
-            "dos_comparison"
+            "native_field"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Unfinished menu options and DOS IRQ input bridge."
+            "Several modal menus, save/load actions and error paths are incomplete or have not been field tested."
           ]
         },
         {
           "id": "BETA-CANDIDATE",
-          "name": "Full Windows Beta candidate and regression",
-          "pass_when": "All reconstructed gameplay/serialization/presentation CTests pass on exact candidate Windows SHA; successful protected-copy all-game field logs and original-media integrity manifest.",
+          "name": "Full Windows Beta build and long-play regression",
+          "pass_when": "The exact-source Windows release candidate passes all required native tests and complete campaign smoke tests, uses original files lawfully and can restart from port-native saves.",
           "requires": [
             "windows_ci",
             "package_audit",
@@ -299,13 +283,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "No complete campaign candidate or full-game regression/field evidence."
+            "No exact-source full-game native Windows Beta build or complete-campaign playback exists."
           ]
         },
         {
           "id": "BETA-TRIAGE",
-          "name": "All material blockers cleared",
-          "pass_when": "No known reproducible blocker prevents original campaign completion or corrupts user saves; residual fidelity mismatches tracked with original evidence and fix priority.",
+          "name": "Campaign-breaking defects resolved",
+          "pass_when": "No known reproducible issue prevents finishing the game or irreversibly corrupts saves; remaining cosmetic and enhancement defects are tracked for final polish.",
           "requires": [
             "native_field",
             "owner_acceptance"
@@ -313,120 +297,119 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Critical campaign-blocking systems and original-DOS mismatches remain."
+            "Campaign-blocking features and known first-level rendering issues remain unresolved."
           ]
         }
       ]
     },
     {
       "id": "final",
-      "label": "Original-game faithful final release",
-      "scope": "The entire shipped DOS game's behavior, authentic data and presentation are accepted in the native executable; no game-facing modernization is incorporated.",
+      "label": "Polished enhanced native PC release",
+      "scope": "A stable, polished, feature-complete Windows PC port with full original authored content and optional modern conveniences, not a DOS re-execution.",
       "gates": [
         {
           "id": "FINAL-STATE",
-          "name": "Gameplay state/rules parity",
-          "pass_when": "Across original campaign and representative edge branches, movement, combat, magic, RNG, AI, scripts and all mutable global state compare equal to original DOS.",
+          "name": "Stable gameplay and coherent rules",
+          "pass_when": "Complete-game testing confirms repeatable party, AI, combat, magic, quest and world state through saves, restarts, transitions and major optional branches.",
           "requires": [
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original full gameplay/state differential acceptance unavailable."
+            "The complete game is not yet implemented, balanced or validated in long-play Windows testing."
           ]
         },
         {
           "id": "FINAL-VIDEO",
-          "name": "Indexed VGA, palette and animation parity",
-          "pass_when": "Original pixels/page masks/overdraw, texture span/occlusion, modal UI, fades, text and cinematic frame/palette chronology match supported DOS capture cases.",
+          "name": "Polished modern rendering and display",
+          "pass_when": "The entire game renders correctly with stable motion, properly layered environments/sprites, readable interface and configurable aspect-correct windowed/fullscreen scaling.",
           "requires": [
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Indexed VGA depth and ES/video selector callbacks still unverified."
+            "The native viewport currently has known visual defects, and modern display options are unfinished."
           ]
         },
         {
           "id": "FINAL-CLOCK",
-          "name": "Original interrupts, inputs and time parity",
-          "pass_when": "Keyboard/mouse event services, port/IRQ/BIOS/PIT timing, animation dwell, RNG call ordering and clock state match original in supported conditions.",
+          "name": "Smooth animation, input and performance",
+          "pass_when": "Cinematics, lady/cat/card animations, world frame rate, controls and combat perform smoothly on supported PCs; no DOS timer/IRQ/VGA refresh imitation is required.",
           "requires": [
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "IRQ/clock/input cross-runtime traces unaccepted."
+            "Native pacing, input responsiveness and representative performance have not been accepted on Windows."
           ]
         },
         {
           "id": "FINAL-AUDIO",
-          "name": "Original music/effects parity",
-          "pass_when": "Original music driver tracks, event effects, trigger ordering, mixing and supported device behavior are accepted against original capture.",
+          "name": "Polished speech, music and sound settings",
+          "pass_when": "Voice, music and sound effects play correctly throughout the game with clean mixing, reliable devices and usable master/music/SFX volume controls.",
           "requires": [
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original audio device/mix/timing equivalence unresolved."
+            "Complete-game audio, device reliability and independent mixer controls are not yet accepted."
           ]
         },
         {
           "id": "FINAL-PERSIST",
-          "name": "Original save/state compatibility",
-          "pass_when": "Create, restore, migrate if explicitly supported, exit and reenter original games preserving format and mutable world flags at all tested points.",
+          "name": "Safe portable PC save and load behavior",
+          "pass_when": "Port-native saves and loads preserve the complete campaign state after restart and version upgrades, resist corrupt files and avoid overwriting original installed games.",
           "requires": [
-            "dos_comparison",
+            "native_field",
+            "package_audit",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Full-world compatible SAVE/LOAD not accepted."
+            "Versioned safe port saves, restoration and corruption handling are incomplete."
           ]
         },
         {
           "id": "FINAL-CONTENT",
-          "name": "All original content and ending branches",
-          "pass_when": "All relevant original levels, endings, scripted event paths, menu/input branches, spells/items and patch-variant scope have complete source/evidence coverage.",
+          "name": "All original authored levels and ending content",
+          "pass_when": "All required world maps, NPCs, creatures, spells, equipment, puzzle logic, story scenes, quests, endings and supporting assets are reachable in the native port.",
           "requires": [
-            "source_oracle",
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original campaign/endings and byte-verified content coverage incomplete."
+            "Full campaign content, secondary branches and ending coverage remain incomplete."
           ]
         },
         {
           "id": "FINAL-ERRORS",
-          "name": "Quirks, edge cases, and absence of unfaithful substitutes",
-          "pass_when": "Known original quirks, relevant errors, odd event sequencing and supported missing-resource behavior are preserved; no invented game behavior or standalone-dev shortcuts.",
+          "name": "Intentional enhancements and robust recovery",
+          "pass_when": "Modern host errors, missing resources and invalid saves are handled without destructive original DOS quirks; remaining gameplay deviations are documented and regressions fixed.",
           "requires": [
-            "source_oracle",
-            "dos_comparison",
+            "native_field",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original errors and side effects not exhaustively accepted."
+            "Safe failure handling and documented intentional gameplay deviations need integrated validation."
           ]
         },
         {
           "id": "FINAL-BUILD",
-          "name": "Reproducible clean final signed-off native build",
-          "pass_when": "A pinned Full Windows clean build, CTests, runtime smoke, source/asset integrity checks, artifact hash, supported install paths and safe save handling pass.",
+          "name": "Stable reproducible enhanced PC build",
+          "pass_when": "The pinned Windows release passes native automated and real-play regression, produces a checked executable/artifact, and works with supported media layouts and hardware.",
           "requires": [
             "windows_ci",
             "package_audit",
@@ -435,13 +418,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Final source candidate and independently audited package do not exist."
+            "No release-quality enhanced native Windows candidate has passed complete build and owner review."
           ]
         },
         {
           "id": "FINAL-DOC",
-          "name": "Release evidence and licensing preservation",
-          "pass_when": "Game assets never embedded in public source/artifact, user-supplied original install supported, licensing/provenance, known version and user instructions verified.",
+          "name": "Safe distribution and accessible player setup",
+          "pass_when": "Player installation and asset-import instructions are clear; user supplies authorized originals; public artifacts exclude unlicensed assets and include controls, options and known limitations.",
           "requires": [
             "package_audit",
             "owner_acceptance"
@@ -449,22 +432,21 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Final owner-media installation and packaging acceptance pending."
+            "Final packaging, original-media setup and usability documentation have not been audited."
           ]
         },
         {
           "id": "FINAL-SIGNOFF",
-          "name": "Complete-game original fidelity owner acceptance",
-          "pass_when": "Owner accepts replayable normal startup-to-ending field and DOS differential report and closes all material original-game fidelity gaps.",
+          "name": "Owner acceptance of finished enhanced PC port",
+          "pass_when": "Owner approves a repeatable native Windows start-to-ending playthrough with functional saves, audio, graphics, controls, modern usability options and no critical defects.",
           "requires": [
             "native_field",
-            "dos_comparison",
             "owner_acceptance"
           ],
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "No complete DOS-vs-native acceptance report/signoff."
+            "The enhanced Windows game is not yet complete or accepted as a release."
           ]
         }
       ]
