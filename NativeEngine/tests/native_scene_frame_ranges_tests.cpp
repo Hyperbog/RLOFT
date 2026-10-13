@@ -153,6 +153,7 @@ void run() {
     assert(evidence.original_entry_sha256.size()==64);
     assert(evidence.original_body_sha256.size()==64);
     assert(evidence.original_entry_sha256!=evidence.original_body_sha256);
+    assert(evidence.x_max<static_cast<int>(evidence.source_width));
     assert(!evidence.live_view_subframe_verified);
     auto wrong_banks=miniature_banks;
     wrong_banks.res3_entries=5;
