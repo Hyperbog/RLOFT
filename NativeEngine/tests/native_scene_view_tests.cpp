@@ -162,6 +162,8 @@ void run() {
     rejects([&] {static_cast<void>(move_native_probe_camera_clearance(
         world,protected_camera,0.2,0.0,0.49));});
 
+    const auto right=native_relative_movement(0.0,0.0,1.0,2.0,0.05);
+    assert(std::abs(right.delta_rows+0.1)<1e-9);
     const auto original_x=camera.column_position;
     assert(!move_native_probe_camera(world,camera,1.1,0.0));
     assert(camera.column_position==original_x); // all-or-nothing blocked
