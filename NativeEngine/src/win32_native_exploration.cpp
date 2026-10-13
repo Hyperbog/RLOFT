@@ -22,7 +22,7 @@
 namespace rloft_native {
 namespace {
 constexpr unsigned kWidth=320;
-constexpr unsigned kHeight=200;
+constexpr unsigned kHeight=400;
 constexpr double kStep=0.18;
 constexpr double kTurn=0.12;
 constexpr double kPi=3.14159265358979323846;
@@ -143,7 +143,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
 
     SetTextColor(dc,RGB(245,189,103));
     RECT warning{20,41,bounds.right-20,68};
-    DrawTextW(dc,L"ORIGINAL RES4 + COLORS / PROVISIONAL HOST CAMERA — NOT DOS FRAME",
+    DrawTextW(dc,L"ORIGINAL EH6 + CODE.2 VGA / PROVISIONAL CAMERA — NOT DOS FRAME",
               -1,&warning,DT_SINGLELINE|DT_END_ELLIPSIS);
 
     const int available_width=std::max(1,int(bounds.right)-40);
