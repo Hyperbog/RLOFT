@@ -12,6 +12,7 @@
 #include "rloft_native/native_raster_colors.hpp"
 #include "rloft_native/native_palette_context.hpp"
 #include "rloft_native/native_win32_exploration.hpp"
+#include "rloft_native/native_win32_gpu_exploration.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -45,6 +46,7 @@ constexpr int kRasterNext = 4207;
 constexpr int kPaletteSelect = 4208;
 constexpr int kTitleCursor = 4209;
 constexpr int kWorldPreview = 4210;
+constexpr int kGpuWorldPreview = 4211;
 
 std::wstring unicode(std::string_view utf8) {
     const auto n=MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
@@ -137,6 +139,7 @@ struct State {
     HWND palette_control{};
     HWND title_cursor_control{};
     HWND world_preview_button{};
+    HWND gpu_world_preview_button{};
     unsigned palette_bank{12};
     bool auto_palette{true};
     bool title_cursor_active{true};
@@ -393,8 +396,10 @@ void layout(State& state) {
     if(!state.window)return;
     RECT r{};GetClientRect(state.window,&r);
     if(state.button) MoveWindow(state.button,24,82,300,34,TRUE);
+    if(state.gpu_world_preview_button)
+        MoveWindow(state.gpu_world_preview_button,343,82,320,34,TRUE);
     if(state.world_preview_button)
-        MoveWindow(state.world_preview_button,343,82,320,34,TRUE);
+        MoveWindow(state.world_preview_button,676,82,248,34,TRUE);
     if(state.report_widget) {
         const int left=24,top=132;
         const int width=std::max(200, int(r.right)-370);
@@ -515,10 +520,16 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
                 24,82,300,34,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kFolderButton)),instance,nullptr);
-            state->world_preview_button=CreateWindowExW(0,L"BUTTON",
-                L"Explore LEVELS.DAT (preview)",
+            state->gpu_world_preview_button=CreateWindowExW(0,L"BUTTON",
+                L"Explore Original World (3D GPU)",
                 WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
                 343,82,320,34,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kGpuWorldPreview)),
+                instance,nullptr);
+            state->world_preview_button=CreateWindowExW(0,L"BUTTON",
+                L"CODE.2 VGA reference view",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                676,82,248,34,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kWorldPreview)),
                 instance,nullptr);
             state->report_widget=CreateWindowExW(WS_EX_CLIENTEDGE,L"EDIT",state->status.c_str(),
@@ -592,6 +603,20 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
         case WM_SIZE:
             layout(*state);InvalidateRect(hwnd,nullptr,TRUE);return 0;
         case WM_COMMAND:
+            if(LOWORD(wparam)==kGpuWorldPreview && HIWORD(wparam)==BN_CLICKED) {
+                if(state->media) {
+                    try {rloft_native::open_native_gpu_world_preview(hwnd,*state->media);}
+                    catch(const std::exception& error) {
+                        MessageBoxW(hwnd,unicode(error.what()).c_str(),
+                            L"Accelerated original-world viewport unavailable",
+                            MB_OK|MB_ICONWARNING);
+                    }
+                } else {
+                    MessageBoxW(hwnd,L"Open your owned original game installation first.",
+                        L"No original installation loaded",MB_OK|MB_ICONINFORMATION);
+                }
+                return 0;
+            }
             if(LOWORD(wparam)==kWorldPreview && HIWORD(wparam)==BN_CLICKED) {
                 if(state->media) {
                     try {
