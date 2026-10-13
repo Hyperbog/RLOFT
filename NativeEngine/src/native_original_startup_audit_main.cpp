@@ -1,0 +1,81 @@
+#include "rloft_native/native_media.hpp"
+#include "rloft_native/native_startup_visuals.hpp"
+#include "rloft/startup_presenter.hpp"
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <stdexcept>
+#include <vector>
+namespace {
+std::uint64_t checksum(const std::vector<std::uint8_t>& pixels) {
+    std::uint64_t hash=14695981039346656037ULL;
+    for(const auto b:pixels) {
+        hash^=b;
+        hash*=1099511628211ULL;
+    }
+    return hash;
+}
+}
+int main(int argc,char** argv) {
+    if(argc!=2) {
+        std::cerr<<"usage: rloft_native_startup_audit <original-media-dir-or-iso>\n";
+        return 2;
+    }
+    try {
+        const auto media=rloft_native::NativeMedia::open(argv[1]);
+        rloft_native::NativeStartupVisualSource visuals(media);
+        rloft::StartupPresenter scene(visuals);
+        unsigned source_frames=0U;
+        std::array<std::uint64_t,4> logo_hashes{};
+        scene.first_logo();
+        logo_hashes[0]=checksum(scene.framebuffer().pixels());
+        scene.second_logo();
+        logo_hashes[1]=checksum(scene.framebuffer().pixels());
+        scene.third_logo();
+        logo_hashes[2]=checksum(scene.framebuffer().pixels());
+        scene.title_background();
+        logo_hashes[3]=checksum(scene.framebuffer().pixels());
+        for(int index=1;index<=14;++index) {
+            scene.menu_animation_frame(index);
+            if(scene.framebuffer().pixels().size()!=320U*400U)
+                throw std::runtime_error("original menu animation is not 320x400 indexed");
+            ++source_frames;
+        }
+        for(int option=0;option<4;++option) {
+            scene.menu_frame(option);
+            if(scene.framebuffer().pixels().size()!=320U*400U)
+                throw std::runtime_error("original menu composition not 320x400");
+            ++source_frames;
+        }
+        // An original source RES0 record ID must decode through NativeMedia
+        // and a second independent INDEXED presenter, not a fabricated image.
+        for(int id=94;id<=105;++id) {
+            const auto raster=visuals.res0_type1(id);
+            if(raster.count<=0||raster.width<=0||raster.height<=0||
+               raster.pixels.empty())
+                throw std::runtime_error("original RES0 source ID is not displayable");
+        }
+        for(const auto bank:{9,12,14}) {
+            const auto palette=visuals.colors_palette(bank);
+            for(const auto channel:palette.rgb) {
+                if(channel>63)
+                    throw std::runtime_error("original startup DAC6 palette channel outside range");
+            }
+        }
+        std::cout<<"{\"schema\":\"native-source-startup-v1\","
+                 <<"\"original_res0_images_verified\":12,"
+                 <<"\"menu_animation_and_selection_frames\":"<<source_frames<<","
+                 <<"\"indexed_width\":320,\"indexed_height\":400,"
+                 <<"\"logo_hashes\":[";
+        for(unsigned i=0;i<logo_hashes.size();++i) {
+            if(i)std::cout<<',';
+            std::cout<<logo_hashes[i];
+        }
+        std::cout<<"],\"writes_to_original\":0,"
+                 <<"\"dos_frame_parity_claim\":false}\n";
+        return 0;
+    }catch(const std::exception& error) {
+        std::cerr<<"original startup audit FAILED: "<<error.what()<<'\n';
+        return 1;
+    }
+}
