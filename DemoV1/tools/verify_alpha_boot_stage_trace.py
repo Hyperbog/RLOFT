@@ -32,6 +32,32 @@ def contract(host:str,ps:str,cmake:str,readme:str)->None:
            "stage trace not closed before gameplay")
     expect(host.count('startup_handoff();')==3,
            "preview, existing-party and new-party startup missing handoff")
+    # The boot pointer closes before run_exploration. Its own session
+    # must exist BEFORE load_fresh/initialize_gameplay_state so a failure
+    # there leaves an identifiable, source-pinned ZIP, not a false
+    # completed-gameplay inference. This observes stages, not DOS fidelity.
+    first=host.index('int run_exploration(')
+    entry=host.index('int run_exploration(',first+1)
+    boundary=host.index('int run(HINSTANCE instance)',entry)
+    exploration=host[entry:boundary]
+    start=exploration.index('trace=std::make_unique<rloft::DevSessionTrace>(')
+    load=exploration.index('rloft::ExplorationRuntime::load_fresh(')
+    world=exploration.index('runtime.initialize_gameplay_state(')
+    audit=exploration.index('presenter.framebuffer().set_draw_audit(')
+    expect(start<load<world<audit,
+           "exploration trace still starts after first-level initialization")
+    expect('if(dev_trace) {' in exploration[:start] and
+           'host.set_session_trace(trace.get());' in exploration[:load] and
+           'trace->event("exploration.load.begin");' in exploration[:load],
+           "initial load failure cannot leave a source-pinned trace")
+    for stage in ('exploration.load.failed','exploration.load.ready',
+                  'exploration.world.failed','exploration.world.ready'):
+        expect('exploration_stage("'+stage+'")' in exploration,
+               "missing source-safe exploration checkpoint "+stage)
+    expect('~ExplorationTraceEarlyDetach() {host.set_session_trace(nullptr);}' in exploration,
+           "early exploration exception can leave stale host trace pointer")
+    expect('if(trace) {\n        presenter.framebuffer().set_draw_audit(' in exploration,
+           "optional framebuffer instrumentation lost its opt-in guard")
     for stage in (
         'boot.host.ready','boot.cine00.begin','boot.cine00.result',
         'boot.cine12.begin','boot.cine12.result',
@@ -87,6 +113,12 @@ def main()->int:
             host.replace('startup_handoff();','/* no trace transfer */',1),
             host.replace('std::ofstream latest(root/"latest-boot-session.txt"',
                          'std::ofstream latest(root/"latest-session.txt"',1),
+            host.replace('trace->event("exploration.load.begin");',
+                         '/*no early load checkpoint*/',1),
+            host.replace('exploration_stage("exploration.load.failed");',
+                         '/*no load exception boundary*/',1),
+            host.replace('exploration_stage("exploration.world.ready");',
+                         '/*no world-ready boundary*/',1),
         ]
         for i,bad in enumerate(bads,1):
             expect(bad!=host,f"negative mutation {i} missing")
@@ -97,7 +129,7 @@ def main()->int:
             raise ValueError(f"negative mutation {i} undetected")
     except (OSError,ValueError) as e:
         p.exit(1,"ALPHA_BOOT_TRACE_REJECTED: "+str(e)+"\n")
-    print("ALPHA_BOOT_TRACE_SOURCE_PASS: four absent-stage variants rejected")
+    print("ALPHA_BOOT_TRACE_SOURCE_PASS: seven absent-stage variants rejected")
     return 0
 
 if __name__=="__main__":
