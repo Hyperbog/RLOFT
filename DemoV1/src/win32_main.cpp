@@ -1081,6 +1081,9 @@ int run_exploration(
     rloft::PartyModalPresenter party_modal_presenter(assets);
     rloft::QuitConfirmPresenter quit_presenter(assets);
     exploration_stage("exploration.presenters.ready");
+    // Stage-only reporting on the very first actual gameplay viewport.
+    // Rendering, original IRQ ticks and mutable world state are unchanged.
+    bool first_scene_submitted = false;
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
@@ -2170,10 +2173,16 @@ int run_exploration(
                 motion_inputs);
         }
 
+        if (!first_scene_submitted) {
+            exploration_stage("exploration.frame.build.begin");
+        }
         auto frame = [&]() {
             try {
                 return runtime.build_frame();
             } catch (const std::exception& exc) {
+                if (!first_scene_submitted) {
+                    exploration_stage("exploration.frame.build.failed");
+                }
                 // The ordinary frame_0001..0016 cap is not a fatal-log
                 // cap. Preserve the ACTUAL failing camera and native
                 // error even if the last captured successful pose was
@@ -2199,10 +2208,16 @@ int run_exploration(
                 throw; // Never hide original unknown sweep behavior.
             }
         }();
+        if (!first_scene_submitted) {
+            exploration_stage("exploration.frame.build.ready");
+        }
         const auto presented = [&]() {
             try {
                 return presenter.present(frame,runtime.renderer_tables());
             }catch(const std::exception& exc) {
+                if (!first_scene_submitted) {
+                    exploration_stage("exploration.frame.raster.failed");
+                }
                 if(trace) {
                     try {trace->error("present_viewport",exc.what());}
                     catch(...) {}
@@ -2210,6 +2225,9 @@ int run_exploration(
                 throw;
             }
         }();
+        if (!first_scene_submitted) {
+            exploration_stage("exploration.frame.raster.ready");
+        }
 
         if (capture_render && !capture_failure.has_value() &&
             capture_count < capture_limit) {
@@ -2251,6 +2269,12 @@ int run_exploration(
 
         present_traced(presenter.framebuffer(),presented.palette,
             hovered_menu>=0 ? "top_edge_menu" : "viewport");
+        if (!first_scene_submitted) {
+            // Only means that the native framebuffer reached the host.
+            // It is NOT player-visible verification or DOS pixel parity.
+            exploration_stage("exploration.frame.present.submitted");
+            first_scene_submitted = true;
+        }
         if (exploration_preview) {
             // Explicitly native-only diagnostic HUD in the window
             // caption; the original 320x400 indexed framebuffer stays
