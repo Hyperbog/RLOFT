@@ -1,6 +1,7 @@
 #include "rloft_native/native_startup_visuals.hpp"
 #include "rloft_native/native_media.hpp"
 #include "rloft/startup_presenter.hpp"
+#include "rloft/character_creation_presenter.hpp"
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -100,6 +101,18 @@ int main() {
         assert(presenter.framebuffer().pixels().at(7U*320U+85U)==98U);
         presenter.menu_frame(2);
         assert(presenter.framebuffer().pixels().at(302U*320U+39U)==104U);
+        // Same shared CODE.1 presenter linked by DemoV1 and NativeEngine:
+        // synthetic original-format RES7 records are sufficient to verify
+        // the complete 70-step indexed opening without proprietary assets.
+        rloft::CharacterCreationPresenter character(images);
+        character.opening_frame(0);
+        assert(character.framebuffer().pixels().size()==320U*400U);
+        character.opening_frame(69);
+        assert(character.framebuffer().pixels().size()==320U*400U);
+        bool bad_frame=false;
+        try{character.opening_frame(70);}
+        catch(const std::out_of_range&){bad_frame=true;}
+        assert(bad_frame);
         assert(fs::file_size(root/"RES0")==before);
         bool rejected=false;
         try{static_cast<void>(images.res0_type1(106));}
