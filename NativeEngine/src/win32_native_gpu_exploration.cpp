@@ -382,12 +382,13 @@ struct State {
         glVertex2i(std::min(width,1200),height);glVertex2i(0,height);
         glEnd();
         glDisable(GL_BLEND);
-        const auto mode=render_target.preset_name(resolution_index);
+        constexpr const char* modes[]{"Native","HD 720p","Full HD 1080p","QHD 1440p","4K UHD"};
+        const auto* mode=modes[resolution_index];
         const std::string resolution=std::to_string(render_target.width())+"x"+
                                      std::to_string(render_target.height());
         line(12,height-box_height+22,
             "RAVENLOFT 3D GPU | Level "+std::to_string(level)+
-            " | "+resolution+" internal | AA "+
+            " | "+std::string(mode)+" "+resolution+" internal | AA "+
             std::to_string(render_target.actual_samples())+"x"+
             (mouse_look?" | Mouse look":" | Q/E keyboard")+
             (blocked?" | BLOCKED":"")+(noclip?" | NOCLIP":""));
@@ -543,7 +544,9 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 throw std::runtime_error("GPU frame timer unavailable");
             title(hwnd,*s);
             return 0;
-        } catch(const std::exception&) {
+        } catch(const std::exception& error) {
+            MessageBoxA(hwnd,error.what(),
+                "GPU initialization failure",MB_OK|MB_ICONERROR);
             s->release_graphics();
             return -1;
         }
@@ -598,6 +601,8 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                     MessageBoxA(hwnd,error.what(),
                         "MSAA unavailable on this GPU",MB_OK|MB_ICONINFORMATION);
                 }
+            } else if(wp==VK_F12 && !(lp&(1L<<30))) {
+                s->save_screenshot();
             } else if(wp==VK_F8 && !(lp&(1L<<30))) {
                 s->map_panel_size=s->map_panel_size==150U?210U:
                                   s->map_panel_size==210U?300U:150U;
@@ -643,9 +648,9 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 if(s->mouse_look)mouse_mode(hwnd,*s,false);
                 else DestroyWindow(hwnd);
             }
-        } catch(const std::exception&) {
-            MessageBoxW(hwnd,L"Unable to change original world scene",
-                        L"GPU preview",MB_OK|MB_ICONWARNING);
+        } catch(const std::exception& error) {
+            MessageBoxA(hwnd,error.what(),
+                "GPU control/original resource failure",MB_OK|MB_ICONWARNING);
         }
         return 0;
     case WM_TIMER:
@@ -660,12 +665,12 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 // Never force an extra WM_PAINT for every 16-ms tick.
                 if((now/500U)!=((now-static_cast<ULONGLONG>(dt*1000))/500U))
                     title(hwnd,*s);
-            } catch(const std::exception&) {
+            } catch(const std::exception& error) {
                 KillTimer(hwnd,kTimer);
                 if(s->mouse_look)mouse_mode(hwnd,*s,false);
-                MessageBoxW(hwnd,L"An original asset or GPU viewport call failed. "
-                    L"The original game files were not modified.",
-                    L"GPU preview",MB_OK|MB_ICONWARNING);
+                OutputDebugStringA(error.what());
+                MessageBoxA(hwnd,error.what(),
+                    "GPU runtime error (source game unchanged)",MB_OK|MB_ICONERROR);
             }
             return 0;
         }
@@ -674,7 +679,11 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         PAINTSTRUCT ps{};
         BeginPaint(hwnd,&ps);
         try{s->paint();}
-        catch(const std::exception&) {}
+        catch(const std::exception& error) {
+            KillTimer(hwnd,kTimer);
+            OutputDebugStringA(error.what());
+            MessageBoxA(hwnd,error.what(),"GPU paint failure",MB_OK|MB_ICONERROR);
+        }
         EndPaint(hwnd,&ps);
         return 0;
     }
