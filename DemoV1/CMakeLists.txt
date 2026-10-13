@@ -224,9 +224,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/StartupPresentation"
 add_library(rloft_boot_flow
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
-    src/character_creation_presenter.cpp
-    src/character_palette_remap.cpp
-    src/character_stats.cpp
     src/character_sheet.cpp
     src/character_modal_stats.cpp
     src/character_transfer.cpp
