@@ -121,6 +121,9 @@ jobs:
               $report.original_first_level_live_eh7_frames_verified) {
             throw "Original Level22 EH7 source bases not decoded or live-frame claim invalid"
           }
+          if (-not $report.original_first_level_assassin_res3_315_base_verified) {
+            throw "Original Level22 Assassin NPC9 RES3:315 EH7 shape has not been source-verified"
+          }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
           }
