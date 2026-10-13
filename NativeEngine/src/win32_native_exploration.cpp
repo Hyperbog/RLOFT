@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -44,6 +45,9 @@ struct Preview {
     bool mouse_look{};
     bool show_full_frame{};
     bool smooth_filter{};
+    bool show_automap{};
+    unsigned automap_zoom{6U};
+    std::map<unsigned,std::vector<std::uint8_t>> revealed;
     ULONGLONG previous_tick_ms{};
 
     explicit Preview(NativeWorldPayload original,const NativeMedia& media)
@@ -92,6 +96,7 @@ struct Preview {
         // currently displayed level; bad source files fail closed.
         const auto view=trace_native_probe_view(world,candidate,kRayWidth,256);
         const auto textured=source_textures->render(world,view,kWidth,kHeight);
+        note_visibility(view);
         std::vector<std::uint8_t> staged=textured.bgra;
         world.select_level(level);
         camera=candidate;
@@ -102,9 +107,27 @@ struct Preview {
         last_step_blocked=false;
     }
 
+    void note_visibility(const NativeProbeView& view) {
+        // v0.7-style session discovery, but reuses the already traced
+        // native original-cell rays: no second expensive 192-ray scan.
+        const auto& map=world.original().level(view.camera.level);
+        auto& cells=revealed[view.camera.level];
+        if(cells.size()!=std::size_t(map.width)*map.height)
+            cells.assign(std::size_t(map.width)*map.height,0U);
+        const auto mark=[&](unsigned x,unsigned y) {
+            if(x<map.width && y<map.height)
+                cells[std::size_t(y)*map.width+x]=1U;
+        };
+        mark(unsigned(view.camera.column_position),
+             unsigned(view.camera.row_position));
+        for(const auto& ray:view.columns)
+            for(const auto& pos:ray.reached)
+                mark(pos.first,pos.second);
+    }
     void redraw() {
         const auto view=trace_native_probe_view(world,camera,kRayWidth,256);
         const auto textured=source_textures->render(world,view,kWidth,kHeight);
+        note_visibility(view);
         pixels_bgra=textured.bgra;
         last_source_texels=textured.original_texel_samples;
         wall_hits=view.rays_that_hit;
@@ -150,6 +173,7 @@ std::wstring label(const Preview& state) {
            std::to_wstring(state.last_source_texels) +
            (state.mouse_look?L"  |  MOUSE LOOK ON":L"  |  KEYBOARD LOOK") +
            (state.show_full_frame?L"  |  FULL DOS FRAME":L"  |  VIEW ONLY") +
+           (state.show_automap?L"  |  AUTOMAP ON":L"") +
            (state.last_step_blocked?L"  |  BLOCKED":L"");
 }
 
@@ -212,6 +236,62 @@ void paint(HWND window,const Preview& state,HDC dc) {
         StretchDIBits(dc,left,top,w,h,0,0,source_w,source_h,
                       cropped.data(),&info,DIB_RGB_COLORS,SRCCOPY);
     }
+    if(state.show_automap) {
+        // Read-only native exploration overlay inspired by v0.7.
+        // Grid positions are exact original LEVELS.DAT cells, while
+        // revealed cells are session-only HOST camera visibility.
+        const auto& map=state.world.original().level(state.camera.level);
+        const auto found=state.revealed.find(state.camera.level);
+        const int size=178;
+        const int margin=10;
+        const int mx=std::max(0,int(bounds.right)-size-margin);
+        const int my=84;
+        const RECT backing{mx,my,mx+size,my+size};
+        HBRUSH bg=CreateSolidBrush(RGB(15,21,30));
+        HBRUSH wall=CreateSolidBrush(RGB(140,146,156));
+        HBRUSH empty=CreateSolidBrush(RGB(52,68,72));
+        HBRUSH player=CreateSolidBrush(RGB(248,201,76));
+        FillRect(dc,&backing,bg);
+        const int z=int(state.automap_zoom);
+        const int cx=int(state.camera.column_position);
+        const int cy=int(state.camera.row_position);
+        const int tile_offset=size/2;
+        if(found!=state.revealed.end()) {
+            for(int gy=std::max(0,cy-size/(2*z)-1);
+                gy<std::min(int(map.height),cy+size/(2*z)+2);++gy) {
+                for(int gx=std::max(0,cx-size/(2*z)-1);
+                    gx<std::min(int(map.width),cx+size/(2*z)+2);++gx) {
+                    if(!found->second[std::size_t(gy)*map.width+gx])
+                        continue;
+                    const int px=mx+tile_offset+(gx-cx)*z;
+                    const int py=my+tile_offset+(gy-cy)*z;
+                    RECT r{std::max(mx,px),std::max(my,py),
+                           std::min(mx+size,px+z),std::min(my+size,py+z)};
+                    if(r.right<=r.left||r.bottom<=r.top)continue;
+                    FillRect(dc,&r,
+                        state.world.normal_collision(state.camera.level,
+                            unsigned(gx),unsigned(gy))==
+                            NativeCollision::Passable?empty:wall);
+                }
+            }
+        }
+        RECT marker{mx+tile_offset-3,my+tile_offset-3,
+                    mx+tile_offset+4,my+tile_offset+4};
+        FillRect(dc,&marker,player);
+        HPEN heading=CreatePen(PS_SOLID,2,RGB(251,209,72));
+        const auto previous=SelectObject(dc,heading);
+        MoveToEx(dc,mx+tile_offset,my+tile_offset,nullptr);
+        LineTo(dc,mx+tile_offset+int(12*std::cos(state.camera.heading_radians)),
+                my+tile_offset+int(12*std::sin(state.camera.heading_radians)));
+        SelectObject(dc,previous);
+        DeleteObject(heading);
+        SetTextColor(dc,RGB(240,227,191));
+        RECT map_label{mx+6,my+4,mx+size-6,my+22};
+        DrawTextW(dc,L"EXPLORATION MAP  [+ / -]",-1,&map_label,
+                  DT_SINGLELINE|DT_END_ELLIPSIS);
+        DeleteObject(bg);DeleteObject(wall);
+        DeleteObject(empty);DeleteObject(player);
+    }
     SetTextColor(dc,RGB(219,229,239));
     const auto info=label(state);
     RECT status{20,bounds.bottom-92,bounds.right-20,bounds.bottom-65};
@@ -220,7 +300,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
     RECT controls{20,bounds.bottom-65,bounds.right-20,bounds.bottom-12};
     DrawTextW(dc,
       L"W/S = forward/back    A/D = strafe    Q/E = turn left/right\n"
-      L"M/right-click = mouse-look   V = viewport/full frame   N = filtering\n"
+      L"M/right-click = look  Tab = automap  +/- = map zoom  N = filter\n"
       L"R = respawn    Esc = close    Original media read-only.",
       -1,&controls,DT_WORDBREAK);
 }
@@ -383,6 +463,11 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 state->choose_level((state->camera.level+31U)%32U);break;
             case 'V':state->show_full_frame=!state->show_full_frame;break;
             case 'N':state->smooth_filter=!state->smooth_filter;break;
+            case VK_TAB:state->show_automap=!state->show_automap;break;
+            case VK_OEM_PLUS:case VK_ADD:
+                state->automap_zoom=std::min(16U,state->automap_zoom+1U);break;
+            case VK_OEM_MINUS:case VK_SUBTRACT:
+                state->automap_zoom=std::max(2U,state->automap_zoom-1U);break;
             case 'R':state->choose_level(state->camera.level);break;
             case VK_ESCAPE:DestroyWindow(hwnd);return 0;
             default:consumed=false;break;
