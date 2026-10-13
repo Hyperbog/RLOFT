@@ -16,7 +16,7 @@ This is a missing *diagnostic* boundary. It is not evidence that any of those co
 - The new symbolic, privacy-safe stage IDs are `exploration.load.begin`, `exploration.load.ready`, `exploration.load.failed`, `exploration.world.ready`, `exploration.world.failed`, and `exploration.presenters.ready`. The `failed` stages rethrow the original exception without copying exception strings, user names, game data or absolute paths into the event.
 - A pre-load host-pointer RAII guard clears the optional session pointer if an exception occurs before presenters exist. Once created, the existing presenter/framebuffer teardown retains its own draw-audit detach.
 - A trace-event write failure clears optional session instrumentation instead of blocking original program flow. Without `--dev-trace`, no trace file is created and all original world loading, initialization order, presentation, and mutable character/game state paths remain in place.
-- The existing `alpha_boot_stage_trace_contract_tests` now asserts pre-load trace placement, all six stage IDs, opt-in instrumentation, source order, pointer cleanup, and three additional deliberate negative mutations (seven total). This is **source-only** coverage.
+- The existing `alpha_boot_stage_trace_contract_tests` now asserts pre-load trace placement, all six stage IDs, opt-in instrumentation, source order, pointer cleanup, and six additional deliberate negative mutations (ten total). This is **source-only** coverage.
 
 ## First actual frame construction and submission
 
