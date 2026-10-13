@@ -187,4 +187,37 @@ native_marked_scene_instance_candidates(
     }
     return visible;
 }
+std::vector<NativeAuthoredSceneInstance>
+native_explored_scene_instance_candidates(
+    const NativeWorldRuntime& runtime,
+    const NativeAuthoredSceneDirectory& directory,
+    unsigned level,const std::vector<std::uint8_t>& discovered,
+    std::size_t limit) {
+    require(level<32U && directory.levels.size()==32U &&
+            runtime.original().levels.size()==32U,
+            "explored authored scene original level scope mismatch");
+    require(directory.original_compact_families_sha256==
+            compact_original_sha(runtime.original()),
+            "explored authored scene belongs to a different original world");
+    require(limit<=32768U,
+            "explored authored scene candidate list limit too large");
+    const auto& map=runtime.original().level(level);
+    require(discovered.size()==std::size_t(map.width)*map.height,
+            "discovered scene mask disagrees with original grid");
+    std::vector<NativeAuthoredSceneInstance> result;
+    result.reserve(std::min(limit,directory.levels[level].size()));
+    for(const auto& item:directory.levels[level]) {
+        require(item.level==level && item.cell_column<map.width &&
+                item.cell_row<map.height,
+                "authored scene source coordinate outside original map");
+        const auto index=std::size_t(item.cell_row)*map.width+
+                         item.cell_column;
+        if(discovered.at(index)==0U)continue;
+        require(result.size()<limit,
+                "discovered authored scene candidates exceed caller budget");
+        result.push_back(item);
+    }
+    return result;
+}
+
 } // namespace rloft_native
