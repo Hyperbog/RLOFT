@@ -109,6 +109,20 @@ int main(int argc,char** argv) {
         const auto placements=rloft_native::derive_native_authored_scene_instances(
             world.original(),definitions);
         const auto& initial=placements.levels.at(22U);
+        // Preserve the source NPC's exact 16.16 pose rather than treating
+        // the one Level22 NPC as a made-up actor at the party start.
+        const auto& original_npc=initial.at(0U);
+        if(original_npc.source_class!=0U ||
+           original_npc.original_type_id!=9U ||
+           original_npc.cell_column!=13U ||
+           original_npc.cell_row!=7U ||
+           original_npc.x_position_16_16!=
+               static_cast<std::int32_t>(13U*65536U+31744U) ||
+           original_npc.y_position_16_16!=
+               static_cast<std::int32_t>(7U*65536U+30720U) ||
+           original_npc.compact_facing_0_to_7!=2U)
+            throw std::runtime_error(
+                "original Level22 NPC9 authored pose does not match source");
         if(initial.size()!=111U || first.families[0].size()!=1U ||
            first.families[1].size()!=110U ||
            !first.families[2].empty())
@@ -175,6 +189,7 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_family_records\":[1,110,0],"
                  <<"\"original_first_level_authored_scene_instances\":111,"
                  <<"\"original_first_level_source_type_counts\":[1,52,42,16],"
+                 <<"\"original_first_level_npc9_original_pose_verified\":true,"
                  <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
