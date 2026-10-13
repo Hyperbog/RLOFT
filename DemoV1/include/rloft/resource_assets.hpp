@@ -12,11 +12,6 @@
 
 namespace rloft {
 
-struct Type2Font {
-    std::array<std::uint8_t, 128> widths{};
-    Type1Raster raster;
-};
-
 struct Type7Geometry {
     std::uint16_t source_width{};
     std::int16_t x_min{};
@@ -107,14 +102,14 @@ public:
     [[nodiscard]] const GameSource& source() const noexcept { return source_; }
     [[nodiscard]] Type1Raster type1(int archive, int index) const;
     [[nodiscard]] Type1Raster res0_type1(int index) const override;
-    [[nodiscard]] Type2Font res0_font(int index) const;
+    [[nodiscard]] Type2Font res0_font(int index) const override;
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> res3_type7_body(int index) const;
     [[nodiscard]] Type7NativeRaster res3_type7_native_raster(int index) const;
-    [[nodiscard]] std::string text(int index) const;
+    [[nodiscard]] std::string text(int index) const override;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
     [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
     [[nodiscard]] std::uint8_t code1_u8(std::size_t dgroup_offset) const;
