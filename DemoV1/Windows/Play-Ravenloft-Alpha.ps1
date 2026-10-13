@@ -55,8 +55,11 @@ $nested = Join-Path $original 'RLOFT'
 $hasNestedMedia = (Test-Path -LiteralPath (Join-Path $nested 'RES0') -PathType Leaf) -and
     (Test-Path -LiteralPath (Join-Path $nested 'INIT') -PathType Leaf) -and
     (Test-Path -LiteralPath (Join-Path $nested 'T') -PathType Leaf)
-if (-not $hasRootMedia -and -not $hasNestedMedia) {
-    Fail-ContinuousAlpha 'Original RES0, INIT and T must be inside Game or Game\RLOFT.'
+$hasGogRoot = Test-Path -LiteralPath (Join-Path $original 'game.gog') -PathType Leaf
+$hasGogNested = Test-Path -LiteralPath (Join-Path $nested 'game.gog') -PathType Leaf
+if (-not $hasRootMedia -and -not $hasNestedMedia -and
+    -not $hasGogRoot -and -not $hasGogNested) {
+    Fail-ContinuousAlpha 'Original loose RES0/INIT/T or game.gog must be inside Game or Game\RLOFT.'
 }
 $links = @(Get-ChildItem -LiteralPath $original -Force -Recurse -Attributes ReparsePoint -ErrorAction Stop | Select-Object -First 1)
 if ($links.Count -ne 0) {
@@ -91,7 +94,14 @@ foreach ($entry in $chars) {
 Write-Host ('Native build source: ' + $sourceSha.Substring(0,12))
 Write-Host 'Launching original intro, logos, title, character creation, then Level 22.'
 # No --front-end-only, --explore-level22, --dev-trace or other dev flags.
-$arguments = '"' + $scratch + '"'
+# Loose media in Game\RLOFT must use THAT actual directory:
+# GameSource::open() accepts loose media at the passed path only.
+# It can discover nested game.gog images automatically.
+$launchMediaRoot = $scratch
+if (-not $hasRootMedia -and $hasNestedMedia) {
+    $launchMediaRoot = Join-Path $scratch 'RLOFT'
+}
+$arguments = '"' + $launchMediaRoot + '"'
 $process = Start-Process -FilePath $engine -ArgumentList $arguments -WorkingDirectory $package -Wait -PassThru
 Write-Host ('Native exit code: ' + [string]$process.ExitCode)
 Write-Host ('Temporary created-party data is at: ' + $scratch)
