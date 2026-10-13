@@ -26,6 +26,7 @@ int main(int argc,char** argv) {
         NativeProbeOriginalTextures materials(media);
         std::vector<std::uint8_t> frames;
         unsigned hit_rays=0,texels=0,nonempty_levels=0;
+        unsigned floors=0,ceilings=0;
         for(unsigned level=0;level<32;++level) {
             const auto& map=world.original().level(level);
             bool found=false;
@@ -50,7 +51,17 @@ int main(int argc,char** argv) {
             camera.column_position=double(selected_x)+0.5;
             camera.row_position=double(selected_y)+0.5;
             camera.heading_radians=-3.14159265358979323846/2.0;
-            camera.field_of_view_radians=3.14159265358979323846/3.0;
+            camera.field_of_view_radians=3.14159265358979323846/2.0;
+            if(level==0U) {
+                auto pitch=camera;
+                pitch.pitch_radians=0.20;
+                const auto shifted_pitch=trace_native_probe_view(world,pitch,256U,256U);
+                const auto pitched=materials.render(world,shifted_pitch,320U,400U);
+                const auto flat=trace_native_probe_view(world,camera,256U,256U);
+                const auto level_frame=materials.render(world,flat,320U,400U);
+                if(pitched.bgra==level_frame.bgra)
+                    throw std::runtime_error("mouse pitch does not affect source-backed image");
+            }
             const auto view=trace_native_probe_view(world,camera,256U,256U);
             const auto frame=materials.render(world,view,320U,400U);
             if(!frame.original_code2_sampler_used ||
@@ -62,6 +73,8 @@ int main(int argc,char** argv) {
             frames.insert(frames.end(),frame.bgra.begin(),frame.bgra.end());
             hit_rays+=frame.wall_columns;
             texels+=frame.original_texel_samples;
+            floors+=frame.preview_floor_texels;
+            ceilings+=frame.preview_ceiling_texels;
             nonempty_levels+=frame.wall_columns>0U;
             // Verify the *native* camera input bridge on real source data:
             // changing direction must produce a valid second source frame.
@@ -82,7 +95,7 @@ int main(int argc,char** argv) {
                 throw std::runtime_error("native preview movement changed frame shape");
         }
         if(nonempty_levels!=32 || hit_rays==0 || texels==0 ||
-           materials.cache_size()==0)
+           materials.cache_size()==0 || floors==0 || ceilings==0)
             throw std::runtime_error("original source preview emitted no authentic walls");
         std::cout<<"{\"schema\":\"native-real-original-interactive-preview-v1\","
                  <<"\"levels_loaded\":32,"
@@ -90,6 +103,8 @@ int main(int argc,char** argv) {
                  <<"\"original_res4_wall_columns\":"<<hit_rays<<","
                  <<"\"original_res4_texel_samples\":"<<texels<<","
                  <<"\"unique_eh6_textures_decoded\":"<<materials.cache_size()<<","
+                 <<"\"source_floor_preview_texels\":"<<floors<<","
+                 <<"\"source_ceiling_preview_texels\":"<<ceilings<<","
                  <<"\"frames_rgb6_bgra_sha256\":\""<<native_sha256_hex(frames)<<"\","
                  <<"\"source_media_read_only\":true,"
                  <<"\"original_camera_parity_verified\":false,"
