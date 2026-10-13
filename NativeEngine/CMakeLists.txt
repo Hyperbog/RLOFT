@@ -149,7 +149,8 @@ if(WIN32)
   add_executable(rloft_native WIN32
     src/win32_native_assets.cpp
     src/win32_native_exploration.cpp
-    src/win32_native_gpu_exploration.cpp)
+    src/win32_native_gpu_exploration.cpp
+    src/native_win32_gl_target.cpp)
   target_link_libraries(rloft_native PRIVATE
     rloft_native_assets User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
   target_compile_definitions(rloft_native PRIVATE UNICODE _UNICODE
