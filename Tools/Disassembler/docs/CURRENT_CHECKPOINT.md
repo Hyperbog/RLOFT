@@ -1,5 +1,53 @@
 # DOSDis — compact current checkpoint
 
+## RELEASE BLOCKER — actual CODE.1/CODE.2 open crash, Windows #65 mitigation
+
+- Owner reports the #60 DOSDis app **crashed on opening
+  original CODE.1 and CODE.2**. This overrides prior
+  synthetic-LE acceptance for real original file opening;
+  the original CODE.1 benchmark has NOT been measured.
+- Confirmed owner-supplied original SHA/byte identities in
+  private local examination. Both source files have a single
+  nested MZ-bound LE header at original file `0x27BDC`,
+  two LE objects and internally consistent page/fixup
+  table geometry; independent bounded local fixup read
+  finished **2,617** CODE.1 and **9,813** CODE.2
+  records. Exact WPF crash exception/root cause
+  **NOT YET ESTABLISHED**.
+- New WPF source-open guard disables stale DataGrid and
+  function/reference selection while binding a different
+  original, preventing previous-file rows from using
+  the new LE address map. Recoverable selection errors
+  stay inside the read-only viewer, with local incident
+  evidence. File opening now records private, path-free
+  mapping/preview/presentation stage markers.
+- Synthetic original-free large-LE opener fixture uses
+  both container geometries and realistic fixup counts,
+  then checks LE loader, File Intelligence, original-free
+  x86-32 preview and physical hex mapping.
+- Automatic [Windows #65](https://github.com/Hyperbog/RLOFT/actions/runs/38344030692)
+  **PASS**, compiled source/test SHA
+  `6deb51cb3a1c7a3b8acc4068e1b6ad1d3587627d`.
+  Windows builds 0 errors/warnings; synthetic large-LE
+  smoke and SQLite project smoke pass. Single desktop
+  ZIP artifact `11788226495`, 66,931,981 bytes,
+  ZIP SHA256
+  `325d1d7dcfe3ba7c9ccf5b23e0ebf32792ee145bddc33c5a9433ce70aa699be4`.
+  [Download #65](https://github.com/Hyperbog/RLOFT/actions/runs/38344030692/artifacts/11788226495).
+  No original game bytes or CLI packaged in public CI.
+- **PENDING / NEXT:** Owner reopens exact original CODE.1
+  and CODE.2 with #65; if either still fails, share
+  newest private incident JSON at
+  `%LOCALAPPDATA%\\DOSDis\\Incidents\\incident-*.json`
+  or Windows crash banner/Event Viewer record. The
+  incident excludes file paths, original bytes and
+  stack traces. Only after both files open should
+  actual CODE.1 Analyze/Benchmark accuracy acceptance
+  resume. WPF mouse/view behavior and full original
+  accuracy remain pending.
+- [Detailed original-file open field report and
+  #65 acceptance checklist](CODE1_CODE2_OPEN_CRASH_20261012.md).
+
 ## Latest P0 desktop package gate — Windows #60 PASS
 
 - Automatic [Windows run #60](https://github.com/Hyperbog/RLOFT/actions/runs/38343078919)
