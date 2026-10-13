@@ -45,6 +45,11 @@ if(Python3_Interpreter_FOUND)
         NAME alpha_input_phase_isolation_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
+    # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
+    add_test(
+        NAME alpha_frontend_preservation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_frontend_preservation.py")
     # Ordinary continuous cold startup release regression.
     add_test(
         NAME alpha_continuous_game_launch_contract_tests
