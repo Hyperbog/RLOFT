@@ -64,6 +64,18 @@ jobs:
           dotnet publish src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output dist/windows-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-desktop/
+          $benchmark = 'dist/windows-desktop/benchmarks/strahd-code1-object1-classification.json'
+          if (-not (Test-Path -LiteralPath $benchmark -PathType Leaf)) {
+            throw "Windows desktop package is missing original-free CODE.1 benchmark manifest"
+          }
+          $reference = Get-Content -LiteralPath $benchmark -Raw | ConvertFrom-Json
+          if ($reference.objectByteLength -ne 70402 -or
+              $reference.expectedTranslatedBytes -ne 69361 -or
+              $reference.expectedExcludedBytes -ne 1041 -or
+              $reference.exclusions.Count -ne 282) {
+            throw "Packaged CODE.1 classification reference differs from pinned ledger"
+          }
+          Write-Host "PASS: desktop package includes pinned original-byte-free CODE.1 benchmark manifest"
       - name: Upload Windows desktop preview artifact
         uses: actions/upload-artifact@v4
         with:
