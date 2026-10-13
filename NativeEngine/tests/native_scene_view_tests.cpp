@@ -130,6 +130,17 @@ void run() {
     assert(protected_camera.column_position>=3.7);
     assert(protected_camera.column_position<=3.75);
     assert(std::abs(protected_camera.row_position-3.5)<1e-9);
+    // A large step may stop partway through its sweep. Additional
+    // attempts may advance the remaining free clearance, but once
+    // contact is reached the final pose and its render must be stable.
+    bool at_contact=false;
+    for(unsigned attempt=0;attempt<12;++attempt) {
+        const auto retry=move_native_probe_camera_clearance(
+            world,protected_camera,0.18,0.0);
+        assert(retry.blocked);
+        if(!retry.moved) {at_contact=true;break;}
+    }
+    assert(at_contact);
     const auto contact_x=protected_camera.column_position;
     const auto contact_y=protected_camera.row_position;
     const auto contact_view=trace_native_probe_view(
