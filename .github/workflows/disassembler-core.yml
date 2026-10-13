@@ -44,7 +44,8 @@ jobs:
           foreach ($project in @(
             'src/DosDis.Desktop/DosDis.Desktop.csproj',
             'tests/DosDis.Smoke/DosDis.Smoke.csproj',
-            'tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj'
+            'tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj',
+            'tests/DosDis.DesktopSmoke/DosDis.DesktopSmoke.csproj'
           )) {
             dotnet build $project --configuration Release
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -56,6 +57,13 @@ jobs:
           dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet run --project tests/DosDis.ProjectSmoke --configuration Release --no-build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run actual WPF data-binding and deferred-layout smoke (no original files)
+        shell: pwsh
+        working-directory: Tools/Disassembler
+        timeout-minutes: 3
+        run: |
+          dotnet run --project tests/DosDis.DesktopSmoke --configuration Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish portable self-contained Windows desktop
         shell: pwsh
