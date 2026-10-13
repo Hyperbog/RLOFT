@@ -256,7 +256,6 @@ def main() -> int:
                 ('out.record(OriginalTitleLoadStep::ParentDirectoryError);','/* error lost */'),
                 ('out.record(OriginalTitleLoadStep::ClearWorkFiles);','/* WORK clear lost */'),
                 ('out.record(OriginalTitleLoadStep::RestoreTemplateSlash);','/* slash lost */'),
-                ('out.record(OriginalTitleLoadStep::CloseHandle,i);','/* handles leaked */'),
                 ('out.record(OriginalTitleLoadStep::CloseHandle,i);','/* first cleanup removed */'),
             )
             for before,after in mutations_io:
@@ -285,6 +284,19 @@ def main() -> int:
                     pass
                 else:
                     raise ValueError('Unfaithful selector mutation escaped: '+before)
+            # Mutate the OTHER original cleanup site independently.
+            close = 'out.record(OriginalTitleLoadStep::CloseHandle,i);'
+            second = io_header.rfind(close)
+            if second < 0 or second == io_header.find(close):
+                raise ValueError('Missing distinct second original handle-close loop')
+            bad_second=(io_header[:second]+'/* second cleanup removed */'+
+                        io_header[second+len(close):])
+            try:
+                load_workflow_source_guard(bad_second,io_tests,cmake)
+            except ValueError:
+                pass
+            else:
+                raise ValueError('Second original handle-close loop can be lost')
             bad=text.replace('Load Game is not yet available','Load Game successfully loaded',1)
             try:
                 source_guard(bad)
