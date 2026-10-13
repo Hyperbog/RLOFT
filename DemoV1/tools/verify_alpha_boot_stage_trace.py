@@ -36,8 +36,7 @@ def contract(host:str,ps:str,cmake:str,readme:str)->None:
     # must exist BEFORE load_fresh/initialize_gameplay_state so a failure
     # there leaves an identifiable, source-pinned ZIP, not a false
     # completed-gameplay inference. This observes stages, not DOS fidelity.
-    first=host.index('int run_exploration(')
-    entry=host.index('int run_exploration(',first+1)
+    entry=host.index('int run_exploration(')
     boundary=host.index('int run(HINSTANCE instance)',entry)
     exploration=host[entry:boundary]
     start=exploration.index('trace=std::make_unique<rloft::DevSessionTrace>(')
