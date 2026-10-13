@@ -288,13 +288,11 @@ struct State {
         const int forward=int(held('W'))-int(held('S'));
         const int strafe=int(held('D'))-int(held('A'));
         if(forward||strafe) {
-            const double norm=std::max(1.0,std::hypot(double(forward),double(strafe)));
-            const double speed=(held(VK_SHIFT)?kRunSpeed:kMoveSpeed);
-            const double walk=speed*dt/norm;
-            const double ca=std::cos(camera.heading_radians);
-            const double sa=std::sin(camera.heading_radians);
-            const double dx=(double(forward)*ca+double(strafe)*sa)*walk;
-            const double dy=(double(forward)*sa-double(strafe)*ca)*walk;
+            const auto intended=native_relative_movement(
+                camera.heading_radians,double(forward),double(strafe),
+                held(VK_SHIFT)?kRunSpeed:kMoveSpeed,dt);
+            const double dx=intended.delta_columns;
+            const double dy=intended.delta_rows;
             if(noclip) {
                 camera.column_position=std::clamp(camera.column_position+dx,
                     .22,double(world.original().level(level).width)-.22);
