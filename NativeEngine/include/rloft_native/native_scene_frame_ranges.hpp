@@ -68,6 +68,27 @@ derive_native_authored_frame_ranges(
     const NativeRes3SceneBanks& banks,
     unsigned state_variant, unsigned view_subframe);
 
+// Source-authenticated *base EH7* inspection for the native first-level
+// session. The resolved frame is always the first legal slot (0,0).
+// Crucially, it is NOT necessarily the source runtime's current view,
+// animation frame, source plane shade or draw order.
+struct NativeAuthoredBaseShapeEvidence {
+    std::size_t absolute_res3_id{};
+    unsigned source_width{};
+    std::int16_t x_min{},x_max{},y_min{},y_max{};
+    std::size_t raster_descriptors{};
+    std::size_t decoded_body_bytes{};
+    std::string original_entry_sha256;
+    std::string original_body_sha256;
+    bool live_view_subframe_verified{false};
+};
+
+[[nodiscard]] NativeAuthoredBaseShapeEvidence
+probe_native_authored_base_eh7(
+    const NativeAuthoredFrameRange& source_range,
+    const NativeRes3SceneBanks& banks,
+    const NativeResArchive& original_res3);
+
 // Metadata-only, original-free ledger used by the independent oracle.
 [[nodiscard]] std::string native_authored_frame_ranges_json(
     const NativeAuthoredFrameRangeDirectory& directory);
