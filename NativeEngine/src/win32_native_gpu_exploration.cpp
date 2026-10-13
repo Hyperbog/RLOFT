@@ -1206,9 +1206,16 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 std::clamp(double(now-s->previous_time)/1000.0,0.0,.06):.016;
             s->previous_time=now;
             try {
-                s->step(dt);s->paint();
+                // WM_TIMER owns input and simulation ONLY. Previously it
+                // also swapped the GL buffers while WM_PAINT independently
+                // painted/swapped them again. That double ownership could
+                // present partial frames or flicker during invalidations.
+                // Coalesce into one WM_PAINT presentation per message-loop
+                // iteration; background erase is already suppressed.
+                s->step(dt);
+                InvalidateRect(hwnd,nullptr,FALSE);
                 // Windows SetWindowText can invalidate the nonclient area.
-                // Never force an extra WM_PAINT for every 16-ms tick.
+                // Never force an extra WM_PAINT inside the timer handler.
                 if((now/500U)!=((now-static_cast<ULONGLONG>(dt*1000))/500U))
                     title(hwnd,*s);
             } catch(const std::exception& error) {
