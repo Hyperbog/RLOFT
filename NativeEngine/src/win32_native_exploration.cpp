@@ -137,8 +137,8 @@ struct Preview {
         // This moves through original passability data with a bounded
         // host sweep. Movement physics/actor footprint are NOT original.
         const double a=camera.heading_radians;
-        const auto dx=forward*std::cos(a)-strafe*std::sin(a);
-        const auto dy=forward*std::sin(a)+strafe*std::cos(a);
+        const auto dx=forward*std::cos(a)+strafe*std::sin(a);
+        const auto dy=forward*std::sin(a)-strafe*std::cos(a);
         const auto moved=move_native_probe_camera_clearance(
             world,camera,dx,dy);
         last_step_blocked=moved.blocked;
