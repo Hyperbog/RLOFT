@@ -95,6 +95,35 @@ exception stack reporting. A successful run must
 be evidenced by Windows CI before distributing
 a new preview.
 
+## Confirmed Windows CI verification — run #71
+
+- **Canonical source built:** `4aae4380ec32383e7e5a21daa84b34f883a2f6b9`.
+- **GitHub Windows Actions:** [run #71](https://github.com/Hyperbog/RLOFT/actions/runs/38344982613)
+  **SUCCESS**; all four .NET release builds compiled with
+  **zero warnings and zero errors**.
+- Pure DOSDis.Smoke (including original-free large CODE.1/CODE.2
+  synthetic LE) and DosDis.ProjectSmoke SQLite suite **PASS**.
+- **Real WPF desktop smoke PASS**, exact Windows CI output:
+  `PASS: real Windows WPF MainWindow, 128 read-only instruction rows, one-way Run.Text bindings and deferred DataGrid layout (no originals)`.
+  This tests the previously missing *deferred WPF binding realization*,
+  not just LE loader compilation.
+- Desktop package integrity check for the pinned original-free
+  CODE.1 reference **PASS**. One `win-x64`, self-contained,
+  desktop-only artifact **11788283077**;
+  ZIP **66,932,416 bytes**, SHA-256
+  `a820d9164691d05158864a85a744d23e07de384a31f191a34242b33c3cb54b27`.
+  [Download #71](https://github.com/Hyperbog/RLOFT/actions/runs/38344982613/artifacts/11788283077).
+  No original proprietary binaries or user incident JSON
+  uploaded to public repository or GitHub CI.
+
+The automated WPF smoke initially needed its own corrections
+(name collision at compile and invalid null StartupUri during
+harness initialization). Both were fixed before #71, which
+ran **the actual WPF deferred DataGrid** successfully.
+
+This strengthens the root-cause assessment, but actual
+user-observed CODE.1/CODE.2 open acceptance remains **PENDING**.
+
 ## Owner acceptance
 
 1. Download the eventual **new successful Windows preview**
