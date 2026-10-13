@@ -3,6 +3,7 @@
 // There are no fake screen/menu/character-creation results here.
 #include "../../Code1/Code1.cpp"
 #include "original_le_image.h"
+#include "original_media_identity.hpp"
 #include "extender_data_break.hpp"
 #include "dpmi_linear_memory.hpp"
 #include <array>
@@ -521,8 +522,8 @@ void execute(Mode mode,const std::vector<u8>* original) {
     Session s;
     s.mode=mode;
     if(original) {
-        assert_true(original->size()==code1::kSourceFileSize,
-                    "CODE.1 original file size differs");
+        assert_true(rloft_recomp::is_original_code1(*original),
+                    "CODE.1 supplied media differs from pinned original SHA-256");
         const auto image=rloft_recomp::OriginalLeImage::parse(*original);
         assert_true(image.objects.size()==2 &&
                     image.entry_object==1 &&
