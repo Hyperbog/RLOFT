@@ -22,7 +22,9 @@ public:
     [[nodiscard]] rloft::Palette6 colors_palette(
         int index,int brightness=0) const override;
 private:
-    const NativeMedia& media_;
+    // Snapshot the read-only media index: parent install selection may change
+    // while this child startup window remains open.
+    NativeMedia media_;
     NativeResArchive res0_;
     mutable std::optional<NativeResArchive> res1_,res7_,res8_;
     mutable std::optional<std::vector<std::uint8_t>> code1_;
