@@ -1,0 +1,51 @@
+name: Native Original Startup - Windows CI
+
+on:
+  push:
+    branches: [native-engine]
+    paths:
+      - 'Shared/StartupPresentation/**'
+      - 'Shared/BootFlow/**'
+      - 'NativeEngine/src/native_startup_visuals.cpp'
+      - 'NativeEngine/src/win32_native_startup.cpp'
+      - 'NativeEngine/include/rloft_native/native_startup_visuals.hpp'
+      - 'NativeEngine/include/rloft_native/native_win32_startup.hpp'
+      - 'NativeEngine/src/win32_native_assets.cpp'
+      - 'NativeEngine/CMakeLists.txt'
+      - '.github/workflows/native-startup-windows-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-source-original-startup-windows
+  cancel-in-progress: false
+
+jobs:
+  windows-startup-build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact verified native-engine source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Python for native original-media fixture
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build standalone Windows x64 NativeEngine with shared CODE.2 startup window
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve checksum-tagged media-free Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-Native-A1-Original-Startup-Windows-x64
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
