@@ -66,11 +66,23 @@ int main(int argc,char** argv) {
             // The accelerated viewport is checked against the actual
             // owner-source LEVELS.DAT, not only a synthetic map fixture.
             const auto gpu=build_native_gpu_scene(world,level);
+            // Level 22 is an ORIGINAL outdoor special case: all 86
+            // blocking cell codes map to boundary texture ID 147,
+            // which the v0.7 owner viewer independently establishes
+            // as a deliberate NO-DRAW sentinel. Drawing a wall there
+            // would be a source-data error. Other maps must show
+            // original wall geometry.
+            const bool outdoor_no_draw=level==22U;
             if(!gpu.original_material_bank_layout ||
                gpu.original_dos_frame_verified ||
-               gpu.lower_wall_faces==0U || gpu.floor_faces==0U ||
-               gpu.textured_triangles.empty())
-                throw std::runtime_error("real original 3D mesh missing source geometry");
+               gpu.floor_faces==0U || gpu.textured_triangles.empty() ||
+               (outdoor_no_draw ?
+                   (gpu.lower_wall_faces!=0U ||
+                    gpu.skipped_boundary_faces==0U):
+                   (gpu.lower_wall_faces==0U)))
+                throw std::runtime_error(
+                    "authored GPU source geometry or outdoor boundary invalid at level "+
+                    std::to_string(level));
             gpu_lower+=gpu.lower_wall_faces;
             gpu_upper+=gpu.upper_wall_faces;
             gpu_floor+=gpu.floor_faces;
