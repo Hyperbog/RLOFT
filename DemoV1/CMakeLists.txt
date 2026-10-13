@@ -27,6 +27,11 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Original 1F1D6/33DE0/33E28 dual-page planar source oracle.
+    add_test(
+        NAME original_ground_planar_fill_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_planar_fill.py")
     # Structural release readiness, NOT game completion or DOS parity.
     # Prevent accidental Alpha/Beta/Final promotion by CI test count.
     add_test(
@@ -454,6 +459,7 @@ add_library(rloft_boot_flow
     src/surface_column_scaler.cpp
     src/surface_shading.cpp
     src/surface_fill.cpp
+    src/original_ground_planar_fill_replay.cpp
     src/original_ground_texture_raster.cpp
     src/original_ground_res4_audit.cpp
     src/surface_wall_presenter.cpp
@@ -1034,6 +1040,9 @@ add_test(NAME surface_shading_tests COMMAND surface_shading_tests)
 add_executable(surface_fill_tests tests/surface_fill_tests.cpp)
 target_link_libraries(surface_fill_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
+add_executable(original_ground_planar_fill_replay_tests tests/original_ground_planar_fill_replay_tests.cpp)
+target_link_libraries(original_ground_planar_fill_replay_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_ground_planar_fill_replay_tests COMMAND original_ground_planar_fill_replay_tests)
 # Source-proven original 335C8 nearest-depth initialization and
 # four 330E7/33278/3337F/33487 materializer updates. This model is
 # intentionally UNHOOKED from live native sweep rays until original
