@@ -57,14 +57,14 @@ jobs:
           if (-not (Test-Path (Join-Path $media "RES0"))) {
             throw "Original installed game RES0 is absent"
           }
-          $files = @("RES0", "COLORS", "INIT")
+          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "T", "COLORS", "INIT")
           $before = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
           $audit = Join-Path (Get-Location) "build/native-assets-windows-x64/Release/rloft_native_startup_audit.exe"
           if (-not (Test-Path $audit)) { throw "Original startup audit was not built" }
           & $audit $media
-          if ($LASTEXITCODE -ne 0) { throw "Real original RES0/COLORS startup composition failed" }
+          if ($LASTEXITCODE -ne 0) { throw "Real original CODE.2/CODE.1 startup composition failed" }
           $after = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
@@ -73,7 +73,7 @@ jobs:
               throw "Original game $($files[$i]) changed during startup audit"
             }
           }
-          Write-Host "NATIVE_REAL_ORIGINAL_CODE2_STARTUP_SOURCE_PASS"
+          Write-Host "NATIVE_REAL_ORIGINAL_CODE2_CODE1_STARTUP_SOURCE_PASS"
       - name: Verify actual shipped CINE00/CINE12 ANM frames and immutable CD source
         shell: pwsh
         run: |
