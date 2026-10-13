@@ -1,5 +1,65 @@
 # DOSDis — compact current checkpoint
 
+## P0 CODE.1 scored-byte workbench foundation — Windows #59 PASS
+
+- Review of Claude's project critique identified the largest
+  validation gap: x86 opcodes had narrow independent sampling,
+  while **code discovery versus embedded data** was not scored
+  against existing detailed decompilation research.
+- Imported the independently curated `code1-decompilation`
+  **CODE.1 LE object 1** classification ledger into the
+  machine-readable `benchmarks/strahd-code1-object1-classification.json`
+  (**282 exact excluded ranges, 1,041 nontranslated bytes,
+  69,361 translated machine-code bytes; object size 70,402**).
+  Original complete file SHA256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`;
+  extracted object SHA256 `c0bf2c313aa8a24c9a0c0a3ce498f87a1d09299bb826413acaeb844412007203`.
+  The manifest has **NO game bytes**.
+- Implemented SHA-bound, source-byte-checked classification
+  scoring in `CodeClassificationBenchmark`: candidate-on-
+  translated, candidate-on-excluded, unclassified-translated
+  and unclassified-excluded, candidate-byte precision and
+  translated-byte recall. Abstentions are NOT decoder
+  true-negative proof. Overlapping, forged or unbacked
+  instructions and mismatched reference source/object hashes
+  fail closed. Disagreements are bounded and physically
+  navigable. Real instruction-start precision requires a
+  separately extracted independent boundary catalog later.
+- The Windows desktop **Benchmark…** button (LE graph only)
+  loads a local JSON reference and displays source-bound
+  precision/recall and navigable disagreement spans.
+  The pinned original-free manifest ships under
+  `benchmarks/` in the desktop package; the original file
+  never leaves the owner's computer. Double-clicking a
+  disagreement opens its stored physical Hexadecimal view
+  without speculatively classifying new executable code.
+- Automatic [Windows build #59](https://github.com/Hyperbog/RLOFT/actions/runs/38342771655)
+  **SUCCESS**, compiled app/test source SHA
+  `2f3a02f59c6e8db9c5842d2f945f8bd994de4bcf`.
+  Windows WPF and both C# test projects compiled **0
+  warnings/errors**. DosDis.Smoke, including NEW separate
+  `CodeClassificationBenchmarkSmoke` and the pinned
+  manifest-accounting test, **PASS**; SQLite persistence
+  smoke **PASS**. Exactly one win-x64 WPF desktop ZIP:
+  artifact `11787113883`, **66,931,033 bytes**, SHA256
+  `6e1663fbae60ba0b051d8fd50c8e13272ecab3b7b1e041cf787e7b2f9d561c71`.
+  [Download](https://github.com/Hyperbog/RLOFT/actions/runs/38342771655/artifacts/11787113883).
+  No game originals/CLI distribution in GitHub CI.
+- **Still PENDING:** actual original CODE.1 owner-local
+  measured byte precision/recall; verified independent
+  instruction starts/lengths; WPF user interaction with
+  Benchmark dialog; held-out game coverage and trace
+  evidence; faithful reassembly. Avoid claiming original
+  score from synthetic tests or counting valid NOP padding
+  as ISA decoding errors by default.
+- [Full original-free reference, scoring contract and local
+  acceptance checklist](CODE1_CLASSIFICATION_BENCHMARK_P0_20261012.md).
+  **Next:** Have owner open exact original CODE.1, Analyze,
+  select packaged manifest under Benchmark…, and report
+  metrics, disagreements and first GUI screenshot. Then
+  derive a separately audited start-boundary reference,
+  triage false positives, improve indirect discovery, and
+  implement analyst-controlled classifications/labels.
+
 ## Repository branch cleanup (2026-10-12)
 
 - The owner requested one **current/main DOSDis branch** and deletion
