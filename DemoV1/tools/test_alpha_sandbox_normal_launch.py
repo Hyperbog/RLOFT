@@ -61,7 +61,10 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
     # input and game-state metadata).
     stages = ("exploration.load.begin", "exploration.load.failed",
               "exploration.load.ready", "exploration.world.failed",
-              "exploration.world.ready", "exploration.presenters.ready")
+              "exploration.world.ready", "exploration.presenters.ready",
+              "exploration.frame.build.begin", "exploration.frame.build.failed",
+              "exploration.frame.build.ready", "exploration.frame.raster.failed",
+              "exploration.frame.raster.ready", "exploration.frame.present.submitted")
     if not all(stage in ps for stage in stages):
         raise ValueError("missing first-level preload diagnostic stage")
     if ("if ($preloadStages -contains [string]$entry.event) {" not in ps or
@@ -135,6 +138,18 @@ def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         pass
     else:
         raise ValueError("private event stream escaped field summary guard")
+    # Eighth mutation checks the new visible-frame submission stage.
+    # A source guard cannot itself prove that Windows drew the pixels.
+    no_submit=ps.replace("            'exploration.frame.present.submitted'",
+                         "            'unsafe-placeholder'",1)
+    if no_submit==ps:
+        raise ValueError("frame-submission mutation did not match runner")
+    try:
+        check(cmd,no_submit,workflow,host,intro)
+    except (ValueError,AssertionError):
+        pass
+    else:
+        raise ValueError("first-frame submission stage went missing")
     # Sixth mutation attacks only Win32 persistent registry behavior.
     broken_host=host.replace(
         'if (!options.dev_trace) {\n'
@@ -166,7 +181,7 @@ def main()->int:
         mutate(cmd,ps,workflow,host,intro)
     except (ValueError,AssertionError,OSError) as exc:
         p.exit(1,"ALPHA_SANDBOX_FIELD_REJECTED: "+str(exc)+"\n")
-    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 7 unsafe variants rejected")
+    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 8 unsafe variants rejected")
     return 0
 
 if __name__=="__main__":
