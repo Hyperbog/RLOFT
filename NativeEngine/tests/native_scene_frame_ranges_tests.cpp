@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 
 using namespace rloft_native;
 namespace {
@@ -55,6 +56,30 @@ NativeAuthoredSceneDirectory authored(bool include_base_only=false) {
     }
     return source;
 }
+// Tiny original-format RES archive with valid EH7 LZSS literal streams.
+// Unit fixtures never substitute for original game image data.
+NativeResArchive source_shape_fixture(bool corrupt=false) {
+    std::vector<std::uint8_t> body(20,0);
+    body[0]=64;body[8]=127;body[10]=12;
+    body[12]=0;body[13]=1; // 0x0100 stop, entry 0
+    std::vector<std::uint8_t> eh{'E','H',7,0,0,20,0};
+    for(std::size_t at=0;at<body.size();) {
+        eh.push_back(0xff);
+        for(unsigned k=0;k<8&&at<body.size();++k)
+            eh.push_back(body[at++]);
+    }
+    if(corrupt)eh[2]=6; // no longer original EH type 7
+    std::vector<std::uint8_t> res(4+4*4,0);
+    res[0]=4;
+    for(unsigned id=0;id<4;++id) {
+        const auto at=4U+id*4U;
+        const auto offset=static_cast<std::uint32_t>(res.size());
+        for(unsigned byte=0;byte<4;++byte)
+            res[at+byte]=static_cast<std::uint8_t>(offset>>(8U*byte));
+        res.insert(res.end(),eh.begin(),eh.end());
+    }
+    return NativeResArchive(std::move(res));
+}
 void run() {
     const auto definitions=defs();
     auto a=authored(true);
@@ -104,6 +129,40 @@ void run() {
         row[2],definitions.banks,1,0));});
     rejects([&]{static_cast<void>(select_native_authored_res3_frame(
         row[3],definitions.banks,0,1));});
+    // Base-slot evidence is an authentic EH7 *structure*, not a
+    // source-live facing, animation variant, or DOS frame claim.
+    auto miniature=source_shape_fixture();
+    NativeRes3SceneBanks miniature_banks;
+    miniature_banks.res3_entries=4;
+    miniature_banks.starts={0,1,2,3};
+    miniature_banks.lengths={1,1,1,1};
+    NativeAuthoredFrameRange probe;
+    probe.level=22;probe.source_class=1;
+    probe.first_absolute_res3_id=1;
+    probe.resource_slot_count=1;
+    probe.source_shape_stride=1;
+    probe.state_variant_count=1;
+    const auto evidence=probe_native_authored_base_eh7(
+        probe,miniature_banks,miniature);
+    assert(evidence.absolute_res3_id==1U);
+    assert(evidence.source_width==64U);
+    assert(evidence.x_min==0 && evidence.x_max==0);
+    assert(evidence.y_min==0 && evidence.y_max==127);
+    assert(evidence.raster_descriptors==1);
+    assert(evidence.decoded_body_bytes==20);
+    assert(evidence.original_entry_sha256.size()==64);
+    assert(evidence.original_body_sha256.size()==64);
+    assert(!evidence.live_view_subframe_verified);
+    auto wrong_banks=miniature_banks;
+    wrong_banks.res3_entries=5;
+    rejects([&]{static_cast<void>(probe_native_authored_base_eh7(
+        probe,wrong_banks,miniature));});
+    auto wrong_source=probe;wrong_source.first_absolute_res3_id=2;
+    rejects([&]{static_cast<void>(probe_native_authored_base_eh7(
+        wrong_source,miniature_banks,miniature));});
+    auto corrupt=source_shape_fixture(true);
+    rejects([&]{static_cast<void>(probe_native_authored_base_eh7(
+        probe,miniature_banks,corrupt));});
     const auto json=native_authored_frame_ranges_json(frames);
     assert(json.find("\"bounded_resource_slots\":320")!=std::string::npos);
     assert(json.find("\"original_npc_animation_frame_verified\":false")!=std::string::npos);
