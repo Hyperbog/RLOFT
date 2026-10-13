@@ -2,6 +2,7 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
+#include "rloft/character_transfer.hpp"
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -74,7 +75,14 @@ int main() {
         code1[base+0x4BAU]=0x34U;
         code1[base+0x4BBU]=0x12U;
         code1[base+0x70U]='R';code1[base+0x71U]='L';
+        // Independent synthetic fixture: source-equipment table uses the
+        // original 15 x 6 x 14 word shape, with all unused IDs set to FFFF.
+        for(std::size_t k=0;k<15U*0xA8U;++k)
+            code1[0x3E724U+0x0988U+k]=0xFFU;
         file(root/"CODE.1",code1);
+        auto objects=std::vector<std::uint8_t>(4U+65U,0);
+        objects[0]=1U; // one genuine-layout OBJECTS.DAT record
+        file(root/"OBJECTS.DAT",objects);
         file(root/"COLORS",colors);
         file(root/"INIT",{0U,0U});
         file(root/"T",{1U,2U,3U});
@@ -94,6 +102,25 @@ int main() {
         assert(images.code1_u16(0x4B8U)==0x5678U);
         assert(images.code1_s32(0x4B8U)==0x12345678);
         assert(images.code1_cstring(0x70U)=="RL");
+        const auto tables=rloft::CharacterTransferTables::from_original_bytes(
+            code1,objects);
+        assert(!tables.starting_loadout(0,0).has_shipped_items());
+        std::array<rloft::CharacterTransferActor,2> fixture_actors{};
+        for(int i=0;i<2;++i) {
+            auto& a=fixture_actors[std::size_t(i)];
+            a.draft.actor=i;
+            a.draft.sex=0;a.draft.race=0;
+            a.draft.classes[0]=0;
+            a.draft.option=0;a.draft.face=i;
+            a.draft.name=i==0?"A":"B";
+            a.stats.abilities.fill(10);
+            a.stats.levels[0]=1;
+            a.stats.hit_points=8;
+        }
+        const auto chars=rloft::build_character_transfer(fixture_actors,tables);
+        assert(chars.size()==0x920U);
+        assert(chars[0]=='A'&&chars[0x248U]=='B');
+        assert(chars[0x12U]==0&&chars[0x248U+0x12U]==1);
         bool denied=false;
         try {static_cast<void>(images.type1(2,0));}
         catch(const std::out_of_range&){denied=true;}
