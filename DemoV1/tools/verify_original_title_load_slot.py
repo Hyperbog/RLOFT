@@ -204,6 +204,11 @@ def load_workflow_source_guard(header: str, tests: str, cmake: str) -> None:
     for part in required:
         if part not in header:
             raise ValueError('Original Load IO branch model changed: '+part)
+    # The binary has two different 30040 handle-close loops:
+    # the successful 07938 exit at 07CF4 and failed WORK chdir at 07D28.
+    # A presence-only check would let either loop be silently removed.
+    if header.count('out.record(OriginalTitleLoadStep::CloseHandle,i);') != 2:
+        raise ValueError('Both original ten-handle cleanup paths required')
     if (header.index('out.record(OriginalTitleLoadStep::ClearWorkFiles);') >=
             header.index('out.record(OriginalTitleLoadStep::CopySlotFiles,input.selected_slot);')):
         raise ValueError('Original clears WORK before attempting copy')
@@ -252,6 +257,7 @@ def main() -> int:
                 ('out.record(OriginalTitleLoadStep::ClearWorkFiles);','/* WORK clear lost */'),
                 ('out.record(OriginalTitleLoadStep::RestoreTemplateSlash);','/* slash lost */'),
                 ('out.record(OriginalTitleLoadStep::CloseHandle,i);','/* handles leaked */'),
+                ('out.record(OriginalTitleLoadStep::CloseHandle,i);','/* first cleanup removed */'),
             )
             for before,after in mutations_io:
                 if before not in io_header:
