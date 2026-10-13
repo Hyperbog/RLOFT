@@ -567,15 +567,65 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_KEYDOWN:
         try {
             if(wp=='M' && !(lp&(1L<<30)))mouse_mode(hwnd,*s,!s->mouse_look);
-            else if(wp==VK_F2 && !(lp&(1L<<30))) {
-                constexpr int sizes[][2]={{1260,840},{1440,900},
-                                          {1600,900},{1920,1080}};
-                s->resolution_index=(s->resolution_index+1U)%4U;
-                const auto& chosen=sizes[s->resolution_index];
-                SetWindowPos(hwnd,nullptr,0,0,chosen[0],chosen[1],
-                             SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
+            else if(wp==VK_F1 && !(lp&(1L<<30))) {
+                s->show_help=!s->show_help;
+            } else if(wp==VK_F2 && !(lp&(1L<<30))) {
+                const unsigned new_mode=(s->resolution_index+1U)%
+                    NativeGlViewportTarget::preset_count();
+                RECT r{};GetClientRect(hwnd,&r);
+                try {
+                    s->render_target.begin(std::max(1,int(r.right)),
+                        std::max(1,int(r.bottom)),new_mode,s->aa_samples);
+                    s->resolution_index=new_mode;
+                } catch(const std::exception& error) {
+                    MessageBoxA(hwnd,error.what(),
+                        "Internal render resolution not supported",
+                        MB_OK|MB_ICONINFORMATION);
+                }
+            } else if(wp==VK_F3 && !(lp&(1L<<30))) {
+                s->filter_mode=(s->filter_mode+1U)%3U;
+                s->smooth_filter=s->filter_mode!=0U;
+                s->update_filter();
+            } else if(wp==VK_F4 && !(lp&(1L<<30))) {
+                const unsigned samples=s->aa_samples==0U?2U:
+                                        s->aa_samples==2U?4U:0U;
+                RECT r{};GetClientRect(hwnd,&r);
+                try {
+                    s->render_target.begin(std::max(1,int(r.right)),
+                        std::max(1,int(r.bottom)),s->resolution_index,samples);
+                    s->aa_samples=samples;
+                } catch(const std::exception& error) {
+                    MessageBoxA(hwnd,error.what(),
+                        "MSAA unavailable on this GPU",MB_OK|MB_ICONINFORMATION);
+                }
+            } else if(wp==VK_F8 && !(lp&(1L<<30))) {
+                s->map_panel_size=s->map_panel_size==150U?210U:
+                                  s->map_panel_size==210U?300U:150U;
+            } else if(wp==VK_F11 && !(lp&(1L<<30))) {
+                // Legacy viewer F11 changes the display WINDOW only;
+                // F2 retains its independent original internal buffer.
+                if(!s->fullscreen) {
+                    s->saved_style=GetWindowLongPtrW(hwnd,GWL_STYLE);
+                    s->saved_placement.length=sizeof(WINDOWPLACEMENT);
+                    GetWindowPlacement(hwnd,&s->saved_placement);
+                    MONITORINFO info{sizeof(MONITORINFO)};
+                    if(GetMonitorInfoW(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONEAREST),&info)) {
+                        const auto& box=info.rcMonitor;
+                        SetWindowLongPtrW(hwnd,GWL_STYLE,WS_POPUP|WS_VISIBLE);
+                        SetWindowPos(hwnd,HWND_TOP,box.left,box.top,
+                            box.right-box.left,box.bottom-box.top,
+                            SWP_FRAMECHANGED|SWP_SHOWWINDOW);
+                        s->fullscreen=true;
+                    }
+                } else {
+                    SetWindowLongPtrW(hwnd,GWL_STYLE,s->saved_style);
+                    SetWindowPlacement(hwnd,&s->saved_placement);
+                    SetWindowPos(hwnd,nullptr,0,0,0,0,
+                        SWP_NOZORDER|SWP_NOMOVE|SWP_NOSIZE|SWP_FRAMECHANGED);
+                    s->fullscreen=false;
+                }
             } else if(wp=='N' && !(lp&(1L<<30))) {
-                s->smooth_filter=!s->smooth_filter;s->update_filter();
+                s->noclip=!s->noclip;
             } else if(wp==VK_TAB && !(lp&(1L<<30)))s->automap=!s->automap;
             else if(wp==VK_OEM_PLUS || wp==VK_ADD)
                 s->zoom=std::min(16U,s->zoom+1U);
@@ -589,7 +639,10 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 title(hwnd,*s);
             } else if(wp=='R') {
                 s->initialize_level(s->level);title(hwnd,*s);
-            } else if(wp==VK_ESCAPE)DestroyWindow(hwnd);
+            } else if(wp==VK_ESCAPE) {
+                if(s->mouse_look)mouse_mode(hwnd,*s,false);
+                else DestroyWindow(hwnd);
+            }
         } catch(const std::exception&) {
             MessageBoxW(hwnd,L"Unable to change original world scene",
                         L"GPU preview",MB_OK|MB_ICONWARNING);
