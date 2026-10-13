@@ -1,3 +1,5 @@
+> **Enhanced PC port scope update (owner decision, 2026-10-13):** the native game's deliverable is now a **playable enhanced Windows PC port**. Canonical CODE.1/CODE.2 recompilation and its original-DOS memory/selector/timing oracle remain preserved as **optional research and compatibility tooling**, **not** prerequisites for the port's Alpha, Beta or Final release. The R01–R12 research milestones and historical `3/12` progress below still describe *this independent canonical-recompilation workstream*, **not** the enhanced native game's readiness. Prioritize reusable content, assets, script/rule insights and decompiled algorithms that help the [native-port charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ENHANCED_PC_PORT_CHARTER.md). Do not expend port-blocking effort on exact DOS/4GW startup or allocator parity when an equivalent safe native subsystem already works. Keep all original reconstruction evidence available for future research.
+
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
 ## R04 current — source DAC9 allocator, pinned original-media identity (2026-10-12)
