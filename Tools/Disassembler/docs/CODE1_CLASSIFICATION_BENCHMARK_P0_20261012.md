@@ -3,12 +3,29 @@
 **Scope:** DOSDis LE object-1 *byte classification*, not full executable,
 instruction-boundary or original gameplay correctness.
 
-**Evidence status (2026-10-12):** code and original-free synthetic tests
-authored. The publicly audited CODE.1 ranges have been converted into
-a pinned manifest and installed in the Windows desktop product. The
-original CODE.1 executable has **not** been scored in the project CI
+**Evidence status (2026-10-12):** Windows **#59 and #60 BUILD +
+SYNTHETIC PASS**. The publicly audited CODE.1 ranges have been
+converted into a pinned manifest; an exact Windows desktop-only package
+now includes that manifest and verifies its contents during publish.
+The original CODE.1 executable has **not** been scored in project CI
 or in this task, and no original-file precision/recall result is
 claimed by this document.
+
+**Latest package-proven successful build:** GitHub [Windows run
+#60](https://github.com/Hyperbog/RLOFT/actions/runs/38343078919),
+compiled code/workflow SHA
+`e97b85e8e538eb1445563776b0d3876de8493dc5`.
+All WPF/Core, synthetic C# and persistence builds PASS, 0 .NET
+warnings/errors. Both C# synthetic suites PASS. The CI package
+assertion specifically confirmed the pinned 282-range benchmark JSON
+was present in `dist/windows-desktop/benchmarks/` and matched
+70,402 object bytes, 69,361 translated and 1,041 excluded.
+Only Windows desktop artifact `11787004768`, ZIP
+**66,931,509** bytes, SHA256
+`c214c3a1ed9b1e41bf433a54901b5453d745da0f3cb6c605897f29fd0676613f`.
+[Download #60 desktop ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/38343078919/artifacts/11787004768).
+This check confirms manifest packaging, NOT actual original-file scoring,
+WPF human interaction or instruction-decoder accuracy.
 
 ## Why this benchmark comes first
 
