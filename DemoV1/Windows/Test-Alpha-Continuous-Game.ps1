@@ -166,7 +166,13 @@ if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
             'exploration.load.ready',
             'exploration.world.failed',
             'exploration.world.ready',
-            'exploration.presenters.ready'
+            'exploration.presenters.ready',
+            'exploration.frame.build.begin',
+            'exploration.frame.build.failed',
+            'exploration.frame.build.ready',
+            'exploration.frame.raster.failed',
+            'exploration.frame.raster.ready',
+            'exploration.frame.present.submitted'
         )
         $events = Join-Path $sessionPath 'events.jsonl'
         if (Test-Path -LiteralPath $events -PathType Leaf) {
@@ -182,7 +188,7 @@ if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
             } | Select-Object -Last 1
             if ($lastPreload) {
                 Write-Host "Last exploration initialization checkpoint: $lastPreload"
-                Write-Host 'This checkpoint does not establish a rendered gameplay frame.'
+                Write-Host 'Host submission is not visual verification or original DOS frame parity.'
             }
         }
         $zip = $sessionPath + '.zip'
