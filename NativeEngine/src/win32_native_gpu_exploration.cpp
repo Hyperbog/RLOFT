@@ -14,6 +14,7 @@
 #include "rloft_native/native_raster_colors.hpp"
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_scene_instances.hpp"
+#include "rloft_native/native_scene_target.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -79,6 +80,7 @@ struct State {
     // Authenticated once after a discovery update, never rehashed by
     // the 60 FPS OpenGL paint loop.
     std::vector<NativeAuthoredSceneInstance> discovered_placements;
+    std::string inspected_source;
 
     explicit State(NativeWorldPayload world_source,const NativeMedia& media,
                    std::optional<NativePartyStart> startup={})
@@ -164,6 +166,7 @@ struct State {
         face_count=mesh.lower_wall_faces+mesh.upper_wall_faces;
         visibility_initialized=false;
         discovered_placements.clear();
+        inspected_source.clear();
         auto& seen=explored[level];
         if(seen.size()!=std::size_t(map.width)*map.height)
             seen.assign(std::size_t(map.width)*map.height,0);
@@ -369,6 +372,28 @@ struct State {
             visibility_initialized=true;
         }
     }
+    void inspect_source_placement() {
+        if(!party||!authored_scenes)return;
+        const auto hit=select_native_authored_scene_target(
+            world,level,discovered_placements,
+            camera.column_position,camera.row_position,
+            camera.heading_radians);
+        if(!hit) {
+            inspected_source=
+                "NO AUTHORED PLACEMENT IN HOST INSPECTION CONE";
+            return;
+        }
+        // Source record identity only: do not label an original scenery
+        // record as a usable item, generate an encounter or mutate party.
+        const auto& object=hit->original;
+        inspected_source=
+            std::string(object.source_class==0U?"NPC":
+                        object.source_class==1U?"PLACED":"LOOSE")+
+            " TYPE "+std::to_string(object.original_type_id)+
+            " | RES3 BASE "+std::to_string(object.absolute_res3_base)+
+            " | SOURCE RECORD "+std::to_string(object.compact_record_index)+
+            " | HOST INSPECTION ONLY";
+    }
     void automap_draw(int width,int height) {
         if(!automap)return;
         const auto& map=world.original().level(level);
@@ -497,12 +522,14 @@ struct State {
                 "Tab automap | +/- zoom | F5 source placement markers | F8 map size":
                 "Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
             line(12,y,party?
-                "Level22 first-party state | R reset | Esc release mouse / close":
+                "F inspect known source placement | R reset | Esc close":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
             line(12,y,party?
                 "Map dots = NPC 9 / placed 62 63 64 | RES3 sprites + events pending":
                 "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
+        if(party&&!inspected_source.empty())
+            line(12,height-box_height-8,inspected_source);
         glMatrixMode(GL_PROJECTION);glPopMatrix();
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
@@ -757,6 +784,8 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 }
             } else if(wp==VK_F12 && !(lp&(1L<<30))) {
                 s->save_screenshot();
+            } else if(wp=='F' && s->party && !(lp&(1L<<30))) {
+                s->inspect_source_placement();
             } else if(wp==VK_F5 && s->party && !(lp&(1L<<30))) {
                 s->show_authored_markers=!s->show_authored_markers;
             } else if(wp==VK_F8 && !(lp&(1L<<30))) {
