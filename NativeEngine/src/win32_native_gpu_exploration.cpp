@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
+#include <utility>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -35,6 +37,8 @@ constexpr double kRunSpeed=3.5;
 
 struct State {
     NativeWorldRuntime world;
+    // Null only for the explicitly separate technical viewport preview.
+    std::optional<NativePartyStart> party;
     NativeGpuScene mesh;
     NativeProbeCamera camera;
     NativeResArchive res4;
@@ -70,8 +74,10 @@ struct State {
     ULONGLONG previous_time{};
     std::map<unsigned,std::vector<std::uint8_t>> explored;
 
-    explicit State(NativeWorldPayload world_source,const NativeMedia& media)
+    explicit State(NativeWorldPayload world_source,const NativeMedia& media,
+                   std::optional<NativePartyStart> startup={})
         :world(std::move(world_source)),
+         party(std::move(startup)),
          res4(media.read("RES4")),
          backdrop(media.read("CODE.2")),
          original_colors(media.read("COLORS")) {
@@ -99,6 +105,18 @@ struct State {
             }
         }
         if(!found)throw std::runtime_error("no passable cell in original source level");
+        if(party) {
+            // CODE.2 normal first level, after original CODE.1 CHARS transfer.
+            // Fail rather than invent a replacement spawn when source conflicts.
+            if(id!=party->level)
+                throw std::logic_error("active party cannot teleport to arbitrary map");
+            best_x=unsigned(party->column);
+            best_y=unsigned(party->row);
+            if(best_x>=map.width||best_y>=map.height||
+               world.normal_collision(id,best_x,best_y)!=NativeCollision::Passable)
+                throw std::runtime_error(
+                    "original Level22 party start is not source-passable");
+        }
         const auto new_palette_bank=native_world_palette_bank(id);
         const auto new_palette=decode_native_palette(original_colors,new_palette_bank);
         // Commit the scene and current-level source palette together.
@@ -113,9 +131,10 @@ struct State {
         mesh=scene;
         level=id;
         camera.level=id;
-        camera.column_position=double(best_x)+0.5;
-        camera.row_position=double(best_y)+0.5;
-        camera.heading_radians=-kPi/2;
+        camera.column_position=party?party->column:double(best_x)+0.5;
+        camera.row_position=party?party->row:double(best_y)+0.5;
+        camera.heading_radians=party?
+            double(party->heading_degrees)*kPi/180.0:-kPi/2;
         camera.pitch_radians=0.0;
         blocked=false;
         previous_time=0;
@@ -395,7 +414,8 @@ struct State {
         const std::string resolution=std::to_string(render_target.width())+"x"+
                                      std::to_string(render_target.height());
         line(12,height-box_height+22,
-            "RAVENLOFT 3D GPU | Level "+std::to_string(level)+
+            std::string(party?"RAVENLOFT PARTY / CODE.2 ENTRY":"RAVENLOFT 3D GPU")+
+            " | Level "+std::to_string(level)+
             " | "+std::string(mode)+" "+resolution+" internal | AA "+
             std::to_string(render_target.actual_samples())+"x"+
             (mouse_look?" | Mouse look":" | Q/E keyboard")+
@@ -410,8 +430,12 @@ struct State {
             line(12,y,"F2 resolution (Auto > 720p > 1080p > 1440p > 4K) | F3 filtering");y+=dy;
             line(12,y,"F4 AA (Off / 2x / 4x) | F11 fullscreen | F12 screenshot");y+=dy;
             line(12,y,"Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
-            line(12,y,"Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
-            line(12,y,"SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
+            line(12,y,party?
+                "Level22 first-party state | R reset | Esc release mouse / close":
+                "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
+            line(12,y,party?
+                "ORIGINAL CHARS PARTY | INTERACTIONS / COMBAT / SAVE PENDING":
+                "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
         glMatrixMode(GL_PROJECTION);glPopMatrix();
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
@@ -570,7 +594,9 @@ void mouse_mode(HWND hwnd,State& s,bool enabled) {
     }
 }
 void title(HWND hwnd,const State& s) {
-    const auto name=std::wstring(L"Ravenloft — Original 3D GPU Preview | Level ")+
+    const auto name=std::wstring(s.party?
+        L"Ravenloft — Original CHARS Party / CODE.2 Level ":
+        L"Ravenloft — Original 3D GPU Preview | Level ")+
         std::to_wstring(s.level)+L"  ["+
         std::to_wstring(unsigned(s.camera.column_position))+L","+
         std::to_wstring(unsigned(s.camera.row_position))+L"] | "+
@@ -594,7 +620,8 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_CREATE:
         try {
             s->make_graphics();
-            s->initialize_level(0);
+            s->initialize_level(
+                s->party?s->party->level:0U);
             if(!SetTimer(hwnd,kTimer,16U,nullptr))
                 throw std::runtime_error("GPU frame timer unavailable");
             title(hwnd,*s);
@@ -684,17 +711,17 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                         SWP_NOZORDER|SWP_NOMOVE|SWP_NOSIZE|SWP_FRAMECHANGED);
                     s->fullscreen=false;
                 }
-            } else if(wp=='N' && !(lp&(1L<<30))) {
+            } else if(wp=='N' && !s->party && !(lp&(1L<<30))) {
                 s->noclip=!s->noclip;
             } else if(wp==VK_TAB && !(lp&(1L<<30)))s->automap=!s->automap;
             else if(wp==VK_OEM_PLUS || wp==VK_ADD)
                 s->zoom=std::min(16U,s->zoom+1U);
             else if(wp==VK_OEM_MINUS || wp==VK_SUBTRACT)
                 s->zoom=std::max(2U,s->zoom-1U);
-            else if(wp==VK_PRIOR) {
+            else if(wp==VK_PRIOR && !s->party) {
                 s->initialize_level((s->level+1U)%32U);
                 title(hwnd,*s);
-            } else if(wp==VK_NEXT) {
+            } else if(wp==VK_NEXT && !s->party) {
                 s->initialize_level((s->level+31U)%32U);
                 title(hwnd,*s);
             } else if(wp=='R') {
@@ -755,8 +782,7 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     return DefWindowProcW(hwnd,msg,wp,lp);
 }
 } // namespace
-void open_native_gpu_world_preview(HWND owner,const NativeMedia& media) {
-    auto state=std::make_unique<State>(load_native_world_payload(media),media);
+void open_native_gpu_window(HWND owner,std::unique_ptr<State> state) {
     WNDCLASSW type{};
     type.lpfnWndProc=gpu_proc;
     type.hInstance=GetModuleHandleW(nullptr);
@@ -775,6 +801,21 @@ void open_native_gpu_world_preview(HWND owner,const NativeMedia& media) {
     ShowWindow(window,SW_SHOW);
     UpdateWindow(window);
     SetFocus(window);
+}
+} // namespace
+
+void open_native_gpu_world_preview(HWND owner,const NativeMedia& media) {
+    open_native_gpu_window(owner,
+        std::make_unique<State>(load_native_world_payload(media),media));
+}
+void open_native_gpu_world_session(
+    HWND owner,const NativeMedia& media,const NativeCharsImage& chars) {
+    // Import and validate the exact shared CODE.1 output before allocating
+    // a graphics context or modifying any mutable world state.
+    auto party=decode_native_party_start(chars);
+    open_native_gpu_window(owner,
+        std::make_unique<State>(load_native_world_payload(media),
+                                media,std::move(party)));
 }
 } // namespace rloft_native
 #endif
