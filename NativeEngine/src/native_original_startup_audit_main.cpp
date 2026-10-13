@@ -117,6 +117,7 @@ int main(int argc,char** argv) {
         const auto& original_npc=initial.at(0U);
         if(original_npc.source_class!=0U ||
            original_npc.original_type_id!=9U ||
+           original_npc.absolute_res3_base!=315U ||
            original_npc.cell_column!=13U ||
            original_npc.cell_row!=7U ||
            original_npc.x_position_16_16!=
@@ -195,6 +196,15 @@ int main(int argc,char** argv) {
                shape.live_view_subframe_verified)
                 throw std::runtime_error(
                     "original Level22 RES3 EH7 base evidence invalid");
+            if(index==0U &&
+               (id!=315U || range.npc_animation_stride!=8U ||
+                range.npc_cycle_divisor!=4U ||
+                range.npc_animation_span!=3U ||
+                shape.source_width!=64U ||
+                shape.x_min!=15 || shape.x_max!=51 ||
+                shape.y_min!=27 || shape.y_max!=128))
+                throw std::runtime_error(
+                    "original Assassin NPC9 RES3:315 base EH7 bounds or animation source changed");
         }
         if(decoded_base_ids.empty()||decoded_base_ids.size()>4U)
             throw std::runtime_error(
@@ -243,6 +253,7 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_source_type_counts\":[1,52,42,16],"
                  <<"\"original_first_level_npc9_original_pose_verified\":true,"
                  <<"\"original_first_level_npc9_inspection_target_verified\":true,"
+                 <<"\"original_first_level_assassin_res3_315_base_verified\":true,"
                  <<"\"original_first_level_distinct_eh7_bases_decoded\":"
                  <<decoded_base_ids.size()<<","
                  <<"\"original_first_level_live_eh7_frames_verified\":false,"
