@@ -45,6 +45,14 @@ if(Python3_Interpreter_FOUND)
         NAME alpha_input_phase_isolation_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
+    # Original CODE.2 07B94 numbered-slot Load: ten-source-slot
+    # geometry, save-directory copy chain and source-hash proof.
+    # Public CI verifies source-only contract; --original privately
+    # authenticates 558,689-byte CODE.2 x86 and DGROUP references.
+    add_test(
+        NAME alpha_original_load_slot_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_title_load_slot.py")
     # Original 19464 title menu: CINE00 replay is real; 7B94 load
     # remains visibly unavailable until source-correct whole SAVE.
     # Alpha scope ends at FIRST Level22 gameplay scene, not Level23.
