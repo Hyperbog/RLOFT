@@ -13,6 +13,7 @@
 #include "rloft_native/native_palette_context.hpp"
 #include "rloft_native/native_win32_exploration.hpp"
 #include "rloft_native/native_win32_gpu_exploration.hpp"
+#include "rloft/boot_flow.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -146,6 +147,8 @@ struct State {
     std::string browsed_archive{"RES0"};
     std::size_t browsed_record{};
     std::unique_ptr<NativeMedia> media;
+    rloft::BootFlow boot_flow;
+    bool boot_route_ready{};
     NativeAssetReport audit;
     NativePalette6 palette;
     bool has_palette{};
@@ -221,9 +224,31 @@ void install(State& state,const fs::path& path) {
         } else {
             cursor_info = L"Native EH type-1 cursor preview requires valid COLORS.";
         }
+        // Use the exact original CODE.2 supervisor route from the neutral
+        // Shared/BootFlow module. This classifies source startup intent;
+        // it DOES NOT import CHARS, run the movies, or enter gameplay.
+        rloft::BootFlow resolved_boot;
+        const bool boot_resources=media->contains("CODE.1") &&
+            media->contains("CODE.2") && media->contains("INIT");
+        std::wstring startup_info;
+        if(boot_resources) {
+            resolved_boot.boot();
+            const bool chars_present=media->contains("CHARS");
+            resolved_boot.finish_code2_startup(chars_present,false);
+            startup_info=L"Original supervisor: "+unicode(
+                rloft::to_string(resolved_boot.snapshot().stage))+
+                L" (source CHARS "+(chars_present?std::wstring(L"present"):
+                std::wstring(L"absent"))+L").\\r\\n"+
+                L"Shared boot routing is wired; CODE.1/ANM GUI and party import remain pending.";
+        } else {
+            startup_info=L"Original supervisor unavailable: CODE.1/CODE.2/INIT required.";
+        }
         // Commit the source and image only after the reader + audit succeeds.
         const auto output = format_report(*media, report) +
-                            L"\r\n" + cursor_info + L"\r\n";
+                            L"\r\n" + cursor_info + L"\r\n" +
+                            startup_info + L"\r\n";
+        state.boot_flow=std::move(resolved_boot);
+        state.boot_route_ready=boot_resources;
         state.media=std::move(media);
         state.audit=std::move(report);
         state.palette=palette;
@@ -243,6 +268,8 @@ void install(State& state,const fs::path& path) {
         state.status=output;
     } catch(const std::exception& error) {
         // Do not show another install's palette after a failed selection.
+        state.boot_flow=rloft::BootFlow{};
+        state.boot_route_ready=false;
         state.media.reset();
         state.has_palette=false;
         state.cursor=NativeCursorPreview{};
