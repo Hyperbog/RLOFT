@@ -5,6 +5,19 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Part 17 — original title Load Game source oracle (2026-10-13)
+
+[Private CODE.2 07B94 selector verification and remaining full-save blocker](PART17_ALPHA_TITLE_LOAD_SLOT_ORACLE_20261013.md).
+An additional source-only CTest now protects the original Load Game
+slot geometry and prevents the unfinished native action from falsely
+claiming a loaded campaign. Against the supplied private SHA-pinned
+`CODE.2`, the original-byte oracle passed **14 instruction windows,
+8 source-relative calls and 7 fixed DGROUP strings**. The original
+`SAVE01..SAVE10` load first copies a complete slot directory into
+`WORK` before the shared global/level loader; `SAVE.DAT` alone is
+not a sufficient saved game. This checkpoint does not implement the
+modal or SAVE/LEV restoration, test Windows gameplay, or advance Alpha.
+
 ## Part 17 — exploration preload first-blocker trace (2026-10-13)
 
 [Source and instrumentation boundary](PART17_ALPHA_EXPLORATION_PRELOAD_TRACE_20261013.md).
