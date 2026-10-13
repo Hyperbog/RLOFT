@@ -238,7 +238,7 @@ void install(State& state,const fs::path& path) {
             startup_info=L"Original supervisor: "+unicode(
                 rloft::to_string(resolved_boot.snapshot().stage))+
                 L" (source CHARS "+(chars_present?std::wstring(L"present"):
-                std::wstring(L"absent"))+L").\\r\\n"+
+                std::wstring(L"absent"))+L").\r\n"+
                 L"Shared boot routing is wired; CODE.1/ANM GUI and party import remain pending.";
         } else {
             startup_info=L"Original supervisor unavailable: CODE.1/CODE.2/INIT required.";
