@@ -41,6 +41,7 @@ struct Preview {
     std::size_t outside_rays{};
     bool last_step_blocked{};
     bool mouse_look{};
+    bool show_full_frame{};
 
     explicit Preview(NativeWorldPayload original,const NativeMedia& media)
         :world(std::move(original)),
@@ -83,7 +84,7 @@ struct Preview {
         candidate.column_position=double(best_x)+0.5;
         candidate.row_position=double(best_y)+0.5;
         candidate.heading_radians=-kPi/2;
-        candidate.field_of_view_radians=kPi/3;
+        candidate.field_of_view_radians=kPi/2; // host physical-aspect horizontal FOV
         // Verify the new pose and framebuffer before changing the
         // currently displayed level; bad source files fail closed.
         const auto view=trace_native_probe_view(world,candidate,kRayWidth,256);
@@ -145,6 +146,7 @@ std::wstring label(const Preview& state) {
            std::to_wstring(state.wall_hits) + L"/320  |  RES4 texels " +
            std::to_wstring(state.last_source_texels) +
            (state.mouse_look?L"  |  MOUSE LOOK ON":L"  |  KEYBOARD LOOK") +
+           (state.show_full_frame?L"  |  FULL DOS FRAME":L"  |  VIEW ONLY") +
            (state.last_step_blocked?L"  |  BLOCKED":L"");
 }
 
@@ -169,10 +171,14 @@ void paint(HWND window,const Preview& state,HDC dc) {
     // CODE.2 320x400 VGA is displayed in a 640x400 DOS-shaped
     // presentation: source pixels are twice as wide. Alpha 0.8 used
     // 320x400 square host pixels, distorting the original view.
-    const double scale=std::min(double(available_width)/(kWidth*kDosPixelAspect),
-                                double(available_height)/kHeight);
-    const int w=std::max(1,int(kWidth*kDosPixelAspect*scale));
-    const int h=std::max(1,int(kHeight*scale));
+    const int source_w=state.show_full_frame?int(kWidth):256;
+    const int source_h=state.show_full_frame?int(kHeight):256;
+    const int source_x=state.show_full_frame?0:32;
+    const int source_y=state.show_full_frame?0:4;
+    const double scale=std::min(double(available_width)/(source_w*kDosPixelAspect),
+                                double(available_height)/source_h);
+    const int w=std::max(1,int(source_w*kDosPixelAspect*scale));
+    const int h=std::max(1,int(source_h*scale));
     const int left=(int(bounds.right)-w)/2;
     const int top=78+(available_height-h)/2;
     if(state.pixels_bgra.size()==std::size_t(kWidth)*kHeight*4U) {
@@ -184,7 +190,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
         info.bmiHeader.biBitCount=32;
         info.bmiHeader.biCompression=BI_RGB;
         SetStretchBltMode(dc,COLORONCOLOR);
-        StretchDIBits(dc,left,top,w,h,0,0,kWidth,kHeight,
+        StretchDIBits(dc,left,top,w,h,source_x,source_y,source_w,source_h,
                       state.pixels_bgra.data(),&info,DIB_RGB_COLORS,SRCCOPY);
     }
     SetTextColor(dc,RGB(219,229,239));
@@ -195,7 +201,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
     RECT controls{20,bounds.bottom-65,bounds.right-20,bounds.bottom-12};
     DrawTextW(dc,
       L"W/S = forward/back    A/D = strafe    Q/E = turn left/right\n"
-      L"M = toggle mouse-look (capture ON/OFF)   PageUp/Down = level\n"
+      L"M/right-click = mouse-look   V = viewport/full frame   PgUp/Dn = level\n"
       L"R = respawn    Esc = close    Read-only source; host camera not DOS.",
       -1,&controls,DT_WORDBREAK);
 }
@@ -251,8 +257,7 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         InvalidateRect(hwnd,nullptr,FALSE);
         return 0;
     case WM_MOUSEMOVE:
-        if(state->mouse_look && GetFocus()==hwnd &&
-           GetForegroundWindow()==hwnd) {
+        if(state->mouse_look && GetFocus()==hwnd) {
             const auto center=mouse_anchor(hwnd);
             const int x=static_cast<short>(LOWORD(lp));
             const int y=static_cast<short>(HIWORD(lp));
@@ -276,6 +281,15 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         return 0;
     case WM_LBUTTONDOWN:
         SetFocus(hwnd);
+        return 0;
+    case WM_RBUTTONDOWN:
+        SetFocus(hwnd);
+        try {set_mouse_look(hwnd,*state,!state->mouse_look);}
+        catch(const std::exception&) {
+            MessageBoxW(hwnd,L"Mouse capture is unavailable.",
+                L"Optional mouse-look",MB_OK|MB_ICONWARNING);
+        }
+        InvalidateRect(hwnd,nullptr,FALSE);
         return 0;
     case WM_KILLFOCUS:
         if(state->mouse_look) {
@@ -303,6 +317,7 @@ LRESULT CALLBACK preview_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 state->choose_level((state->camera.level+1U)%32U);break;
             case VK_NEXT:
                 state->choose_level((state->camera.level+31U)%32U);break;
+            case 'V':state->show_full_frame=!state->show_full_frame;break;
             case 'R':state->choose_level(state->camera.level);break;
             case VK_ESCAPE:DestroyWindow(hwnd);return 0;
             default:consumed=false;break;
