@@ -332,7 +332,7 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-NEW P0 CODE.1 LEDGER BENCHMARK — WINDOWS #59 BUILD/SYNTHETIC PASS:
+NEW P0 CODE.1 LEDGER BENCHMARK — WINDOWS #60 BUILD/PACKAGE/SYNTHETIC PASS:
 - The 28 original-source outer-MZ instruction comparisons are too
   narrow to measure code/data separation. A separate completed
   CODE.1 decompilation branch has original LE object-1 evidence:
@@ -368,6 +368,19 @@ NEW P0 CODE.1 LEDGER BENCHMARK — WINDOWS #59 BUILD/SYNTHETIC PASS:
   bytes, SHA256
   6e1663fbae60ba0b051d8fd50c8e13272ecab3b7b1e041cf787e7b2f9d561c71.
   https://github.com/Hyperbog/RLOFT/actions/runs/38342771655/artifacts/11787113883
+- Follow-on automatic Windows #60 / 38343078919 SUCCESS
+  for compiled app/test/workflow SHA
+  e97b85e8e538eb1445563776b0d3876de8493dc5.
+  The CI publish step asserted that the benchmark manifest
+  ACTUALLY SHIPPED in desktop dist/benchmarks and matched
+  all 282 ranges / 69361 translated / 1041 excluded /
+  70402 object bytes. All 3 release .NET builds reported
+  0 warnings/errors and both C# suites PASS. Single Windows
+  WPF artifact ID 11787004768, ZIP 66931509 bytes, SHA256
+  c214c3a1ed9b1e41bf433a54901b5453d745da0f3cb6c605897f29fd0676613f.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38343078919/artifacts/11787004768
+  #60 supersedes #59 as the latest distributed preview;
+  no original-file actual benchmark or new ISA accuracy claim.
 - IMPORTANT: first ACTUAL original CODE.1 score NOT YET RUN;
   precision/recall, independent instruction start/length oracle,
   runtime trace and real WPF interaction still PENDING.
