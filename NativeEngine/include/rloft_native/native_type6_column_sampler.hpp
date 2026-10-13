@@ -22,6 +22,9 @@ struct NativeType6ProjectedColumn {
     std::uint8_t palette_index_subtraction{};
     unsigned active_400_line_page{};    // 0 or 1, 0x8000 bytes apart
     unsigned working_region_top_row{}; // 256-line region in 0..399
+    // Host-only optional mouse-look offset. 0 retains exact original
+    // 338C8 sampler placement; nonzero shifts/clips inside same region.
+    int host_pitch_pixels{};
 };
 
 struct NativeType6ColumnDraw {
