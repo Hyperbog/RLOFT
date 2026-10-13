@@ -52,6 +52,21 @@ if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) {
 # Each test gets an isolated root; never reuse, overwrite or delete
 # original installation paths. /XJ prevents directory junction traversal.
 $workspaceRoot = Join-Path $env:TEMP 'RLOFT-Alpha-Field'
+# Reject selecting the scratch root or any of its ancestors, including
+# an entire drive; otherwise copying source->child can recursively
+# copy the new temporary folder into itself or copy huge private data.
+$sourcePrefix = [System.IO.Path]::GetFullPath($original).TrimEnd('\\') + '\\'
+$workspacePath = [System.IO.Path]::GetFullPath($workspaceRoot).TrimEnd('\\')
+if ($workspacePath.StartsWith($sourcePrefix, [StringComparison]::OrdinalIgnoreCase) -or
+    $sourcePrefix.StartsWith($workspacePath + '\\', [StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Alpha 'The selected folder overlaps the Alpha temporary workspace.'
+}
+# Filesystem links/junctions could make the original media escape the
+# selected tree. Do not follow any such links into the sandbox.
+$linked = @(Get-ChildItem -LiteralPath $original -Force -Recurse -Attributes ReparsePoint -ErrorAction Stop | Select-Object -First 1)
+if ($linked.Count -ne 0) {
+    Fail-Alpha 'The original installation contains a reparse point; choose a regular copied directory.'
+}
 $runId = [Guid]::NewGuid().ToString('N')
 $scratch = Join-Path $workspaceRoot $runId
 [void](New-Item -ItemType Directory -Path $scratch -Force)

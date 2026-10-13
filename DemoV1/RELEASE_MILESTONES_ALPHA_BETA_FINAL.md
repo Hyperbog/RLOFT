@@ -140,6 +140,9 @@ coverage and separate artifact staging. A genuine Win32 field session
 and DOS original-versus-native acceptance still need independent
 evidence. The sandbox must be manually removed after testing, and
 locally created diagnostic reports can include character names.
+The launcher rejects selecting the temporary root or an ancestor
+and refuses directory reparse points to prevent recursive copying
+or accidental access beyond the selected original media tree.
 
 ## Immediate execution order (no arbitrary calendar dates)
 

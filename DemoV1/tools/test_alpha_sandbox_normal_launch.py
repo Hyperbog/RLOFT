@@ -27,6 +27,9 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         "[Guid]::NewGuid().ToString('N')",
         "$workspaceRoot = Join-Path $env:TEMP 'RLOFT-Alpha-Field'",
         "$scratch = Join-Path $workspaceRoot $runId",
+        "The selected folder overlaps the Alpha temporary workspace.",
+        "ReparsePoint",
+
         "& robocopy.exe $original $scratch /E /XJ",
         "if ($copyStatus -ge 8)",
         "Get-ChildItem -LiteralPath $scratch -Filter 'CHARS'",
@@ -57,7 +60,9 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         raise ValueError("Alpha field runner must pass the sandbox, not choose original")
     if "--explore-level22" in ps.split("$argv = ",1)[1].split("\n",1)[0]:
         raise ValueError("Alpha runner still warps directly to level")
-    if re.search(r"(?im)^\s*(&|Start-Process).*\$original", ps):
+    # robocopy is intentionally an executable that READS $original.
+    # Only reject a native game launch that names the user's source.
+    if re.search(r"(?im)^\s*Start-Process\s+-FilePath\s+\$original(?:\s|$)", ps):
         raise ValueError("native executable executes on original installation")
     for label in (
         "Test-Alpha-Continuous-Game.cmd",
