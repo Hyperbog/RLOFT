@@ -219,6 +219,8 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/BootFlow"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-boot")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/CharacterCreation"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-character")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/StartupPresentation"
+                 "${CMAKE_CURRENT_BINARY_DIR}/shared-startup-presentation")
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
@@ -385,14 +387,13 @@ add_library(rloft_boot_flow
     src/surface_sintab_main_executor.cpp
     src/game_source.cpp
     src/resource_assets.cpp
-    src/startup_presenter.cpp
     src/indexed_font_presenter.cpp
     src/sound_config.cpp
     src/voc_decoder.cpp
     src/xmidi.cpp
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
-target_link_libraries(rloft_boot_flow PUBLIC rloft_shared_boot rloft_shared_character_creation)
+target_link_libraries(rloft_boot_flow PUBLIC rloft_shared_boot rloft_shared_character_creation rloft_shared_startup_presentation)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
 # MSBuild's /m parallelizes projects, but the main static library is one
 # large project containing most game sources. Allow two cl.exe processes
