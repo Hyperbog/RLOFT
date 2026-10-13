@@ -41,7 +41,7 @@ void advance_indicator(int& value, int& step) {
 }  // namespace
 
 CharacterCreationPresenter::CharacterCreationPresenter(
-    const RavenloftBootAssets& assets)
+    const CharacterVisualSource& assets)
     : assets_(assets),
       remaps_(
           CharacterPaletteRemaps::build(
