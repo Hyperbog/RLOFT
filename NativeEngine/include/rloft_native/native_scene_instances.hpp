@@ -64,4 +64,16 @@ native_marked_scene_instance_candidates(
     const NativeAuthoredSceneDirectory& directory,
     unsigned level, std::size_t limit);
 
+// Visibility for native session-only automap, which is not the original
+// CODE.2 mutable-cell 0x0040 raster scheduler. Filter authentic placements
+// against only already discovered cells, in original compact-record order.
+// Returns metadata for *diagnostic map markers*, not real projected EH7
+// sprites, actors, activation states, or a verified DOS visibility rule.
+[[nodiscard]] std::vector<NativeAuthoredSceneInstance>
+native_explored_scene_instance_candidates(
+    const NativeWorldRuntime& runtime,
+    const NativeAuthoredSceneDirectory& directory,
+    unsigned level, const std::vector<std::uint8_t>& discovered,
+    std::size_t limit);
+
 } // namespace rloft_native
