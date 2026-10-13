@@ -76,7 +76,8 @@ int main() {
         assert(sprite.count==1&&sprite.width==8&&sprite.height==1);
         assert(sprite.pixels.front()==104U);
         assert(images.colors_palette(14).rgb.front()==14U);
-        assert(images.type1(7,104).pixels.front()==104U);
+        const rloft::CharacterVisualSource& neutral=images;
+        assert(neutral.type1(7,104).pixels.front()==104U);
         assert(images.type1(8,2).pixels.front()==2U);
         assert(images.type1(1,3).pixels.front()==3U);
         assert(images.code1_u8(0x4B8U)==0x78U);
