@@ -545,6 +545,21 @@ struct State {
         glVertex2i(std::min(width,1200),height);glVertex2i(0,height);
         glEnd();
         glDisable(GL_BLEND);
+        // Keep authentic-source inspection readable independently of the
+        // HUD/help panel height and current outdoor backdrop brightness.
+        if(party&&!inspected_source.empty()) {
+            const int top=std::max(0,height-box_height-70);
+            const int bottom=std::max(0,height-box_height-1);
+            glEnable(GL_BLEND);
+            glColor4f(.045f,.065f,.085f,.90f);
+            glBegin(GL_QUADS);
+            glVertex2i(0,top);
+            glVertex2i(std::min(width,1200),top);
+            glVertex2i(std::min(width,1200),bottom);
+            glVertex2i(0,bottom);
+            glEnd();
+            glDisable(GL_BLEND);
+        }
         constexpr const char* modes[]{"Native","HD 720p","Full HD 1080p","QHD 1440p","4K UHD"};
         const auto* mode=modes[resolution_index];
         const std::string resolution=std::to_string(render_target.width())+"x"+
@@ -579,9 +594,9 @@ struct State {
                 "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
         if(party&&!inspected_source.empty()) {
-            line(12,height-box_height-32,inspected_source);
+            line(12,height-box_height-45,inspected_source);
             if(!inspected_shape.empty())
-                line(12,height-box_height-11,inspected_shape);
+                line(12,height-box_height-20,inspected_shape);
         }
         glMatrixMode(GL_PROJECTION);glPopMatrix();
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
