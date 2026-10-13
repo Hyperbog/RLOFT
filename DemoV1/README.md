@@ -16,9 +16,12 @@ The early trace pointer is detached on exceptions and ordinary launches
 without `--dev-trace` remain non-instrumented. A source-only regression
 guards the ordering and seven deliberate negative mutations. The isolated
 field runner reports only the last whitelisted initialization checkpoint
-rather than printing potentially private raw input events. **This is
-not a verified current-HEAD Windows build, a played Level22 frame, or
-original DOS parity; the release remains Pre-Alpha.**
+rather than printing potentially private raw input events. The same
+opt-in trace now distinguishes **first gameplay frame build, raster, and
+host submission** using one-shot stage IDs; `present.submitted` is not
+proof of a correctly displayed frame. **This is not a verified
+current-HEAD Windows field test or original DOS parity; the release
+remains Pre-Alpha.**
 
 ## Alpha → Beta → Final: release acceptance (2026-10-12)
 
