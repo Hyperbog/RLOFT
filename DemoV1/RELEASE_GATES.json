@@ -6,11 +6,11 @@
   "current_classification": "pre-alpha",
   "current_distribution": "original-intro and character-creation preview only",
   "observed_windows_ci": {
-    "run_number": 667,
-    "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38340609115",
-    "source_sha": "11d1df416ea41a46b40ed55cb40f89e7c95ac636",
-    "ctests_passed": 250,
-    "ctests_total": 250,
+    "run_number": 676,
+    "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38346121349",
+    "source_sha": "b17871c9ac2350afd0c4667de78a2aca059a5bad",
+    "ctests_passed": 257,
+    "ctests_total": 257,
     "qualifies_as_original_dos_parity": false
   },
   "evidence_types": [
@@ -24,13 +24,13 @@
   "stages": [
     {
       "id": "alpha",
-      "label": "Internal continuous-original-game acceptance",
-      "scope": "One real continuously playable normal launch through all authored Level 22 systems and its genuine frame-20 Level23 loader boundary; not a standalone Level22 product.",
+      "label": "Original startup and first playable level",
+      "scope": "The real original game's opening sequence through the first controllable Level 22 gameplay scene. Later levels and the complete first-level quest are not Alpha requirements.",
       "gates": [
         {
-          "id": "ALPHA-BOOT",
-          "name": "Original cold start, menus and character creation",
-          "pass_when": "CINE/title and every original menu choice function or clearly documented source-exact unavailable behavior; CODE.1 creation naturally reaches CODE.2 gameplay via CHARS.",
+          "id": "ALPHA-CINEMATIC",
+          "name": "Original intro cinematics",
+          "pass_when": "On a true CHARS-absent normal launch, original CINE00 and CINE12 both play with authentic visual frames, palette, synchronized sound, source-defined pacing and Esc handling; replaying menu item 0 plays CINE00 and returns to the title.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -38,13 +38,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Unimplemented menu options 0/1, incomplete normal startup field verification."
+            "Cinematic frame/audio/skip replay paths have no accepted actual-Windows and original-DOS comparative session."
           ]
         },
         {
-          "id": "ALPHA-PARTY",
-          "name": "CHARS handoff and original existing-party start",
-          "pass_when": "New and existing party paths preserve exact 0x920 CHARS, actor/equipment bytes, supervisor ordering and party world initialization in ordinary launch.",
+          "id": "ALPHA-SPLASH",
+          "name": "Original splash screens and logos",
+          "pass_when": "After the source-ordered cinematics, all DreamForge/SSI/splash/title splash frames, palettes, fades, delay stages and skip transitions appear in the actual normal game in the correct original sequence.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -52,13 +52,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Disk handoff passes Windows regression but has not been field-/DOS-compared."
+            "Original cold-start logo/title palette and timing sequence has not passed owner normal-path or DOS visual comparisons."
           ]
         },
         {
-          "id": "ALPHA-VIEW",
-          "name": "Initial and traversed Level22 3D/HUD VGA",
-          "pass_when": "Correct original palette, scene geometry, floor/ceiling, walls, sprites, occlusion and UI under ordinary play including source depth-dependent FF50.",
+          "id": "ALPHA-TITLE",
+          "name": "Working animated original title screen",
+          "pass_when": "The reconstructed original title background, menu animation, hit regions, hover highlights, cursor resources and keyboard/mouse selections operate correctly during normal cold-start play.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -66,13 +66,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Source depth/FF50/ES writes and full DOS indexed-frame comparison remain unaccepted."
+            "Title animation and input selection have not been validated against actual original DOS and user Windows interactions."
           ]
         },
         {
-          "id": "ALPHA-INPUT",
-          "name": "Movement, collisions, interaction and clocks",
-          "pass_when": "Original keyboard/mouse and IRQ cadence drive movement, collision, doors, automap, pickups and menu hitboxes from normal startup.",
+          "id": "ALPHA-MENU",
+          "name": "All original title menu actions",
+          "pass_when": "Original menu action 0 replays the intro, action 1 opens and completes authentic Load Game semantics, action 2 enters character creation, and action 3 exits; each has source-authentic redraw, cancel and return behavior.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -80,13 +80,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Win32 scan stream not source-proven bridged to F590/F572 original IRQ."
+            "Original menu action 1 calls 7B94 full SAVE selector, currently unimplemented; menu action 0 redraw parity also pending."
           ]
         },
         {
-          "id": "ALPHA-COMBAT",
-          "name": "Level22 combat, NPC reaction and AI",
-          "pass_when": "Player combat, original Assassin behavior/death and four authored drops work in ordinary game path with original dice, order, state and timing.",
+          "id": "ALPHA-CHARACTER",
+          "name": "Complete original character-creation workflow",
+          "pass_when": "Normal menu selection 2 enters CODE.1 and both actors can complete original sex, race, class, stats, portrait, names, confirmation, edits and cancellation with accurate UI and input; no debug bypass.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -94,13 +94,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original full combat/AI/cadence interaction remains unaccepted."
+            "CODE.1 opening presentation and every stage/cancel/actor boundary lack accepted full normal-path Windows/DOS field runs."
           ]
         },
         {
-          "id": "ALPHA-ITEMS",
-          "name": "Inventory and essential spell/rest controls",
-          "pass_when": "Normal Level22 game includes source-correct pickup, cursor, equipment, usable items, menus and source-available essential spell/rest functions without dev actions.",
+          "id": "ALPHA-CHARS",
+          "name": "New-party and existing-party startup transfer",
+          "pass_when": "The completed original 0x920-byte CHARS file is committed only on normal creation, reread from disk by CODE.2 after original supervisor dispatch, and enters the existing-party import without altering source installation/saves.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -108,13 +108,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Unfinished original item use, spells, rest and overlay actions."
+            "Disk handoff has source and CTest evidence but new/existing party startup paths have not passed matched DOS field acceptance."
           ]
         },
         {
-          "id": "ALPHA-MIST",
-          "name": "All-relic Level22 story and original exit",
-          "pass_when": "Original four-relic predicate and quest action play the 22-frame mist sequence and frame-20 level-23 load with persistent party/world state.",
+          "id": "ALPHA-LEVEL22",
+          "name": "First original playable level is rendered",
+          "pass_when": "Normal new-party startup reaches original Level 22 starting coordinates without warp; the initial authentic 3D walls, ground, characters, HUD, palette and audio draw successfully without crashes or obvious compositing defects.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -122,13 +122,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Story mist and original frame-20 live event/transition unaccepted."
+            "First true normal-play Level22 frame and DOS indexed-frame/texture/ES/VGA provenance remain unaccepted."
           ]
         },
         {
-          "id": "ALPHA-AUDIO",
-          "name": "Original initial audio/video chronology",
-          "pass_when": "CINEx, original title/game music, effects, palette fades and milestone-specific pacing match DOS for the accepted route.",
+          "id": "ALPHA-PLAY",
+          "name": "Basic first-level gameplay responds correctly",
+          "pass_when": "Inside the first level, keyboard/mouse movement, turning, collision, first interactions, UI menus and world/party continuity work on the normal route with usable timing and no synthetic replacement gameplay.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -136,13 +136,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Original source audio, presentation and timing comparison incomplete."
+            "Win32 input-to-original IRQ provenance, collision and initial interaction require live normal-path field testing."
           ]
         },
         {
           "id": "ALPHA-BUILD",
-          "name": "Reproducible exact-source full Windows CI",
-          "pass_when": "On the Alpha candidate SHA, clean Full Windows compile, all CTests, recorded EXE hash and original-free artifact succeed with no test skips affecting accepted path.",
+          "name": "Reproducible Windows opening-sequence candidate",
+          "pass_when": "An exact-SHA Full Windows build and every registered CTest pass, and a locally original-data-backed cold-start package runs the real game without developer warp or unauthorized copyrighted media distribution.",
           "requires": [
             "windows_ci",
             "package_audit"
@@ -150,13 +150,13 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "Historical Full #667 passes, but no accepted Alpha candidate SHA/field run exists."
+            "There is no accepted Alpha candidate tied to a complete player field walkthrough and media/packaging audit."
           ]
         },
         {
           "id": "ALPHA-FIELD",
-          "name": "Owner field and independent DOS acceptance",
-          "pass_when": "Owner accepts a protected-copy normal Windows play session and matched original DOS state/frames/ticks for the entire Alpha route.",
+          "name": "Owner acceptance of intro-to-first-level Alpha",
+          "pass_when": "Owner accepts a repeatable protected-copy Windows run and comparative original DOS evidence covering cinematics, splash, title menu, character creation, CHARS handoff and the first controllable Level22 scene.",
           "requires": [
             "native_field",
             "dos_comparison",
@@ -165,7 +165,7 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "No accepted normal-route, original-DOS comparative Level22 field session."
+            "A matched ordinary cold-start Windows and original DOS opening-to-first-level walkthrough has not been accepted."
           ]
         }
       ]
@@ -173,7 +173,7 @@
     {
       "id": "beta",
       "label": "Complete original campaign playable",
-      "scope": "The same Alpha engine runs all original authored story routes from startup to real ending, including save/load. Remaining fidelity differences explicitly tracked and non-blocking.",
+      "scope": "After the accepted startup/first Level22 scene, the same engine completes the entire original Level22 quest, mist handoff into Level23 and all original campaign routes through the real ending with save/load.",
       "gates": [
         {
           "id": "BETA-CAMPAIGN",
@@ -192,7 +192,7 @@
         {
           "id": "BETA-WORLD",
           "name": "All original levels and transitions",
-          "pass_when": "All relevant authored level records/cells, gates, objects, script events, world changes and returns from original data work in story order.",
+          "pass_when": "All original levels and authored transitions function in story order, including full Level22 encounter/relic progression, original 22-frame mist and frame-20 Level23 handoff; world objects and scripts persist.",
           "requires": [
             "native_field",
             "dos_comparison"
@@ -200,7 +200,7 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "General level loader does not establish source event-driven exits or campaign completion."
+            "Full Level22 Assassin/relic/mist gameplay and later authored level transitions remain unaccepted; they are Beta campaign requirements, not Alpha boot requirements."
           ]
         },
         {

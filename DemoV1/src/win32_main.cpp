@@ -2768,13 +2768,44 @@ int run(HINSTANCE instance) {
 
         if (const auto click = host.consume_click()) {
             flow.select_startup_menu(*click);
-            // In the opt-in showcase only, make unimplemented menu items
-            // explicitly visible rather than appear to accept empty input.
-            if (options.front_end_only && (*click == 0 || *click == 1)) {
+            // CODE.2 19464 switch/current=0 -> 194B5 calls
+            // 13EF8(event=0), restores the title/menu surface, resets
+            // the hovered choice and returns to the original menu loop.
+            // Replay the real CINE00.ANM; no fabricated slides or skip
+            // straight into Level 22. Other original modal/page effects
+            // (20294/325B0/322EC) still need DOS display parity.
+            if (*click == 0) {
+                host.set_menu_mode(false);
+                rloft::AnmCinematic replay(
+                    assets.source().read("CINE00.ANM"), 0, assets);
+                const auto result = play_cinematic(
+                    host, replay, assets, audio_player, midi_player);
+                audio_player.stop_all();
+                midi_player.stop();
+                if (result == CinematicResult::Quit) return 0;
+
+                // Restore the CODE.2 menu palette and cursor on both
+                // ordinary and Esc-aborted replay paths.
+                host.set_game_cursor(menu_cursor);
+                presenter.menu_frame(-1);
+                host.present(presenter.framebuffer(), palette12);
+                drawn_selection = -1;
+                host.set_menu_mode(true);
+                continue;
+            }
+
+            // CODE.2 19464 entry 1 calls original 7B94 load-game
+            // selection. Native full-world SAVE restore and its modal
+            // effects are NOT reconstructed. Reject transparently on
+            // ALL launch paths instead of treating the click as a
+            // successful no-op, or starting gameplay with fake state.
+            if (*click == 1) {
                 MessageBoxW(host.hwnd(),
-                    L"This original menu option is not yet implemented.\n"
-                    L"Character Creation is available.",
-                    L"Ravenloft title menu integration pending",
+                    L"Original Load Game is not yet available.\n"
+                    L"The saved-party and world-state loader is still\n"
+                    L"being reconstructed.\n\n"
+                    L"Character Creation remains available.",
+                    L"Ravenloft - Load Game not yet implemented",
                     MB_OK | MB_ICONINFORMATION);
                 continue;
             }

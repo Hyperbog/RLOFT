@@ -9,14 +9,13 @@ The retired standalone Level22 developer preview and separate
 original-game Alpha. Modernization remains prohibited until Final fidelity
 acceptance. No target calendar date is promised or inferred from test count.
 
-## Source/build evidence baseline (2026-10-12 ET)
+## Source/build evidence baseline (updated 2026-10-13 ET)
 
-- Most recent verified exact-checkout Full Windows:
-  [#667](https://github.com/Hyperbog/RLOFT/actions/runs/38340609115),
-  source `11d1df416ea41a46b40ed55cb40f89e7c95ac636`,
-  **250/250 CTests passed**. Subsequent committed EXE refresh
-  `fabca2bf` has no gameplay source change. This is an engineering
-  regression achievement, NOT original-DOS or normal-gameplay acceptance.
+- Latest verified exact-checkout Full Windows:
+  [#676](https://github.com/Hyperbog/RLOFT/actions/runs/38346121349),
+  source `b17871c9ac2350afd0c4667de78a2aca059a5bad`,
+  **257/257 CTests passed**. This is automated build evidence,
+  not the original-game opening field acceptance.
 - Player-facing artifact remains
   `Ravenloft-Original-Intro-Windows-x64` with
   `Play-Original-Intro.cmd` read-only startup showcase.
@@ -49,52 +48,73 @@ checks **presence, structure and ordering**, not the authenticity
 of external evidence: release acceptance requires manual review of
 each record. Release state cannot be advanced by changing a label.
 
-## ALPHA — internal continuous Level22 acceptance, NOT standalone release
+## ALPHA — the opening sequence and first playable Level 22 scene
 
-The complete normal path must function: original cinematics/title
-and all supported menu actions → CODE.1 or existing-party CHARS
-→ CODE.2 world → authentic initial Level22 viewpoint and HUD →
-movement/collision/input/events → original combat/NPC and four
-Assassin drops → inventory/relic/puzzles → 22-frame mist ending
-→ original `181B4(23)` frame-20 destination entry, preserving state.
+**Alpha is NOT an entire level or the game ending.** The first internal
+Alpha is the authentic cold-start pipeline and the **first controllable**
+original level. Work in this source-order (the original starts with
+CINE00/CINE12, then DreamForge/SSI/logo stages; do not reorder
+presentation simply because splash and intro are discussed together):
 
-**Pass criteria:** every ten `ALPHA-*` gate in the manifest,
-a reproducible full Windows candidate build, player/owner
-field trace on a protected original-install copy and independent
-original-DOS differential checks for the path, with no developer
-warps, fabricated SAVE party, arbitrary level IDs or source
-unknowns disguised as finished gameplay. Source analysis of
-the Level23 *entry boundary* is permitted for Level22's ending;
-independent Level23 campaign feature work starts only after
-Alpha's Level22 completion gate.
+1. Play real `CINE00.ANM` and `CINE12.ANM`, including source-audited
+   timing, sound, skip/quit and return behavior.
+2. Display all original splash/logo/title frames, original palettes,
+   music, animation and fades in correct sequence.
+3. Make the animated title screen and **all four original menu actions**
+   work: replay intro (index 0), original Load Game (1), CODE.1
+   character creation (2), Quit (3). Incomplete actions are displayed
+   as unavailable, **not** silently ignored or faked.
+4. Recreate complete two-actor CODE.1 creation UI, choices, stats,
+   names, portraits, cancel/edit/confirm and music.
+5. Write original CHARS only on normal creation, return through R.EXE
+   CODE.1→CODE.2 supervisor status 10, and reread original 0x920
+   bytes from disk before existing-party import.
+6. Render the **first Level 22 scene** in normal gameplay using
+   original textures, palette, HUD and characters; enable basic
+   movement, rotation, collision, UI and initial interactions.
 
-**Deliverable after acceptance:** versioned internal
-`Ravenloft-Alpha` candidate with manifest, protected-install
-instructions and identified original-media version. Do not
-rename the intro showcase or old Level22 preview “Alpha.”
+**Alpha acceptance:** all ten `ALPHA-*` gates in the
+[ledger](RELEASE_GATES.json), a clean reproducible exact-source
+Windows build, no developer warp/synthetic party, a protected-copy
+user field test of the real opening→first game scene, and matched
+original-DOS captures for the corresponding frames/inputs. Existing
+CHARS legitimately skips the cold-start intro in source CODE.2;
+test both fresh and returning party without falsifying that rule.
 
-## BETA — complete original campaign functional
+**Explicitly NOT an Alpha requirement:** the entire Level22 Assassin
+fight, four relic pickups, complete puzzles/quest, full spell system,
+22-frame mist scene, destination Level23, full world SAVE/LOAD and
+the ending. Those belong to **Beta's whole-game campaign**, and
+source-only audits of them are not Alpha acceptance evidence.
+Prioritize boot/title/creation/first-scene defects over more
+isolated Level23 or advanced VGA research.
 
-The same runtime follows **every gameplay-required original
-level/quest route** from the real title to the actual original
-ending without fake story transitions, developer keys or per-level
-mock programs. All original game systems needed for the
-campaign operate across levels: complete UI/menus, original
-combat/enemy AI, magic and spell preparation, object/equipment
-rules, levels/doors/portals/events, authored cinematics, sound,
-clock/IRQ and compatible full-world SAVE/LOAD and reentry.
+**Deliverable after acceptance:** a versioned internal
+`Ravenloft-Alpha` that starts the original game correctly and lets
+a new party enter and operate in Level22. The read-only intro
+showcase and old Level22 warp artifact are not Alpha.
 
-**Pass criteria:** all ten `BETA-*` gates and all Alpha
-gates remain accepted at the Beta candidate source revision.
-Whole-game normal-play field session(s), sampled independent
-DOS comparison and no known campaign-blocking or
-save-corrupting defects. Remaining non-blocking DOS fidelity
-differences must have explicit repro, source address, impact
-and tracked ownership. No game-facing modernization.
+## BETA — complete original campaign playable
 
-**Deliverable after acceptance:** Beta build with all-game
-reproduction instructions, regression package and honest
-known-differences report.
+Only after a working Alpha, complete the entire first level
+(encounter, inventory/relic flow, scripted triggers, mist
+transition and original Level23 entry), then every subsequent
+authored level and required original story route to the real
+ending. Preserve the real two-code-module startup and original
+SAVE/LOAD behavior across the campaign. Complete combat/AI,
+spell preparation and effects, equipment, world events and
+audio/graphics in the same engine; never ship disconnected
+per-level prototypes.
+
+**Beta acceptance:** all ten `BETA-*` gates and the Alpha
+opening-sequence gates remain accepted at the Beta source SHA.
+A protected-copy campaign playthrough with independent
+DOS comparison, full-world SAVE/LOAD and no campaign-blocking
+or save-corrupting defects is required. Remaining non-blocking
+DOS mismatches must be documented, reproducible and prioritized.
+
+**Deliverable:** a complete original-campaign playable Beta
+candidate, not a fidelity-final release.
 
 ## FINAL — full original-DOS fidelity and release acceptance
 
@@ -144,24 +164,25 @@ The launcher rejects selecting the temporary root or an ancestor
 and refuses directory reparse points to prevent recursive copying
 or accidental access beyond the selected original media tree.
 
-## Immediate execution order (no arbitrary calendar dates)
+## Immediate execution order — startup first
 
-1. Finish original-DOS and Win32 normal-launch/CHARS/first Level22
-   frame field comparison; protect saved CHARS and SAVE.DAT by using
-   a separate installation copy. Preserve actual first blocker.
-2. Source-verify and integrate VGA `ES:EDI` selector/page side
-   effects and cached `22220→15618→FF50` producer/callback
-   state; do not use the read-only FF50 model as live clipping
-   without original reference frames.
-3. Resolve normal Win32 scan stream → F590/F572 DOS IRQ path,
-   movement and gameplay cadence using original DOS clocks.
-4. Complete real Level22 event/combat/ordinary inventory/relic
-   pipeline and original mist transition; accept Alpha route.
-5. Only then extend ordinary original campaign gameplay in authored
-   order, with complete world SAVE/LOAD and source-proven systems
-   through the ending; accept Beta.
-6. Close all remaining original-DOS video/state/clock/audio
-   equivalence and patch/version scope; accept Final.
+1. Verify normal CHARS-absent boot into original CINE00/CINE12 and
+   DreamForge/SSI/title splash presentation (frames, audio, palette
+   and escape handling). Fix the first real player-facing failure.
+2. Restore all original title actions and input selection, including
+   CINE00 replay and authentic 7B94 Load Game without fake progress.
+3. Complete CODE.1 character creation end to end, including original
+   actor choices, stat edits/confirm, names and cancel flow.
+4. Test the actual CODE.1→R.EXE→CODE.2 CHARS serialization/re-read.
+   Test existing party separately; preserve source-authentic skip.
+5. Make the **first** Level22 scene render correctly, then basic
+   movement, collisions, HUD, controls and first interactions.
+   Match native normal gameplay to original DOS before Alpha.
+6. Only **after Alpha**, finish the complete first level's quest,
+   Assassin encounter, relics and original mist/Level23 transition,
+   and proceed through the campaign for Beta.
+7. After Beta, close complete DOS framebuffer/state/audio/timing,
+   menus, errors and patch-scope fidelity for Final.
 
 ## Reporting discipline
 

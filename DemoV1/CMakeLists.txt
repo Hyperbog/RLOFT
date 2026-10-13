@@ -27,6 +27,13 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Original 19464 title menu: CINE00 replay is real; 7B94 load
+    # remains visibly unavailable until source-correct whole SAVE.
+    # Alpha scope ends at FIRST Level22 gameplay scene, not Level23.
+    add_test(
+        NAME alpha_title_startup_order_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_title_startup.py")
     # Source oracle for original CODE.2 1EA78, 291B0, 1F1D6
     # byte-vs-DWORD VGA page side effects and callback ordering.
     add_test(

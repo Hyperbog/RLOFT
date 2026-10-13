@@ -10,17 +10,21 @@ This is the active project entry point. Historical development updates have been
 **Current classification: Pre-Alpha.** See the
 [release milestones, criteria and blocker order](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md)
 and the [machine-readable gate ledger](RELEASE_GATES.json).
-Alpha is an internal continuous normal-startup→Level22 original ending
-checkpoint, **not a revived standalone Level22 demo**. Beta is the
-entire original campaign from title to ending. Final requires faithful
+Alpha is the **authentic opening** (CINE00/CINE12, splash/logo
+screens, all title menu actions, CODE.1 creation and CHARS handoff)
+through the **first playable Level22 scene and basic input**.
+The full Level22 quest, its mist/Level23 transition and remaining
+campaign belong to Beta. The retired Level22 developer warp is
+not a release milestone. Beta is the entire original campaign
+from title to ending. Final requires faithful
 original DOS state, raster, time, sound, inputs and persistence.
 No modernization before completing the original game.
 
 Latest verified exact-checkout Windows Full:
-[#667](https://github.com/Hyperbog/RLOFT/actions/runs/38340609115),
-source `11d1df416ea41a46b40ed55cb40f89e7c95ac636`,
-**250/250 CTests passed**. The following executable refresh is
-documentation/binary-only, not a new gameplay test. Windows CI
+[#676](https://github.com/Hyperbog/RLOFT/actions/runs/38346121349),
+source `b17871c9ac2350afd0c4667de78a2aca059a5bad`,
+**257/257 CTests passed**. This does not demonstrate the complete
+normal original-game startup on Windows. Windows CI
 passes do **not** establish native normal-play field acceptance or
 original-DOS parity. The historical build/status paragraphs below
 are retained as dated evidence, not automatically current.
