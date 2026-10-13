@@ -58,11 +58,6 @@ function(native_warnings target)
   endif()
 endfunction()
 native_warnings(rloft_native_assets)
-add_library(rloft_native_shared_boot STATIC
-  ../DemoV1/src/boot_flow.cpp)
-target_include_directories(rloft_native_shared_boot PUBLIC ../DemoV1/include)
-native_warnings(rloft_native_shared_boot)
-add_executable(native_original_boot_flow_tests ../DemoV1/tests/boot_flow_tests.cpp)
 
 # Single executable for all 11 active and optional 2 legacy original RES
 # archives. Source stays read-only; reports metadata JSON to stdout.
@@ -157,7 +152,7 @@ if(WIN32)
     src/win32_native_gpu_exploration.cpp
     src/native_win32_gl_target.cpp)
   target_link_libraries(rloft_native PRIVATE
-    rloft_native_assets rloft_native_shared_boot User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
+    rloft_native_assets User32 Gdi32 Shell32 Ole32 Opengl32 Glu32)
   target_compile_definitions(rloft_native PRIVATE UNICODE _UNICODE
     "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\"")
   native_warnings(rloft_native)
