@@ -1,6 +1,6 @@
 # RLOFT project documentation index
 
-**Start here for cross-workstream navigation.** This index is intentionally short. **Every project's technical documents stay with their owning source directory/branch**; this is a directory of links, not a replacement for local evidence or a request to move it.
+**Start here for cross-workstream navigation.** **Owner update, 2026-10-13:** the player-facing deliverable is an enhanced native PC port; original DOS fidelity audits are optional research, not release blockers.  This index is intentionally short. **Every project's technical documents stay with their owning source directory/branch**; this is a directory of links, not a replacement for local evidence or a request to move it.
 
 - [Current cross-workstream status](CURRENT_STATUS.md) — current verification boundary, not a chronological changelog.
 - [Branch ownership and lifecycle](BRANCH_OWNERSHIP.md) — seven active/review branches and recovery policy.
@@ -19,7 +19,7 @@
 
 | Workstream | Owns its documentation | Start with |
 | --- | --- | --- |
-| Native game engine | `demo-v1:DemoV1/` | [Native README](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md), [original-game charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md), [integration contract](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md) |
+| Native game engine | `demo-v1:DemoV1/` | [Native README](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md), **[active enhanced PC port charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ENHANCED_PC_PORT_CHARTER.md)**, [new release gates](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/RELEASE_GATES.json), [historical original charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) |
 | Shared research infrastructure | `code1-decompilation:ResearchInfra/` | [Research index CLI, project registry and evidence rules](../ResearchInfra/README.md) |
 | Canonical source recompilation | `code1-decompilation:Recomp/` | [Executable reconstruction and original LE loader](../Recomp/README.md) |
 | CODE.1 / CODE.2 reconstruction | `code1-decompilation:Code1/`, `Code2/` | [CODE.1](../Code1/README.md), [CODE.2](../Code2/README.md), [CODE.2 continuity](../Code2/CODE2_CONTINUITY_ADDENDUM.md) |
