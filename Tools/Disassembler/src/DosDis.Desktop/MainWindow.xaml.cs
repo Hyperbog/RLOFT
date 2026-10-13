@@ -282,7 +282,16 @@ public partial class MainWindow : Window
                   : "RAW HEX VIEW ONLY: original file bytes at physical offsets. No executable mapping or instructions inferred.";
             App.Diagnostics.Record(DiagnosticStage.FileOpenPresentationComplete, _artifact.Sha256);
         }
-        catch (Exception ex) { Error("Unable to open file", ex); }
+        catch (Exception ex)
+        {
+            // Even handled LE-loader or view-binding failures need an owner-
+            // local breadcrumb; the previous source-specific error report
+            // only showed a modal dialog and discarded its session history.
+            App.Diagnostics.Record(DiagnosticStage.HandledError, _artifact?.Sha256,
+                error: ex);
+            App.Diagnostics.TryWriteLocalIncident();
+            Error("Unable to open file", ex);
+        }
         finally
         {
             _bindingNewSource = false;
@@ -593,6 +602,8 @@ public partial class MainWindow : Window
     private void AssemblyGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_bindingNewSource) return;
+        try
+        {
         if (AssemblyGrid.SelectedItem is not AssemblyRow row || _artifact is null)
         {
             SaveNoteButton.IsEnabled = false;
@@ -629,6 +640,22 @@ public partial class MainWindow : Window
             if (note != null) { NoteEditor.Text = note.Body; _commentRevision = note.Revision; }
         }
         SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null;
+        }
+        catch (Exception ex)
+        {
+            // A WPF selection/hex preview failure must not terminate the
+            // whole read-only desktop session. Fail the selected view
+            // closed, keep the validated source unchanged and write a
+            // path-free local diagnostic for repro.
+            App.Diagnostics.Record(DiagnosticStage.HandledError, _artifact?.Sha256,
+                error: ex);
+            App.Diagnostics.TryWriteLocalIncident();
+            _bindingNewSource = true;
+            try { AssemblyGrid.SelectedItem = null; }
+            finally { _bindingNewSource = false; }
+            StatusText.Text = "Disassembly selection could not be displayed. " +
+                "An owner-local incident report was saved under LocalAppData\\DOSDis\\Incidents.";
+        }
     }
     private void SelectMatchingReference(AssemblyRow row)
     {
