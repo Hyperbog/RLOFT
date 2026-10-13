@@ -9,5 +9,9 @@ void open_native_gpu_world_preview(HWND owner,const NativeMedia& media);
 // level-select preview. Interactions, saves and DOS frame parity still open.
 [[nodiscard]] HWND open_native_gpu_world_session(
     HWND owner,const NativeMedia& media,const NativeCharsImage& chars);
+// Explicit native profile restore using authenticated, original CODE.1
+// CHARS embedded in the host checkpoint. Not original DOS load-game.
+[[nodiscard]] HWND open_native_gpu_saved_world_session(
+    HWND owner,const NativeMedia& media);
 }
 #endif
