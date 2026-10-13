@@ -114,11 +114,25 @@ int main(int argc,char** argv) {
            !first.families[2].empty())
             throw std::runtime_error(
                 "original Level22 source actor/placed placement count changed");
+        std::array<std::size_t,4> first_scene_source_counts{};
         for(const auto& item:initial) {
             if(item.level!=22U || item.absolute_res3_base>=res3_count)
                 throw std::runtime_error(
                     "Level22 authentic RES3 scene instance out of range");
+            const unsigned bucket=
+                item.source_class==0U&&item.original_type_id==9U?0U:
+                item.source_class==1U&&item.original_type_id==62U?1U:
+                item.source_class==1U&&item.original_type_id==63U?2U:
+                item.source_class==1U&&item.original_type_id==64U?3U:4U;
+            if(bucket>=first_scene_source_counts.size())
+                throw std::runtime_error(
+                    "Level22 authentic scene record has unexpected source type");
+            ++first_scene_source_counts[bucket];
         }
+        if(first_scene_source_counts!=
+           std::array<std::size_t,4>{{1U,52U,42U,16U}})
+            throw std::runtime_error(
+                "Level22 original source entity types/counts changed");
         // This source-data check NEVER assigns sprite animation frames,
         // encounter AI, pickup eligibility or in-world interactivity.
         const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
@@ -160,6 +174,7 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_nonempty_event_slots\":0,"
                  <<"\"original_first_level_family_records\":[1,110,0],"
                  <<"\"original_first_level_authored_scene_instances\":111,"
+                 <<"\"original_first_level_source_type_counts\":[1,52,42,16],"
                  <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
