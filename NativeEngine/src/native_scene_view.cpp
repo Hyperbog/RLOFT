@@ -185,6 +185,26 @@ void apply_native_probe_visibility(NativeWorldRuntime& world,
     }
 }
 
+NativeRelativeMovement native_relative_movement(
+    double heading,double forward,double right,
+    double units_per_second,double elapsed_seconds) {
+    if(!std::isfinite(heading) || !std::isfinite(forward) ||
+       !std::isfinite(right) || !std::isfinite(units_per_second) ||
+       !std::isfinite(elapsed_seconds) ||
+       std::abs(forward)>1.0 || std::abs(right)>1.0 ||
+       units_per_second<0.0 || units_per_second>16.0 ||
+       elapsed_seconds<0.0 || elapsed_seconds>0.06)
+        throw std::invalid_argument("invalid bounded native relative movement");
+    const double norm=std::max(1.0,std::hypot(forward,right));
+    const double walk=units_per_second*elapsed_seconds/norm;
+    const double c=std::cos(heading),s=std::sin(heading);
+    // The original world has columns+x and rows+y (toward south).
+    // Rightward relative motion is (sin(heading), -cos(heading)).
+    // This is the corrected opposite of the old GPU A/D strafe.
+    return {(forward*c+right*s)*walk,
+            (forward*s-right*c)*walk};
+}
+
 bool move_native_probe_camera(const NativeWorldRuntime& world,
                               NativeProbeCamera& camera,
                               double delta_columns,double delta_rows) {
