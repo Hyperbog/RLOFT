@@ -25,6 +25,8 @@
           <Button x:Name="OpenProjectButton" Content="Open project" Click="OpenProject_Click"/>
           <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click" ToolTip="LE project snapshots only. For standalone MZ, use Export for source-bound JSON or text."/>
           <Button x:Name="ExportAnalysisButton" Content="Export…" Click="ExportAnalysis_Click" ToolTip="Export source-bound LE or x86-16 MZ candidate analysis as JSON/text. Original bytes excluded by default."/>
+          <Button x:Name="BenchmarkButton" Content="Benchmark…" Click="Benchmark_Click" IsEnabled="False"
+                  ToolTip="Score LE analysis byte classification against an independently audited SHA-bound original-file reference. No original bytes leave your machine."/>
           <Button x:Name="ExportDiagnosticButton" Content="Diagnostics…" Click="ExportDiagnostic_Click"
                   ToolTip="Export bounded session events without paths, source bytes, comments or exception messages."/>
           <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"
@@ -150,6 +152,23 @@
                   <DataGridTextColumn Header="Destination" Binding="{Binding AddressText}" Width="125"/>
                   <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="180"/>
                   <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Benchmark">
+            <DockPanel>
+              <TextBlock x:Name="BenchmarkSummaryText" DockPanel.Dock="Top"
+                         Text="Open and analyze an LE file, then choose Benchmark… to import a SHA-bound classification reference."
+                         TextWrapping="Wrap" Margin="8,8,8,10"
+                         FontSize="12" Foreground="{StaticResource SecondaryTextBrush}"/>
+              <DataGrid x:Name="BenchmarkFindingsGrid"
+                        MouseDoubleClick="BenchmarkFindingsGrid_MouseDoubleClick"
+                        ToolTip="Double-click a disagreement to inspect the original physical bytes in Hexadecimal. No inferred code or original file is modified.">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Object offset" Binding="{Binding OffsetText}" Width="130"/>
+                  <DataGridTextColumn Header="End (exclusive)" Binding="{Binding EndText}" Width="130"/>
+                  <DataGridTextColumn Header="Classification disagreement" Binding="{Binding Kind}" Width="*"/>
                 </DataGrid.Columns>
               </DataGrid>
             </DockPanel>
