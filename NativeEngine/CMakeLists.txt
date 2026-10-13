@@ -234,6 +234,14 @@ target_link_libraries(native_gpu_world_mesh_tests PRIVATE rloft_native_assets)
 native_warnings(native_gpu_world_mesh_tests)
 add_test(NAME native_gpu_world_mesh_tests COMMAND native_gpu_world_mesh_tests)
 
+add_executable(native_shared_character_flow_tests
+  ../Shared/CharacterCreation/tests/character_flow_tests.cpp)
+target_link_libraries(native_shared_character_flow_tests PRIVATE
+  rloft_shared_character_creation)
+native_warnings(native_shared_character_flow_tests)
+add_test(NAME native_shared_character_flow_tests
+  COMMAND native_shared_character_flow_tests)
+
 add_executable(native_shared_boot_tests tests/native_shared_boot_tests.cpp)
 target_link_libraries(native_shared_boot_tests PRIVATE rloft_shared_boot rloft_shared_character_creation)
 native_warnings(native_shared_boot_tests)
