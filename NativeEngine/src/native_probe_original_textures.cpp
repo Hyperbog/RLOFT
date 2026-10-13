@@ -130,7 +130,7 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         }
     }
     std::vector<NativeType6ProjectedColumn> original_columns;
-    original_columns.reserve(view.columns.size());
+    original_columns.reserve(view.columns.size()*2U);
     const auto plane=std::tan(view.camera.field_of_view_radians*0.5);
     const unsigned working_top=4U;
     for(unsigned x=0;x<view.columns.size();++x) {
@@ -161,7 +161,7 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         const unsigned selected=ray.side==0U?0U:2U;
         const bool authored_upper=(world.cell(view.camera.level,
             ray.hit_column,ray.hit_row).word&0x0200U)!=0U;
-        (void)authored_upper; // upper tier scheduled separately later
+
         (void)ray_quadrant; // original sign/reflect still used below
         const unsigned id=material.candidate_resource_ids[selected];
         if(id>=wide_count_)
@@ -216,6 +216,46 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         original_columns.push_back({
             &texture->second,source_column,x+32U,projected_height,
             0U,0U,working_top,pitch_pixels});
+        // Authored cell flag 0x0200 adds a separate upper wall
+        // band. The source lookup's next bank is an upper MATERIAL,
+        // never a reverse-facing texture. The upper source covers
+        // the first header[9] texel rows, as independently confirmed
+        // by the original v0.7 level/mesh reader.
+        if(authored_upper) {
+            const unsigned upper_rows=std::min(128U,unsigned(
+                level.original_header[9U]));
+            if(upper_rows) {
+                const unsigned upper_id=
+                    material.candidate_resource_ids[selected+1U];
+                if(upper_id>=wide_count_)
+                    throw std::runtime_error(
+                        "original authored upper RES4 ID outside wall bank");
+                auto upper=textures_.find(upper_id);
+                if(upper==textures_.end()) {
+                    auto decoded=decode_native_type6_texture(
+                        source_.entry(upper_id));
+                    if(decoded.frames!=1U || decoded.width!=64U ||
+                       decoded.height!=128U ||
+                       decoded.pixels.size()!=8192U)
+                        throw std::runtime_error(
+                            "original authored upper EH6 texture invalid");
+                    upper=textures_.emplace(
+                        upper_id,std::move(decoded)).first;
+                    ++out.source_texture_decompressions;
+                }
+                const unsigned upper_h=std::max(1U,std::min(256U,
+                    (projected_height*upper_rows+64U)/128U));
+                const int base_top=int((256U-projected_height)/2U);
+                const int upper_center_top=int((256U-upper_h)/2U);
+                const int upper_offset=base_top-int(upper_h)-
+                                       upper_center_top;
+                original_columns.push_back({
+                    &upper->second,source_column,x+32U,upper_h,
+                    0U,0U,working_top,pitch_pixels,
+                    upper_offset,upper_rows});
+                ++out.preview_upper_wall_columns;
+            }
+        }
         ++out.wall_columns;
     }
 
