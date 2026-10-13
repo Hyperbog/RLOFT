@@ -5,6 +5,19 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Part 17 — exploration preload first-blocker trace (2026-10-13)
+
+[Source and instrumentation boundary](PART17_ALPHA_EXPLORATION_PRELOAD_TRACE_20261013.md).
+The separate opt-in exploration diagnostic now starts **before** the
+original Level22 initial session/world load, rather than only after its
+presenters were constructed. Source-safe stage IDs distinguish initial
+load failure, world-state initialization failure and presenter readiness.
+The early trace pointer is detached on exceptions and ordinary launches
+without `--dev-trace` remain non-instrumented. A source-only regression
+guards the ordering and seven deliberate negative mutations. **This is
+not a verified current-HEAD Windows build, a played Level22 frame, or
+original DOS parity; the release remains Pre-Alpha.**
+
 ## Alpha → Beta → Final: release acceptance (2026-10-12)
 
 **Current classification: Pre-Alpha.** See the
