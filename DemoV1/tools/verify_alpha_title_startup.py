@@ -23,6 +23,25 @@ def check(host:str,ledger:dict,roadmap:str,cmake:str)->None:
     title=host.index('presenter.menu_frame(-1)',logo)
     menu=host.index('flow.select_startup_menu(*click)',title)
     require(cold<intro12<logo<title<menu,"original cold start sequence")
+    # CODE.2 19888: a skipped CINE00 or CINE12 jumps directly
+    # to menu, never waits for the first logo's 120 PIT ticks.
+    first_guard=host.rfind('if (!skipped) {',intro12,logo)
+    require(first_guard>intro12 and
+            'const auto deadline = Clock::now() + pit_ticks(120)' in
+            host[first_guard:logo],
+            "CINE Esc first-logo wait must be guarded")
+    require('if (menu_mode_) selection_ = -1;' in host,
+            "title selection remains stale on pointer leave")
+    require('selection_ = (row >= 0 && column >= 0)' in host,
+            "title hit-testing must reject letterbox margins")
+    click=host.index('case WM_LBUTTONDOWN:')
+    click_end=host.index('case WM_LBUTTONUP:',click)
+    require('native_y_from_client(GET_Y_LPARAM(lparam))' in host[click:click_end]
+            and 'native_x_from_client(GET_X_LPARAM(lparam))' in
+            host[click:click_end] and
+            'if (selection_ >= 0) clicked_ = selection_;' in
+            host[click:click_end],
+            "menu clicks cannot use a previous WM_MOUSEMOVE selection")
 
     replay=host.index('if (*click == 0)',menu)
     cine=host.index('assets.source().read("CINE00.ANM")',replay)
@@ -89,7 +108,13 @@ def main()->int:
         cmake=paths["cmake"].read_text(encoding="utf-8")
         check(host,gates,road,cmake)
         # Deliberate negative probes must fail:
+        guard_text=('if (!skipped) {'+chr(10)+
+                    '        const auto deadline = Clock::now() + pit_ticks(120)')
+        require(guard_text in host,"unexpected guarded logo source")
         mutations=[
+            host.replace(guard_text,guard_text.replace('if (!skipped)','if (true)'),1),
+            host.replace('if (selection_ >= 0) clicked_ = selection_;',
+                         'if (false) clicked_ = selection_;',1),
             host.replace('if (*click == 0)', 'if (*click == 9)',1),
             host.replace('if (*click == 1)', 'if (*click == 9)',1),
             host.replace('assets.source().read_runtime("CHARS")',
@@ -112,7 +137,7 @@ def main()->int:
             raise ValueError("Alpha mist scope mutation passed")
     except (OSError,ValueError,AssertionError) as e:
         raise SystemExit("ALPHA_STARTUP_SOURCE_REJECTED: "+str(e))
-    print("ALPHA_TITLE_STARTUP_SOURCE_PASS 4 negative variants rejected")
+    print("ALPHA_TITLE_STARTUP_SOURCE_PASS 6 negative variants rejected")
     return 0
 
 if __name__=="__main__":

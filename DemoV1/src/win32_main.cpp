@@ -482,6 +482,8 @@ private:
         if (!hwnd_) return;
         POINT point{};
         if (!GetCursorPos(&point) || !ScreenToClient(hwnd_, &point)) {
+            if (menu_mode_) selection_ = -1;
+            character_pointer_.reset();
             return;
         }
 
@@ -491,6 +493,13 @@ private:
             character_pointer_ = NativePoint{row, column};
         } else {
             character_pointer_.reset();
+        }
+        // Initial title entry and CINE00 replay restore the hover
+        // without waiting for a new WM_MOUSEMOVE event.
+        if (menu_mode_) {
+            selection_ = character_pointer_
+                ? rloft::StartupPresenter::menu_selection_from_y(row)
+                : -1;
         }
     }
 
@@ -703,18 +712,18 @@ private:
                 break;
 
             case WM_MOUSEMOVE: {
+                const int row =
+                    native_y_from_client(GET_Y_LPARAM(lparam));
+                const int column =
+                    native_x_from_client(GET_X_LPARAM(lparam));
                 if (menu_mode_) {
-                    const int y = native_y_from_client(GET_Y_LPARAM(lparam));
-                    selection_ =
-                        rloft::StartupPresenter::menu_selection_from_y(y);
+                    selection_ = (row >= 0 && column >= 0)
+                        ? rloft::StartupPresenter::menu_selection_from_y(row)
+                        : -1;
                 }
 
                 if (menu_mode_ || character_mode_ || exploration_input_) {
                     const auto old_pointer = character_pointer_;
-                    const int row =
-                        native_y_from_client(GET_Y_LPARAM(lparam));
-                    const int column =
-                        native_x_from_client(GET_X_LPARAM(lparam));
                     if (row >= 0 && column >= 0) {
                         character_pointer_ = NativePoint{row, column};
                     } else {
@@ -742,6 +751,7 @@ private:
             case WM_MOUSELEAVE:
                 if (menu_mode_ || character_mode_ || exploration_input_) {
                     character_pointer_.reset();
+                    if (menu_mode_) selection_ = -1;
                     refresh_pointer_overlay();
                 }
                 return 0;
@@ -754,8 +764,18 @@ private:
                             native_y_from_client(GET_Y_LPARAM(lparam)));
                     }catch(...) {session_trace_=nullptr;}
                 }
-                if (menu_mode_ && selection_ >= 0) {
-                    clicked_ = selection_;
+                if (menu_mode_) {
+                    // The event's own coordinates determine which title
+                    // action was clicked; a prior hover can be stale
+                    // after an intro replay or window activation.
+                    const int row =
+                        native_y_from_client(GET_Y_LPARAM(lparam));
+                    const int column =
+                        native_x_from_client(GET_X_LPARAM(lparam));
+                    selection_ = (row >= 0 && column >= 0)
+                        ? rloft::StartupPresenter::menu_selection_from_y(row)
+                        : -1;
+                    if (selection_ >= 0) clicked_ = selection_;
                 }
                 if (character_mode_) {
                     const int row =
@@ -2692,17 +2712,21 @@ int run(HINSTANCE instance) {
     const auto palette9 = presenter.palette9();
     const auto palette12 = presenter.palette12();
 
-    auto deadline = Clock::now() + pit_ticks(120);
-    presenter.first_logo();
-    if (!fade_in(host, presenter, palette14)) return 0;
-    if (!host.wait_until(deadline, true)) {
-        if (host.quit_requested()) return 0;
-        skipped = true;
+    // CODE.2 19888: nonzero 13EF8 status bypasses ALL logo steps.
+    // Previously Esc in CINE00/CINE12 still waited for logo 1.
+    if (!skipped) {
+        const auto deadline = Clock::now() + pit_ticks(120);
+        presenter.first_logo();
+        if (!fade_in(host, presenter, palette14)) return 0;
+        if (!host.wait_until(deadline, true)) {
+            if (host.quit_requested()) return 0;
+            skipped = true;
+        }
     }
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette14)) return 0;
-        deadline = Clock::now() + pit_ticks(106);
+        const auto deadline = Clock::now() + pit_ticks(106);
         presenter.second_logo();
         if (!fade_in(host, presenter, palette14)) return 0;
         if (!host.wait_until(deadline, true)) {
@@ -2713,7 +2737,7 @@ int run(HINSTANCE instance) {
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette14)) return 0;
-        deadline = Clock::now() + pit_ticks(121);
+        const auto deadline = Clock::now() + pit_ticks(121);
         presenter.third_logo();
         if (!fade_in(host, presenter, palette9)) return 0;
         if (!host.wait_until(deadline, true)) {
@@ -2724,7 +2748,7 @@ int run(HINSTANCE instance) {
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette9)) return 0;
-        deadline = Clock::now() + pit_ticks(55);
+        const auto deadline = Clock::now() + pit_ticks(55);
         presenter.title_background();
         if (!fade_in(host, presenter, palette12)) return 0;
         if (!host.wait_until(deadline, true)) {
