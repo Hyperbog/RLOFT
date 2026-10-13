@@ -147,17 +147,22 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         const auto ray_quadrant=quadrant_native_code2_32954(
             host_angle_to_original_quadrant_tenths(dx,dy));
 
-        // CODE.2 32F8C stores banks 3+2 for x-wall path, 33124
-        // banks 1+0 for y-wall path. Which of the TWO words is drawn
-        // remains an unverified host wall-face choice, so we select
-        // according to its source quadrant for preview ONLY.
-        const unsigned selected=ray.side==0U?
-            (ray_quadrant.original_step_x_25610==0x00010000U?
-                ray_quadrant.original_x_wall_first_bank:
-                ray_quadrant.original_x_wall_second_bank):
-            (ray_quadrant.original_step_y_25604==0x00010000U?
-                ray_quadrant.original_y_wall_first_bank:
-                ray_quadrant.original_y_wall_second_bank);
+        // Original level header has two 64-word pairs for each
+        // geometric wall axis: BASE + UPPER (not west/east and north/
+        // south alternatives). The recovered 32F8C/33124 emitter
+        // proves the 3/2 and 1/0 pairs but not their live call order.
+        // A horizontal world-grid crossing (ray.side==1) looks onto
+        // the y-normal face and selects base bank 2; x-normal
+        // crossings select base bank 0. The +1 banks describe the
+        // optional upper tier (cell bit 0x0200), NOT the reverse face.
+        // This mapping was independently present in the older
+        // owner-provided v0.7 mesh viewer and matches the original
+        // level's four author-assigned texture tables.
+        const unsigned selected=ray.side==0U?0U:2U;
+        const bool authored_upper=(world.cell(view.camera.level,
+            ray.hit_column,ray.hit_row).word&0x0200U)!=0U;
+        (void)authored_upper; // upper tier scheduled separately later
+        (void)ray_quadrant; // original sign/reflect still used below
         const unsigned id=material.candidate_resource_ids[selected];
         if(id>=wide_count_)
             throw std::runtime_error("original RES4 host-selected ID outside wide textures");
@@ -197,7 +202,14 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         // world view. DOS 320x400 pixels are displayed with 2:1
         // horizontal aspect; 1 world-cell projected wall height is
         // focal/distance, not the previous arbitrary 55/d estimate.
-        const double scaled=focal /
+        // Match the v0.7 camera's 2-world-unit wall and eye at 1:
+        // for the 256-pixel-tall viewport this means a 1-unit
+        // half-height and a 128-pixel center horizon. The previous
+        // focal/d formula ignored this geometry and snapped to the
+        // full 256-line viewport at ordinary walking distances.
+        // Deliberately keep authentic 338C8 resampling but do not
+        // mistake this HOST perspective for DOS 35730 registers.
+        const double scaled=0.5*focal /
             std::max(0.26,ray.corrected_distance);
         const auto projected_height=std::max(1U,std::min(256U,
             static_cast<unsigned>(scaled)));
