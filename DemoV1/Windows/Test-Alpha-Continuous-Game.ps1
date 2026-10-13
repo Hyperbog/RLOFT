@@ -22,6 +22,22 @@ if ($sha -notmatch '^[0-9a-fA-F]{40}$') {
     Fail-Alpha 'Build source SHA is not a complete Git commit identifier.'
 }
 
+# Keep the source revision ID separate from binary-byte integrity.
+# Refuse a repackaged/stale EXE before asking for any owned media.
+$hashFile = Join-Path $package 'ravenloft_demo_v1.exe.sha256'
+if (-not (Test-Path -LiteralPath $hashFile -PathType Leaf)) {
+    Fail-Alpha 'Exact packaged executable SHA-256 is missing.'
+}
+$hashRecord = (Get-Content -LiteralPath $hashFile -Raw).Trim()
+if ($hashRecord -cnotmatch '^([0-9a-fA-F]{64})  ravenloft_demo_v1\.exe$') {
+    Fail-Alpha 'Executable checksum manifest is malformed.'
+}
+$expectedExeHash = $Matches[1]
+$actualExeHash = (Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash
+if (-not $actualExeHash.Equals($expectedExeHash, [StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Alpha 'The packaged native executable does not match its SHA-256 manifest.'
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 $folder = New-Object System.Windows.Forms.FolderBrowserDialog
 $folder.Description = 'Choose your OWN original Ravenloft game installation. Only a temporary COPY will be used.'
@@ -89,7 +105,28 @@ if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
     }
     Write-Host "Cold-start test: removed $($scratchCharacters.Count) CHARS file(s) from COPY only."
 } else {
-    Write-Host 'Existing-party test: copied CHARS preserved when present.'
+    # GameSource::runtime_file("CHARS") only checks install_root and its
+    # RLOFT child. A CHARS elsewhere cannot enter the existing-party path.
+    # Fail before launch rather than silently mislabelling cold startup.
+    $partyRoot = Join-Path $scratch 'CHARS'
+    $partyChild = Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'
+    $partyFile = $null
+    foreach ($candidate in @($partyRoot, $partyChild)) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            $partyFile = $candidate
+            break
+        }
+    }
+    if ($null -eq $partyFile) {
+        Fail-Alpha 'Existing-party route requires CHARS in the copied game root or RLOFT child. Use cold startup otherwise.'
+    }
+    # Original CODE.2 16CD0 reads exactly 0x920 bytes. Do not print
+    # character contents or modify the copied save.
+    $partySize = (Get-Item -LiteralPath $partyFile -ErrorAction Stop).Length
+    if ($partySize -ne 0x920) {
+        Fail-Alpha 'Copied existing-party CHARS has an invalid size (expected 0x920 bytes).'
+    }
+    Write-Host 'Existing-party test: valid-size copied CHARS preserved.'
 }
 
 # DevSessionTrace is opt-in and writes diagnostics under TEMP. Record the
