@@ -52,6 +52,9 @@ struct State {
     unsigned level{};
     unsigned zoom{6U};
     unsigned face_count{};
+    unsigned resolution_index{};
+    bool visibility_initialized{};
+    double last_visibility_x{},last_visibility_y{},last_visibility_heading{};
     ULONGLONG previous_time{};
     std::map<unsigned,std::vector<std::uint8_t>> explored;
 
@@ -105,6 +108,7 @@ struct State {
         blocked=false;
         previous_time=0;
         face_count=mesh.lower_wall_faces+mesh.upper_wall_faces;
+        visibility_initialized=false;
         auto& seen=explored[level];
         if(seen.size()!=std::size_t(map.width)*map.height)
             seen.assign(std::size_t(map.width)*map.height,0);
@@ -257,7 +261,21 @@ struct State {
             const auto move=move_native_probe_camera_clearance(world,camera,dx,dy,.22);
             blocked=move.blocked;
         } else blocked=false;
-        mark_seen();
+        // Visibility is a session automap operation, not the render
+        // loop. Never repeat a ~200-ray cell traversal 60 times per
+        // second while stationary; that caused input jitter in the
+        // old CPU implementation on large levels.
+        if(!visibility_initialized ||
+           std::hypot(camera.column_position-last_visibility_x,
+                      camera.row_position-last_visibility_y)>0.12 ||
+           std::abs(std::remainder(camera.heading_radians-
+                      last_visibility_heading,2*kPi))>0.10) {
+            mark_seen();
+            last_visibility_x=camera.column_position;
+            last_visibility_y=camera.row_position;
+            last_visibility_heading=camera.heading_radians;
+            visibility_initialized=true;
+        }
     }
     void automap_draw(int width,int height) {
         if(!automap)return;
@@ -415,6 +433,7 @@ void title(HWND hwnd,const State& s) {
         std::to_wstring(unsigned(s.camera.column_position))+L","+
         std::to_wstring(unsigned(s.camera.row_position))+L"] | "+
         (s.mouse_look?L"MOUSE LOOK":L"Q/E KEYBOARD LOOK")+
+        L" | F2 resolution, N filtering, Tab map"+
         (s.blocked?L" | BLOCKED":L"");
     SetWindowTextW(hwnd,name.c_str());
 }
@@ -462,7 +481,14 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_KEYDOWN:
         try {
             if(wp=='M' && !(lp&(1L<<30)))mouse_mode(hwnd,*s,!s->mouse_look);
-            else if(wp=='N' && !(lp&(1L<<30))) {
+            else if(wp==VK_F2 && !(lp&(1L<<30))) {
+                constexpr int sizes[][2]={{1260,840},{1440,900},
+                                          {1600,900},{1920,1080}};
+                s->resolution_index=(s->resolution_index+1U)%4U;
+                const auto& chosen=sizes[s->resolution_index];
+                SetWindowPos(hwnd,nullptr,0,0,chosen[0],chosen[1],
+                             SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
+            } else if(wp=='N' && !(lp&(1L<<30))) {
                 s->smooth_filter=!s->smooth_filter;s->update_filter();
             } else if(wp==VK_TAB && !(lp&(1L<<30)))s->automap=!s->automap;
             else if(wp==VK_OEM_PLUS || wp==VK_ADD)
