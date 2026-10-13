@@ -1,3 +1,5 @@
+> **Historical integration research / superseded fidelity mandate (October 13, 2026).** The active deliverable is now an [enhanced native PC port](ENHANCED_PC_PORT_CHARTER.md), not exact DOS-behavior reconstruction before any enhancement. This 2026-10-09 contract is a valuable record of source audits, original assets and native work; its old requirements for VGA/IRQ/DOS provenance, bit-exact timing, and DOSBox parity are **optional research**, not gates for new gameplay or releases. Follow the [current milestones](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md) and [release ledger](RELEASE_GATES.json) instead. Prior evidence and deficiencies remain historical facts; do not mark uncompleted functionality implemented merely because the scope changed.
+
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
 ## 2026-10-11 Win32 scan-trace completeness and truncation guard
