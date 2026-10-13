@@ -11,6 +11,9 @@ on:
       - 'NativeEngine/tests/native_startup_visuals_tests.cpp'
       - 'NativeEngine/src/win32_native_startup.cpp'
       - 'NativeEngine/src/win32_native_gpu_exploration.cpp'
+      - 'NativeEngine/src/native_scene_instances.cpp'
+      - 'NativeEngine/include/rloft_native/native_scene_instances.hpp'
+      - 'NativeEngine/tests/native_scene_instances_tests.cpp'
       - 'NativeEngine/src/native_party_start.cpp'
       - 'NativeEngine/include/rloft_native/native_party_start.hpp'
       - 'NativeEngine/tests/native_party_start_tests.cpp'
@@ -65,7 +68,7 @@ jobs:
           if (-not (Test-Path (Join-Path $media "RES0"))) {
             throw "Original installed game RES0 is absent"
           }
-          $files = @("RES0", "RES1", "RES7", "RES8", "CODE.1", "OBJECTS.DAT", "LEVELS.DAT", "T", "COLORS", "INIT")
+          $files = @("RES0", "RES1", "RES3", "RES7", "RES8", "CODE.1", "OBJECTS.DAT", "NPCS.DAT", "LEVELS.DAT", "T", "COLORS", "INIT")
           $before = @($files | ForEach-Object {
             (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
           })
@@ -88,6 +91,10 @@ jobs:
               $report.original_first_level_kind1_controls -ne 0 -or
               $report.original_first_level_nonempty_event_slots -ne 0) {
             throw "Original Level22 authored control/event corpus no longer matches"
+          }
+          if ($report.original_first_level_authored_scene_instances -ne 111 -or
+              -not $report.original_first_level_res3_bases_valid) {
+            throw "Original 111 Level22 RES3 placement mappings not verified"
           }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
