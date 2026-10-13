@@ -233,8 +233,42 @@ void paint_contents(HWND window,const Preview& state,HDC dc) {
         info.bmiHeader.biCompression=BI_RGB;
         SetStretchBltMode(dc,state.smooth_filter?HALFTONE:COLORONCOLOR);
         if(state.smooth_filter)SetBrushOrgEx(dc,0,0,nullptr);
-        StretchDIBits(dc,left,top,w,h,0,0,source_w,source_h,
-                      cropped.data(),&info,DIB_RGB_COLORS,SRCCOPY);
+        // Some Windows graphics/remote-session drivers return only a
+        // fraction of a top-down DIB after StretchDIBits scaling (the
+        // reported 'thin VGA strip'). Materialize an actual 32-bit
+        // top-down DIB section and stretch *between two memory DCs*
+        // instead. This also avoids device-dependent DIB source cropping.
+        void* rgb_bits=nullptr;
+        HBITMAP source_bitmap=CreateDIBSection(
+            dc,&info,DIB_RGB_COLORS,&rgb_bits,nullptr,0);
+        HDC source_dc=source_bitmap&&rgb_bits?
+            CreateCompatibleDC(dc):nullptr;
+        bool copied=false;
+        if(source_dc) {
+            HGDIOBJ old=SelectObject(source_dc,source_bitmap);
+            if(old && old!=HGDI_ERROR) {
+                std::copy(cropped.begin(),cropped.end(),
+                          static_cast<std::uint8_t*>(rgb_bits));
+                copied=StretchBlt(dc,left,top,w,h,source_dc,
+                                  0,0,source_w,source_h,SRCCOPY)!=FALSE;
+                SelectObject(source_dc,old);
+            }
+        }
+        if(source_dc)DeleteDC(source_dc);
+        if(source_bitmap)DeleteObject(source_bitmap);
+        if(!copied) {
+            // Conservative fallback if allocation failed, including
+            // older Windows GDI software renderers.
+            const int painted=StretchDIBits(
+                dc,left,top,w,h,0,0,source_w,source_h,
+                cropped.data(),&info,DIB_RGB_COLORS,SRCCOPY);
+            if(painted<=0 || painted==GDI_ERROR) {
+                RECT error{left,top,left+w,top+h};
+                SetTextColor(dc,RGB(255,191,130));
+                DrawTextW(dc,L"CPU VGA source blit failed on this graphics driver",
+                          -1,&error,DT_WORDBREAK);
+            }
+        }
     }
     if(state.show_automap) {
         // Read-only native exploration overlay inspired by v0.7.
