@@ -230,7 +230,7 @@ int main(int argc,char** argv) {
             actor.draft.actor=static_cast<int>(i);
             actor.draft.name=i==0U?"VERIFY A":"VERIFY B";
             actor.draft.sex=static_cast<int>(i);
-            actor.draft.race=static_cast<int>(i);
+            actor.draft.race=0; // Both class families use populated source rows
             actor.draft.classes={{static_cast<int>(i),-1,-1}};
             actor.draft.option=static_cast<int>(i);
             actor.draft.face=static_cast<int>(i);
@@ -250,7 +250,7 @@ int main(int argc,char** argv) {
                 "original CODE.1-generated actor CHARS inventory identity failed");
         std::size_t original_starter_items=0U;
         for(unsigned actor=0;actor<2U;++actor) {
-            const auto original=original_tables.starting_loadout(actor,actor);
+            const auto original=original_tables.starting_loadout(actor,0U);
             for(unsigned slot=0;slot<21U;++slot) {
                 const auto& item=actual_inventory.actors[actor].slots[slot];
                 if(original.slots[slot]==-1) {
@@ -265,8 +265,11 @@ int main(int argc,char** argv) {
                 ++original_starter_items;
             }
         }
+        // The pinned supplied CODE.1 rows class-family0/race0 and
+        // class-family1/race0 each contain five original source items.
+        // This explicitly covers populated *both-actor* transfer.
         if(actual_inventory.occupied_total!=original_starter_items ||
-           original_starter_items==0U)
+           original_starter_items!=10U)
             throw std::runtime_error(
                 "original CODE.1 generated party has no validated starting gear");
         // Real original OBJECTS.DAT corpus + portable native read-only
