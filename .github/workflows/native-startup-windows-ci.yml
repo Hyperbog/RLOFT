@@ -136,6 +136,10 @@ jobs:
               $report.original_party_inventory_gameplay_verified) {
             throw "Original CHARS party inventory/OBJECTS catalogue source mapping changed"
           }
+          if (-not $report.original_generated_party_inventory_verified -or
+              $report.original_generated_party_starting_items -ne 10) {
+            throw "Original CODE.1 0x920 CHARS two-actor starter items not verified"
+          }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
           }
