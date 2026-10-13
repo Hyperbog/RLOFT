@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Source oracle for original CODE.2 1EA78, 291B0, 1F1D6
+    # byte-vs-DWORD VGA page side effects and callback ordering.
+    add_test(
+        NAME original_vga_page_cycle_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_vga_page_cycle.py")
     # Original CODE.2 C050=1 vs EF4D=0 separate page domains;
     # immutable initial source is never called live DOS draw state.
     add_test(
@@ -1052,6 +1058,15 @@ add_test(NAME surface_shading_tests COMMAND surface_shading_tests)
 add_executable(surface_fill_tests tests/surface_fill_tests.cpp)
 target_link_libraries(surface_fill_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
+# Exact CODE.2 C050/EF4D/FDBC page state, callback ordering and
+# byte-only toggles. SOURCE-ONLY model: no speculative live page flip.
+add_executable(original_vga_page_cycle_tests
+    tests/original_vga_page_cycle_tests.cpp)
+target_include_directories(original_vga_page_cycle_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_vga_page_cycle_tests PRIVATE cxx_std_17)
+add_test(NAME original_vga_page_cycle_tests COMMAND original_vga_page_cycle_tests)
+
 add_executable(original_ground_planar_fill_replay_tests tests/original_ground_planar_fill_replay_tests.cpp)
 target_link_libraries(original_ground_planar_fill_replay_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_ground_planar_fill_replay_tests COMMAND original_ground_planar_fill_replay_tests)
