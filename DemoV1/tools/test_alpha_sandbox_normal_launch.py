@@ -56,6 +56,17 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
     for token in required:
         if token not in ps:
             raise ValueError("missing Alpha isolation/trace behavior: "+token)
+    # Field output may identify the earliest exploration-load blocker,
+    # but must never print the unfiltered JSONL record (which can hold
+    # input and game-state metadata).
+    stages = ("exploration.load.begin", "exploration.load.failed",
+              "exploration.load.ready", "exploration.world.failed",
+              "exploration.world.ready", "exploration.presenters.ready")
+    if not all(stage in ps for stage in stages):
+        raise ValueError("missing first-level preload diagnostic stage")
+    if ("if ($preloadStages -contains [string]$entry.event) {" not in ps or
+        'Write-Host "Last exploration initialization checkpoint: $lastPreload"' not in ps):
+        raise ValueError("field runner prints unfiltered diagnostic events")
     before_launch = ps.index("$process = Start-Process")
     for prior in (
         "if ($copyStatus -ge 8)",
@@ -111,6 +122,19 @@ def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         except (ValueError,AssertionError):
             continue
         raise ValueError(f"unsafe Alpha field launcher mutation {i} survived")
+    # Seventh mutation would print raw JSONL events instead of only
+    # whitelisted symbolic checkpoints.
+    raw_stage=ps.replace(
+        "if ($preloadStages -contains [string]$entry.event) {",
+        "if ($true) {",1)
+    if raw_stage==ps:
+        raise ValueError("raw-stage mutation did not match runner")
+    try:
+        check(cmd,raw_stage,workflow,host,intro)
+    except (ValueError,AssertionError):
+        pass
+    else:
+        raise ValueError("private event stream escaped field summary guard")
     # Sixth mutation attacks only Win32 persistent registry behavior.
     broken_host=host.replace(
         'if (!options.dev_trace) {\n'
@@ -142,7 +166,7 @@ def main()->int:
         mutate(cmd,ps,workflow,host,intro)
     except (ValueError,AssertionError,OSError) as exc:
         p.exit(1,"ALPHA_SANDBOX_FIELD_REJECTED: "+str(exc)+"\n")
-    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 6 unsafe variants rejected")
+    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 7 unsafe variants rejected")
     return 0
 
 if __name__=="__main__":
