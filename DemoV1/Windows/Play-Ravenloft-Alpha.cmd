@@ -11,9 +11,7 @@ set "RESULT=%ERRORLEVEL%"
 if not "%RESULT%"=="0" (
   echo.
   echo Alpha ended with exit code %RESULT%.
+  echo Your original Game folder was not modified.
+  pause
 )
-echo.
-echo The original Game folder was not modified.
-echo Press any key to close this diagnostic console.
-pause >nul
 exit /b %RESULT%
