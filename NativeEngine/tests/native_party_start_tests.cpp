@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 int main() {
     rloft::CharacterTransferTables original_shape{};
@@ -25,7 +26,7 @@ int main() {
     }
     const auto chars=rloft::build_character_transfer(
         original_actors,original_shape);
-    static_assert(chars.size()==0x920U,
+    static_assert(std::tuple_size<rloft::CharacterTransferImage>::value==0x920U,
         "source CHARS image must occupy four 0x248 records");
     const auto start=rloft_native::decode_native_party_start(chars);
     assert(start.chars==chars);
