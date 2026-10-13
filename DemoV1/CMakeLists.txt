@@ -217,11 +217,12 @@ endif()
 # independent executables, with no NativeEngine or DemoV1 dependency.
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/BootFlow"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-boot")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/CharacterCreation"
+                 "${CMAKE_CURRENT_BINARY_DIR}/shared-character")
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
-    src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
     src/character_palette_remap.cpp
     src/character_stats.cpp
@@ -391,7 +392,7 @@ add_library(rloft_boot_flow
     src/xmidi.cpp
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
-target_link_libraries(rloft_boot_flow PUBLIC rloft_shared_boot)
+target_link_libraries(rloft_boot_flow PUBLIC rloft_shared_boot rloft_shared_character_creation)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
 # MSBuild's /m parallelizes projects, but the main static library is one
 # large project containing most game sources. Allow two cl.exe processes
