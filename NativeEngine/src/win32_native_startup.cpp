@@ -143,10 +143,26 @@ struct Preview {
     void choose_startup_menu(int chosen) {
         if(phase!=kMenu||chosen<0||chosen>=4)
             throw std::logic_error("original startup menu selection invalid");
-        boot.select_startup_menu(chosen);
         if(chosen==rloft::BootFlow::kCharacterWorkflowMenuIndex) {
-            begin_character();
-        } else if(chosen==3) {
+            const auto previous=boot;
+            boot.select_startup_menu(chosen);
+            try {
+                begin_character();
+            } catch(...) {
+                // Incomplete original source assets must not strand the
+                // supervisor in CODE.2's exit stage on a menu retry.
+                boot=previous;
+                character.reset();
+                phase=kMenu;
+                presenter.menu_frame(selection);
+                palette=presenter.palette12();
+                refresh();
+                throw;
+            }
+            return;
+        }
+        boot.select_startup_menu(chosen);
+        if(chosen==3) {
             // CODE.2 menu entry 3 returns original supervisor status 0.
             boot.supervisor_dispatch();
             DestroyWindow(hwnd);
