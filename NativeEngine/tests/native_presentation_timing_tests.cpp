@@ -14,6 +14,14 @@ int main() {
     assert(!native_presentation_frame_due(5U,6U,55U));
     assert(!native_presentation_frame_due(140U,100U,55U));
     assert(native_presentation_frame_due(155U,100U,55U));
+    // Different hardware polling rates cannot advance the authored
+    // presentation before its independent animation-time deadline.
+    assert(!native_presentation_frame_due(
+        kNativeWin32PollIntervalMs*3U,0U,
+        kNativeLegacyAnimationFrameMs));
+    assert(native_presentation_frame_due(
+        kNativeWin32PollIntervalMs*4U,0U,
+        kNativeLegacyAnimationFrameMs));
     assert(native_presentation_frame_due(
         UINT64_C(9000000000000)+55U,UINT64_C(9000000000000),55U));
 }
