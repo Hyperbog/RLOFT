@@ -258,7 +258,7 @@ add_test(NAME native_shared_character_flow_tests
   COMMAND native_shared_character_flow_tests)
 
 add_executable(native_party_start_tests tests/native_party_start_tests.cpp)
-target_link_libraries(native_party_start_tests PRIVATE rloft_native_assets)
+target_link_libraries(native_party_start_tests PRIVATE rloft_native_assets rloft_shared_boot)
 native_warnings(native_party_start_tests)
 add_test(NAME native_party_start_tests COMMAND native_party_start_tests)
 
