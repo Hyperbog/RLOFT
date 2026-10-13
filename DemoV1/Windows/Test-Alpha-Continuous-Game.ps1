@@ -158,6 +158,33 @@ if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
     if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
         Write-Host 'Trace session has no manifest; it is not field acceptance.'
     } else {
+        # Report only whitelisted symbolic stage IDs, never raw event
+        # JSON or keystrokes. A ready presenter is NOT a rendered frame.
+        $preloadStages = @(
+            'exploration.load.begin',
+            'exploration.load.failed',
+            'exploration.load.ready',
+            'exploration.world.failed',
+            'exploration.world.ready',
+            'exploration.presenters.ready'
+        )
+        $events = Join-Path $sessionPath 'events.jsonl'
+        if (Test-Path -LiteralPath $events -PathType Leaf) {
+            $lastPreload = Get-Content -LiteralPath $events | ForEach-Object {
+                try {
+                    $entry = $_ | ConvertFrom-Json -ErrorAction Stop
+                    if ($preloadStages -contains [string]$entry.event) {
+                        [string]$entry.event
+                    }
+                } catch {
+                    # An incomplete final JSON line is not a valid stage.
+                }
+            } | Select-Object -Last 1
+            if ($lastPreload) {
+                Write-Host "Last exploration initialization checkpoint: $lastPreload"
+                Write-Host 'This checkpoint does not establish a rendered gameplay frame.'
+            }
+        }
         $zip = $sessionPath + '.zip'
         Compress-Archive -LiteralPath $sessionPath -DestinationPath $zip -Force -ErrorAction Stop
         Write-Host "Diagnostic session ZIP (not uploaded): $zip"
