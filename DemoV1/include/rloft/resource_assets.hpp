@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "rloft/game_source.hpp"
+#include "rloft/startup_visual_source.hpp"
 
 namespace rloft {
 
