@@ -246,6 +246,11 @@ native_warnings(native_shared_character_flow_tests)
 add_test(NAME native_shared_character_flow_tests
   COMMAND native_shared_character_flow_tests)
 
+add_executable(native_startup_visuals_tests tests/native_startup_visuals_tests.cpp)
+target_link_libraries(native_startup_visuals_tests PRIVATE rloft_native_assets)
+native_warnings(native_startup_visuals_tests)
+add_test(NAME native_startup_visuals_tests COMMAND native_startup_visuals_tests)
+
 add_executable(native_shared_boot_tests tests/native_shared_boot_tests.cpp)
 target_link_libraries(native_shared_boot_tests PRIVATE rloft_shared_boot rloft_shared_character_creation)
 native_warnings(native_shared_boot_tests)
