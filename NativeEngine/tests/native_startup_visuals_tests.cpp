@@ -69,9 +69,10 @@ int main() {
         file(root/"COLORS",colors);
         file(root/"INIT",{0U,0U});
         file(root/"T",{1U,2U,3U});
-        const auto media=rloft_native::NativeMedia::open(root);
         const auto before=fs::file_size(root/"RES0");
-        rloft_native::NativeStartupVisualSource images(media);
+        // The reader must not dangle after a temporary media index dies.
+        rloft_native::NativeStartupVisualSource images(
+            rloft_native::NativeMedia::open(root));
         auto sprite=images.res0_type1(104);
         assert(sprite.count==1&&sprite.width==8&&sprite.height==1);
         assert(sprite.pixels.front()==104U);
