@@ -51,10 +51,11 @@ int main(int argc,char** argv) {
             camera.row_position=double(selected_y)+0.5;
             camera.heading_radians=-3.14159265358979323846/2.0;
             camera.field_of_view_radians=3.14159265358979323846/3.0;
-            const auto view=trace_native_probe_view(world,camera,320U,256U);
+            const auto view=trace_native_probe_view(world,camera,256U,256U);
             const auto frame=materials.render(world,view,320U,400U);
             if(!frame.original_code2_sampler_used ||
-               !frame.source_quadrant_state_used)
+               !frame.source_quadrant_state_used ||
+               !frame.original_code2_backdrop_used)
                 throw std::runtime_error("original CODE.2 sampler/quadrant inactive");
             if(frame.bgra.size()!=320U*400U*4U)
                 throw std::runtime_error("original textured frame dimensions wrong");
@@ -65,7 +66,7 @@ int main(int argc,char** argv) {
             // Verify the *native* camera input bridge on real source data:
             // changing direction must produce a valid second source frame.
             camera.heading_radians+=0.12;
-            const auto turned=trace_native_probe_view(world,camera,320U,256U);
+            const auto turned=trace_native_probe_view(world,camera,256U,256U);
             const auto rotated=materials.render(world,turned,320U,400U);
             if(rotated.bgra.size()!=frame.bgra.size())
                 throw std::runtime_error("native preview turn changed frame shape");
@@ -75,7 +76,7 @@ int main(int argc,char** argv) {
             const auto delta_y=std::sin(camera.heading_radians)*0.1;
             static_cast<void>(move_native_probe_camera(
                 world,camera,delta_x,delta_y));
-            const auto moved=trace_native_probe_view(world,camera,320U,256U);
+            const auto moved=trace_native_probe_view(world,camera,256U,256U);
             const auto shifted=materials.render(world,moved,320U,400U);
             if(shifted.bgra.size()!=frame.bgra.size())
                 throw std::runtime_error("native preview movement changed frame shape");
