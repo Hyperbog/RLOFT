@@ -30,6 +30,24 @@ The old native 0.9 viewer incorrectly used the CODE.2 paired bank ordering `3/2`
 4. **Session-only automap:** `Tab` toggles a centered minimap; + / - adjust zoom. Uses already-computed native host ray `reached` cells, original-world collision categories and level dimensions; exploration is in memory only. It is not the original DOS automap semantics or a save writer.
 5. **Original-data acceptance:** the existing 32-map smoke CLI also verifies the level-1 (14,10) original 0x022C cell, authored [497,62,499,62] bank lookup, and its 96-row upper tier. Collects the new source-authored upper-tier rendered column count so a future single-bank regression is caught. Source-only CTests continue to cover normal collision and original wall sampler behavior. Windows GUI mouse feel still requires actual player testing; headless acceptance does not exercise real Windows mouse motion.
 
+## Verified Alpha 0.10 Windows acceptance and package (2026-10-13 UTC)
+
+[Owner-authorized Windows/MSVC x64 CI #38335193771](https://github.com/Hyperbog/RLOFT/actions/runs/38335193771) compiled the exact preview source from `native-engine:93cd779754e8d091b3ac20fb2f75949c17907cd0` (the isolated one-off workflow checkout commit `bbe2d8be4931ec2a7677d48a111a081096f3ef71` differs only by workflow trigger). **33/33 Windows CTests pass**, with original-media **32/32 maps pass** and source file hashes identical before/after. Source-only portable Linux CTests also pass on this canonical revision: [Actions #38335159001](https://github.com/Hyperbog/RLOFT/actions/runs/38335159001).
+
+The exact Windows original-media audit reported **8,072** wall-hit columns, **609,056** source wall texel samples, **2,029** genuine upper-tier columns, **987,256** floor and **842,872** ceiling source-preview texel samples, across **160** distinct original EH6 resources. The original level-1 cell `(14,10)=0x022C`, exact authored table values `[497,62,499,62]` and level upper source-row count `96` were explicitly checked.
+
+Exact original Windows GUI `rloft_native.exe` SHA-256:
+`3f44388387a3c1457b179c208cfc13fc4af12b41531c80b9fcee8a62f2d9c4a6`.
+CI-created 6-file distribution ZIP SHA:
+`75ff9b5a5d15edda6826067aa83a4f00a173fcc97c9dcd66593fa63eaf5677bf`.
+Downloaded Actions ZIP SHA:
+`4f8726a2bb97c7bc70b6947f8c6167b500a566c6e75937819a2ce906721f1413`.
+User-friendly 7-file Alpha 0.10 ZIP (extra README only) SHA:
+`25702ff10fb30102bb6a97e3c934f34faed54ee789b4c70ebd783a4017c6188e`.
+[GitHub artifact #11785130189](https://github.com/Hyperbog/RLOFT/actions/runs/38335193771/artifacts/11785130189), original-data-free.
+
+**Live field testing still pending**: original mouse feel, actual wall texture placement in a player's Windows screenshot, door/actor occlusion, DOS source 34A74 floor/ceiling UV parity and full original game. Source-backed static material placement is improved; automatic original DOS ray/camera remains incomplete. Do not close first-playable issue M-ENGINE-01 or label this as DOS frame parity.
+
 ## Recommended future viewport architecture
 
 **Adopt SDL3 + an actual accelerated renderer**, either SDL_GPU or bgfx with a well-defined CPU pixel reference fallback. Use **separate source-preservation and modern-presentation modes**. The existing native CODE.2 fixed-point VGA compositor remains the original research oracle, while a modern GPU depth-buffered mesh viewport handles smooth arbitrary camera pitch/yaw, frame rates, higher internal resolutions, filtering and multisampling. Never resample original low-res data into invented new "original" texels or treat an OpenGL 3.3 prototype's inferred material/door choices as established CODE.2 binary facts. Retain original-level resource identities, collision, state, animation, official saves and automap until formally verified. The old prototype's SDL event model, mesh topology, map overlay and texture filtering are useful design references; **do not merge its Python runtime, dependencies, old saves, bundled original game or speculative asset patches into the production C++ engine**.
