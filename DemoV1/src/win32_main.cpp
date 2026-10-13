@@ -1022,32 +1022,14 @@ int run_exploration(
     bool dev_inspect = false,
     bool dev_interact = false,
     bool dev_trace = false) {
-    auto runtime =
-        rloft::ExplorationRuntime::load_fresh(
-            assets.source(), chars);
-    // CODE.2 expands/restores the mutable world immediately on level load.
-    // Archive Level 22 uses the shipped RNG state/dice path; direct LEV022
-    // state restores HP and actor state verbatim without consuming RNG.
-    runtime.initialize_gameplay_state(
-        assets.source());
-    rloft::ExplorationPresenter presenter(assets);
-    rloft::TopEdgeMenuPresenter menu_presenter(assets);
-    rloft::AutomapScreenPresenter automap_presenter(assets);
-    rloft::PartyModalPresenter party_modal_presenter(assets);
-    rloft::QuitConfirmPresenter quit_presenter(assets);
-    rloft::ExplorationLegacyInputController input;
-    rloft::ExplorationUiController ui;
-    std::optional<rloft::AutomapModalController> automap;
-    std::optional<std::uint32_t> quit_random_seed;
+    // The previous boot-session ends at the CODE.2 handoff. Begin the
+    // separate, opt-in exploration diagnostic BEFORE initial world load;
+    // otherwise a failing load_fresh never creates an exploration ZIP.
     std::unique_ptr<rloft::DevSessionTrace> trace;
-    struct TraceHostDetach final {
+    struct ExplorationTraceEarlyDetach final {
         Host& host;
-        rloft::IndexedFramebuffer& framebuffer;
-        ~TraceHostDetach() {
-            framebuffer.set_draw_audit(nullptr,nullptr);
-            host.set_session_trace(nullptr);
-        }
-    } trace_detach{host,presenter.framebuffer()};
+        ~ExplorationTraceEarlyDetach() {host.set_session_trace(nullptr);}
+    } trace_early_detach{host};
     if(dev_trace) {
         const auto root=std::filesystem::temp_directory_path()/
             "RLOFT-Demo-Diagnostics";
@@ -1063,6 +1045,54 @@ int run_exploration(
                              std::ios::binary|std::ios::trunc);
         if(latest)latest<<folder.string()<<"\n";
         host.set_session_trace(trace.get());
+        trace->event("exploration.load.begin");
+    }
+    const auto exploration_stage=[&](const char* stage) {
+        if(!trace)return;
+        try {trace->event(stage);}
+        catch(...) {
+            host.set_session_trace(nullptr);
+            trace.reset();
+        }
+    };
+    // CODE.2 expands/restores the mutable world immediately on level load.
+    // Archive Level 22 uses the shipped RNG state/dice path; direct LEV022
+    // state restores HP and actor state verbatim without consuming RNG.
+    auto runtime=[&]() {
+        try {
+            return rloft::ExplorationRuntime::load_fresh(
+                assets.source(), chars);
+        } catch(...) {
+            exploration_stage("exploration.load.failed");
+            throw;
+        }
+    }();
+    exploration_stage("exploration.load.ready");
+    try {
+        runtime.initialize_gameplay_state(assets.source());
+    } catch(...) {
+        exploration_stage("exploration.world.failed");
+        throw;
+    }
+    exploration_stage("exploration.world.ready");
+    rloft::ExplorationPresenter presenter(assets);
+    rloft::TopEdgeMenuPresenter menu_presenter(assets);
+    rloft::AutomapScreenPresenter automap_presenter(assets);
+    rloft::PartyModalPresenter party_modal_presenter(assets);
+    rloft::QuitConfirmPresenter quit_presenter(assets);
+    rloft::ExplorationLegacyInputController input;
+    rloft::ExplorationUiController ui;
+    std::optional<rloft::AutomapModalController> automap;
+    std::optional<std::uint32_t> quit_random_seed;
+    struct TraceHostDetach final {
+        Host& host;
+        rloft::IndexedFramebuffer& framebuffer;
+        ~TraceHostDetach() {
+            framebuffer.set_draw_audit(nullptr,nullptr);
+            host.set_session_trace(nullptr);
+        }
+    } trace_detach{host,presenter.framebuffer()};
+    if(trace) {
         presenter.framebuffer().set_draw_audit(
             [](void* context,const rloft::IndexedDrawAuditCall& draw) {
                 try {
