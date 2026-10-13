@@ -17,6 +17,8 @@ struct NativeProbeTexturedFrame {
     unsigned wall_columns{};
     unsigned original_texel_samples{};
     unsigned source_texture_decompressions{};
+    bool original_code2_sampler_used{false};
+    bool source_quadrant_state_used{false};
     bool original_runtime_camera_verified{false};
     bool original_dos_frame_verified{false};
 };
