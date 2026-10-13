@@ -8,6 +8,17 @@ This is the active project entry point. Historical development updates have been
 ## Part 17 — original title Load Game source oracle (2026-10-13)
 
 [Private CODE.2 07B94 selector verification and remaining full-save blocker](PART17_ALPHA_TITLE_LOAD_SLOT_ORACLE_20261013.md).
+A second standalone, source-verified C++17 model now preserves
+the original **WORK clear → parent-directory change → SAVE## copy →
+shared loader / retry** result ordering, original non-atomic error
+behavior, ten-handle cleanup and the mutable pathname-separator quirk.
+It performs **no filesystem IO**, remains disconnected from the live
+title, and has a separate registered native CTest. Original byte-oracle
+coverage expanded from 14 to **24 exact opcode windows**. A locally
+compiled GCC 14 semantic-equivalent harness and all ten new private
+CODE.2 instruction windows passed; an exact-current-HEAD Windows
+build, player field test and saved-world parity remain independent.
+
 An additional source-only CTest now protects the original Load Game
 slot geometry and prevents the unfinished native action from falsely
 claiming a loaded campaign. A separate, intentionally unhooked C++17
