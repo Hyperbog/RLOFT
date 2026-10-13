@@ -27,6 +27,11 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Ground open-field 1F388/1F2A5/335C8/34A74 must not hardcode Level22.
+    add_test(
+        NAME original_ground_level_independence_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_level_independence.py")
     # Original 204B3/16CD0 CHARS file re-open after CODE.1.
     add_test(
         NAME original_chars_disk_handoff_contract_tests

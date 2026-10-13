@@ -120,8 +120,10 @@ ExplorationPresenter::initial_scene_outcomes(
 
 bool ExplorationPresenter::original_full_ground_eligible(
     const ExplorationRuntimeFrame& frame) {
-    if(frame.source_level_id!=22 ||
-       !frame.ground_source_verified ||
+    // Original CODE.2 1F388 chooses RES4 from the current level
+    // header, not the specific authored Level 22 ID. Retain every
+    // original full-128-row/256-ray no-wall material proof below.
+    if(!frame.ground_source_verified ||
        !frame.ground_perspective_ready ||
        frame.ground_raster_source.size()!=
            GroundTextureRasterSpec::kTextureHeaderBytes+

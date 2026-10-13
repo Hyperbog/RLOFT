@@ -137,8 +137,9 @@ public:
 
     // Original CODE.2 335C8 => 22220=0x800 when all original
     // 256 ray records are non-drawable 0x93. Then 1F2A5/1F372
-    // resolves FF50=128 rows. Never infer that from an empty
-    // or partially sampled frame or a different level.
+    // resolves FF50=128 rows. The source 1F388 RES4 selector reads
+    // the current level header, so this proof is NOT Level22-only.
+    // Never infer it from missing rays or drawable source materials.
     [[nodiscard]] static bool original_full_ground_eligible(
         const ExplorationRuntimeFrame& frame);
 

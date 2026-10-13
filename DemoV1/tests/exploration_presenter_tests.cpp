@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/exploration_presenter.hpp"
 
 #include <cassert>
@@ -209,7 +212,20 @@ int main() {
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
     outdoors.ground_source_verified=true;
-    outdoors.source_level_id=21;
+    // All original levels share the same source-derived RES4 selector
+    // logic. Eligibility depends on authenticated current-level
+    // ground/rays, not the level's authored numeric identifier.
+    for (const std::uint32_t level : {0U, 21U, 22U, 31U}) {
+        outdoors.source_level_id=level;
+        assert(rloft::ExplorationPresenter::original_full_ground_eligible(
+            outdoors));
+    }
+    outdoors.source_level_id=21U;
+    outdoors.sweep_records[29U].resource_inner=19U;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.sweep_records[29U].resource_inner=0x93U;
+    outdoors.ground_source_verified=false;
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
 
