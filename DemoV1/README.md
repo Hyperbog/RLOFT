@@ -23,7 +23,8 @@ proof of a correctly displayed frame. The Windows artifact now carries the built
 SHA-256 manifest. The isolated Alpha runner checks that hash before
 accessing owned media and refuses to label a missing or non-0x920-byte
 copied CHARS file as an existing-party test. Its sandbox contract
-rejects twelve deliberate unsafe source mutations. **This is not a verified
+rejects seventeen deliberate unsafe source mutations, including
+wrong-process diagnostic trace attribution and filesystem-link roots. **This is not a verified
 current-HEAD Windows field test or original DOS parity; the release
 remains Pre-Alpha.**
 
