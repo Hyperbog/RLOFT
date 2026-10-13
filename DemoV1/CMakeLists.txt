@@ -213,11 +213,14 @@ if(Python3_Interpreter_FOUND)
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_modal_graphics_contract.py")
 endif()
 
+# Shared original supervisor startup state is maintained once for both
+# independent executables, with no NativeEngine or DemoV1 dependency.
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/BootFlow"
+                 "${CMAKE_CURRENT_BINARY_DIR}/shared-boot")
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
-    src/boot_flow.cpp
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
     src/character_palette_remap.cpp
@@ -388,6 +391,7 @@ add_library(rloft_boot_flow
     src/xmidi.cpp
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
+target_link_libraries(rloft_boot_flow PUBLIC rloft_shared_boot)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
 # MSBuild's /m parallelizes projects, but the main static library is one
 # large project containing most game sources. Allow two cl.exe processes
