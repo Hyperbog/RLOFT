@@ -1,5 +1,5 @@
 #pragma once
-#include "rloft_native/native_assets.hpp"
+#include "rloft_native/native_world_payload.hpp"
 #include "rloft_native/native_sintab_raster.hpp"
 #include <array>
 #include <cstdint>
