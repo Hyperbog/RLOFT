@@ -40,7 +40,11 @@ None of those are suitable for this **single-route player Alpha**.
 
 1. Once, put **your owned original DOS installation files** inside
    the release's `Game/` directory, optionally preserving a nested
-   `Game/RLOFT/` directory. No proprietary assets are shipped.
+   `Game/RLOFT/` directory. Loose originals (`RES0`, `INIT`, `T`)
+   work in either root; the launcher passes the correct media directory
+   to `GameSource::open`. A `game.gog` image in either directory is
+   also accepted through the existing ISO9660 reader. No original
+   proprietary assets are shipped.
 2. Double-click **Play-Ravenloft-Alpha.cmd**. No directory picker, yes/no
    startup selection, source variant, splash selector or developer menu.
 3. The launcher verifies the full executable SHA-256 and exact compiled
