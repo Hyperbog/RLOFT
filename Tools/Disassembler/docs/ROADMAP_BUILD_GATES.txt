@@ -332,6 +332,46 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW RELEASE-BLOCKER CRASH INVESTIGATION — WINDOWS #71 WPF SMOKE PASS:
+- Owner provided 10 private source-free DOSDis incident JSON reports
+  from five distinct Windows sessions. Recent CODE.1 and CODE.2
+  attempts finished LE mapping, entry preview and MainWindow
+  presentation, but threw unhandled System.InvalidOperationException
+  about 100ms later during deferred WPF UI processing.
+- Source+framework diagnosis: System.Windows.Documents.Run.Text
+  defaults to TwoWay binding, but three byte-highlight
+  AssemblyRow properties have getters only. Such a binding
+  throws InvalidOperationException while DataGrid realizes its
+  instruction cells. The private incident files do not record
+  exception message or stack; this is high-confidence root cause,
+  not independent stack-trace verification.
+- FIXED three production XAML byte-highlight bindings to
+  explicit Mode=OneWay. Added internal Windows-specific desktop
+  smoke project that instantiates ACTUAL WPF MainWindow, binds
+  128 original-free read-only instruction rows, checks all three
+  Run.Text bindings and exercises >600ms deferred DataGrid layout.
+  Automatic Windows CI now GATES desktop publish on this real
+  WPF integration smoke in addition to pure/SQLite synthetics.
+- GitHub Windows #71 run 38344982613 PASS; four .NET release
+  projects zero warnings/errors; normal two synthetic suites PASS;
+  real WPF smoke PASS; CODE.1 classification manifest package
+  integrity PASS. Compiled source/test SHA
+  4aae4380ec32383e7e5a21daa84b34f883a2f6b9.
+  Desktop-only artifact 11788283077, ZIP 66932416 bytes,
+  SHA256 a820d9164691d05158864a85a744d23e07de384a31f191a34242b33c3cb54b27.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38344982613/artifacts/11788283077
+- No private user incident JSON, original DOS binaries or
+  original game byte excerpts entered public GitHub or CI.
+- IMPORTANT: owner Windows GUI reopening original CODE.1/CODE.2
+  on the NEW #71 binary STILL PENDING. First wait 1 second
+  for deferred layout then inspect Disassembly/Hex/References
+  and Analyze before CODE.1 benchmark.
+- Historical #65 source-open layout guard by itself failed,
+  as demonstrated by new source-bound incident stage markers.
+  Do not certify original game score until #71 owner test.
+- Root-cause investigation and run evidence:
+  docs/LE_OPEN_CRASH_WPF_BINDING_ROOT_CAUSE_20261013.md
+HISTORICAL PREVIOUS GATES BELOW:
 NEW P0 CODE.1 LEDGER BENCHMARK — WINDOWS #60 BUILD/PACKAGE/SYNTHETIC PASS:
 - The 28 original-source outer-MZ instruction comparisons are too
   narrow to measure code/data separation. A separate completed
