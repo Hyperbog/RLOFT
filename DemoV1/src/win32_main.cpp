@@ -2576,6 +2576,9 @@ struct DemoCommandLine final {
     // Explicitly select the original data installation for user field tests.
     // This does NOT execute original R.EXE/CODE.1/CODE.2 machine code.
     bool choose_install{};
+    // Tooling-only: temporary Alpha copies must never overwrite the
+    // user's preferred original installation in HKCU. No gameplay effect.
+    bool no_remember_install{};
     // Opt-in original-front-end presentation, never gameplay or CHARS I/O.
     bool front_end_only{};
     bool capture_render{};
@@ -2604,6 +2607,8 @@ DemoCommandLine command_line_options() {
                 result.dev_trace = true;
             } else if (arg == L"--choose-install") {
                 result.choose_install = true;
+            } else if (arg == L"--no-remember-install") {
+                result.no_remember_install = true;
             } else if (arg == L"--front-end-only") {
                 result.front_end_only = true;
             } else if (arg == L"--capture-render") {
@@ -2618,6 +2623,7 @@ DemoCommandLine command_line_options() {
                     "Unknown command-line option. Use --explore-level22 "
                     "[--dev-inspect] [--dev-interact] [--dev-trace] "
                     "[--choose-install] [--front-end-only] "
+                    "[--no-remember-install] "
                     "[--capture-render] [--capture-frames=64] "
                     "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
@@ -2683,7 +2689,7 @@ int run(HINSTANCE instance) {
         // preference with that disposable test copy.
         // Non-diagnostic explicit normal launches still remember the
         // selected installation exactly as before.
-        if (!options.dev_trace) {
+        if (!options.dev_trace && !options.no_remember_install) {
             save_preferred_install(source.location().install_root);
         }
     } else {
