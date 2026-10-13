@@ -547,12 +547,12 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
     switch(msg) {
         case WM_CREATE: {
             const auto instance=reinterpret_cast<CREATESTRUCTW*>(lparam)->hInstance;
-            state->button=CreateWindowExW(0,L"BUTTON",L"Open original installation...",
+            state->button=CreateWindowExW(0,L"BUTTON",L"Choose original game files...",
                 WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
                 24,82,230,34,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kFolderButton)),instance,nullptr);
             state->startup_button=CreateWindowExW(0,L"BUTTON",
-                L"Original CODE.2 Startup",
+                L"Play Original Game",
                 WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
                 268,82,218,34,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kSourceStartup)),
@@ -685,7 +685,15 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
             if(LOWORD(wparam)==kFolderButton && HIWORD(wparam)==BN_CLICKED) {
                 try {
                     const auto path=select_original_install(hwnd);
-                    if(!path.empty())install(*state,path);
+                    if(!path.empty()) {
+                        install(*state,path);
+                        // Ordinary new-game path: after choosing owned media,
+                        // open the real original presentation automatically.
+                        // The inspector remains available behind it.
+                        if(state->media&&state->boot_route_ready)
+                            PostMessageW(hwnd,WM_COMMAND,
+                                MAKEWPARAM(kSourceStartup,BN_CLICKED),0);
+                    }
                 } catch(const std::exception& error) {
                     state->status=L"Install dialog failed: "+unicode(error.what());
                     SetWindowTextW(state->report_widget,state->status.c_str());
@@ -814,7 +822,8 @@ int run(HINSTANCE instance) {
     const bool headless=argc==3&&option==L"--verify-assets";
     const bool raster_test=argc==3&&option==L"--verify-raster";
     const bool from_arg=argc==3&&option==L"--install";
-    const bool invalid=argc!=1&&!headless&&!raster_test&&!from_arg;
+    const bool play_arg=argc==3&&option==L"--play";
+    const bool invalid=argc!=1&&!headless&&!raster_test&&!from_arg&&!play_arg;
     LocalFree(argv);
     if(headless||raster_test)return inspect_headless(source,raster_test);
     if(invalid)return 64;
@@ -831,16 +840,19 @@ int run(HINSTANCE instance) {
         return 2;
     }
     auto hwnd=CreateWindowExW(0,klass.lpszClassName,
-        L"Ravenloft: Strahd's Possession — Native Asset Engine",
+        L"Ravenloft: Strahd's Possession — Game Launcher / Source Tools",
         WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,
         1160,770,nullptr,nullptr,instance,&state);
     if(!hwnd) {
         if(SUCCEEDED(initialized))CoUninitialize();
         return 2;
     }
-    if(from_arg)install(state,source);
+    if(from_arg||play_arg)install(state,source);
     ShowWindow(hwnd,SW_SHOW);
     UpdateWindow(hwnd);
+    if(play_arg&&state.media&&state.boot_route_ready)
+        PostMessageW(hwnd,WM_COMMAND,
+            MAKEWPARAM(kSourceStartup,BN_CLICKED),0);
     MSG msg{};
     while(GetMessageW(&msg,nullptr,0,0)>0) {
         TranslateMessage(&msg);
