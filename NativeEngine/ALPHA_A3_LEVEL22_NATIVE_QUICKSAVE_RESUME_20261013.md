@@ -43,11 +43,16 @@ New `native_session_profile_tests` exercises deterministic round-trip, identity/
 
 CMake integrates this into portable library `rloft_native_assets` and the Windows acceptance script requires the new CTest, bringing the expected full suite count from **40 to 41**. The Windows CI source path filters also include the codec and test.
 
-**Windows CI status needs independent confirmation for the exact current code.** A pull-request test branch `ci/native-a3-session-profile-20261013` was created and PR **#18**, initial Windows run **#89**, tests the core persistence codec. The later **cross-process launcher resume** source landed after that particular PR was started and requires its **own exact-HEAD** Windows integration acceptance. Do not mistake earlier 40/40 green CI for confirmation of the new checkpoint UI.
+**Accepted Windows MSVC/source validation:**
+- PR **#18**, source-QA SHA `2848d17d4120e4f20db6e643cf9ade444450b5dd`: [Windows CI #89](https://github.com/Hyperbog/RLOFT/actions/runs/38453595488), **41/41 native CTests PASS**, native session checkpoint codec and read-only original-media startup audit. The source-visible SHA sensitivity test was merged into `native-engine` as `17d276fd49d8086c44e06511e91c666949fd2600`.
+- PR **#19**, first source-QA SHA `b6afbaf526ecc8959b66476bdae708dfa765570b`: [Windows CI #94](https://github.com/Hyperbog/RLOFT/actions/runs/38454290669), **41/41 native CTests PASS**, **includes the cross-launch Continue button and `--resume` source**, original-media audit and media-free Windows artifact `11841379340`.
+- PR **#19**, second QA SHA `6597d4095bc91c27790804509274608004aec029`: [Windows CI #95](https://github.com/Hyperbog/RLOFT/actions/runs/38454664776), **41/41 native CTests PASS** including added cold-process regenerated original-world runtime and exact two-actor CODE.1 CHARS reconstruction; read-only owner original-media audit PASS. Media-free Windows artifact `11841884517` [available here](https://github.com/Hyperbog/RLOFT/actions/runs/38454664776/artifacts/11841884517). QA PR #19 merged into `native-engine` as `90b0c75b1d81148298cb1777631e0c4645f4a41d`.
+
+This is **real exact-source Windows compile/CTest/original-data acceptance** for the A3 feature. It is **not** on-device GUI field testing. No CI job has automated clicking through CODE.1 and physically demonstrating F6 → process close → relaunch → Continue with screen/video capture.
 
 ## Next Alpha steps
 
-1. Fix any MSVC build or 41-test failures on PR #18. Repeat acceptance after launcher/button and native world resume wiring, and inspect exact Windows action job and original-data evidence.
+1. The original-media Windows MSVC gate is green on both updated GUI source and strengthened independent-restart profile tests. Next collect actual Windows GUI field evidence from the supplied artifact and address observed usability or GPU-driver defects.
 2. Field-test a real GUI chain: source-owned install → original CODE.2 menu → CODE.1 actors → Level22 → move → F6 → close game → relaunch → Continue Native Level22 Quicksave → same actors, position, map; verify wrong source and corrupt profile safely reject.
 3. Replace diagnostic RES3 identity inspection with verified **CODE.2 live sprite frame selection**, actual source textures/sprites and original first-level executable-driven Assassin behavior.
 4. Extend native profiles only after gameplay state exists: original event VM, authored inventory and quest flags, mutable original maps/NPC state, combat, real save state, audio.
