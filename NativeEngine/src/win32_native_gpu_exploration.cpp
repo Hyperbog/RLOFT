@@ -294,7 +294,7 @@ struct State {
             const double ca=std::cos(camera.heading_radians);
             const double sa=std::sin(camera.heading_radians);
             const double dx=(double(forward)*ca+double(strafe)*sa)*walk;
-            const double dy=(double(forward)*sa+double(strafe)*ca)*walk;
+            const double dy=(double(forward)*sa-double(strafe)*ca)*walk;
             if(noclip) {
                 camera.column_position=std::clamp(camera.column_position+dx,
                     .22,double(world.original().level(level).width)-.22);
