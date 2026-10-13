@@ -13,6 +13,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <stdexcept>
 #include <string>
 #include <vector>
