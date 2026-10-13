@@ -22,6 +22,9 @@ on:
       - 'NativeEngine/tests/native_scene_target_tests.cpp'
       - 'NativeEngine/src/native_party_start.cpp'
       - 'NativeEngine/src/native_party_inventory.cpp'
+      - 'NativeEngine/src/native_party_item_icon.cpp'
+      - 'NativeEngine/include/rloft_native/native_party_item_icon.hpp'
+      - 'NativeEngine/tests/native_party_item_icon_tests.cpp'
       - 'NativeEngine/include/rloft_native/native_party_inventory.hpp'
       - 'NativeEngine/tests/native_party_inventory_tests.cpp'
       - 'NativeEngine/src/native_session_profile.cpp'
@@ -141,6 +144,13 @@ jobs:
           if (-not $report.original_generated_party_inventory_verified -or
               $report.original_generated_party_starting_items -ne 10) {
             throw "Original CODE.1 0x920 CHARS two-actor starter items not verified"
+          }
+          if ($report.original_res1_inventory_icon_records -ne 168 -or
+              $report.original_res1_inventory_icons_decoded -lt 100 -or
+              $report.original_res1_inventory_icons_empty -gt 21 -or
+              $report.original_res1_inventory_starter_icon_links -ne 10 -or
+              $report.original_inventory_icon_live_ui_parity_verified) {
+            throw "Original RES1 EH1 inventory resource icons not source-authenticated"
           }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
