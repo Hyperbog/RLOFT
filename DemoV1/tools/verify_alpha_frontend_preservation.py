@@ -43,6 +43,14 @@ def host_contract(src:str)->None:
         'presenter.first_logo();',
         'presenter.second_logo();',
         'presenter.third_logo();',
+        'constexpr double kVgaRefreshHz = 70.0863;',
+        'std::chrono::microseconds(54925LL * ticks)',
+        'frame.wait_ticks > 0',
+        'const int sequence_index = event.second + 1;',
+        'frame == 1 || frame == 36',
+        'frame == 25',
+        'assets.sampled_audio(6, sound_id)',
+        'frame < rloft::CharacterCreationPresenter::kOpeningFrameCount;',
         'rloft::Win32AudioPlayer audio_player;',
         'rloft::Win32MidiPlayer midi_player;',
         'audio_player.play(rloft::decode_creative_voice(voc));',
@@ -96,6 +104,19 @@ def main()->int:
         try:host_contract(wrong)
         except ValueError:pass
         else:raise ValueError('Cinematic regression mutation passed')
+        wrong_clock=source.replace(
+            'std::chrono::microseconds(54925LL * ticks)',
+            'std::chrono::microseconds(1000LL * ticks)',1)
+        if wrong_clock==source: raise ValueError('Missing original timer target')
+        try:host_contract(wrong_clock)
+        except ValueError:pass
+        else:raise ValueError('Original BIOS tick pacing mutation passed')
+        wrong_card_sfx=source.replace('frame == 1 || frame == 36',
+                                      'frame == 2 || frame == 36',1)
+        if wrong_card_sfx==source: raise ValueError('Missing CODE.1 sound target')
+        try:host_contract(wrong_card_sfx)
+        except ValueError:pass
+        else:raise ValueError('CODE.1 animation SFX cue shift escaped')
         corrupted=source.replace(
             'assets.source().read_runtime("CHARS");','std::nullopt;',1)
         if corrupted==source:raise ValueError('Missing CHARS mutation target')
