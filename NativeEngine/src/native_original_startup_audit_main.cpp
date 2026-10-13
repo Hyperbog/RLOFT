@@ -3,6 +3,8 @@
 #include "rloft_native/native_world_payload.hpp"
 #include "rloft_native/native_world_runtime.hpp"
 #include "rloft_native/native_party_start.hpp"
+#include "rloft_native/native_scene_instances.hpp"
+#include "rloft_native/native_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_creation_flow.hpp"
@@ -95,6 +97,30 @@ int main(int argc,char** argv) {
             for(const auto byte:slot)
                 if(byte!=0U)
                     throw std::runtime_error("original Level22 event slot is not empty");
+        // The normal new-game GPU session now consumes the authentic
+        // NPC/INIT/OBJECTS → RES3 scene definition and 11-byte placement
+        // directory. Fail closed if the initial original scene changes.
+        const auto res3_count=rloft_native::NativeResArchive(
+            media.read("RES3")).entry_count();
+        const auto banks=rloft_native::decode_native_res3_scene_banks(
+            media.read("INIT"),res3_count);
+        const auto definitions=rloft_native::decode_native_scene_definitions(
+            banks,media.read("NPCS.DAT"),media.read("OBJECTS.DAT"));
+        const auto placements=rloft_native::derive_native_authored_scene_instances(
+            world.original(),definitions);
+        const auto& initial=placements.levels.at(22U);
+        if(initial.size()!=111U || first.families[0].size()!=1U ||
+           first.families[1].size()!=110U ||
+           !first.families[2].empty())
+            throw std::runtime_error(
+                "original Level22 source actor/placed placement count changed");
+        for(const auto& item:initial) {
+            if(item.level!=22U || item.absolute_res3_base>=res3_count)
+                throw std::runtime_error(
+                    "Level22 authentic RES3 scene instance out of range");
+        }
+        // This source-data check NEVER assigns sprite animation frames,
+        // encounter AI, pickup eligibility or in-world interactivity.
         const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
             media.read("CODE.1"),media.read("OBJECTS.DAT"));
         // Validate all real 90 family/race rows and original object ID
@@ -133,6 +159,8 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_kind1_controls\":0,"
                  <<"\"original_first_level_nonempty_event_slots\":0,"
                  <<"\"original_first_level_family_records\":[1,110,0],"
+                 <<"\"original_first_level_authored_scene_instances\":111,"
+                 <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
