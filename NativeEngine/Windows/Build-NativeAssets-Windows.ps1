@@ -43,7 +43,7 @@ try {
         "native_raster_colors_tests", "native_palette_context_tests",
         "native_type6_texture_tests", "native_party_start_tests",
         "native_scene_instances_tests", "native_scene_target_tests",
-        "native_scene_frame_ranges_tests", "native_session_profile_tests", "native_party_inventory_tests", "native_party_item_icon_tests", "native_bank_system_tests",
+        "native_scene_frame_ranges_tests", "native_session_profile_tests", "native_party_inventory_tests", "native_party_item_icon_tests", "native_presentation_timing_tests", "native_bank_system_tests",
         "native_world_system_tests")) {
         if (-not $display.Contains($test)) { throw "Mandatory native asset CTest absent: $test" }
     }
