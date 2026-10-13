@@ -78,6 +78,9 @@ int main() {
     assert(restored.pitch_radians==source.pitch_radians);
     assert(restored.discovered_cells==source.discovered_cells);
     assert(encode_native_session_profile(restored,world)==bytes);
+    auto different_reveal=restored;
+    different_reveal.discovered_cells.at(0)=1;
+    assert(encode_native_session_profile(different_reveal,world)!=bytes);
     // Restoration never mutates original level, cells, party or marks.
     assert(world.snapshot().source_fingerprint_sha256==
            before.source_fingerprint_sha256);
