@@ -34,8 +34,10 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine("FAIL: WPF read-only byte highlight smoke: " +
-                ex.GetType().FullName + ": " + ex.Message);
+            // CI uses synthetic rows and public source paths only; stack
+            // details are safe here and essential for diagnosing a harness
+            // failure without releasing a broken desktop.
+            Console.Error.WriteLine("FAIL: WPF read-only byte highlight smoke: " + ex);
             return 1;
         }
     }
@@ -44,7 +46,8 @@ internal static class Program
     {
         var app = new App();
         app.InitializeComponent();
-        app.StartupUri = null;
+        // WPF StartupUri rejects null in its setter. Run(window) is
+        // explicitly supplied with the test window.
         app.ShutdownMode = ShutdownMode.OnMainWindowClose;
         Exception? failure = null;
         app.DispatcherUnhandledException += (_, args) =>
