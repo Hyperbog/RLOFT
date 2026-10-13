@@ -139,6 +139,11 @@ jobs:
           # the exe and launchers for users reporting crash screenshots.
           Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
           Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ github.event_name == 'push' && 'full' || inputs.build_mode }}"
+          # Bind packaged launchers to the exact staged EXE bytes;
+          # build-source-sha.txt separately names the compiled checkout.
+          $packageExe = 'build/demo-v1/Release/ravenloft_demo_v1.exe'
+          $packageHash = (Get-FileHash -LiteralPath $packageExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -NoNewline -Path build/demo-v1/Release/ravenloft_demo_v1.exe.sha256 -Value "$packageHash  ravenloft_demo_v1.exe"
 
       - name: Publish original intro and character creation
         uses: actions/upload-artifact@v4
@@ -146,6 +151,7 @@ jobs:
           name: Ravenloft-Original-Intro-Windows-x64
           path: |
             build/demo-v1/Release/ravenloft_demo_v1.exe
+            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
             build/demo-v1/Release/Play-Original-Intro.cmd
             build/demo-v1/Release/Audit-Starting-Equipment.cmd
             build/demo-v1/Release/rloft_starting_equipment_probe.exe
@@ -162,6 +168,7 @@ jobs:
           name: Ravenloft-Alpha-Field-Test-Windows-x64
           path: |
             build/demo-v1/Release/ravenloft_demo_v1.exe
+            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
             build/demo-v1/Release/Test-Alpha-Continuous-Game.cmd
             build/demo-v1/Release/Test-Alpha-Continuous-Game.ps1
             build/demo-v1/Release/build-source-sha.txt
