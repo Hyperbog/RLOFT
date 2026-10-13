@@ -9,7 +9,7 @@
 #include <utility>
 namespace rloft_native {
 NativeStartupVisualSource::NativeStartupVisualSource(const NativeMedia& source)
-    :res0_(source.read("RES0")),colors_(source.read("COLORS")),text_(source.read("T")){
+    :media_(source),res0_(source.read("RES0")),colors_(source.read("COLORS")),text_(source.read("T")){
     if(colors_.size()!=1U+15U*768U || colors_[0]!=15U)
         throw std::runtime_error("original CODE.2 startup COLORS bank count/length invalid");
 }
@@ -24,6 +24,61 @@ rloft::Type1Raster NativeStartupVisualSource::res0_type1(int index) const {
     out.transparent_index=source.transparent_index;
     out.pixels=std::move(source.pixels);
     return out;
+}
+
+
+rloft::Type1Raster NativeStartupVisualSource::type1(int archive,int index) const {
+    if(archive==0)return res0_type1(index);
+    std::optional<NativeResArchive>* bank=nullptr;
+    const char* filename=nullptr;
+    switch(archive) {
+    case 1:bank=&res1_;filename="RES1";break;
+    case 7:bank=&res7_;filename="RES7";break;
+    case 8:bank=&res8_;filename="RES8";break;
+    default:throw std::out_of_range("original CODE.1 unsupported EH1 archive");
+    }
+    if(!bank->has_value())bank->emplace(media_.read(filename));
+    if(index<0||std::size_t(index)>=bank->value().entry_count())
+        throw std::out_of_range("original CODE.1 EH1 resource index");
+    auto decoded=decode_native_type1_raster(bank->value().entry(std::size_t(index)));
+    return {int(decoded.frames),int(decoded.width),int(decoded.height),
+            decoded.transparent_index,std::move(decoded.pixels)};
+}
+std::uint8_t NativeStartupVisualSource::code1_u8(std::size_t offset) const {
+    constexpr std::size_t kDataStart=0x3E724U;
+    constexpr std::size_t kFileSize=0x43D1BU;
+    if(!code1_)code1_.emplace(media_.read("CODE.1"));
+    if(code1_->size()!=kFileSize)
+        throw std::runtime_error("original CODE.1 media version/size mismatch");
+    if(offset>=kFileSize-kDataStart)
+        throw std::out_of_range("original CODE.1 DGROUP byte");
+    return code1_->at(kDataStart+offset);
+}
+std::uint16_t NativeStartupVisualSource::code1_u16(std::size_t offset) const {
+    const auto low=code1_u8(offset);
+    if(offset==std::size_t(-1))throw std::out_of_range("original CODE.1 DGROUP word");
+    return std::uint16_t(low|(std::uint16_t(code1_u8(offset+1U))<<8U));
+}
+std::int32_t NativeStartupVisualSource::code1_s32(std::size_t offset) const {
+    constexpr std::size_t kLast=0x43D1BU-0x3E724U;
+    if(offset>kLast-4U)throw std::out_of_range("original CODE.1 DGROUP DWORD");
+    const auto raw=std::uint32_t(code1_u8(offset))|
+       (std::uint32_t(code1_u8(offset+1U))<<8U)|
+       (std::uint32_t(code1_u8(offset+2U))<<16U)|
+       (std::uint32_t(code1_u8(offset+3U))<<24U);
+    return static_cast<std::int32_t>(raw);
+}
+std::string NativeStartupVisualSource::code1_cstring(std::size_t offset) const {
+    constexpr std::size_t kDataStart=0x3E724U;
+    static_cast<void>(code1_u8(offset)); // validate/version-check before indexing
+    const std::size_t start=kDataStart+offset;
+    std::string result;
+    for(std::size_t at=start;at<code1_->size();++at) {
+        const auto ch=code1_->at(at);
+        if(ch==0)return result;
+        result.push_back(char(ch));
+    }
+    throw std::runtime_error("original CODE.1 DGROUP string is unterminated");
 }
 
 namespace {
