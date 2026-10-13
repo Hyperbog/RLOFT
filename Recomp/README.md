@@ -1,5 +1,32 @@
 # Canonical CODE.1 / CODE.2 whole-source compilation and linking gate
 
+## R04 current — source DAC9 allocator, pinned original-media identity (2026-10-12)
+
+[Windows build #153](https://github.com/Hyperbog/RLOFT/actions/runs/38325531978)
+passes **63/63 existing canonical CTests**. Original CODE.1 FCE8
+stdio/argv constructors now acquire their guest heap allocations through
+the *actual compiled original* `DAC9→DAD9→104E0/10AA9/10C46`
+allocator veneer, including source-owned retry and error handling,
+rather than the earlier test-owned allocator retry loop. The core
+guest DS-break service and in-memory free list remain original
+reconstructed C++; the host only handles explicitly external guest
+memory/OS services. [Source checkpoint](R04_CODE1_CD97_CONSTRUCTOR_HEAP_CHECKPOINT_20261012.md).
+
+The CODE.1 and CODE.2 startup programs now **reject same-sized,
+modified originals** using portable SHA-256 before LE parsing. Owner-
+supplied CODE.1/CODE.2 identities were checked against their pinned
+original hashes locally, and existing CTests validate the SHA-256
+implementation against standard public vectors without bundling
+original media. [Original-DOS memory capture protocol](R04_ORIGINAL_DOS_MEMORY_ORACLE_CAPTURE_PROTOCOL.md)
+is now documented; **no original DOS/4GW trace has yet been captured**.
+
+**R04 remains OPEN. Whole-game recompilation acceptance is still
+R01–R03 = 3/12 (25.00%).** The major blocker is independent original
+DOS/4GW memory/selector/error-path behavioral evidence. CODE.1 gameplay
+beyond `508C` is separately scoped to R06. No new CTest targets were
+added in this checkpoint.
+
+
 ## Latest R04 CODE.1 source startup checkpoint — 63/63 Windows CTests (2026-10-12)
 
 [Windows source build #147](https://github.com/Hyperbog/RLOFT/actions/runs/38323318475)
