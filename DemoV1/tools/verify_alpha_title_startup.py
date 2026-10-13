@@ -28,8 +28,13 @@ def check(host:str,ledger:dict,roadmap:str,cmake:str)->None:
     first_guard=host.rfind('if (!skipped) {',intro12,logo)
     require(first_guard>intro12 and
             'const auto deadline = Clock::now() + pit_ticks(120)' in
+            host[first_guard:logo] and
+            'startup_event("boot.splash.first");' in
             host[first_guard:logo],
             "CINE Esc first-logo wait must be guarded")
+    # The diagnostic stage marker between the source skip guard and
+    # deadline is optional host instrumentation, not a different branch.
+    # Match source order/ownership, never exact adjacent source lines.
     require('if (menu_mode_) selection_ = -1;' in host,
             "title selection remains stale on pointer leave")
     require('selection_ = (row >= 0 && column >= 0)' in host,
@@ -108,11 +113,16 @@ def main()->int:
         cmake=paths["cmake"].read_text(encoding="utf-8")
         check(host,gates,road,cmake)
         # Deliberate negative probes must fail:
-        guard_text=('if (!skipped) {'+chr(10)+
-                    '        const auto deadline = Clock::now() + pit_ticks(120)')
-        require(guard_text in host,"unexpected guarded logo source")
+        # Mutate the actual first-logo guard, not an indentation-
+        # sensitive line pair that breaks when tracing is inserted.
+        logo_pos=host.index('presenter.first_logo()',intro12)
+        guard_pos=host.rfind('if (!skipped) {',intro12,logo_pos)
+        require(guard_pos>intro12,"no first-logo skip guard to mutate")
+        bad_guard=(host[:guard_pos]+
+                   host[guard_pos:].replace('if (!skipped) {',
+                                           'if (true) {',1))
         mutations=[
-            host.replace(guard_text,guard_text.replace('if (!skipped)','if (true)'),1),
+            bad_guard,
             host.replace('if (selection_ >= 0) clicked_ = selection_;',
                          'if (false) clicked_ = selection_;',1),
             host.replace('if (*click == 0)', 'if (*click == 9)',1),
