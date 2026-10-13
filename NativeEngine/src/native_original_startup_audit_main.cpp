@@ -69,12 +69,13 @@ int main(int argc,char** argv) {
                     throw std::runtime_error("original startup DAC6 palette channel outside range");
             }
         }
-        auto levels=load_native_world_payload(media);
-        NativeWorldRuntime world(std::move(levels));
-        const auto& first=world.original().level(NativePartyStart::kFirstLevel);
+        auto levels=rloft_native::load_native_world_payload(media);
+        rloft_native::NativeWorldRuntime world(std::move(levels));
+        const auto& first=world.original().level(
+            rloft_native::NativePartyStart::kFirstLevel);
         if(first.width!=30U||first.height!=15U ||
-           world.normal_collision(NativePartyStart::kFirstLevel,4U,4U)!=
-               NativeCollision::Passable ||
+           world.normal_collision(rloft_native::NativePartyStart::kFirstLevel,4U,4U)!=
+               rloft_native::NativeCollision::Passable ||
            first.cell(4U,4U)!=0x0000U)
             throw std::runtime_error(
                 "original Level22 first-party spawn conflicts with LEVELS.DAT");
