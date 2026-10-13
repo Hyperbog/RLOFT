@@ -62,6 +62,70 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
 
     NativeProbeTexturedFrame out;
     out.width=width;out.height=height;
+    // HOST-ONLY textured floor/ceiling preview. CODE.2 33E28/33DE0
+    // writes the authentic background gradients, but the original
+    // game overlays projected surface polygons. Until source 32620/3263C
+    // automatic floor/ceiling material dispatch has been recovered,
+    // source-backed RES4 pixels are mapped on the horizontal planes
+    // using the real level cell's resource candidates. The surface
+    // choices and projection are provisional, not DOS parity.
+    const double focal=double(view.columns.size())/
+        std::tan(view.camera.field_of_view_radians*0.5);
+    const auto& level=world.original().level(view.camera.level);
+    const unsigned horizon=128U;
+    for(unsigned x=0;x<view.columns.size();++x) {
+        const double sample=2.0*(double(x)+0.5)/
+                            double(view.columns.size())-1.0;
+        const double angle=view.camera.heading_radians+
+            std::atan(std::tan(view.camera.field_of_view_radians*0.5)*sample);
+        const double cosine=std::cos(angle-view.camera.heading_radians);
+        const double dir_x=std::cos(angle),dir_y=std::sin(angle);
+        if(cosine<=0.0)continue;
+        for(unsigned sy=0;sy<256U;++sy) {
+            const int from_horizon=int(sy)-int(horizon)-pitch_pixels;
+            if(from_horizon==0)continue;
+            const bool lower=from_horizon>0;
+            // Outdoors: retain the source CODE.2 level gradient sky
+            // instead of manufacturing a sky texture from wall art.
+            if(!lower && level.original_header[0x290U]!=0xffU)
+                continue;
+            const double depth=0.5*focal/std::abs(double(from_horizon));
+            const double distance=depth/cosine;
+            const double wx=view.camera.column_position+distance*dir_x;
+            const double wy=view.camera.row_position+distance*dir_y;
+            if(!std::isfinite(wx)||!std::isfinite(wy) ||
+               wx<0.0||wy<0.0||wx>=double(level.width)||
+               wy>=double(level.height))continue;
+            const unsigned cx=static_cast<unsigned>(wx);
+            const unsigned cy=static_cast<unsigned>(wy);
+            const auto candidate=native_scene_resource_candidates(
+                world,view.camera.level,cx,cy);
+            // The source banks are real, the assumption they supply
+            // projected floor/ceiling art is a PREVIEW ONLY.
+            const unsigned id=candidate.candidate_resource_ids[lower?0U:1U];
+            if(id>=wide_count_)continue;
+            auto tex=textures_.find(id);
+            if(tex==textures_.end()) {
+                auto decoded=decode_native_type6_texture(source_.entry(id));
+                if(decoded.frames!=1U || decoded.width!=64U ||
+                   decoded.height!=128U || decoded.pixels.size()!=8192U)
+                    throw std::runtime_error("original projected surface not EH6 wide");
+                tex=textures_.emplace(id,std::move(decoded)).first;
+                ++out.source_texture_decompressions;
+            }
+            const double u=wx-std::floor(wx),v=wy-std::floor(wy);
+            const auto tx=std::min(63U,static_cast<unsigned>(u*64.0));
+            // A wall source 64x128 has a physical 64x64 preview
+            // sample domain: every second source scanline.
+            const auto ty=std::min(63U,static_cast<unsigned>(v*64.0));
+            const auto index=tex->second.pixels[
+                std::size_t(ty*2U)*64U+tx];
+            video.masked_write(std::size_t(sy+4U)*80U+(x+32U)/4U,
+                static_cast<std::uint8_t>(1U<<((x+32U)&3U)),index);
+            if(lower)++out.preview_floor_texels;
+            else ++out.preview_ceiling_texels;
+        }
+    }
     std::vector<NativeType6ProjectedColumn> original_columns;
     original_columns.reserve(view.columns.size());
     const auto plane=std::tan(view.camera.field_of_view_radians*0.5);
@@ -126,9 +190,13 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         // clearance (radius 0.26). 55 px/cell avoids the previous
         // 400/distance full-height saturation when approaching walls.
         // DOS 35730 remains upstream camera reconstruction work.
-        const auto scaled=55.0/
-            std::max(0.22,ray.corrected_distance);
-        const auto projected_height=std::max(1U,std::min(240U,
+        // Perspective focal length in the original 256-column
+        // world view. DOS 320x400 pixels are displayed with 2:1
+        // horizontal aspect; 1 world-cell projected wall height is
+        // focal/distance, not the previous arbitrary 55/d estimate.
+        const double scaled=focal /
+            std::max(0.26,ray.corrected_distance);
+        const auto projected_height=std::max(1U,std::min(256U,
             static_cast<unsigned>(scaled)));
         original_columns.push_back({
             &texture->second,source_column,x+32U,projected_height,
