@@ -6,6 +6,9 @@ on:
     paths:
       - 'Shared/BootFlow/**'
       - 'Shared/CharacterCreation/**'
+      - 'Shared/StartupPresentation/**'
+      - 'DemoV1/src/character_transfer.cpp'
+      - 'DemoV1/include/rloft/character_*.hpp'
       - 'DemoV1/CMakeLists.txt'
       - 'DemoV1/include/rloft/boot_flow.hpp'
       - 'DemoV1/include/rloft/character_creation_flow.hpp'
@@ -26,9 +29,21 @@ jobs:
       - name: Configure DemoV1 with shared neutral source
         run: cmake -S DemoV1 -B /tmp/rloft-demo-front -DCMAKE_BUILD_TYPE=Release
       - name: Compile only the original boot and creation regression targets
-        run: cmake --build /tmp/rloft-demo-front --target boot_flow_tests character_flow_tests --parallel 2
+        run: cmake --build /tmp/rloft-demo-front --target boot_flow_tests character_flow_tests character_stats_tests character_transfer_tests character_palette_remap_tests --parallel 2
       - name: Execute DemoV1 unchanged original behavior regressions
-        run: ctest --test-dir /tmp/rloft-demo-front -R '^(boot_flow_tests|character_flow_tests)$' --output-on-failure
+        run: ctest --test-dir /tmp/rloft-demo-front -R '^(boot_flow_tests|character_flow_tests|character_stats_tests|character_transfer_tests|character_palette_remap_tests)
+      - name: Show source-only bridge evidence
+        run: |
+          test -e Shared/BootFlow/src/boot_flow.cpp
+          test -e Shared/CharacterCreation/src/character_creation_flow.cpp
+          test ! -e DemoV1/src/boot_flow.cpp
+          test ! -e DemoV1/src/character_creation_flow.cpp
+          test -e Shared/StartupPresentation/src/character_creation_presenter.cpp
+          test -e Shared/StartupPresentation/src/character_transfer.cpp
+          test ! -e DemoV1/src/character_creation_presenter.cpp
+          grep -q 'CharacterTransferTables::from_assets' DemoV1/src/character_transfer.cpp
+          echo 'NEUTRAL_ORIGINAL_FRONTEND_DUAL_CONSUMER_SOURCE_PASS'
+ --output-on-failure
       - name: Show source-only bridge evidence
         run: |
           test -e Shared/BootFlow/src/boot_flow.cpp
