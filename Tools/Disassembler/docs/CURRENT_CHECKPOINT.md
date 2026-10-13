@@ -1,5 +1,33 @@
 # DOSDis — compact current checkpoint
 
+## Repository branch cleanup (2026-10-12)
+
+- The owner requested one **current/main DOSDis branch** and deletion
+  of redundant verification branches. Verified exact branch tips,
+  closed/unmerged pull requests, and compared source with
+  `disassembler-foundation` before deletion.
+- Preserved **`disassembler-foundation`** as the sole DOSDis
+  development branch. Deleted **`disassembler-g2-build-20261010-54247e`**
+  (closed PR #8, unique branch changes temporary workflow only;
+  original C# oracle fixture blob matched canonical byte-for-byte)
+  and **`dosdis-windows-byte-search-gate-20261011-1f8b6b`**
+  (closed PR #14, unique changes temporary workflow only).
+- A one-time ref-deletion Actions job verified each expected SHA
+  and PR closed/unmerged status before deleting; [run
+  #1](https://github.com/Hyperbog/RLOFT/actions/runs/38337508053)
+  **SUCCESS**. Subsequent GitHub branches query: **16 branches**,
+  **one DOSDis branch**, the remaining **15 unrelated branches
+  preserved**. The temporary maintenance workflow was
+  subsequently deleted. No game source or DOSDis code was
+  modified by this cleanup; canonical automatic desktop build
+  workflow remains in place.
+- Repository default branch remains `code1-decompilation`
+  because other project work depends on it; this cleanup does
+  **not** rename or replace GitHub's repository default.
+  DOSDis's canonical development branch remains
+  `disassembler-foundation`.
+
+
 **Checked:** 2026-10-10. **Authoritative live source:** HEAD of
 `disassembler-foundation` (resolve GitHub HEAD on each new turn;
 **do not assume the commit that last edited this file remains HEAD**).
