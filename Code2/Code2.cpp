@@ -27502,8 +27502,12 @@ struct Runtime126Boundary {
 };
 
 // 375FE..37641: preserve the extender-mode split used when installing the bridge.
-[[nodiscard]] u32 function_375fe(Runtime126Boundary& b,u32 old_offset,u16 old_selector,u8 extender_mode) noexcept {
-    (void)old_offset; (void)old_selector;
+[[nodiscard]] u32 function_375fe(Machine& m,Runtime126Boundary& b,u32 old_offset,u16 old_selector,u8 extender_mode) noexcept {
+    // Original 37607/3760C explicitly save the previous far callback
+    // into DGROUP 105F2 (offset) and 105F6 (selector) *before* INT 21h.
+    // Original 3761E reads the extender selector mode from DGROUP 12662.
+    store_le32(dg(m,0x105F2u),old_offset);
+    store_le16(dg(m,0x105F6u),old_selector);
     if(b.install_interrupt){
         if(extender_mode>=2u && extender_mode<=6u)b.install_interrupt(0x06u,0x24u,0x37642u);
         else b.install_interrupt(0x24u,0u,0x37642u);
@@ -28532,8 +28536,18 @@ static_assert(0x398E0u-0x398DBu==5u);
 void function_398e0(Machine& m,u32 arena,u32 payload) noexcept {
     if(payload==0u){function_398db();return;} u32 block=payload-4u;u32 size=load_le32(dg(m,block));if((size&1u)==0u)return;size&=~1u;u32 after=block+size;
     if((load_le32(dg(m,after))&1u)==0u){if(after==load_le32(dg(m,arena+0x0Cu)))store_le32(dg(m,arena+0x0Cu),block);size+=load_le32(dg(m,after));store_le32(dg(m,block),size);const u32 p=load_le32(dg(m,after+4u)),n=load_le32(dg(m,after+8u));store_le32(dg(m,p+8u),n);store_le32(dg(m,n+4u),p);store_le32(dg(m,arena+0x1Cu),load_le32(dg(m,arena+0x1Cu))-1u);}else store_le32(dg(m,block),size);
-    u32 at=load_le32(dg(m,arena+0x0Cu));if(block<at){const u32 prev=load_le32(dg(m,at+4u));if(block<=prev)at=load_le32(dg(m,arena+0x28u));}else{at=load_le32(dg(m,at+8u));if(block>=at)at=arena+0x20u;}
-    while(block>=load_le32(dg(m,at+8u))&&load_le32(dg(m,at+8u))!=arena+0x20u)at=load_le32(dg(m,at+8u));
+    // Original 39924..3999D searches the address-ordered circular free
+    // list (using rover and a bounded arithmetic shortcut). In particular
+    // 39940/39943 pick the SENTINEL as insertion successor when a new
+    // free block lies above the highest existing free block. The previous
+    // reconstruction incorrectly advanced past that successor and missed
+    // adjacent backward coalescing during source 39E1C heap extension.
+    // This monotonic walk preserves the same ordered successor for every
+    // well-formed list, without reimplementing the x86 scan heuristic.
+    const u32 sentinel=arena+0x20u;
+    u32 at=load_le32(dg(m,arena+0x24u));
+    while(at!=sentinel && at<block)
+        at=load_le32(dg(m,at+8u));
     u32 prev=load_le32(dg(m,at+4u));
     if(prev+load_le32(dg(m,prev))==block){size+=load_le32(dg(m,prev));store_le32(dg(m,prev),size);block=prev;if(payload-4u==load_le32(dg(m,arena+0x0Cu)))store_le32(dg(m,arena+0x0Cu),prev);}else{store_le32(dg(m,arena+0x1Cu),load_le32(dg(m,arena+0x1Cu))+1u);store_le32(dg(m,block+8u),at);store_le32(dg(m,block+4u),prev);store_le32(dg(m,prev+8u),block);store_le32(dg(m,at+4u),block);}
     store_le32(dg(m,arena+0x18u),load_le32(dg(m,arena+0x18u))-1u);if(block<load_le32(dg(m,arena+0x0Cu))&&size>load_le32(dg(m,arena+0x10u)))store_le32(dg(m,arena+0x10u),size);if(size>load_le32(dg(m,arena+0x14u)))store_le32(dg(m,arena+0x14u),size);
@@ -28555,7 +28569,7 @@ void function_39a2c(Machine& m,Runtime141Boundary& b) noexcept {
     u32 node=load_le32(dg(m,0x12624u));
     while(node!=0u){
         const u32 descriptor=load_le32(dg(m,node+0x24u));
-        if(load_le32(dg(m,descriptor))+0x2Cu!=node){node=load_le32(dg(m,node+8u));continue;}
+        if(load_le32(dg(m,descriptor))+0x2Cu!=load_le32(dg(m,node))){node=load_le32(dg(m,node+8u));continue;}
         const u32 next=load_le32(dg(m,node+8u));
         function_399eb(m,node);
         const u32 owner=node-8u;

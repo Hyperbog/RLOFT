@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # CODE.2 375FE / 398E0 / 39A2C original x86 source synchronization.
+    # Read-only: no original game binaries required in public CI.
+    add_test(
+        NAME original_code2_runtime_sync_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_code2_runtime_source_sync.py")
     # Exact CODE.1 10BB4 x86-to-C++ DS-break comparison guard.
     # Uses only source during CI; optional privately authenticated original media.
     add_test(
