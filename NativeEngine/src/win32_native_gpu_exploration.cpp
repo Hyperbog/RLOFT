@@ -18,6 +18,7 @@
 #include "rloft_native/native_scene_frame_ranges.hpp"
 #include "rloft_native/native_session_profile.hpp"
 #include "rloft_native/native_party_inventory.hpp"
+#include "rloft_native/native_party_item_icon.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -71,11 +72,21 @@ std::vector<std::uint8_t> read_native_quicksave_bytes() {
     return encoded;
 }
 
+struct NativeIconGpuTexture {
+    GLuint id{};
+    std::uint16_t original_width{},original_height{};
+    float u_max{},v_max{};
+};
+
 struct State {
     NativeWorldRuntime world;
     // Null only for the explicitly separate technical viewport preview.
     std::optional<NativePartyStart> party;
     std::optional<NativePartyInventory> initial_inventory;
+    std::optional<NativeResArchive> source_res1;
+    // Source RES1 IDs, never synthetic texture/item identifiers.
+    // Zero GLuint means a genuinely empty RES1 record.
+    std::map<unsigned,NativeIconGpuTexture> item_icon_textures;
     bool show_inventory{};
     // Only present for an explicit native-only cross-launch resume.
     // Never used to bypass normal CODE.1 character creation.
@@ -141,6 +152,10 @@ struct State {
             // against immutable OBJECTS.DAT. Not a live mutable inventory.
             initial_inventory=inspect_native_party_inventory(
                 *party,media.read("OBJECTS.DAT"));
+            source_res1.emplace(media.read("RES1"));
+            if(source_res1->entry_count()!=428U)
+                throw std::runtime_error(
+                    "original RES1 inventory and portrait archive count changed");
             // Consume existing independently verified original RES3 / NPCS /
             // INIT / OBJECTS compact-placement ledger. No provisional shape
             // frame, fake actor or world item is instantiated by this step.
@@ -203,8 +218,11 @@ struct State {
         if(context) {
             wglMakeCurrent(dc,context);
             for(const auto& tex:gpu_textures)glDeleteTextures(1,&tex.second);
+            for(const auto& tex:item_icon_textures)
+                if(tex.second.id)glDeleteTextures(1,&tex.second.id);
         }
         gpu_textures.clear();
+        item_icon_textures.clear();
         palette=new_palette;
         palette_bank=new_palette_bank;
         world.select_level(id);
@@ -235,6 +253,9 @@ struct State {
             wglMakeCurrent(dc,context);
             for(const auto& tex:gpu_textures)glDeleteTextures(1,&tex.second);
             gpu_textures.clear();
+            for(const auto& tex:item_icon_textures)
+                if(tex.second.id)glDeleteTextures(1,&tex.second.id);
+            item_icon_textures.clear();
             wglMakeCurrent(nullptr,nullptr);
             wglDeleteContext(context);
             context=nullptr;
@@ -321,6 +342,64 @@ struct State {
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mag_filter);
         gpu_textures.emplace(id,tex);
         return tex;
+    }
+    const NativeIconGpuTexture& source_item_icon(unsigned id) {
+        const auto it=item_icon_textures.find(id);
+        if(it!=item_icon_textures.end())return it->second;
+        if(!source_res1)
+            throw std::logic_error("original RES1 inventory bank not loaded");
+        const auto source=decode_native_party_item_icon(
+            *source_res1,id,palette);
+        NativeIconGpuTexture result{};
+        if(!source.source_is_intentionally_empty) {
+            // Pad original indexed art (not resample) for even the oldest
+            // OpenGL 1.1 hardware: NPOT texture extension is not required.
+            auto power2=[](unsigned n) {
+                unsigned out=1;
+                while(out<n && out<512U)out*=2U;
+                if(out<n)throw std::runtime_error(
+                    "original inventory icon is too wide for texture");
+                return out;
+            };
+            const auto texture_width=power2(source.width);
+            const auto texture_height=power2(source.height);
+            std::vector<std::uint8_t> padded(
+                std::size_t(texture_width)*texture_height*4U,0);
+            for(unsigned y=0;y<source.height;++y)
+                std::copy_n(
+                    source.rgba.begin()+std::ptrdiff_t(
+                        std::size_t(y)*source.width*4U),
+                    std::size_t(source.width)*4U,
+                    padded.begin()+std::ptrdiff_t(
+                        std::size_t(y)*texture_width*4U));
+            GLuint tex=0;
+            glGenTextures(1,&tex);
+            if(!tex)throw std::runtime_error(
+                "native RES1 icon texture allocation failed");
+            glBindTexture(GL_TEXTURE_2D,tex);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+            glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+            glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
+                         static_cast<GLsizei>(texture_width),
+                         static_cast<GLsizei>(texture_height),
+                         0,GL_RGBA,GL_UNSIGNED_BYTE,padded.data());
+            const GLenum error=glGetError();
+            if(error!=GL_NO_ERROR) {
+                glDeleteTextures(1,&tex);
+                throw std::runtime_error(
+                    "OpenGL upload rejected original RES1 source icon "+
+                    std::to_string(id));
+            }
+            result.id=tex;
+            result.original_width=source.width;
+            result.original_height=source.height;
+            result.u_max=float(source.width)/float(texture_width);
+            result.v_max=float(source.height)/float(texture_height);
+        }
+        return item_icon_textures.emplace(id,result).first->second;
     }
     void update_filter() {
         if(!context)return;
@@ -685,10 +764,40 @@ struct State {
                     label+=std::to_string(entry.object_id)+" "+title;
                     label+=entry.identified?" [K]":" [?]";
                 }
-                line(x,top+72+slot*18U,label);
+                // Image 0 in RES1 is not the original gameplay icon;
+                // use each item's real immutable OBJECTS +2D source ID.
+                if(entry.occupied) {
+                    const auto& icon=source_item_icon(
+                        entry.absolute_res1_ui_id);
+                    if(icon.id) {
+                        const float ratio=std::min(
+                            18.f/float(icon.original_width),
+                            16.f/float(icon.original_height));
+                        const float w=float(icon.original_width)*ratio;
+                        const float h=float(icon.original_height)*ratio;
+                        const float lx=float(x)+(18.f-w)*.5f;
+                        const float ty=float(top+58+int(slot)*18)+
+                            (16.f-h)*.5f;
+                        glEnable(GL_TEXTURE_2D);
+                        glBindTexture(GL_TEXTURE_2D,icon.id);
+                        glColor3f(1.f,1.f,1.f);
+                        glEnable(GL_BLEND);
+                        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+                        glBegin(GL_QUADS);
+                        glTexCoord2f(0.f,0.f);glVertex2f(lx,ty);
+                        glTexCoord2f(icon.u_max,0.f);glVertex2f(lx+w,ty);
+                        glTexCoord2f(icon.u_max,icon.v_max);glVertex2f(lx+w,ty+h);
+                        glTexCoord2f(0.f,icon.v_max);glVertex2f(lx,ty+h);
+                        glEnd();
+                        glDisable(GL_BLEND);
+                        glDisable(GL_TEXTURE_2D);
+                    }
+                }
+                line(x+23,top+72+slot*18U,label);
             }
         }
-        line(left,top+466,"K = original identified bit; ? = not identified. Equipment use pending.");
+        line(left,top+466,
+            "Original RES1 art / level palette preview; game UI frame timing pending.");
         glMatrixMode(GL_PROJECTION);glPopMatrix();
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
