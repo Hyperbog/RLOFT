@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Opt-in startup diagnostics must not record recoverable CODE.1
+    # character names as Win32 VK/OEM scan or up/down key codes.
+    add_test(
+        NAME alpha_code1_trace_input_privacy_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_code1_trace_privacy.py")
     # The Alpha field runner needs a boot trace even when CINE/title/CODE.1
     # fails before the first gameplay scene; no original media included.
     add_test(

@@ -45,8 +45,11 @@ its existing remembered-folder behavior. The copied data remains under
 `%TEMP%\\RLOFT-Alpha-Field` until the tester elects to remove it.
 Captured diagnostic ZIPs are local and may contain personal party names.
 The opt-in `--dev-trace` field run now also creates a **separate startup
-diagnostic ZIP** containing only source-SHA-pinned stage IDs and native
-input observations from before CINE00 through title/character creation.
+diagnostic ZIP** containing source-SHA-pinned stage IDs and native input
+observations from before CINE00 through title/character creation.
+**Raw key and scan codes are intentionally suppressed throughout CODE.1
+character creation**, so entered actor names are not recoverable from
+the diagnostic events.
 This startup ZIP can exist even if the first Level22 runtime never
 loads; a distinct exploration ZIP is created only after entering that
 runtime. Neither is automatically uploaded or counts as DOS evidence.

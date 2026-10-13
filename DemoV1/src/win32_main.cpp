@@ -619,7 +619,11 @@ private:
         // Developer-only metadata, never original CODE.2 gameplay input.
         // Status rejects missing E0/E1 streams and unknown repeat timing.
         // Keep the existing Win32 key handler entirely unchanged below.
-        if(session_trace_ &&
+        // CODE.1 name entry uses the same Win32 host keyboard as
+        // the earlier cinematic/title screens. Never capture original
+        // character-name keystrokes (or reversible OEM scan bytes)
+        // in the opt-in diagnostic session.
+        if(session_trace_ && !character_mode_ &&
            (msg==WM_KEYDOWN || msg==WM_KEYUP ||
             msg==WM_SYSKEYDOWN || msg==WM_SYSKEYUP)) {
             const auto observation=
@@ -666,8 +670,13 @@ private:
                             session_trace_->request_marker();
                             return 0;
                         }
-                        session_trace_->event("key.down",
-                            static_cast<std::int64_t>(wparam));
+                        // F12 remains a diagnostic marker; all other
+                        // CODE.1 key codes are private character input.
+                        // Retain gameplay's actual key handling below.
+                        if (!character_mode_) {
+                            session_trace_->event("key.down",
+                                static_cast<std::int64_t>(wparam));
+                        }
                     }catch(...) { session_trace_=nullptr; }
                 }
                 if (wparam == VK_ESCAPE) {
@@ -713,7 +722,7 @@ private:
 
             case WM_KEYUP:
                 if(session_trace_ && wparam==VK_F12)return 0;
-                if(session_trace_) {
+                if(session_trace_ && !character_mode_) {
                     try {
                         session_trace_->event("key.up",
                             static_cast<std::int64_t>(wparam));
