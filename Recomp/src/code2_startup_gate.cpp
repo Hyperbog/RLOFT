@@ -4,6 +4,7 @@
 // fabricated result. Source: original CODE.2 353A0 -> 35418 -> 395E2.
 #include "../../Code2/Code2.cpp"
 #include "original_le_image.h"
+#include "original_media_identity.hpp"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
@@ -2025,7 +2026,8 @@ int main(int argc,char**argv) {
                      host_source_heap,host_dos_fallback,host_break_growth);
         }else{
             const auto b=read_file(argv[original_index]);
-            require(b.size()==558689u,"original CODE.2 size is incorrect");
+            require(rloft_recomp::is_original_code2(b),
+                    "CODE.2 supplied media differs from pinned original SHA-256");
             const auto image=rloft_recomp::OriginalLeImage::parse(b);
             std::vector<u8> sound_bytes;
             const std::vector<u8>* sound_ptr=nullptr;
