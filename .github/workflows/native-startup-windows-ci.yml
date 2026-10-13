@@ -30,6 +30,11 @@ on:
       - 'NativeEngine/Windows/Build-NativeAssets-Windows.ps1'
       - 'NativeEngine/CMakeLists.txt'
       - '.github/workflows/native-startup-windows-ci.yml'
+  # PR runs expose their workflow IDs to our repository connector.
+  # This lets reviewers inspect exact MSVC/CTest outcomes instead of
+  # treating a push-triggered build as implicitly green.
+  pull_request:
+    branches: [native-engine]
   workflow_dispatch:
 
 permissions:
