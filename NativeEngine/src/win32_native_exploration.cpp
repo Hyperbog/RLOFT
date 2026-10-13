@@ -143,7 +143,7 @@ std::wstring label(const Preview& state) {
     return L"Original LEVELS.DAT level " + std::to_wstring(state.camera.level) +
            L" / 31  |  Cell (" + std::to_wstring(x) + L", " +
            std::to_wstring(y) + L")  |  Walls " +
-           std::to_wstring(state.wall_hits) + L"/320  |  RES4 texels " +
+           std::to_wstring(state.wall_hits) + L"/256  |  RES4 wall texels " +
            std::to_wstring(state.last_source_texels) +
            (state.mouse_look?L"  |  MOUSE LOOK ON":L"  |  KEYBOARD LOOK") +
            (state.show_full_frame?L"  |  FULL DOS FRAME":L"  |  VIEW ONLY") +
@@ -163,7 +163,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
 
     SetTextColor(dc,RGB(245,189,103));
     RECT warning{20,41,bounds.right-20,68};
-    DrawTextW(dc,L"ORIGINAL CODE.2 ENVIRONMENT + WALL VGA / HOST CAMERA",
+    DrawTextW(dc,L"ORIGINAL RES4 PIXELS | HOST WALL/FLOOR PROJECTION (NOT DOS PARITY)",
               -1,&warning,DT_SINGLELINE|DT_END_ELLIPSIS);
 
     const int available_width=std::max(1,int(bounds.right)-40);
@@ -202,7 +202,7 @@ void paint(HWND window,const Preview& state,HDC dc) {
     DrawTextW(dc,
       L"W/S = forward/back    A/D = strafe    Q/E = turn left/right\n"
       L"M/right-click = mouse-look   V = viewport/full frame   PgUp/Dn = level\n"
-      L"R = respawn    Esc = close    Read-only source; host camera not DOS.",
+      L"R = respawn    Esc = close    Original media read-only.",
       -1,&controls,DT_WORDBREAK);
 }
 
