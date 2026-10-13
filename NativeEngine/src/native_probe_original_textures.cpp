@@ -6,6 +6,7 @@
 #include "rloft_native/native_vga_rgb6_scanout.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -62,16 +63,40 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
 
     NativeProbeTexturedFrame out;
     out.width=width;out.height=height;
-    // HOST-ONLY textured floor/ceiling preview. CODE.2 33E28/33DE0
-    // writes the authentic background gradients, but the original
-    // game overlays projected surface polygons. Until source 32620/3263C
-    // automatic floor/ceiling material dispatch has been recovered,
-    // source-backed RES4 pixels are mapped on the horizontal planes
-    // using the real level cell's resource candidates. The surface
-    // choices and projection are provisional, not DOS parity.
+    // Original CODE.2 1F317..1F3C8 reads the *authored* upper/lower
+    // surface texture selectors from the original level header +0x05
+    // and +0x07, loading RES4 at the surface-class base 0x258F8.
+    // The original RES4 corpus has 600 wall (64x128) followed by 67
+    // surface (32x128) EH6 entries. A signed -1 is preserved as a
+    // no-texture sentinel, showing the original CODE.2 gradient.
+    // The source CHOICE is now original; these host plane UVs,
+    // per-column depth and draw order still await source 34A74 parity.
     const double focal=double(view.columns.size())/
         std::tan(view.camera.field_of_view_radians*0.5);
     const auto& level=world.original().level(view.camera.level);
+    std::array<const NativeType1Raster*,2> surface{};
+    for(unsigned surface_slot=0;surface_slot<2U;++surface_slot) {
+        const unsigned at=5U+2U*surface_slot;
+        const auto original_id=static_cast<std::int16_t>(
+            std::uint16_t(level.original_header[at]) |
+            (std::uint16_t(level.original_header[at+1U])<<8U));
+        if(original_id<0)continue; // Native original no-texture state
+        const unsigned id=wide_count_+unsigned(original_id);
+        if(id>=source_.entry_count())
+            throw std::runtime_error("original world surface ID outside RES4");
+        auto tex=textures_.find(id);
+        if(tex==textures_.end()) {
+            auto decoded=decode_native_type6_texture(source_.entry(id));
+            if(decoded.frames!=1U || decoded.width!=32U ||
+               decoded.height!=128U || decoded.pixels.size()!=4096U)
+                throw std::runtime_error(
+                    "original level surface is not narrow 32x128 EH6");
+            tex=textures_.emplace(id,std::move(decoded)).first;
+            ++out.source_texture_decompressions;
+        }
+        surface[surface_slot]=&tex->second;
+        out.original_environment_surface_source_verified=true;
+    }
     const unsigned horizon=128U;
     for(unsigned x=0;x<view.columns.size();++x) {
         const double sample=2.0*(double(x)+0.5)/
@@ -79,16 +104,14 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         const double angle=view.camera.heading_radians+
             std::atan(std::tan(view.camera.field_of_view_radians*0.5)*sample);
         const double cosine=std::cos(angle-view.camera.heading_radians);
-        const double dir_x=std::cos(angle),dir_y=std::sin(angle);
         if(cosine<=0.0)continue;
+        const double dir_x=std::cos(angle),dir_y=std::sin(angle);
         for(unsigned sy=0;sy<256U;++sy) {
             const int from_horizon=int(sy)-int(horizon)-pitch_pixels;
             if(from_horizon==0)continue;
             const bool lower=from_horizon>0;
-            // Outdoors: retain the source CODE.2 level gradient sky
-            // instead of manufacturing a sky texture from wall art.
-            if(!lower && level.original_header[0x290U]!=0xffU)
-                continue;
+            const auto* tex=surface[lower?1U:0U];
+            if(!tex)continue; // actual original backdrop remains visible
             const double depth=0.5*focal/std::abs(double(from_horizon));
             const double distance=depth/cosine;
             const double wx=view.camera.column_position+distance*dir_x;
@@ -96,30 +119,10 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
             if(!std::isfinite(wx)||!std::isfinite(wy) ||
                wx<0.0||wy<0.0||wx>=double(level.width)||
                wy>=double(level.height))continue;
-            const unsigned cx=static_cast<unsigned>(wx);
-            const unsigned cy=static_cast<unsigned>(wy);
-            const auto candidate=native_scene_resource_candidates(
-                world,view.camera.level,cx,cy);
-            // The source banks are real, the assumption they supply
-            // projected floor/ceiling art is a PREVIEW ONLY.
-            const unsigned id=candidate.candidate_resource_ids[lower?0U:1U];
-            if(id>=wide_count_)continue;
-            auto tex=textures_.find(id);
-            if(tex==textures_.end()) {
-                auto decoded=decode_native_type6_texture(source_.entry(id));
-                if(decoded.frames!=1U || decoded.width!=64U ||
-                   decoded.height!=128U || decoded.pixels.size()!=8192U)
-                    throw std::runtime_error("original projected surface not EH6 wide");
-                tex=textures_.emplace(id,std::move(decoded)).first;
-                ++out.source_texture_decompressions;
-            }
             const double u=wx-std::floor(wx),v=wy-std::floor(wy);
-            const auto tx=std::min(63U,static_cast<unsigned>(u*64.0));
-            // A wall source 64x128 has a physical 64x64 preview
-            // sample domain: every second source scanline.
-            const auto ty=std::min(63U,static_cast<unsigned>(v*64.0));
-            const auto index=tex->second.pixels[
-                std::size_t(ty*2U)*64U+tx];
+            const auto tx=std::min(31U,static_cast<unsigned>(u*32.0));
+            const auto ty=std::min(127U,static_cast<unsigned>(v*128.0));
+            const auto index=tex->pixels[std::size_t(ty)*32U+tx];
             video.masked_write(std::size_t(sy+4U)*80U+(x+32U)/4U,
                 static_cast<std::uint8_t>(1U<<((x+32U)&3U)),index);
             if(lower)++out.preview_floor_texels;
