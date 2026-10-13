@@ -38,6 +38,8 @@ bool in_map(const NativeMutableLevel& m,int x,int y) {
 void camera_valid(const NativeWorldRuntime& world,const NativeProbeCamera& pose) {
     const auto& m=world.maps().levels.at(pose.level);
     require(m.id==pose.level && std::isfinite(pose.heading_radians) &&
+            std::isfinite(pose.pitch_radians) &&
+            std::abs(pose.pitch_radians)<=0.9 &&
             std::isfinite(pose.field_of_view_radians) &&
             pose.field_of_view_radians>0.01 &&
             pose.field_of_view_radians<kPi-0.01 &&
@@ -224,6 +226,69 @@ bool move_native_probe_camera(const NativeWorldRuntime& world,
     camera.column_position+=delta_columns;
     camera.row_position+=delta_rows;
     return true;
+}
+
+namespace {
+bool disk_passable(const NativeWorldRuntime& world,unsigned level,
+                   double x,double y,double radius) {
+    const auto& m=world.maps().levels.at(level);
+    if(x-radius<0.0 || y-radius<0.0 ||
+       x+radius>=double(m.width) || y+radius>=double(m.height))
+        return false;
+    const auto x0=static_cast<int>(std::floor(x-radius));
+    const auto x1=static_cast<int>(std::floor(x+radius));
+    const auto y0=static_cast<int>(std::floor(y-radius));
+    const auto y1=static_cast<int>(std::floor(y+radius));
+    for(int cy=y0;cy<=y1;++cy)for(int cx=x0;cx<=x1;++cx) {
+        const double nearest_x=std::clamp(x,double(cx),double(cx+1));
+        const double nearest_y=std::clamp(y,double(cy),double(cy+1));
+        const double dx=x-nearest_x,dy=y-nearest_y;
+        if(dx*dx+dy*dy>=radius*radius)continue;
+        if(world.normal_collision(level,unsigned(cx),unsigned(cy))!=
+                NativeCollision::Passable)
+            return false;
+    }
+    return true;
+}
+}
+NativeProbeMoveResult move_native_probe_camera_clearance(
+    const NativeWorldRuntime& world,NativeProbeCamera& camera,
+    double delta_columns,double delta_rows,double clearance) {
+    camera_valid(world,camera);
+    require(std::isfinite(delta_columns) && std::isfinite(delta_rows) &&
+            std::isfinite(clearance) && clearance>=0.15 &&
+            clearance<=0.4,"invalid native preview clearance step");
+    const double distance=std::hypot(delta_columns,delta_rows);
+    require(distance<=4.0,"native preview clearance step too long");
+    NativeProbeMoveResult result{};
+    if(distance==0)return result;
+    const auto count=std::max(1U,static_cast<unsigned>(std::ceil(distance/0.04)));
+    const double dx=delta_columns/double(count),dy=delta_rows/double(count);
+    const auto start_x=camera.column_position,start_y=camera.row_position;
+    for(unsigned i=0;i<count;++i) {
+        const bool xy=disk_passable(world,camera.level,
+            camera.column_position+dx,camera.row_position+dy,clearance);
+        if(xy) {
+            camera.column_position+=dx;camera.row_position+=dy;
+            continue;
+        }
+        result.blocked=true;
+        bool accepted=false;
+        if(dx!=0.0 && disk_passable(world,camera.level,
+                camera.column_position+dx,camera.row_position,clearance)) {
+            camera.column_position+=dx;accepted=true;
+        }
+        if(dy!=0.0 && disk_passable(world,camera.level,
+                camera.column_position,camera.row_position+dy,clearance)) {
+            camera.row_position+=dy;accepted=true;
+        }
+        if(!accepted)break;
+    }
+    result.applied_columns=camera.column_position-start_x;
+    result.applied_rows=camera.row_position-start_y;
+    result.moved=std::abs(result.applied_columns)>1e-9 ||
+                 std::abs(result.applied_rows)>1e-9;
+    return result;
 }
 
 std::vector<std::uint8_t> render_native_probe_rgb(
