@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # The Alpha field runner needs a boot trace even when CINE/title/CODE.1
+    # fails before the first gameplay scene; no original media included.
+    add_test(
+        NAME alpha_boot_stage_trace_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_boot_stage_trace.py")
     # Host-only input ownership: prevent title/character stale Escape
     # and focus-loss mouse/keyboard events from leaking into next stage.
     add_test(

@@ -2686,6 +2686,51 @@ int run(HINSTANCE instance) {
         throw std::runtime_error("Unable to create presentation window");
     }
 
+    // OPT-IN host-only trace of the entire startup. Previously
+    // --dev-trace started only AFTER the first gameplay level loaded:
+    // any failed CINE00/title/CODE.1 stage had no diagnostic record.
+    // Keep a separate early trace so game source/behavior is unchanged.
+    std::unique_ptr<rloft::DevSessionTrace> startup_trace;
+    if(options.dev_trace) {
+        const auto root=std::filesystem::temp_directory_path()/
+            "RLOFT-Demo-Diagnostics";
+        const auto stamp=std::chrono::duration_cast<
+            std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+        const auto folder=root/
+            (std::to_string(stamp)+"-boot-"+std::to_string(GetCurrentProcessId()));
+        startup_trace=std::make_unique<rloft::DevSessionTrace>(
+            folder,RLOFT_DEMO_SOURCE_SHA,
+            rloft::to_string(assets.source().kind()));
+        std::ofstream latest(root/"latest-boot-session.txt",
+                             std::ios::binary|std::ios::trunc);
+        if(latest)latest<<folder.string()<<"\n";
+        host.set_session_trace(startup_trace.get());
+    }
+    struct BootTraceDetach final {
+        Host& host;
+        ~BootTraceDetach() {host.set_session_trace(nullptr);}
+    } boot_trace_detach{host};
+    const auto startup_event=[&](const char* stage,
+                                 std::int64_t value=0) {
+        if(!startup_trace)return;
+        try {startup_trace->event(stage,value);}
+        catch(...) {
+            host.set_session_trace(nullptr);
+            startup_trace.reset(); // Failed optional tracing cannot block play.
+        }
+    };
+    const auto startup_handoff=[&]() {
+        if(!startup_trace)return;
+        startup_event("boot.exploration.handoff");
+        host.set_session_trace(nullptr);
+        if(startup_trace) {
+            try {startup_trace->finish();}
+            catch(...) {startup_trace.reset();}
+        }
+    };
+    startup_event("boot.host.ready",startup_chars?1:0);
+
     rloft::Palette6 black{};
     host.present(presenter.framebuffer(), black);
 
@@ -2701,6 +2746,7 @@ int run(HINSTANCE instance) {
         // never splice unrelated characters out of SAVE.DAT.
         const auto preview = rloft::ExplorationPreview::party(
             startup_chars);
+        startup_handoff();
         return run_exploration(
             host, assets, audio_player, midi_player, preview.chars, true, options.capture_render,
             options.capture_limit, options.dev_inspect,
@@ -2715,6 +2761,7 @@ int run(HINSTANCE instance) {
             throw std::logic_error(
                 "CODE.2 CHARS-present startup did not enter exploration");
         }
+        startup_handoff();
         return run_exploration(
             host,
             assets, audio_player, midi_player,
@@ -2725,6 +2772,7 @@ int run(HINSTANCE instance) {
 
     // CODE.2 19888 begins with numbered cinematic event 0, then event 12.
     // 13EF8 maps those numbers directly to CINE00.ANM and CINE12.ANM.
+    startup_event("boot.cine00.begin");
     {
         rloft::AnmCinematic cine00(
             assets.source().read("CINE00.ANM"), 0, assets);
@@ -2733,11 +2781,14 @@ int run(HINSTANCE instance) {
                 host, cine00, assets, audio_player, midi_player);
         audio_player.stop_all();
         midi_player.stop();
+        startup_event("boot.cine00.result",
+                      static_cast<std::int64_t>(result));
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
 
     if (!skipped) {
+        startup_event("boot.cine12.begin");
         rloft::AnmCinematic cine12(
             assets.source().read("CINE12.ANM"), 12, assets);
         const auto result =
@@ -2745,6 +2796,8 @@ int run(HINSTANCE instance) {
                 host, cine12, assets, audio_player, midi_player);
         audio_player.stop_all();
         midi_player.stop();
+        startup_event("boot.cine12.result",
+                      static_cast<std::int64_t>(result));
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
@@ -2756,6 +2809,7 @@ int run(HINSTANCE instance) {
     // CODE.2 19888: nonzero 13EF8 status bypasses ALL logo steps.
     // Previously Esc in CINE00/CINE12 still waited for logo 1.
     if (!skipped) {
+        startup_event("boot.splash.first");
         const auto deadline = Clock::now() + pit_ticks(120);
         presenter.first_logo();
         if (!fade_in(host, presenter, palette14)) return 0;
@@ -2767,6 +2821,7 @@ int run(HINSTANCE instance) {
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette14)) return 0;
+        startup_event("boot.splash.second");
         const auto deadline = Clock::now() + pit_ticks(106);
         presenter.second_logo();
         if (!fade_in(host, presenter, palette14)) return 0;
@@ -2778,6 +2833,7 @@ int run(HINSTANCE instance) {
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette14)) return 0;
+        startup_event("boot.splash.third");
         const auto deadline = Clock::now() + pit_ticks(121);
         presenter.third_logo();
         if (!fade_in(host, presenter, palette9)) return 0;
@@ -2789,6 +2845,7 @@ int run(HINSTANCE instance) {
 
     if (!skipped) {
         if (!fade_out(host, presenter, palette9)) return 0;
+        startup_event("boot.title_background");
         const auto deadline = Clock::now() + pit_ticks(55);
         presenter.title_background();
         if (!fade_in(host, presenter, palette12)) return 0;
@@ -2821,6 +2878,7 @@ int run(HINSTANCE instance) {
     presenter.menu_frame(-1);
     host.present(presenter.framebuffer(), palette12);
     host.set_menu_mode(true);
+    startup_event("boot.title.ready");
     int drawn_selection = -1;
 
     while (host.pump()) {
@@ -2832,6 +2890,7 @@ int run(HINSTANCE instance) {
         }
 
         if (const auto click = host.consume_click()) {
+            startup_event("boot.title.action",*click);
             flow.select_startup_menu(*click);
             // CODE.2 19464 switch/current=0 -> 194B5 calls
             // 13EF8(event=0), restores the title/menu surface, resets
@@ -2840,6 +2899,7 @@ int run(HINSTANCE instance) {
             // straight into Level 22. Other original modal/page effects
             // (20294/325B0/322EC) still need DOS display parity.
             if (*click == 0) {
+                startup_event("boot.title.cine_replay");
                 host.set_menu_mode(false);
                 rloft::AnmCinematic replay(
                     assets.source().read("CINE00.ANM"), 0, assets);
@@ -2876,6 +2936,7 @@ int run(HINSTANCE instance) {
             }
 
             if (*click == rloft::BootFlow::kCharacterWorkflowMenuIndex) {
+                startup_event("boot.code1.creation.begin");
                 if (!fade_out(host, presenter, palette12)) return 0;
                 flow.supervisor_dispatch();
 
@@ -3274,6 +3335,7 @@ int run(HINSTANCE instance) {
                 };
 
                 host.set_character_mode(true);
+                startup_event("boot.code1.controller.ready");
                 if (!animate_controller_entry(
                         character_flow,
                         nullptr)) {
@@ -3871,6 +3933,7 @@ int run(HINSTANCE instance) {
                                         actor_stats[actor]->value();
                                 }
 
+                                startup_event("boot.code1.chars.build");
                                 const auto image =
                                     rloft::build_character_transfer(
                                         transfer,
@@ -3933,6 +3996,7 @@ int run(HINSTANCE instance) {
                                         "reach CODE.2 CHARS startup");
                                 }
 
+                                startup_event("boot.code1.chars.disk_written");
                                 // Original CODE.2 204B3 checks CHARS on disk;
                                 // 204EF -> 16CD0 reopens and reads 0x920 bytes
                                 // before 16ADC imports the two created actors.
@@ -3956,6 +4020,7 @@ int run(HINSTANCE instance) {
                                         "CODE.2 CHARS disk bytes differ from "
                                         "completed CODE.1 transfer");
                                 }
+                                startup_event("boot.code2.chars.readback_ok");
                                 // The fresh original level-22 entry remains
                                 // at 4.5/4.5, facing 270, time 14:00.
                                 flow.finish_code2_startup(true, false);
@@ -3967,6 +4032,7 @@ int run(HINSTANCE instance) {
                                 }
 
                                 host.set_character_mode(false);
+                                startup_handoff();
                                 return run_exploration(
                                     host,
                                     assets, audio_player, midi_player,

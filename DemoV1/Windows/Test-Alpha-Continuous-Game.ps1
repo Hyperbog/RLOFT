@@ -96,15 +96,21 @@ if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
 # previous session pointer so an earlier trace cannot be called success.
 $traceRoot = Join-Path $env:TEMP 'RLOFT-Demo-Diagnostics'
 $latestPointer = Join-Path $traceRoot 'latest-session.txt'
+$latestBootPointer = Join-Path $traceRoot 'latest-boot-session.txt'
 $previous = ''
+$previousBoot = ''
 if (Test-Path -LiteralPath $latestPointer -PathType Leaf) {
     $previous = (Get-Content -LiteralPath $latestPointer -Raw).Trim()
+}
+if (Test-Path -LiteralPath $latestBootPointer -PathType Leaf) {
+    $previousBoot = (Get-Content -LiteralPath $latestBootPointer -Raw).Trim()
 }
 Write-Host "Native source SHA: $sha"
 Write-Host "Temporary test installation: $scratch"
 Write-Host 'Normal intro/party -> CODE.2 game; no developer warp.'
 Write-Host 'F12: mark a frame after the first rendered gameplay scene.'
-Write-Host 'The test may fail before creating a trace; preserve the first error.'
+Write-Host 'Startup boot trace begins before CINE00/title/character creation.'
+Write-Host 'Early installation/window errors may still precede trace creation.'
 # No --choose-install: an explicit scratch path is passed to the engine.
 # --dev-trace observes the NORMAL route, not --explore-level22.
 $argv = '--dev-trace "' + $scratch + '"'
@@ -115,8 +121,33 @@ $session = ''
 if (Test-Path -LiteralPath $latestPointer -PathType Leaf) {
     $session = (Get-Content -LiteralPath $latestPointer -Raw).Trim()
 }
+# Collect the opening sequence independently of gameplay. Previously
+# only the exploration session existed, so a CINE/title/CODE.1 failure
+# produced no packageable evidence at all.
+$bootSession = ''
+if (Test-Path -LiteralPath $latestBootPointer -PathType Leaf) {
+    $bootSession = (Get-Content -LiteralPath $latestBootPointer -Raw).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($bootSession) -or $bootSession -eq $previousBoot) {
+    Write-Host 'No NEW startup trace; check pre-window installation/host errors.'
+} else {
+    $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd($sep) + $sep
+    $bootPath = [System.IO.Path]::GetFullPath($bootSession)
+    if (-not $bootPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        Fail-Alpha 'Startup trace pointer escapes the local diagnostics root.'
+    }
+    $bootManifest = Join-Path $bootPath 'manifest.json'
+    if (-not (Test-Path -LiteralPath $bootManifest -PathType Leaf)) {
+        Write-Host 'Startup trace has no manifest; it is not field acceptance.'
+    } else {
+        $bootZip = $bootPath + '.zip'
+        Compress-Archive -LiteralPath $bootPath -DestinationPath $bootZip -Force -ErrorAction Stop
+        Write-Host "Startup-stage diagnostic ZIP (not uploaded): $bootZip"
+        Write-Host 'This contains stage IDs and input metadata, not original game files.'
+    }
+}
 if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
-    Write-Host 'No NEW diagnostic session. Record the exact startup blocker.'
+    Write-Host 'No NEW exploration trace. The startup ZIP can still show the first blocker.'
 } else {
     $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd($sep) + $sep
     $sessionPath = [System.IO.Path]::GetFullPath($session)

@@ -41,6 +41,12 @@ CHARS/SAVE.DAT files are never deleted or rewritten; a cold start may
 delete CHARS **from the copy only**. The copied data remains under
 `%TEMP%\\RLOFT-Alpha-Field` until the tester elects to remove it.
 Captured diagnostic ZIPs are local and may contain personal party names.
+The opt-in `--dev-trace` field run now also creates a **separate startup
+diagnostic ZIP** containing only source-SHA-pinned stage IDs and native
+input observations from before CINE00 through title/character creation.
+This startup ZIP can exist even if the first Level22 runtime never
+loads; a distinct exploration ZIP is created only after entering that
+runtime. Neither is automatically uploaded or counts as DOS evidence.
 
 **This is an opt-in Pre-Alpha field-test artifact, not an Alpha game
 release and not DOS execution.** It does not restore the retired
