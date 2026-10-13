@@ -24,8 +24,8 @@ int main() {
         memory,table,Strip::Upper33E28,200U,0U);
     assert(upper.source_fdbc==0xA0000U);
     assert(upper.first_linear_address==0xA0148U);
-    assert(upper.last_row_first_linear_address==0xA2908U);
-    assert(upper.last_linear_address==0xA2947U);
+    assert(upper.last_row_first_linear_address==0xA28F8U);
+    assert(upper.last_linear_address==0xA2937U);
     assert(upper.planar_byte_addresses_written==8192U);
     assert(upper.indexed_lanes_written==32768U);
     assert(upper.sequencer_plane_mask==0x0FU);
@@ -33,8 +33,8 @@ int main() {
     const auto lower=Fill::replay_flat_es(
         memory,table,Strip::Lower33DE0,10U,0U);
     assert(lower.first_linear_address==0xA50F8U);
-    assert(lower.last_row_first_linear_address==0xA2928U);
-    assert(lower.last_linear_address==0xA2967U);
+    assert(lower.last_row_first_linear_address==0xA2948U);
+    assert(lower.last_linear_address==0xA2987U);
     IndexedFramebuffer actual;
     memory.export_page(actual,0U);
     assert(actual.pixels()==reference.pixels());
@@ -47,8 +47,8 @@ int main() {
         memory,table,Strip::Upper33E28,72U,1U);
     assert(page1.source_fdbc==0xA8000U);
     assert(page1.first_linear_address==0xA8148U);
-    assert(page1.last_row_first_linear_address==0xAA908U);
-    assert(page1.last_linear_address==0xAA947U);
+    assert(page1.last_row_first_linear_address==0xAA8F8U);
+    assert(page1.last_linear_address==0xAA937U);
     IndexedFramebuffer page1_ref=empty;
     SurfaceFillModel::draw_upper(page1_ref,table,72U);
     memory.export_page(actual,1U);

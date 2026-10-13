@@ -4,6 +4,13 @@ Source owner: `demo-v1`; this is a **diagnostic graphics building
 block**, not an installed replacement for normal `ExplorationPresenter`.
 The eventual Alpha requires a full first-Level22 field/DOS parity pass.
 
+Row-address cross-check (calculated from original +0x50/−0x50
+stride over **127** transitions, not 128): page 0 upper
+first/last-row addresses `A0148/A28F8` (last byte `A2937`),
+page 0 lower `A50F8/A2948` (last byte `A2987`), and page 1
+upper `A8148/AA8F8` (last byte `AA937`). These values were
+independently recalculated and corrected before Windows acceptance.
+
 The immutable original `CODE.2` is **558689 bytes**, SHA-256
 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 Its LE object-1 physical base is `0x3AF24`.

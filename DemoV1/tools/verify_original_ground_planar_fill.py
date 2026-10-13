@@ -28,7 +28,7 @@ def source_verify(impl: str, test: str, header: str, cmake: str) -> None:
         (header,("replay_flat_es(","kRows=0x80U","kBytesPerRow=0x40U","kStride=0x50U")),
         (test,("actual.pixels()==reference.pixels()",
                 "actual.pixels()==page1_ref.pixels()",
-                "0xA0148U","0xA50F8U","0xA8148U","0xA2928U","0xAA908U")),
+                "0xA0148U","0xA50F8U","0xA8148U","0xA2948U","0xAA8F8U")),
         (cmake,("src/original_ground_planar_fill_replay.cpp",
                  "original_ground_planar_fill_replay_tests",
                  "original_ground_planar_fill_binary_contract_tests")),
