@@ -5,7 +5,7 @@
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_palette_remap.hpp"
 #include "rloft/character_stats.hpp"
-#include "rloft/resource_assets.hpp"
+#include "rloft/character_visual_source.hpp"
 #include "rloft/startup_presenter.hpp"
 
 namespace rloft {
@@ -14,7 +14,7 @@ class CharacterCreationPresenter final {
 public:
     static constexpr int kOpeningFrameCount = 70;
 
-    explicit CharacterCreationPresenter(const RavenloftBootAssets& assets);
+    explicit CharacterCreationPresenter(const CharacterVisualSource& assets);
 
     [[nodiscard]] IndexedFramebuffer& framebuffer() noexcept { return framebuffer_; }
     [[nodiscard]] const IndexedFramebuffer& framebuffer() const noexcept { return framebuffer_; }
@@ -216,7 +216,7 @@ private:
         int denominator,
         const IndexedRegion* cached);
 
-    const RavenloftBootAssets& assets_;
+    const CharacterVisualSource& assets_;
     CharacterPaletteRemaps remaps_;
     IndexedFramebuffer framebuffer_;
 };
