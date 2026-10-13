@@ -65,8 +65,10 @@ internal static class Program
         var bindingNames = new[] { "BytesBefore", "BytesMatched", "BytesAfter" };
         for (int i = 0; i < runs.Length; i++)
         {
-            var binding = BindingOperations.GetBinding(runs[i], Run.TextProperty);
-            Require(binding is not null && binding.Path?.Path == bindingNames[i],
+            var binding = BindingOperations.GetBinding(
+                runs[i], System.Windows.Documents.Run.TextProperty)
+                ?? throw new InvalidOperationException("Template Run binding " + i + " missing.");
+            Require(binding.Path?.Path == bindingNames[i],
                 "template Run " + i + " must preserve bound original-byte partition");
             Require(binding.Mode == BindingMode.OneWay,
                 "Run.Text is TwoWay by default; read-only assembly row cannot be a TwoWay source.");
