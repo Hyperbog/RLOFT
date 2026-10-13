@@ -58,6 +58,24 @@ def contract(host:str,ps:str,cmake:str,readme:str)->None:
            "early exploration exception can leave stale host trace pointer")
     expect('if(trace) {\n        presenter.framebuffer().set_draw_audit(' in exploration,
            "optional framebuffer instrumentation lost its opt-in guard")
+    # These one-shot source-only checkpoints must not be interpreted as
+    # proof of a visible game frame or DOS-correct raster. Observe the
+    # actual build -> raster -> host-present control-flow ordering.
+    first_begin=exploration.index('exploration_stage("exploration.frame.build.begin");')
+    first_build=exploration.index('return runtime.build_frame();',first_begin)
+    first_ready=exploration.index('exploration_stage("exploration.frame.build.ready");',first_build)
+    first_raster=exploration.index('return presenter.present(frame,runtime.renderer_tables());',first_ready)
+    raster_ready=exploration.index('exploration_stage("exploration.frame.raster.ready");',first_raster)
+    host_present=exploration.index('present_traced(presenter.framebuffer(),presented.palette,',raster_ready)
+    submitted=exploration.index('exploration_stage("exploration.frame.present.submitted");',host_present)
+    expect(first_begin<first_build<first_ready<first_raster<raster_ready<host_present<submitted,
+           "first gameplay frame stage ordering changed")
+    for checkpoint in ('exploration.frame.build.failed','exploration.frame.raster.failed'):
+        expect('exploration_stage("'+checkpoint+'");' in exploration,
+               "first-frame failure stage missing: "+checkpoint)
+    expect('if (!first_scene_submitted) {' in exploration and
+           'first_scene_submitted = true;' in exploration[submitted:],
+           "first native scene checkpoint might flood all game frames")
     for stage in (
         'boot.host.ready','boot.cine00.begin','boot.cine00.result',
         'boot.cine12.begin','boot.cine12.result',
@@ -119,6 +137,12 @@ def main()->int:
                          '/*no load exception boundary*/',1),
             host.replace('exploration_stage("exploration.world.ready");',
                          '/*no world-ready boundary*/',1),
+            host.replace('exploration_stage("exploration.frame.build.begin");',
+                         '/*no first frame entry*/',1),
+            host.replace('exploration_stage("exploration.frame.raster.ready");',
+                         '/*no native raster entry*/',1),
+            host.replace('exploration_stage("exploration.frame.present.submitted");',
+                         '/*no native host submission*/',1),
         ]
         for i,bad in enumerate(bads,1):
             expect(bad!=host,f"negative mutation {i} missing")
@@ -129,7 +153,7 @@ def main()->int:
             raise ValueError(f"negative mutation {i} undetected")
     except (OSError,ValueError) as e:
         p.exit(1,"ALPHA_BOOT_TRACE_REJECTED: "+str(e)+"\n")
-    print("ALPHA_BOOT_TRACE_SOURCE_PASS: seven absent-stage variants rejected")
+    print("ALPHA_BOOT_TRACE_SOURCE_PASS: ten absent-stage variants rejected")
     return 0
 
 if __name__=="__main__":
