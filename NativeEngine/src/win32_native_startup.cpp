@@ -7,6 +7,8 @@
 #include "rloft/startup_presenter.hpp"
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
+#include "rloft/character_creation_presenter.hpp"
+#include "rloft/character_creation_flow.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -19,6 +21,7 @@ namespace {
 constexpr UINT_PTR kTick=31;
 constexpr unsigned kWidth=320,kHeight=400;
 constexpr int kMenu=18;
+constexpr int kCharacterOpening=19,kCharacterChoice=20;
 constexpr std::array<unsigned,4> kLogoWaitMs{
     120U*1000U/18U,106U*1000U/18U,
     121U*1000U/18U,55U*1000U/18U};
@@ -26,6 +29,9 @@ struct Preview {
     NativeStartupVisualSource source;
     rloft::StartupPresenter presenter;
     rloft::BootFlow boot;
+    rloft::CharacterCreationFlow creation;
+    std::unique_ptr<rloft::CharacterCreationPresenter> character;
+    int character_frame{};
     std::unique_ptr<rloft::AnmCinematic> cine00;
     std::unique_ptr<rloft::AnmCinematic> cine12;
     unsigned cinematic_wait_ms{14U};
@@ -57,7 +63,8 @@ struct Preview {
         } else refresh();
     }
     void refresh() {
-        const auto& pixels=phase<0?
+        const auto& pixels=phase>=kCharacterOpening?
+            character->framebuffer().pixels() : phase<0?
             (phase==-2?cine00->framebuffer().pixels():cine12->framebuffer().pixels())
             :presenter.framebuffer().pixels();
         if(pixels.size()!=std::size_t(kWidth)*kHeight)
@@ -116,9 +123,36 @@ struct Preview {
         } else throw std::runtime_error("original startup preview phase outside bounded range");
         refresh();
     }
+    void begin_character() {
+        // Real source presentation begins only after the CODE.2 supervisor
+        // dispatched the selected character workflow to CODE.1.
+        boot.supervisor_dispatch();
+        character=std::make_unique<rloft::CharacterCreationPresenter>(source);
+        character_frame=0;
+        phase=kCharacterOpening;
+        palette=character->palette();
+        character->opening_frame(0);
+        phase_started=GetTickCount64();
+        refresh();
+    }
     void advance() {
-        if(phase>=kMenu)return;
+        if(phase==kCharacterChoice||phase==kMenu)return;
         const auto elapsed=GetTickCount64()-phase_started;
+        if(phase==kCharacterOpening) {
+            if(elapsed>=14U) {
+                ++character_frame;
+                phase_started=GetTickCount64();
+                if(character_frame<rloft::CharacterCreationPresenter::kOpeningFrameCount)
+                    character->opening_frame(character_frame);
+                else {
+                    phase=kCharacterChoice;
+                    character->screen(creation);
+                }
+                palette=character->palette();
+                refresh();
+            }
+            return;
+        }
         if(phase<0) {
             if(elapsed>=cinematic_wait_ms)render_cinematic_frame();
             return;
@@ -199,19 +233,51 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         }
         return 0;
     case WM_LBUTTONDOWN:
-        if(session->phase==kMenu && session->selection>=0) {
+        if(session->phase==kMenu || session->phase==kCharacterChoice) {
             try {
-                const int selected=session->selection;
+                // Use this click's coordinates, never stale WM_MOUSEMOVE hover.
+                const RECT bounds=image_rect(hwnd);
+                const int x=static_cast<short>(LOWORD(lp));
+                const int y=static_cast<short>(HIWORD(lp));
+                if(x<bounds.left||x>=bounds.right||
+                   y<bounds.top||y>=bounds.bottom)return 0;
+                const int column=(x-bounds.left)*int(kWidth)/
+                                 (bounds.right-bounds.left);
+                const int row=(y-bounds.top)*int(kHeight)/
+                              (bounds.bottom-bounds.top);
+                if(session->phase==kCharacterChoice) {
+                    const int event=rloft::CharacterCreationFlow::hit_test(
+                        session->creation.state(),row,column);
+                    if(event<0)return 0;
+                    // CODE.1's stats generation, naming and CHARS commit
+                    // require a separate original-state integration milestone.
+                    if(session->creation.state()==
+                       rloft::CharacterCreationState::PortraitChoice &&
+                       event>=1&&event<=6) {
+                        MessageBoxW(hwnd,
+                            L"Original CODE.1 statistic generation, naming and\\n"
+                            L"CHARS transfer are not yet integrated.\\n"
+                            L"No character was saved or fabricated.",
+                            L"CODE.1 Alpha integration boundary",
+                            MB_OK|MB_ICONINFORMATION);
+                        return 0;
+                    }
+                    if(session->creation.apply_event(event)) {
+                        if(session->creation.state()==
+                           rloft::CharacterCreationState::StatsReview)
+                            throw std::logic_error(
+                                "source CODE.1 stats generation is not integrated");
+                        session->character->screen(session->creation);
+                        session->refresh();
+                    }
+                    return 0;
+                }
+                const int selected=rloft::StartupPresenter::
+                    menu_selection_from_y(row);
+                if(selected<0)return 0;
                 session->boot.select_startup_menu(selected);
                 if(selected==rloft::BootFlow::kCharacterWorkflowMenuIndex) {
-                    session->boot.supervisor_dispatch();
-                    MessageBoxW(hwnd,
-                        L"Original CODE.2 menu selection routed into CODE.1.\n"
-                        L"The original interactive character presenter and CHARS\n"
-                        L"transfer are the next Alpha A1 integration step.\n"
-                        L"No party or save was fabricated.",
-                        L"CODE.1 original handoff — not yet playable",
-                        MB_OK|MB_ICONINFORMATION);
+                    session->begin_character();
                 } else {
                     MessageBoxW(hwnd,
                         L"The original CODE.2 menu selection has been accepted\n"
@@ -245,11 +311,15 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(230,233,240));
         RECT help{14,whole.bottom-35,whole.right-10,whole.bottom-8};
         DrawTextW(dc,
-            session->phase==kMenu?
-                L"Original CODE.2 title menu | Select an item | Esc closes"
-                :(session->phase<0?
+            session->phase==kCharacterOpening?
+                L"Original CODE.1 70-frame opening | Esc closes"
+                :(session->phase==kCharacterChoice?
+                    L"Original CODE.1 character choices (stats/CHARS pending) | Esc closes"
+                    :(session->phase==kMenu?
+                        L"Original CODE.2 title menu | Select an item | Esc closes"
+                        :(session->phase<0?
                     L"Original CINE00/CINE12 indexed ANM (sound pending) | Space skips | Esc closes"
-                    :L"Original RES0 startup presentation | Space skips to menu | Esc closes"),
+                    :L"Original RES0 startup presentation | Space skips to menu | Esc closes"))),
             -1,&help,DT_LEFT|DT_SINGLELINE|DT_END_ELLIPSIS);
         EndPaint(hwnd,&ps);return 0;
     }
