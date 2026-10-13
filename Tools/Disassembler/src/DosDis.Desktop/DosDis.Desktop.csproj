@@ -11,5 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="../DosDis.Core/DosDis.Core.csproj" />
     <ProjectReference Include="../DosDis.Persistence/DosDis.Persistence.csproj" />
+    <Content Include="../../benchmarks/strahd-code1-object1-classification.json"
+             Link="benchmarks/strahd-code1-object1-classification.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
