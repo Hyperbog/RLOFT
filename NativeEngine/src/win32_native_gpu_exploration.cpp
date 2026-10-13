@@ -4,6 +4,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "rloft_native/native_win32_gpu_exploration.hpp"
+#include "rloft_native/native_win32_gl_target.hpp"
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_gpu_world_mesh.hpp"
 #include "rloft_native/native_scene_view.hpp"
@@ -30,6 +31,7 @@ constexpr UINT_PTR kTimer=101;
 constexpr double kMouseSensitivity=0.0020;
 constexpr double kMoveSpeed=2.05;
 constexpr double kTurnSpeed=1.9;
+constexpr double kRunSpeed=3.5;
 
 struct State {
     NativeWorldRuntime world;
@@ -47,7 +49,17 @@ struct State {
     bool owns_window{};
     bool mouse_look{};
     bool smooth_filter{};
-    bool automap{};
+    bool automap{true};
+    bool show_help{true};
+    bool fullscreen{};
+    bool noclip{};
+    WINDOWPLACEMENT saved_placement{sizeof(WINDOWPLACEMENT)};
+    LONG_PTR saved_style{};
+    unsigned filter_mode{};
+    unsigned aa_samples{};
+    unsigned map_panel_size{210U};
+    GLuint hud_font{};
+    NativeGlViewportTarget render_target;
     bool blocked{};
     unsigned level{};
     unsigned zoom{6U};
@@ -116,6 +128,8 @@ struct State {
     }
     void release_graphics() {
         if(context) {
+            if(hud_font){glDeleteLists(hud_font,96);hud_font=0;}
+            render_target.release();
             wglMakeCurrent(dc,context);
             for(const auto& tex:gpu_textures)glDeleteTextures(1,&tex.second);
             gpu_textures.clear();
@@ -151,6 +165,18 @@ struct State {
         glDisable(GL_CULL_FACE); // original authored faces have both windings
         glClearDepth(1.0);
         glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+        render_target.initialize();
+        HFONT font=CreateFontW(-17,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,
+            DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
+            ANTIALIASED_QUALITY,FIXED_PITCH|FF_MODERN,L"Consolas");
+        if(font){
+            const HGDIOBJ old=SelectObject(dc,font);
+            hud_font=glGenLists(96);
+            if(hud_font&&!wglUseFontBitmapsW(dc,32,96,hud_font)){
+                glDeleteLists(hud_font,96);hud_font=0;
+            }
+            SelectObject(dc,old);DeleteObject(font);
+        }
     }
     GLuint original_texture(unsigned id) {
         const auto it=gpu_textures.find(id);
@@ -237,7 +263,7 @@ struct State {
                     if(dx||dy) {
                         SetCursorPos(center.x,center.y);
                         camera.heading_radians=std::remainder(
-                            camera.heading_radians+double(dx)*kMouseSensitivity,
+                            camera.heading_radians-double(dx)*kMouseSensitivity,
                             2*kPi);
                         camera.pitch_radians=std::clamp(
                             camera.pitch_radians-double(dy)*kMouseSensitivity,
@@ -253,13 +279,22 @@ struct State {
         const int strafe=int(held('D'))-int(held('A'));
         if(forward||strafe) {
             const double norm=std::max(1.0,std::hypot(double(forward),double(strafe)));
-            const double walk=kMoveSpeed*dt/norm;
+            const double speed=(held(VK_SHIFT)?kRunSpeed:kMoveSpeed);
+            const double walk=speed*dt/norm;
             const double ca=std::cos(camera.heading_radians);
             const double sa=std::sin(camera.heading_radians);
             const double dx=(double(forward)*ca-double(strafe)*sa)*walk;
             const double dy=(double(forward)*sa+double(strafe)*ca)*walk;
-            const auto move=move_native_probe_camera_clearance(world,camera,dx,dy,.22);
-            blocked=move.blocked;
+            if(noclip) {
+                camera.column_position=std::clamp(camera.column_position+dx,
+                    .22,double(world.original().level(level).width)-.22);
+                camera.row_position=std::clamp(camera.row_position+dy,
+                    .22,double(world.original().level(level).height)-.22);
+                blocked=false;
+            } else {
+                const auto move=move_native_probe_camera_clearance(world,camera,dx,dy,.22);
+                blocked=move.blocked;
+            }
         } else blocked=false;
         // Visibility is a session automap operation, not the render
         // loop. Never repeat a ~200-ray cell traversal 60 times per
@@ -281,9 +316,9 @@ struct State {
         if(!automap)return;
         const auto& map=world.original().level(level);
         const auto& revealed=explored.at(level);
-        const int size=std::min(210,std::max(110,width/4));
+        const int size=int(map_panel_size);
         const int margin=15;
-        const int ax=std::max(0,width-size-margin),ay=15;
+        const int ax=margin,ay=15;
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_TEXTURE_2D);
         glMatrixMode(GL_PROJECTION);
@@ -325,13 +360,62 @@ struct State {
         glMatrixMode(GL_MODELVIEW);glPopMatrix();
         glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
     }
+    void draw_hud(int width,int height) {
+        if(!hud_font)return; // OpenGL window still renders if GDI fonts fail.
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_TEXTURE_2D);
+        glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();
+        glOrtho(0,width,height,0,-1,1);
+        glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
+        const auto line=[&](int x,int y,const std::string& str) {
+            glColor3f(.94f,.90f,.80f);
+            glRasterPos2i(x,y);
+            glListBase(hud_font-32);
+            glCallLists(GLsizei(str.size()),GL_UNSIGNED_BYTE,str.c_str());
+        };
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        const int box_height=show_help?208:55;
+        glColor4f(.055f,.07f,.09f,.84f);
+        glBegin(GL_QUADS);
+        glVertex2i(0,height-box_height);glVertex2i(std::min(width,1200),height-box_height);
+        glVertex2i(std::min(width,1200),height);glVertex2i(0,height);
+        glEnd();
+        glDisable(GL_BLEND);
+        const auto mode=render_target.preset_name(resolution_index);
+        const std::string resolution=std::to_string(render_target.width())+"x"+
+                                     std::to_string(render_target.height());
+        line(12,height-box_height+22,
+            "RAVENLOFT 3D GPU | Level "+std::to_string(level)+
+            " | "+resolution+" internal | AA "+
+            std::to_string(render_target.actual_samples())+"x"+
+            (mouse_look?" | Mouse look":" | Q/E keyboard")+
+            (blocked?" | BLOCKED":"")+(noclip?" | NOCLIP":""));
+        line(12,height-box_height+44,
+            "Original RES4 / LEVELS.DAT | F1: "+std::string(show_help?"Hide":"Show")+" controls");
+        if(show_help) {
+            int y=height-box_height+69;
+            constexpr int dy=23;
+            line(12,y,"W/A/S/D move | Shift sprint | Q/E turn | Mouse: M/right-click to capture");y+=dy;
+            line(12,y,"F2 resolution (Auto > 720p > 1080p > 1440p > 4K) | F3 filtering");y+=dy;
+            line(12,y,"F4 AA (Off / 2x / 4x) | F11 fullscreen | F12 screenshot");y+=dy;
+            line(12,y,"Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
+            line(12,y,"Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
+            line(12,y,"SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
+        }
+        glMatrixMode(GL_PROJECTION);glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);glPopMatrix();
+        glEnable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
+    }
     void paint() {
         if(!context || !dc)return;
         wglMakeCurrent(dc,context);
         RECT rect{};GetClientRect(hwnd,&rect);
-        const int width=std::max(1,int(rect.right-rect.left));
-        const int height=std::max(1,int(rect.bottom-rect.top));
-        glViewport(0,0,width,height);
+        const int window_width=std::max(1,int(rect.right-rect.left));
+        const int window_height=std::max(1,int(rect.bottom-rect.top));
+        render_target.begin(window_width,window_height,resolution_index,aa_samples);
+        const int width=render_target.width();
+        const int height=render_target.height();
         // Missing original outdoor sky is a level-authored COLORS fallback.
         const auto& map=world.original().level(level);
         const unsigned ci=map.original_header[0x298U];
@@ -402,7 +486,9 @@ struct State {
         draw_fill(mesh.fallback_ceiling,map.original_header[0x298U]);
         glDisableClientState(GL_VERTEX_ARRAY);
         glEnable(GL_TEXTURE_2D);
-        automap_draw(width,height);
+        render_target.present(window_width,window_height);
+        automap_draw(window_width,window_height);
+        draw_hud(window_width,window_height);
         glFlush();
         SwapBuffers(dc);
     }
@@ -433,7 +519,7 @@ void title(HWND hwnd,const State& s) {
         std::to_wstring(unsigned(s.camera.column_position))+L","+
         std::to_wstring(unsigned(s.camera.row_position))+L"] | "+
         (s.mouse_look?L"MOUSE LOOK":L"Q/E KEYBOARD LOOK")+
-        L" | F2 resolution, N filtering, Tab map"+
+        L" | F1 controls, F2 native-to-4K, F3 filter, F4 AA, F8 map size"+
         (s.blocked?L" | BLOCKED":L"");
     SetWindowTextW(hwnd,name.c_str());
 }
