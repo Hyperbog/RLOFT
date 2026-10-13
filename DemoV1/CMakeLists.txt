@@ -1159,7 +1159,7 @@ add_executable(xmidi_tests tests/xmidi_tests.cpp)
 target_link_libraries(xmidi_tests PRIVATE rloft_boot_flow)
 add_test(NAME xmidi_tests COMMAND xmidi_tests)
 
-add_executable(character_flow_tests tests/character_flow_tests.cpp)
+add_executable(character_flow_tests ../Shared/CharacterCreation/tests/character_flow_tests.cpp)
 target_link_libraries(character_flow_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_flow_tests COMMAND character_flow_tests)
 
