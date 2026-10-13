@@ -1101,6 +1101,15 @@ target_include_directories(original_title_load_slot_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(original_title_load_slot_tests PRIVATE cxx_std_17)
 add_test(NAME original_title_load_slot_tests COMMAND original_title_load_slot_tests)
+# Original CODE.2 07C70..07D42 model of SAVE##->WORK load results.
+# Pure, no game filesystem writes. Keep unhooked pending full restore.
+add_executable(original_title_load_workflow_tests
+    tests/original_title_load_workflow_tests.cpp)
+target_include_directories(original_title_load_workflow_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_title_load_workflow_tests PRIVATE cxx_std_17)
+add_test(NAME original_title_load_workflow_tests
+    COMMAND original_title_load_workflow_tests)
 
 add_executable(original_vga_page_cycle_tests
     tests/original_vga_page_cycle_tests.cpp)
