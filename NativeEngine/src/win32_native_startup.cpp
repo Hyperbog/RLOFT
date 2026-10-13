@@ -119,7 +119,8 @@ struct Preview {
         // source decoder. Music/VOC playback is a separate open A1 item.
         cinematic_wait_ms=frame.wait_ticks>0?
             unsigned((double(frame.wait_ticks)*1000.0)/
-                rloft::StartupPresenter::kPitHz+0.5):14U;
+                rloft::StartupPresenter::kPitHz+0.5):
+            static_cast<unsigned>(kNativeLegacyAnimationFrameMs);
         phase_started=GetTickCount64();
         palette=current.palette();
         refresh();
@@ -615,8 +616,15 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         return 0;
     case WM_ERASEBKGND:return 1;
     case WM_PAINT: {
-        PAINTSTRUCT ps{};HDC dc=BeginPaint(hwnd,&ps);
+        PAINTSTRUCT ps{};HDC screen=BeginPaint(hwnd,&ps);
         RECT whole{};GetClientRect(hwnd,&whole);
+        const int ww=std::max(1,whole.right-whole.left);
+        const int wh=std::max(1,whole.bottom-whole.top);
+        HDC staging=CreateCompatibleDC(screen);
+        HBITMAP pixels=staging?CreateCompatibleBitmap(screen,ww,wh):nullptr;
+        HGDIOBJ original=pixels?SelectObject(staging,pixels):nullptr;
+        const bool buffered=staging&&pixels&&original&&original!=HGDI_ERROR;
+        HDC dc=buffered?staging:screen;
         auto bg=CreateSolidBrush(RGB(13,17,25));
         FillRect(dc,&whole,bg);DeleteObject(bg);
         const auto rect=image_rect(hwnd);
@@ -646,6 +654,14 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                     L"Original CINE00/CINE12 indexed ANM (sound pending) | Space skips | Esc closes"
                     :L"Original RES0 startup presentation | Space skips to menu | Esc closes")))),
             -1,&help,DT_LEFT|DT_SINGLELINE|DT_END_ELLIPSIS);
+        // Publish one complete GDI frame, avoiding intermediate black
+        // background or partially stretched CODE.1 image on real Windows.
+        if(buffered) {
+            BitBlt(screen,0,0,ww,wh,staging,0,0,SRCCOPY);
+            SelectObject(staging,original);
+        }
+        if(pixels)DeleteObject(pixels);
+        if(staging)DeleteDC(staging);
         EndPaint(hwnd,&ps);return 0;
     }
     case WM_CLOSE:DestroyWindow(hwnd);return 0;
