@@ -4,6 +4,8 @@
 #include "rloft_native/native_win32_startup.hpp"
 #include "rloft_native/native_startup_visuals.hpp"
 #include "rloft_native/native_media.hpp"
+#include "rloft_native/native_party_start.hpp"
+#include "rloft_native/native_win32_gpu_exploration.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
@@ -38,6 +40,7 @@ struct Preview {
     std::unique_ptr<rloft::CharacterStatsModel> stats;
     std::array<std::optional<rloft::CharacterStatsModel>,2> actor_stats{};
     std::optional<rloft::CharacterTransferImage> completed_party;
+    bool world_launched{};
     bool stats_editor{},final_decision{},name_entry{},existing_actor_decision{};
     bool name_cursor_on{true};
     int selected_stat{-1},existing_actor{-1},portrait_hover{-1};
@@ -196,6 +199,18 @@ struct Preview {
         name_blink_at=GetTickCount64()+500U;
         render_character_screen();
     }
+    void enter_first_level() {
+        if(!completed_party)
+            throw std::logic_error("CODE.2 world entry requires source CHARS");
+        if(world_launched)return;
+        // The GPU renderer must validate Level 22's real collision grid and
+        // source party BEFORE the supervisor records completed world entry.
+        open_native_gpu_world_session(hwnd,original_media,*completed_party);
+        boot.finish_code2_startup(true,false);
+        if(boot.snapshot().stage!=rloft::BootStage::Exploration)
+            throw std::logic_error("CODE.2 first-party world stage not reached");
+        world_launched=true;
+    }
     void complete_character_transfer() {
         if(!creation.both_present()||!creation.completed())
             throw std::logic_error("CODE.1 transfer before both actors finished");
@@ -224,13 +239,10 @@ struct Preview {
             throw std::logic_error("CODE.1 status-10 CHARS dispatch failed");
         phase=kCharacterTransferred;
         refresh();
-        MessageBoxW(hwnd,
-            L"Original CODE.1 party data serialized to 0x920 bytes in memory.\n"
-            L"R.EXE status-10 dispatch has returned to CODE.2 startup.\n"
-            L"Playable world entry is not connected yet.\n"
-            L"No files were created or modified.",
-            L"CODE.1 transfer ready — world integration pending",
-            MB_OK|MB_ICONINFORMATION);
+        // First actual source-party path (renderer/gameplay still partial):
+        // launch Level22 at original 4.5/4.5, facing 270 degrees.
+        // If graphics fail, keep the exact CHARS bytes for Enter retry.
+        enter_first_level();
     }
     void handle_character_click(int row,int column) {
         if(phase!=kCharacterChoice||name_entry)return;
@@ -412,6 +424,12 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         break;
     case WM_KEYDOWN:
         if(wp==VK_ESCAPE){DestroyWindow(hwnd);return 0;}
+        if(wp==VK_RETURN && session->phase==kCharacterTransferred &&
+           !session->world_launched) {
+            try{session->enter_first_level();}
+            catch(const std::exception& e){report_failure(hwnd,e.what());}
+            return 0;
+        }
         if(wp==VK_SPACE || wp==VK_RETURN) {
             if(session->phase<kMenu) {
                 try{session->skip_to_menu();}
@@ -529,11 +547,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         RECT help{14,whole.bottom-35,whole.right-10,whole.bottom-8};
         DrawTextW(dc,
             session->phase==kCharacterTransferred?
-                L"Original 0x920 CHARS in memory | CODE.2 world entry pending | Esc closes"
+                L"Original 0x920 CHARS | Level 22 party entry | Esc closes"
                 :(session->phase==kCharacterOpening?
                 L"Original CODE.1 70-frame opening | Esc closes"
                 :(session->phase==kCharacterChoice?
-                    L"Original CODE.1 character choices (stats/CHARS pending) | Esc closes"
+                    L"Original CODE.1 character creation | Esc closes"
                     :(session->phase==kMenu?
                         L"Original CODE.2 title menu | Select an item | Esc closes"
                         :(session->phase<0?
