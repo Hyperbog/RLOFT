@@ -25,7 +25,7 @@ claiming a loaded campaign. A separate, intentionally unhooked C++17
 selector helper and Release-active exhaustive CTest now preserve original
 right-click cancellation and ten-slot hitboxes. Against the supplied
 private SHA-pinned `CODE.2`, the original-byte oracle passed
-**14 instruction windows, 8 source-relative calls, 7 failure/retry
+**24 instruction windows, 8 source-relative calls, 7 failure/retry
 branches and 7 fixed DGROUP strings**. The original
 `SAVE01..SAVE10` load first copies a complete slot directory into
 `WORK` before the shared global/level loader; `SAVE.DAT` alone is
