@@ -77,6 +77,8 @@ int main() {
     assert(corpus.nonempty==2U&&corpus.zero_length==166U);
     assert(corpus.decoded_pixels==16U);
     assert(!corpus.original_ui_frame_palette_parity_verified);
+    assert(decode_native_party_item_icon(source,335U,palette)
+           .source_is_intentionally_empty);
     rejects([&]{static_cast<void>(
         decode_native_party_item_icon(source,167U,palette));});
     rejects([&]{static_cast<void>(
