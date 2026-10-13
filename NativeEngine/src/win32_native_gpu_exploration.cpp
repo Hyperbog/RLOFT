@@ -414,8 +414,15 @@ struct State {
                     float(py-double(cy))*float(z);
                 if(sx<ax+2||sx>ax+size-2||sy<ay+2||sy>ay+size-2)
                     continue;
+                // Diagnostic color keys separate the four authentic
+                // Level22 record type IDs, not a guess at object identity.
                 if(item.source_class==0U)glColor3f(.95f,.31f,.29f);
-                else if(item.source_class==1U)glColor3f(.32f,.85f,.94f);
+                else if(item.source_class==1U &&
+                        item.original_type_id==62U)glColor3f(.35f,.89f,.50f);
+                else if(item.source_class==1U &&
+                        item.original_type_id==63U)glColor3f(.32f,.85f,.94f);
+                else if(item.source_class==1U &&
+                        item.original_type_id==64U)glColor3f(.76f,.49f,.96f);
                 else glColor3f(.89f,.77f,.32f);
                 glVertex2f(sx,sy);
             }
@@ -485,7 +492,7 @@ struct State {
                 "Level22 first-party state | R reset | Esc release mouse / close":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
             line(12,y,party?
-                "SOURCE PLACEMENTS ARE DIAGNOSTIC DOTS / RES3 FRAMES, EVENTS PENDING":
+                "Map dots = NPC 9 / placed 62 63 64 | RES3 sprites + events pending":
                 "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
         glMatrixMode(GL_PROJECTION);glPopMatrix();
