@@ -22,6 +22,8 @@ This is a missing *diagnostic* boundary. It is not evidence that any of those co
 
 If the generated exploration ZIP ends with `exploration.load.failed`, investigate the original-media Level 22 loading boundary. If it reaches `exploration.load.ready` but then `exploration.world.failed`, investigate original mutable-world initialization. If it reaches `exploration.world.ready` but not `exploration.presenters.ready`, investigate the presenters/resource constructors. Reaching `exploration.presenters.ready` still **does not prove the first gameplay frame rendered**: require an exploration frame capture and owner observation. `session.finish` is not a gameplay pass.
 
+The isolated PowerShell field runner now displays only the last recognized **whitelisted** exploration initialization stage from the new diagnostic ZIP, not unfiltered event records; this leaves typed names and scan events out of console summaries. A source-only seventh sandbox negative mutation rejects removing that stage whitelist.
+
 Original installation/game-source or window creation failures can still occur before either trace starts. For all runs use the protected-copy `Test-Alpha-Continuous-Game.cmd`; do not run the native prototype against the owner's original CHARS/SAVE.DAT.
 
 ## Validation still required
