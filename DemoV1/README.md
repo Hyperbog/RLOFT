@@ -19,7 +19,11 @@ field runner reports only the last whitelisted initialization checkpoint
 rather than printing potentially private raw input events. The same
 opt-in trace now distinguishes **first gameplay frame build, raster, and
 host submission** using one-shot stage IDs; `present.submitted` is not
-proof of a correctly displayed frame. **This is not a verified
+proof of a correctly displayed frame. The Windows artifact now carries the built EXE's
+SHA-256 manifest. The isolated Alpha runner checks that hash before
+accessing owned media and refuses to label a missing or non-0x920-byte
+copied CHARS file as an existing-party test. Its sandbox contract
+rejects twelve deliberate unsafe source mutations. **This is not a verified
 current-HEAD Windows field test or original DOS parity; the release
 remains Pre-Alpha.**
 
