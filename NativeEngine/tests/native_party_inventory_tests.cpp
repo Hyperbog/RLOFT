@@ -81,6 +81,7 @@ int main(){
     assert(result.actors[0].slots[20].object_id==-1);
     assert(result.actors[1].slots[19].source_name=="QUIVER");
     assert(result.actors[1].slots[19].identified);
+    assert(((result.actors[1].original_known_mask>>19U)&1U)==1U);
     assert(result.actors[1].slots[19].absolute_res1_ui_id==174U);
     assert(std::string(native_inventory_slot_label(14))=="Hand A");
     assert(std::string(native_inventory_slot_label(19))=="Quiver");
