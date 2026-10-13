@@ -124,6 +124,33 @@ enabled, real guest heap ownership, correct priority dispatch,
 and argv/stdio metadata checks. Temporary debug messages were
 subsequently removed; the 12-second guard is retained.
 
+## Source allocator veneer and authenticated-media continuation
+
+[Windows canonical build #148](https://github.com/Hyperbog/RLOFT/actions/runs/38325029011)
+passed **63/63** after replacing the FCE8 constructor adapter's manually
+implemented `104E0→10AA9→104E0` fallback with the compiled original
+**`DAC9→DAD9→104E0/10AA9/10C46`** allocation veneer. The
+original DAD9 now determines retries, failure returns and the 8E78h
+status clear. A bounded host callback supplies the original C++ core
+and DS-break provider; allocator *decisions* are no longer duplicated
+in host test code. This remains source-backed guest memory, not proof
+of original stack/register ABI at the binary DOS/4GW boundary.
+
+[Windows canonical build #153](https://github.com/Hyperbog/RLOFT/actions/runs/38325531978)
+passed **63/63** after introducing a dependency-free C++17 SHA-256
+original-file identity guard and wiring it into **both** original CODE.1
+and CODE.2 startup programs and the existing LE-image CTest.
+Authentic owner-supplied `CODE.1`/`CODE.2` were independently
+hashed in the local runtime, matching their previously pinned hashes.
+The existing LE-image CTest verifies three standard SHA-256 vectors
+(empty string, `abc`, one million `a` bytes) and rejects
+**same-sized but modified** source files. No new CTest was added and
+commercial bytes remain outside GitHub CI.
+
+The remaining DOS/4GW runtime comparison must be independently
+observed. The concrete, **not-yet-executed** collection procedure is
+[`R04_ORIGINAL_DOS_MEMORY_ORACLE_CAPTURE_PROTOCOL.md`](R04_ORIGINAL_DOS_MEMORY_ORACLE_CAPTURE_PROTOCOL.md).
+
 ## Remaining R04 acceptance blockers
 
 The full whole-game recompilation score remains **3/12 = 25.00%**.
@@ -133,9 +160,10 @@ The new CODE.1 modes reduce prior limitations substantially but do
 1. Real original DOS/4GW selector privileges/limits, address aliases,
    DPMI alloc/resize/free receipts, or matching runtime error behavior,
    independently captured on the owner-original DOS game.
-2. Naturally executed CODE.1 `DAD9/DAC9` allocation veneers and all
-   allocator caller chains, as opposed to source core entrypoints
-   exposed by the host service adapter.
+2. Remaining CODE.1 guest call-site/ABI handoff for allocator veneers.
+   The *reconstructed source* DAC9/DAD9 decision path now executes
+   from FCE8 constructor callbacks (#148), but a host adapter still
+   bridges call-site registers and the DS-break transport.
 3. Full original `508C` gameplay/character-creation entry after
    `FC98`, beyond the explicit bounded call.
 4. All supported startup environment/PSP and command-tail variants;
