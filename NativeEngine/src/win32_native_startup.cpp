@@ -6,6 +6,7 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_party_start.hpp"
 #include "rloft_native/native_win32_gpu_exploration.hpp"
+#include "rloft_native/native_presentation_timing.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
@@ -417,7 +418,13 @@ struct Preview {
         if(phase==kCharacterTransferred||phase==kMenu)return;
         const auto elapsed=GetTickCount64()-phase_started;
         if(phase==kCharacterOpening) {
-            if(elapsed>=14U) {
+            // Source CODE.1 opening is 70 original authored frames.
+            // 14ms per frame made it finish in ~1 second; an
+            // approximately 18.2 Hz PIT-like host pacing is the
+            // deliberately conservative timing fallback.
+            if(native_presentation_frame_due(
+                   GetTickCount64(),phase_started,
+                   kNativeLegacyAnimationFrameMs)) {
                 ++character_frame;
                 phase_started=GetTickCount64();
                 if(character_frame<rloft::CharacterCreationPresenter::kOpeningFrameCount)
@@ -437,8 +444,10 @@ struct Preview {
             if(elapsed>=cinematic_wait_ms)render_cinematic_frame();
             return;
         }
-        const unsigned wait=phase<4?kLogoWaitMs[std::size_t(phase)]:14U;
-        if(elapsed>=wait)select_phase(phase+1);
+        const std::uint64_t wait=phase<4?
+            kLogoWaitMs[std::size_t(phase)]:kNativeLegacyAnimationFrameMs;
+        if(native_presentation_frame_due(GetTickCount64(),phase_started,wait))
+            select_phase(phase+1);
     }
     void skip_to_menu() {
         if(phase<kMenu && boot.snapshot().stage==rloft::BootStage::ColdStartPresentation)
@@ -474,7 +483,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     switch(msg) {
     case WM_CREATE:
         session->phase_started=GetTickCount64();
-        if(!SetTimer(hwnd,kTick,14U,nullptr))return -1;
+        // Poll input/display at 16ms; animation advances by its own
+        // source/PIT-like schedule, never once per timer event.
+        if(!SetTimer(hwnd,kTick,
+                     static_cast<UINT>(kNativeWin32PollIntervalMs),nullptr))
+            return -1;
         return 0;
     case WM_TIMER:
         if(wp==kTick) {
