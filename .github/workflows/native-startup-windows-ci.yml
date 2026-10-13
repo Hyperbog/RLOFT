@@ -47,7 +47,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-source-original-startup-windows
+  # Keep exact-source PR and native-engine push verification independent:
+  # a push must never supersede an unstarted PR acceptance candidate.
+  group: native-source-original-startup-windows-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
