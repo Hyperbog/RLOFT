@@ -145,6 +145,31 @@ jobs:
           $packageHash = (Get-FileHash -LiteralPath $packageExe -Algorithm SHA256).Hash.ToLowerInvariant()
           Set-Content -NoNewline -Path build/demo-v1/Release/ravenloft_demo_v1.exe.sha256 -Value "$packageHash  ravenloft_demo_v1.exe"
 
+      - name: Stage continuous normal-game Alpha launch (no picker)
+        shell: pwsh
+        run: |
+          # The earlier front-end-only showcase is retained as a separate
+          # optional artifact. The PRIMARY player test must reach Level22
+          # through the normal CODE.1 CHARS -> CODE.2 boundary.
+          Copy-Item DemoV1/Windows/Play-Ravenloft-Alpha.cmd build/demo-v1/Release/Play-Ravenloft-Alpha.cmd -Force
+          Copy-Item DemoV1/Windows/Play-Ravenloft-Alpha.ps1 build/demo-v1/Release/Play-Ravenloft-Alpha.ps1 -Force
+          New-Item -ItemType Directory -Force build/demo-v1/Release/Game | Out-Null
+          Copy-Item DemoV1/Windows/ORIGINAL-GAME-FILES-GO-HERE.txt build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt -Force
+
+      - name: Publish continuous original intro-to-Level22 Alpha
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Continuous-Alpha-Windows-x64
+          path: |
+            build/demo-v1/Release/ravenloft_demo_v1.exe
+            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
+            build/demo-v1/Release/Play-Ravenloft-Alpha.cmd
+            build/demo-v1/Release/Play-Ravenloft-Alpha.ps1
+            build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt
+            build/demo-v1/Release/build-source-sha.txt
+            build/demo-v1/Release/build-verification-mode.txt
+          if-no-files-found: error
+
       - name: Publish original intro and character creation
         uses: actions/upload-artifact@v4
         with:
