@@ -104,6 +104,33 @@ def source_guard(text: str) -> None:
         raise ValueError('Unaccepted native LOAD cannot claim restored gameplay')
 
 
+def native_source_guard(header: str, tests: str, cmake: str) -> None:
+    """Keep the byte-proved C++ model separate from unfinished menu IO."""
+    required = (
+        'std::int16_t mouse_x, std::int16_t mouse_y',
+        '(mouse_buttons & 0x0002U) != 0U',
+        'OriginalTitleLoadHitKind::RightClickExit, 0',
+        'x < 21 || x >= 379 || y < 20 || y >= 92',
+        'offset=x-21',
+        'offset % 37 > 25',
+        'const auto slot=(offset/37)+1',
+        'OriginalTitleLoadHitKind::SelectedSlot',
+        'static_cast<std::uint8_t>(slot)',
+    )
+    for token in required:
+        if token not in header:
+            raise ValueError('Original Load selector native mapping changed: '+token)
+    if ('#undef NDEBUG' not in tests or
+            'original_title_load_hit(379,91,0)' not in tests or
+            'original_title_load_hit(21,20,2)' not in tests or
+            'for (int column=0;column<10;++column)' not in tests or
+            'for (int dx=0;dx<37;++dx)' not in tests):
+        raise ValueError('Exhaustive Release slot and right-click assertions absent')
+    if ('add_executable(original_title_load_slot_tests' not in cmake or
+            'add_test(NAME original_title_load_slot_tests COMMAND original_title_load_slot_tests)' not in cmake):
+        raise ValueError('Native selector test omitted from CI')
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root',type=Path,default=ROOT)
@@ -116,6 +143,26 @@ def main() -> int:
         if not args.original_only:
             text=(args.root/'DemoV1/src/win32_main.cpp').read_text(encoding='utf-8')
             source_guard(text)
+            header=(args.root/'DemoV1/include/rloft/original_title_load_slot.hpp').read_text(encoding='utf-8')
+            tests=(args.root/'DemoV1/tests/original_title_load_slot_tests.cpp').read_text(encoding='utf-8')
+            cmake=(args.root/'DemoV1/CMakeLists.txt').read_text(encoding='utf-8')
+            native_source_guard(header,tests,cmake)
+            # Four regression mutations corrupt independent DOS facts.
+            mutations = (
+                ('x >= 379', 'x >= 380'),
+                ('offset % 37 > 25', 'offset % 37 > 26'),
+                ('(mouse_buttons & 0x0002U)', '(mouse_buttons & 0x0001U)'),
+                ('const auto slot=(offset/37)+1', 'const auto slot=(offset/37)'),
+            )
+            for before, after in mutations:
+                if header.count(before) != 1:
+                    raise ValueError('Unable to mutate native selector: '+before)
+                try:
+                    native_source_guard(header.replace(before,after,1),tests,cmake)
+                except ValueError:
+                    pass
+                else:
+                    raise ValueError('Unfaithful selector mutation escaped: '+before)
             bad=text.replace('Load Game is not yet available','Load Game successfully loaded',1)
             try:
                 source_guard(bad)
