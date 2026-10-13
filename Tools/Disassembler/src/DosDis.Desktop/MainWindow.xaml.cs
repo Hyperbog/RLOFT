@@ -440,7 +440,8 @@ public partial class MainWindow : Window
             return;
         long? originalFileOffset = _image.ToFileOffset(finding.ObjectNumber,
             checked((uint)finding.Begin));
-        if (originalFileOffset is not >= 0 or > int.MaxValue)
+        if (originalFileOffset is null || originalFileOffset.Value < 0 ||
+            originalFileOffset.Value > int.MaxValue)
         {
             StatusText.Text = "Benchmark finding has no original-file-backed position.";
             return;
