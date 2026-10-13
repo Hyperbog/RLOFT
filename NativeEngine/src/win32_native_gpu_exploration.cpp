@@ -202,24 +202,34 @@ struct State {
         glBindTexture(GL_TEXTURE_2D,tex);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-        const auto filter=smooth_filter?GL_LINEAR:GL_NEAREST;
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,filter);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,filter);
-        // EH6 decoder already transposed the ORIGINAL 128-byte columns.
-        // Keep top source row at v=0: wall UV=0 at upper edge, =1 bottom.
-        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,decoded.width,decoded.height,
-            0,GL_RGB,GL_UNSIGNED_BYTE,rgb.data());
+        // F3 modes mirror the legacy viewer's nearest / filtered /
+        // distant-mipmap tradeoff. Mipmaps are PRESENTATION derivatives
+        // only; original game asset pixels are never modified.
+        const GLint mip=gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,
+            decoded.width,decoded.height,GL_RGB,GL_UNSIGNED_BYTE,rgb.data());
+        if(mip!=0) {
+            glDeleteTextures(1,&tex);
+            throw std::runtime_error("OpenGL/GLU mipmap upload failed for original RES4 resource "+
+                std::to_string(id)+", GLU="+std::to_string(mip));
+        }
+        const GLenum min_filter=filter_mode==0U?GL_NEAREST:
+            (filter_mode==1U?GL_LINEAR:GL_LINEAR_MIPMAP_LINEAR);
+        const GLenum mag_filter=filter_mode==0U?GL_NEAREST:GL_LINEAR;
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,min_filter);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mag_filter);
         gpu_textures.emplace(id,tex);
         return tex;
     }
     void update_filter() {
         if(!context)return;
         wglMakeCurrent(dc,context);
-        const auto filter=smooth_filter?GL_LINEAR:GL_NEAREST;
+        const auto min_filter=filter_mode==0U?GL_NEAREST:
+            (filter_mode==1U?GL_LINEAR:GL_LINEAR_MIPMAP_LINEAR);
+        const auto mag_filter=filter_mode==0U?GL_NEAREST:GL_LINEAR;
         for(const auto& kv:gpu_textures) {
             glBindTexture(GL_TEXTURE_2D,kv.second);
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,filter);
-            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,filter);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,mag_filter);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,min_filter);
         }
     }
     void mark_seen() {
@@ -393,7 +403,8 @@ struct State {
             (mouse_look?" | Mouse look":" | Q/E keyboard")+
             (blocked?" | BLOCKED":"")+(noclip?" | NOCLIP":""));
         line(12,height-box_height+44,
-            "Original RES4 / LEVELS.DAT | F1: "+std::string(show_help?"Hide":"Show")+" controls");
+            "RES4 / LEVELS.DAT | F3: "+std::string(filter_mode==0U?"Nearest":filter_mode==1U?"Smooth":"Mipmap")+
+            " | F1: "+std::string(show_help?"Hide":"Show")+" controls");
         if(show_help) {
             int y=height-box_height+69;
             constexpr int dy=23;
