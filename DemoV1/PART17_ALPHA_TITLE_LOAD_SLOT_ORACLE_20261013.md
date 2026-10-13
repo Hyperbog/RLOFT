@@ -101,6 +101,39 @@ when invoked with `--original-only --original /mnt/data/CODE.2`.
 The registered public CTest is source-only and was not independently
 executed in a full Windows build at the time of writing.
 
+## Native original selector model — intentionally not live gameplay
+
+A source-grounded **C++17**, side-effect-free native helper is committed:
+
+- `DemoV1/include/rloft/original_title_load_slot.hpp` — takes the same
+  signed 16-bit mouse X/Y coordinates and 9E35 mouse button bits as
+  original CODE.2 `07BB9..07C18`. Its result distinguishes invalid
+  hits, numbered slots `1..10`, and original right-click status 2.
+  Signed division over positive, range-checked `x-21` matches the
+  original `CDQ; IDIV 37` quotient/remainder semantics.
+- `DemoV1/tests/original_title_load_slot_tests.cpp` — C++17
+  compile-time assertions and exhaustive active/gap pixels across
+  ten columns and all 72 Y positions, including left-only and
+  right-click combinations, boundary rejections, signed extremes.
+  `#undef NDEBUG` before `<cassert>` ensures Release CTest
+  actually evaluates all assertions.
+- CMake now registers the standalone
+  `original_title_load_slot_tests`. The source-only oracle checks
+  its registration and the native implementation constants, and
+  deliberately rejects four corruptions: X clip, cell width,
+  right-button mask and one-based slot numbering.
+
+A separate local GCC 14 C++17 equivalent semantic probe compiled
+with `-Wall -Wextra -Wpedantic -Werror -O2 -DNDEBUG` and passed
+the exhaustive assertions. **This was not a build of the complete
+checked-out GitHub project**; full exact-checkout Windows CTest
+and owner normal-game DOS comparisons are separate open gates.
+
+The helper is **not wired to the live title**. The current Windows
+title Load Game selection remains explicitly unfinished, because
+a click hit alone cannot restore `WORK/SAVE.DAT` and the mutable
+`LEVnnn.DAT` files or reproduce the original mouse/modal screen.
+
 ## Release blocker and implementation ownership
 
 The current native title action 1 deliberately displays **Load Game
