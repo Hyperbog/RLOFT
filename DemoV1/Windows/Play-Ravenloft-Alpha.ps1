@@ -108,7 +108,9 @@ $launchMediaRoot = $scratch
 if (-not $hasRootMedia -and $hasNestedMedia) {
     $launchMediaRoot = Join-Path $scratch 'RLOFT'
 }
-$arguments = '"' + $launchMediaRoot + '"'
+# This host-only flag prevents the temporary path from replacing the
+# user's preferred original media location in the Windows registry.
+$arguments = '--no-remember-install "' + $launchMediaRoot + '"'
 $process = Start-Process -FilePath $engine -ArgumentList $arguments -WorkingDirectory $package -Wait -PassThru
 Write-Host ('Native exit code: ' + [string]$process.ExitCode)
 Write-Host ('Temporary created-party data is at: ' + $scratch)
