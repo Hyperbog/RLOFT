@@ -39,6 +39,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/RLOFT
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT
           sparse-checkout-cone-mode: false
       - name: Install Python for native original-media fixture
         uses: actions/setup-python@v5
@@ -73,6 +74,32 @@ jobs:
             }
           }
           Write-Host "NATIVE_REAL_ORIGINAL_CODE2_STARTUP_SOURCE_PASS"
+      - name: Verify actual shipped CINE00/CINE12 ANM frames and immutable CD source
+        shell: pwsh
+        run: |
+          $media = Join-Path (Get-Location) "original-source/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $files = @("CINE00.ANM", "CINE12.ANM", "RES0", "T", "COLORS")
+          foreach ($name in $files) {
+            if (-not (Test-Path (Join-Path $media $name))) {
+              throw "Original CD source $name missing"
+            }
+          }
+          $before = @($files | ForEach-Object {
+            (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
+          })
+          $audit = Join-Path (Get-Location) "build/native-assets-windows-x64/Release/rloft_native_anm_audit.exe"
+          if (-not (Test-Path $audit)) { throw "Original ANM audit executable missing" }
+          & $audit $media
+          if ($LASTEXITCODE -ne 0) { throw "Original ANM decoder failed on owner-source CINE00/CINE12" }
+          $after = @($files | ForEach-Object {
+            (Get-FileHash -LiteralPath (Join-Path $media $_) -Algorithm SHA256).Hash
+          })
+          for ($i = 0; $i -lt $files.Length; ++$i) {
+            if ($before[$i] -cne $after[$i]) {
+              throw "Read-only original CD file $($files[$i]) changed"
+            }
+          }
+          Write-Host "NATIVE_ORIGINAL_CINE00_CINE12_FRAME_PASS"
       - name: Preserve checksum-tagged media-free Windows package
         uses: actions/upload-artifact@v4
         with:
