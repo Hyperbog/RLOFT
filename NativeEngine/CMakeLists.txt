@@ -18,6 +18,8 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/BootFlow"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-boot")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/CharacterCreation"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-character")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/StartupPresentation"
+                 "${CMAKE_CURRENT_BINARY_DIR}/shared-startup-presentation")
 
 add_library(rloft_native_contracts INTERFACE)
 target_include_directories(rloft_native_contracts INTERFACE
@@ -38,6 +40,7 @@ add_library(rloft_native_assets STATIC
   src/native_world_fingerprints.cpp
   src/native_world_runtime.cpp
   src/native_scene_view.cpp
+  src/native_startup_visuals.cpp
   src/native_gpu_world_mesh.cpp
   src/native_probe_original_textures.cpp
   src/native_code2_backdrop.cpp
@@ -55,7 +58,7 @@ add_library(rloft_native_assets STATIC
   src/native_code2_scene_staging.cpp
   src/native_vga_rgb6_scanout.cpp
   src/native_source_scene_compositor.cpp)
-target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
+target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts rloft_shared_startup_presentation)
 
 function(native_warnings target)
   if(MSVC)
