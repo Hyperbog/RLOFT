@@ -56,6 +56,11 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         "$partyChild = Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'",
         "if ($null -eq $partyFile) {",
         "if ($partySize -ne 0x920) {",
+        "($rootEntry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0",
+        "GetFileName($bootPath).EndsWith($expectedBootSuffix, [StringComparison]::Ordinal)",
+        "GetFileName($sessionPath).EndsWith($expectedSessionSuffix, [StringComparison]::Ordinal)",
+        "([string]$bootIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)",
+        "([string]$sessionIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)",
         "$session -eq $previous",
         "StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)",
         "Compress-Archive -LiteralPath $sessionPath",
@@ -167,6 +172,36 @@ def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         else:
             raise ValueError(label+" passed source safety contract")
 
+    # Traces are global TEMP pointers; require the process we just
+    # launched and the embedded compiled revision before ZIP attribution.
+    # The selected original folder itself must not be a reparse point.
+    trace_mutations=(
+        ("linked original root",ps.replace(
+            "($rootEntry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0",
+            "$false",1)),
+        ("wrong boot process",ps.replace(
+            "GetFileName($bootPath).EndsWith($expectedBootSuffix, [StringComparison]::Ordinal)",
+            "$true",1)),
+        ("wrong exploration process",ps.replace(
+            "GetFileName($sessionPath).EndsWith($expectedSessionSuffix, [StringComparison]::Ordinal)",
+            "$true",1)),
+        ("wrong boot revision",ps.replace(
+            "([string]$bootIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)",
+            "$true",1)),
+        ("wrong exploration revision",ps.replace(
+            "([string]$sessionIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)",
+            "$true",1)),
+    )
+    for label,bad_ps in trace_mutations:
+        if bad_ps==ps:
+            raise ValueError(label+" negative mutation failed")
+        try:
+            check(cmd,bad_ps,workflow,host,intro)
+        except (ValueError,AssertionError):
+            pass
+        else:
+            raise ValueError(label+" trace identity mutation escaped")
+
     # Seventh mutation would print raw JSONL events instead of only
     # whitelisted symbolic checkpoints.
     raw_stage=ps.replace(
@@ -223,7 +258,7 @@ def main()->int:
         mutate(cmd,ps,workflow,host,intro)
     except (ValueError,AssertionError,OSError) as exc:
         p.exit(1,"ALPHA_SANDBOX_FIELD_REJECTED: "+str(exc)+"\n")
-    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 12 unsafe variants rejected")
+    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 17 unsafe variants rejected")
     return 0
 
 if __name__=="__main__":
