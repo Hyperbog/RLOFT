@@ -252,6 +252,14 @@ public:
     }
 
     void set_menu_mode(bool enabled) {
+        if (menu_mode_ != enabled) {
+            // CODE.2 19464 title events are mouse-modal. Win32's
+            // global Escape latch must not turn a later 13EF8(CINE00)
+            // replay into an immediate skip, or leak into CODE.1.
+            // This is host-event isolation, NOT guest DOS F572 state.
+            escape_pressed_ = false;
+            clicked_.reset();
+        }
         menu_mode_ = enabled;
         if (!enabled) {
             selection_ = -1;
@@ -264,6 +272,14 @@ public:
     }
 
     void set_character_mode(bool enabled) {
+        if (character_mode_ != enabled) {
+            // CODE.1 043C/2DFC own a different input stream from the
+            // CODE.2 title and first gameplay frame. Discard native
+            // queued keys/clicks captured in the previous host phase.
+            escape_pressed_ = false;
+            key_events_.clear();
+            character_click_.reset();
+        }
         character_mode_ = enabled;
         if (!enabled) {
             character_click_.reset();
@@ -276,6 +292,13 @@ public:
 
     void set_exploration_input(
         rloft::ExplorationLegacyInputController* controller) noexcept {
+        if (exploration_input_ != controller) {
+            // CODE.2 exploration must not inherit an unconsumed native
+            // title/creation Escape flag or character name/roll keys.
+            // A fresh physical keypress is required in the new phase.
+            escape_pressed_ = false;
+            key_events_.clear();
+        }
         if (exploration_input_ && exploration_input_ != controller) {
             exploration_input_->clear();
         }
@@ -706,10 +729,28 @@ private:
                 break;
 
             case WM_KILLFOCUS:
-                if (exploration_input_) {
-                    exploration_input_->clear();
+                // Alt-Tab, another window or a native MessageBox can
+                // interrupt any stage. Prevent queued input and
+                // old hover/clicks from executing after focus returns.
+                if (exploration_input_) exploration_input_->clear();
+                escape_pressed_ = false;
+                key_events_.clear();
+                clicked_.reset();
+                character_click_.reset();
+                exploration_click_.reset();
+                exploration_release_.reset();
+                exploration_secondary_click_.reset();
+                selection_ = -1;
+                character_pointer_.reset();
+                refresh_pointer_overlay();
+                return 0;
+
+            case WM_SETFOCUS:
+                if (menu_mode_ || character_mode_ || exploration_input_) {
+                    update_pointer_from_system_cursor();
+                    refresh_pointer_overlay();
                 }
-                break;
+                return 0;
 
             case WM_MOUSEMOVE: {
                 const int row =

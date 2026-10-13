@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Host-only input ownership: prevent title/character stale Escape
+    # and focus-loss mouse/keyboard events from leaking into next stage.
+    add_test(
+        NAME alpha_input_phase_isolation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
     # Original 19464 title menu: CINE00 replay is real; 7B94 load
     # remains visibly unavailable until source-correct whole SAVE.
     # Alpha scope ends at FIRST Level22 gameplay scene, not Level23.
