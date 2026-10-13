@@ -3837,9 +3837,31 @@ int run(HINSTANCE instance) {
                                         "reach CODE.2 CHARS startup");
                                 }
 
-                                // CODE.2 204B3 imports CHARS, then the normal
-                                // fresh-party path loads level 22 at 4.5/4.5,
-                                // facing 270, time 14:00 and enters gameplay.
+                                // Original CODE.2 204B3 checks CHARS on disk;
+                                // 204EF -> 16CD0 reopens and reads 0x920 bytes
+                                // before 16ADC imports the two created actors.
+                                // Do not bypass that module boundary by using
+                                // CODE.1's still-live in-memory image.
+                                const auto code2_chars =
+                                    assets.source().read_runtime("CHARS");
+                                if (!code2_chars ||
+                                    code2_chars->size() != image.size()) {
+                                    throw std::runtime_error(
+                                        "CODE.2 failed to reopen complete "
+                                        "0x920-byte CHARS transfer");
+                                }
+                                if (!std::equal(
+                                        code2_chars->begin(),
+                                        code2_chars->end(),
+                                        image.begin())) {
+                                    // Additional host integrity check: original
+                                    // DOS does not compare to the old image.
+                                    throw std::runtime_error(
+                                        "CODE.2 CHARS disk bytes differ from "
+                                        "completed CODE.1 transfer");
+                                }
+                                // The fresh original level-22 entry remains
+                                // at 4.5/4.5, facing 270, time 14:00.
                                 flow.finish_code2_startup(true, false);
                                 if (flow.snapshot().stage !=
                                         rloft::BootStage::Exploration) {
@@ -3852,9 +3874,7 @@ int run(HINSTANCE instance) {
                                 return run_exploration(
                                     host,
                                     assets, audio_player, midi_player,
-                                    std::vector<std::uint8_t>(
-                                        image.begin(),
-                                        image.end()),
+                                    *code2_chars,
                                     false,false,16U,false,false,
                                     options.dev_trace);
                             }

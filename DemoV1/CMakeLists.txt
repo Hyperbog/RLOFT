@@ -27,6 +27,11 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Original 204B3/16CD0 CHARS file re-open after CODE.1.
+    add_test(
+        NAME original_chars_disk_handoff_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_chars_disk_handoff.py")
     # CODE.2 375FE / 398E0 / 39A2C original x86 source synchronization.
     # Read-only: no original game binaries required in public CI.
     add_test(

@@ -183,6 +183,37 @@ void test_loose_and_env_discovery() {
             assert(output.filename() == fs::path("CHARS"));
             assert(fs::equivalent(output.parent_path(), base));
         }
+        // Exercise the original 0x920-byte CHARS disk handoff using
+        // synthetic bytes and the actual GameSource runtime path.
+        {
+            std::vector<std::uint8_t> transfer(0x920U);
+            for (std::size_t i=0; i<transfer.size(); ++i)
+                transfer[i]=static_cast<std::uint8_t>((i*37U+11U)&0xFFU);
+            const auto output=source.runtime_output_path("CHARS");
+            {
+                std::ofstream out(output,std::ios::binary|std::ios::trunc);
+                assert(out);
+                out.write(reinterpret_cast<const char*>(transfer.data()),
+                          static_cast<std::streamsize>(transfer.size()));
+                out.close();
+                assert(out);
+            }
+            const auto loaded=source.read_runtime("CHARS");
+            assert(loaded.has_value() && *loaded==transfer);
+            // A truncated disk file cannot masquerade as the old
+            // in-memory transfer image.
+            {
+                std::ofstream out(output,std::ios::binary|std::ios::trunc);
+                assert(out);
+                out.write(reinterpret_cast<const char*>(transfer.data()),
+                          0x910);
+                out.close();
+                assert(out);
+            }
+            const auto truncated=source.read_runtime("CHARS");
+            assert(truncated.has_value() && truncated->size()==0x910U);
+            assert(*truncated!=transfer);
+        }
     }
 
     {
