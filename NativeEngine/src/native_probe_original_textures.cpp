@@ -15,7 +15,6 @@
 namespace rloft_native {
 namespace {
 constexpr double kPi=3.14159265358979323846;
-constexpr double kMinDist=0.05;
 unsigned host_angle_to_original_quadrant_tenths(double dx,double dy) {
     // The host DDA angle is NOT the original CODE.2 c714+c73c
     // ray-angle source. This adapter converts only its quadrant
@@ -31,6 +30,7 @@ unsigned host_angle_to_original_quadrant_tenths(double dx,double dy) {
 NativeProbeOriginalTextures::NativeProbeOriginalTextures(
     const NativeMedia& media,unsigned original_wide_count)
     :source_(media.read("RES4")),
+     backdrop_(media.read("CODE.2")),
      original_colors_(media.read("COLORS")),
      wide_count_(original_wide_count) {
     if(wide_count_==0 || wide_count_>=source_.entry_count())
@@ -42,7 +42,7 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
     unsigned width,unsigned height) {
     if(width==0 || width>320U ||
        (height!=200U && height!=400U) ||
-       view.columns.size()!=width || view.camera.level>=32U)
+       width!=320U || view.columns.size()!=256U || view.camera.level>=32U)
         throw std::invalid_argument("invalid original planar preview frame or host rays");
     const auto& map=world.maps().levels.at(view.camera.level);
 
@@ -52,34 +52,28 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         palette=palettes_.emplace(bank,
             decode_native_palette(original_colors_,bank)).first;
 
-    // Original CODE.2 VGA: 4 x 65536 bytes, one 80-byte scanline per
-    // plane with x&3 as the sequencer mask. Source background indices
-    // 1/2 are a *host presentation choice*, NOT original floor art.
+    // Original code 33E28/33DE0 sky/floor environment fill with
+    // level header bytes 298/299 and actual CODE.2 FE94 shade table.
     NativeIndexedVgaPlanes video;
-    for(unsigned y=0;y<height;++y) {
-        const auto index=static_cast<std::uint8_t>(
-            y<height/2U?1U:2U);
-        for(unsigned x=0;x<width;++x) {
-            const auto byte=std::size_t(y)*80U+x/4U;
-            video.masked_write(byte,
-                static_cast<std::uint8_t>(1U<<(x&3U)),index);
-        }
-    }
+    const int pitch_pixels=static_cast<int>(std::lround(
+        view.camera.pitch_radians*100.0));
+    backdrop_.fill(world.original().level(view.camera.level),
+                   video,pitch_pixels);
 
     NativeProbeTexturedFrame out;
     out.width=width;out.height=height;
     std::vector<NativeType6ProjectedColumn> original_columns;
-    original_columns.reserve(width);
+    original_columns.reserve(view.columns.size());
     const auto plane=std::tan(view.camera.field_of_view_radians*0.5);
-    const unsigned working_top=height==400U?72U:0U;
-    for(unsigned x=0;x<width;++x) {
+    const unsigned working_top=4U;
+    for(unsigned x=0;x<view.columns.size();++x) {
         const auto& ray=view.columns[x];
         if(!ray.hit)continue;
         if(ray.hit_column>=map.width || ray.hit_row>=map.height)
             throw std::runtime_error("original textured ray outside source level");
         const auto material=native_scene_resource_candidates(
             world,view.camera.level,ray.hit_column,ray.hit_row);
-        const double sample=2.0*(double(x)+0.5)/double(width)-1.0;
+        const double sample=2.0*(double(x)+0.5)/double(view.columns.size())-1.0;
         const double angle=view.camera.heading_radians+
                            std::atan(plane*sample);
         const auto dx=std::cos(angle),dy=std::sin(angle);
@@ -128,13 +122,17 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         // CODE.2 338C8's rasterizer accepts 1..256 vertical pixels.
         // The incoming height is STILL host DDA perspective, NOT
         // reconstructed original CODE.2 35730 depth.
-        const auto scaled=double(height)/
-            std::max(kMinDist,ray.corrected_distance);
-        const auto projected_height=std::max(1U,std::min(256U,
+        // HOST depth mapping, deliberately bounded by swept collision
+        // clearance (radius 0.26). 55 px/cell avoids the previous
+        // 400/distance full-height saturation when approaching walls.
+        // DOS 35730 remains upstream camera reconstruction work.
+        const auto scaled=55.0/
+            std::max(0.22,ray.corrected_distance);
+        const auto projected_height=std::max(1U,std::min(240U,
             static_cast<unsigned>(scaled)));
         original_columns.push_back({
-            &texture->second,source_column,x,projected_height,
-            0U,0U,working_top});
+            &texture->second,source_column,x+32U,projected_height,
+            0U,0U,working_top,pitch_pixels});
         ++out.wall_columns;
     }
 
@@ -160,6 +158,7 @@ NativeProbeTexturedFrame NativeProbeOriginalTextures::render(
         out.bgra[bgra+2U]=expand(rgb6.rgb6[rgb]);
         out.bgra[bgra+3U]=255U;
     }
+    out.original_code2_backdrop_used=true;
     out.original_code2_sampler_used=true;
     out.source_quadrant_state_used=true;
     return out;
