@@ -4,6 +4,7 @@
 #include "rloft_native/native_world_runtime.hpp"
 #include "rloft_native/native_party_start.hpp"
 #include "rloft_native/native_scene_instances.hpp"
+#include "rloft_native/native_scene_target.hpp"
 #include "rloft_native/native_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
@@ -123,6 +124,21 @@ int main(int argc,char** argv) {
            original_npc.compact_facing_0_to_7!=2U)
             throw std::runtime_error(
                 "original Level22 NPC9 authored pose does not match source");
+        // Portable native-host inspector must recognize the *actual*
+        // original NPC9 16.16 record from a nearby unobstructed viewpoint.
+        // Selection is an explicit diagnostics-only rule, not original
+        // CODE.2 NPC activation, dialogue, combat or sprite frame selection.
+        const double npc_x=double(original_npc.x_position_16_16)/65536.0;
+        const double npc_y=double(original_npc.y_position_16_16)/65536.0;
+        if(world.normal_collision(22U,13U,7U)!=
+               rloft_native::NativeCollision::Passable)
+            throw std::runtime_error(
+                "Level22 authentic NPC9 source cell is not ordinary passable");
+        const auto target=rloft_native::select_native_authored_scene_target(
+            world,22U,{original_npc},npc_x-0.4,npc_y,0.0);
+        if(!target||target->original.original_type_id!=9U)
+            throw std::runtime_error(
+                "native source-bound Level22 NPC9 inspection target failed");
         if(initial.size()!=111U || first.families[0].size()!=1U ||
            first.families[1].size()!=110U ||
            !first.families[2].empty())
@@ -190,6 +206,7 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_authored_scene_instances\":111,"
                  <<"\"original_first_level_source_type_counts\":[1,52,42,16],"
                  <<"\"original_first_level_npc9_original_pose_verified\":true,"
+                 <<"\"original_first_level_npc9_inspection_target_verified\":true,"
                  <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
