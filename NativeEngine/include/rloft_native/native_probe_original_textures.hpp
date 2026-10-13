@@ -1,5 +1,6 @@
 #pragma once
 #include "rloft_native/native_assets.hpp"
+#include "rloft_native/native_code2_backdrop.hpp"
 #include "rloft_native/native_scene_view.hpp"
 #include <cstdint>
 #include <map>
@@ -19,6 +20,7 @@ struct NativeProbeTexturedFrame {
     unsigned source_texture_decompressions{};
     bool original_code2_sampler_used{false};
     bool source_quadrant_state_used{false};
+    bool original_code2_backdrop_used{false};
     bool original_runtime_camera_verified{false};
     bool original_dos_frame_verified{false};
 };
@@ -35,6 +37,7 @@ public:
     }
 private:
     NativeResArchive source_;
+    NativeCode2Backdrop backdrop_;
     std::vector<std::uint8_t> original_colors_;
     unsigned wide_count_;
     std::map<unsigned,NativeType1Raster> textures_;
