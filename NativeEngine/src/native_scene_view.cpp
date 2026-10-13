@@ -39,7 +39,7 @@ void camera_valid(const NativeWorldRuntime& world,const NativeProbeCamera& pose)
     const auto& m=world.maps().levels.at(pose.level);
     require(m.id==pose.level && std::isfinite(pose.heading_radians) &&
             std::isfinite(pose.pitch_radians) &&
-            std::abs(pose.pitch_radians)<=0.9 &&
+            std::abs(pose.pitch_radians)<=1.42 &&
             std::isfinite(pose.field_of_view_radians) &&
             pose.field_of_view_radians>0.01 &&
             pose.field_of_view_radians<kPi-0.01 &&
