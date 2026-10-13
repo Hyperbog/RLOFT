@@ -161,7 +161,7 @@ captures original logical `07C70..07D42` without performing file IO:
   and uses Release-active assertions.
 - The source-only `alpha_original_load_slot_source_contract_tests`
   now checks the new C++ workflow and its registration and rejects
-  five deliberately reversed/omitted original-path mutations. The
+  six deliberately reversed/omitted original-path mutations, including removal of either of the two distinct ten-handle cleanup loops. The
   optional full-file/hash pinned binary oracle was expanded by
   **ten** exact CODE.2 opcode windows (`07CA9`, `07CBF`, `07CD7`,
   `07CEB`, `07CF4`, `07D0A`, `07D0F`, `07D1F`, `07D28`, `07D3E`)
