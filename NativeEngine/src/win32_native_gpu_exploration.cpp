@@ -76,6 +76,9 @@ struct State {
     double last_visibility_x{},last_visibility_y{},last_visibility_heading{};
     ULONGLONG previous_time{};
     std::map<unsigned,std::vector<std::uint8_t>> explored;
+    // Authenticated once after a discovery update, never rehashed by
+    // the 60 FPS OpenGL paint loop.
+    std::vector<NativeAuthoredSceneInstance> discovered_placements;
 
     explicit State(NativeWorldPayload world_source,const NativeMedia& media,
                    std::optional<NativePartyStart> startup={})
@@ -160,6 +163,7 @@ struct State {
         previous_time=0;
         face_count=mesh.lower_wall_faces+mesh.upper_wall_faces;
         visibility_initialized=false;
+        discovered_placements.clear();
         auto& seen=explored[level];
         if(seen.size()!=std::size_t(map.width)*map.height)
             seen.assign(std::size_t(map.width)*map.height,0);
@@ -299,6 +303,12 @@ struct State {
             }
         if(cx>=0 && cy>=0 && cx<int(map.width) && cy<int(map.height))
             grid[std::size_t(cy)*map.width+unsigned(cx)]=1;
+        if(party&&authored_scenes) {
+            // The source-hash binding and 32-level provenance check are
+            // amortized over exploration changes, NOT every drawn frame.
+            discovered_placements=native_explored_scene_instance_candidates(
+                world,*authored_scenes,level,grid,32768U);
+        }
     }
     void step(double dt) {
         const auto held=[](int vk){return (GetAsyncKeyState(vk)&0x8000)!=0;};
@@ -401,11 +411,9 @@ struct State {
         // cells; preserve original 16.16 subcell coordinates. Markers are
         // not simulated actors, pickups, EH7 view frames or encounter logic.
         if(party&&authored_scenes&&show_authored_markers) {
-            const auto present=native_explored_scene_instance_candidates(
-                world,*authored_scenes,level,revealed,32768U);
             glPointSize(float(std::max(3,z/2)));
             glBegin(GL_POINTS);
-            for(const auto& item:present) {
+            for(const auto& item:discovered_placements) {
                 const double px=double(item.x_position_16_16)/65536.;
                 const double py=double(item.y_position_16_16)/65536.;
                 const float sx=float(ax+size/2)+
