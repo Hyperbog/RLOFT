@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "rloft/character_creation_flow.hpp"
-#include "rloft/resource_assets.hpp"
+#include "rloft/character_visual_source.hpp"
 
 namespace rloft {
 
@@ -32,12 +32,12 @@ struct CharacterStatTables {
     bool step_mode{};
 
     [[nodiscard]] static CharacterStatTables from_assets(
-        const RavenloftBootAssets& assets);
+        const CharacterVisualSource& assets);
 };
 
 class CharacterStatsModel final {
 public:
-    explicit CharacterStatsModel(const RavenloftBootAssets& assets);
+    explicit CharacterStatsModel(const CharacterVisualSource& assets);
     explicit CharacterStatsModel(CharacterStatTables tables);
 
     void seed(std::uint32_t value) noexcept;
