@@ -40,7 +40,9 @@ read-only showcase remains unchanged.
 
 The synthetic `game_source_tests` fixture now writes, reads and
 truncates a 0x920-byte CHARS file through the real path resolver;
-no original game assets are required. New Python CTest
+no original game assets are required. The new read-back and truncation
+checks throw on mismatch, including Release builds where `assert` can be
+disabled. New Python CTest
 `original_chars_disk_handoff_contract_tests` checks source call
 ordering, guarded length and read-back, and rejects three source
 mutations. `--original /private/CODE.2` also checks original SHA,

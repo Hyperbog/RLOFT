@@ -199,7 +199,8 @@ void test_loose_and_env_discovery() {
                 assert(out);
             }
             const auto loaded=source.read_runtime("CHARS");
-            assert(loaded.has_value() && *loaded==transfer);
+            if (!loaded || *loaded!=transfer)
+                throw std::runtime_error("CODE.2 CHARS fixture reread mismatch");
             // A truncated disk file cannot masquerade as the old
             // in-memory transfer image.
             {
@@ -211,8 +212,9 @@ void test_loose_and_env_discovery() {
                 assert(out);
             }
             const auto truncated=source.read_runtime("CHARS");
-            assert(truncated.has_value() && truncated->size()==0x910U);
-            assert(*truncated!=transfer);
+            if (!truncated || truncated->size()!=0x910U ||
+                *truncated==transfer)
+                throw std::runtime_error("CODE.2 CHARS truncation fixture failed");
         }
     }
 
