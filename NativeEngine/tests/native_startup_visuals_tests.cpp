@@ -55,6 +55,14 @@ int main() {
         for(unsigned bank=0;bank<15;++bank)
             for(unsigned i=0;i<768;++i)
                 colors[1U+bank*768U+i]=std::uint8_t(bank);
+        // The CODE.1 palette-remap tree needs a deterministic distinct
+        // source palette, rather than 256 duplicate RGB triples.
+        for(unsigned index=0;index<256;++index) {
+            const auto at=1U+8U*768U+index*3U;
+            colors[at+0U]=std::uint8_t(index&63U);
+            colors[at+1U]=std::uint8_t(index>>6U);
+            colors[at+2U]=0;
+        }
         file(root/"RES0",record);
         file(root/"RES1",record);
         file(root/"RES7",record);
