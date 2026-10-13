@@ -10,9 +10,12 @@ This is the active project entry point. Historical development updates have been
 [Private CODE.2 07B94 selector verification and remaining full-save blocker](PART17_ALPHA_TITLE_LOAD_SLOT_ORACLE_20261013.md).
 An additional source-only CTest now protects the original Load Game
 slot geometry and prevents the unfinished native action from falsely
-claiming a loaded campaign. Against the supplied private SHA-pinned
-`CODE.2`, the original-byte oracle passed **14 instruction windows,
-8 source-relative calls and 7 fixed DGROUP strings**. The original
+claiming a loaded campaign. A separate, intentionally unhooked C++17
+selector helper and Release-active exhaustive CTest now preserve original
+right-click cancellation and ten-slot hitboxes. Against the supplied
+private SHA-pinned `CODE.2`, the original-byte oracle passed
+**14 instruction windows, 8 source-relative calls, 7 failure/retry
+branches and 7 fixed DGROUP strings**. The original
 `SAVE01..SAVE10` load first copies a complete slot directory into
 `WORK` before the shared global/level loader; `SAVE.DAT` alone is
 not a sufficient saved game. This checkpoint does not implement the
