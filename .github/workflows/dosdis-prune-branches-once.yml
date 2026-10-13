@@ -1,0 +1,47 @@
+name: TEMP prune obsolete DOSDis verification branches
+# One-time owner-authorized repository hygiene. Remove this workflow after execution.
+on:
+  push:
+    branches: [disassembler-foundation]
+    paths:
+      - '.github/workflows/dosdis-prune-branches-once.yml'
+permissions:
+  contents: write
+jobs:
+  prune-verified-temp-branches:
+    if: github.ref == 'refs/heads/disassembler-foundation'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify closed PRs and exact obsolete branch tips
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          check_branch() {
+            local number="$1" name="$2" expected="$3"
+            local state merged head actual
+            state="$(gh api "repos/${repo}/pulls/${number}" --jq '.state')"
+            merged="$(gh api "repos/${repo}/pulls/${number}" --jq '.merged')"
+            head="$(gh api "repos/${repo}/pulls/${number}" --jq '.head.ref')"
+            actual="$(gh api "repos/${repo}/git/ref/heads/${name}" --jq '.object.sha')"
+            printf '%s PR#%s state=%s merged=%s actual=%s\n' "$name" "$number" "$state" "$merged" "$actual"
+            if [[ "$state" != "closed" || "$merged" != "false" || "$head" != "$name" || "$actual" != "$expected" ]]; then
+              echo "::error::Temporary branch no longer matches audited PR and exact commit. Refusing deletion."
+              exit 1
+            fi
+          }
+          check_branch 8 "disassembler-g2-build-20261010-54247e" "e9239b7e820517f8798ac73f4616287802c38bb1"
+          check_branch 14 "dosdis-windows-byte-search-gate-20261011-1f8b6b" "06b8cd348d400aba80fbec5f34f1c7f805d8842a"
+      - name: Delete only the two audited temporary DOSDis refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          for ref in "disassembler-g2-build-20261010-54247e" "dosdis-windows-byte-search-gate-20261011-1f8b6b"; do
+            gh api -X DELETE "repos/${repo}/git/refs/heads/${ref}"
+            echo "Deleted only: ${ref}"
+          done
