@@ -32,6 +32,7 @@ add_library(rloft_native_assets STATIC
   src/native_world_runtime.cpp
   src/native_scene_view.cpp
   src/native_probe_original_textures.cpp
+  src/native_code2_backdrop.cpp
   src/native_type7_scene_shape.cpp
   src/native_scene_instances.cpp
   src/native_sintab_raster.cpp
