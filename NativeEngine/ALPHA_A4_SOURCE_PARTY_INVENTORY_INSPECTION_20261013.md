@@ -46,6 +46,14 @@ This is now a pinned native Windows original-media acceptance field: `original_g
 
 `native_party_inventory_tests` uses a tiny self-contained **336-record test catalogue** and synthetic valid CODE.1 actor records to exercise empty `0xFFFF`, real object ID **0**, equipment slot/known-mask decoding, actor-level source identity, UI icons, category and name extraction, exact source-size rejection, invalid category/UI index/name, and out-of-range IDs. Packaging now requires this new test; full suite expected **42** CTests.
 
+## Exact-source Windows acceptance
+
+**Windows original-file CI #109** ([run 38475876241](https://github.com/Hyperbog/RLOFT/actions/runs/38475876241)): **MSVC Windows x64 build succeeded, 42/42 native CTests passed, zero failures, and source-original startup/inventory/CHARS/object/media-integrity acceptance succeeded**. Logs explicitly contain `native_party_inventory_tests Passed`, `100% tests passed`, and `NATIVE_ORIGINAL_ASSET_ENGINE_WINDOWS_BUILD_PASS`. Media-free Windows package `RLOFT-Native-A1-Original-Startup-Windows-x64`, GitHub artifact **11854505539**, is [downloadable here](https://github.com/Hyperbog/RLOFT/actions/runs/38475876241/artifacts/11854505539). Source QA head `a7501520ce68119870a391e06f9c898609da6fa2`, based on `native-engine:7062ec682d8472e7ca813f8330d038d1b8c0db97`. PR **#21** merged passing test additions as `1425c4028582a7e62187d8b301478aa9856a02b1`.
+
+**Defect caught and fixed:** Initial PR #20 / CI #102 had all **42/42 CTests pass**, but the subsequent read-only original-file audit rejected two *fixture* item values: the low 8 bits were written after the word had been initialized to `0xFFFF`, leaving `0xFF06` and `0xFF0C` rather than valid original item IDs `0x0006` and `0x000C`. Corrected both high bytes, added generated two-actor original CODE.1 10-item comparison, reran on CI #109 and received a successful audited package. PR #20 was closed, superseded by #21.
+
+The build does **not** independently confirm physical Windows GUI inventory screenshots, mouse interactions, installed GPU driver behavior, item-use simulation, original VGA inventory parity or DOS game loop parity. Status remains **Pre-Alpha**.
+
 ## What is still required for genuine gameplay
 
 1. CODE.2 mutable inventory and original object-instance representation; equipment moves and category/class restrictions; original UI/item sprites and current visual material state.
