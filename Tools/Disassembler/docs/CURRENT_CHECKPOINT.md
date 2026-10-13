@@ -1,6 +1,61 @@
 # DOSDis — compact current checkpoint
 
-## RELEASE BLOCKER — actual CODE.1/CODE.2 open crash, Windows #65 mitigation
+## Current release blocker triage — WPF Run.Text crash corrected in #71, owner GUI acceptance pending
+
+- User uploaded **10 private incident reports representing five
+  DOSDis sessions**. Four October 13 sessions show the same
+  `System.InvalidOperationException` for original CODE.1
+  and CODE.2. The #65 incident traces establish that
+  `FileOpenMappingComplete`, `FileOpenPreviewComplete`
+  and `FileOpenPresentationComplete` all occurred
+  successfully; WPF then failed ~100 ms later from
+  **deferred UI processing**. The October 9 session's
+  `FileNotFoundException` after `AppClosed` was a separate
+  event and not the current root cause.
+- Strong code/framework-level diagnosis: WPF
+  `System.Windows.Documents.Run.TextProperty` defaults
+  to `TwoWay` binding, but the new
+  `AssemblyRow.BytesBefore/BytesMatched/BytesAfter`
+  byte-highlighting properties have **no setters**.
+  Implicit TwoWay binding to a read-only property raises
+  a deferred `InvalidOperationException` when the
+  Disassembly DataGrid renders actual rows. Exact exception
+  message/stack was redacted by incident privacy schema:
+  classification is **high-confidence**, not directly
+  stack-proven.
+- Fixed the three bindings with explicit `Mode=OneWay`.
+  Added a separate original-free **real Windows WPF
+  MainWindow/DataGrid smoke harness**: inspect actual
+  XAML template, bind 128 read-only synthetic rows and
+  pump >600ms of deferred layout. Automatic canonical CI
+  now REQUIRES this WPF test to pass before publishing,
+  alongside the earlier pure and SQLite synthetic suites.
+- **Windows [build #71](https://github.com/Hyperbog/RLOFT/actions/runs/38344982613) PASS**
+  at compiled source/test SHA
+  `4aae4380ec32383e7e5a21daa84b34f883a2f6b9`.
+  All four .NET projects built with **0 warnings/errors**;
+  both normal smoke suites PASS; **new actual WPF
+  deferred-layout smoke PASS**; desktop package manifest
+  integrity PASS; one Windows x64 WPF artifact only.
+  Artifact `11788283077`, ZIP 66,932,416 bytes,
+  SHA256
+  `a820d9164691d05158864a85a744d23e07de384a31f191a34242b33c3cb54b27`.
+  [Download #71](https://github.com/Hyperbog/RLOFT/actions/runs/38344982613/artifacts/11788283077).
+- The 10 user incident files and proprietary originals
+  **remain private**; they were NOT checked into public
+  GitHub or included in the hosted CI smoke test.
+- **PENDING:** owner must open original CODE.1 and
+  CODE.2 **with new #71 Windows desktop** and wait
+  for WPF rendering, then verify Analyze and CODE.1
+  Benchmark. If either still crashes, compare the
+  newest incident stage/error with previous #65
+  reports. Actual original-file accuracy score remains
+  unmeasured.
+- [Full incident chronology, suspected root cause and
+  Windows #71 regression gate](LE_OPEN_CRASH_WPF_BINDING_ROOT_CAUSE_20261013.md).
+
+
+## Historical #65 attempted source-open mitigation (superseded by #71)
 
 - Owner reports the #60 DOSDis app **crashed on opening
   original CODE.1 and CODE.2**. This overrides prior
