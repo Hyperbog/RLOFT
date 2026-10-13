@@ -3,8 +3,13 @@ RAVENLOFT: STRAHD'S POSSESSION -- ORIGINAL GAME DATA
 Copy your owned original DOS installation files into this Game folder.
 If your copy has a RLOFT subfolder, retain it intact.
 
-Required originals include RES0, INIT, T, CODE.1, CODE.2,
-CINE00.ANM, CINE12.ANM and the other original RES/ANM/DAT assets.
+For unpacked DOS installations, supply RES0, INIT, T, CODE.1,
+CODE.2, CINE00.ANM, CINE12.ANM and the other RES/ANM/DAT assets
+in Game or Game\RLOFT.
+
+For GOG installations, Game\game.gog or Game\RLOFT\game.gog is
+also accepted; its original ISO9660 image contains read-only assets.
+The temporary copy is where native CODE.1 writes CHARS.
 No original proprietary game files are bundled with the native Alpha.
 
 Then double-click Play-Ravenloft-Alpha.cmd in the parent directory.
