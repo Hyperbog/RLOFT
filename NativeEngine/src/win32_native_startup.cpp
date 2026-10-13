@@ -140,6 +140,25 @@ struct Preview {
         } else throw std::runtime_error("original startup preview phase outside bounded range");
         refresh();
     }
+    void choose_startup_menu(int chosen) {
+        if(phase!=kMenu||chosen<0||chosen>=4)
+            throw std::logic_error("original startup menu selection invalid");
+        boot.select_startup_menu(chosen);
+        if(chosen==rloft::BootFlow::kCharacterWorkflowMenuIndex) {
+            begin_character();
+        } else if(chosen==3) {
+            // CODE.2 menu entry 3 returns original supervisor status 0.
+            boot.supervisor_dispatch();
+            DestroyWindow(hwnd);
+        } else {
+            // Entries 0/1 have separate original CODE.2 menu handlers.
+            // Do not invent saves/loads before their source is integrated.
+            MessageBoxW(hwnd,
+                L"The original CODE.2 menu selection is recognized.\n"
+                L"This menu handler is not implemented in the native game yet.",
+                L"Original menu handler pending",MB_OK|MB_ICONINFORMATION);
+        }
+    }
     void render_character_screen() {
         if(!character)throw std::logic_error("CODE.1 source presenter is absent");
         if(name_entry) {
@@ -243,6 +262,24 @@ struct Preview {
         // launch Level22 at original 4.5/4.5, facing 270 degrees.
         // If graphics fail, keep the exact CHARS bytes for Enter retry.
         enter_first_level();
+    }
+    void handle_stats_key(bool increase) {
+        if(phase!=kCharacterChoice||name_entry||final_decision||
+           existing_actor_decision||
+           creation.state()!=rloft::CharacterCreationState::StatsReview||
+           !stats)return;
+        // CODE.1 043C scans keypad + and - while in the original
+        // statistics controller. In editor mode the same keys adjust.
+        if(stats_editor) {
+            if(selected_stat>=0)
+                stats->adjust(creation.draft(),selected_stat,increase);
+        } else if(increase) {
+            stats->generate(creation.draft());
+        } else {
+            stats_editor=true;
+            selected_stat=-1;
+        }
+        render_character_screen();
     }
     void handle_character_click(int row,int column) {
         if(phase!=kCharacterChoice||name_entry)return;
@@ -424,6 +461,29 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         break;
     case WM_KEYDOWN:
         if(wp==VK_ESCAPE){DestroyWindow(hwnd);return 0;}
+        if(session->phase==kMenu) {
+            if(wp==VK_UP||wp==VK_DOWN) {
+                const int old=session->selection;
+                const int delta=wp==VK_DOWN?1:-1;
+                session->selection=old<0?0:(old+delta+4)%4;
+                try {
+                    session->presenter.menu_frame(session->selection);
+                    session->refresh();
+                } catch(const std::exception& e){report_failure(hwnd,e.what());}
+                return 0;
+            }
+            if(wp==VK_RETURN && session->selection>=0) {
+                try{session->choose_startup_menu(session->selection);}
+                catch(const std::exception& e){report_failure(hwnd,e.what());}
+                return 0;
+            }
+        }
+        if(session->phase==kCharacterChoice &&
+           (wp==VK_ADD||wp==VK_SUBTRACT)) {
+            try{session->handle_stats_key(wp==VK_ADD);}
+            catch(const std::exception& e){report_failure(hwnd,e.what());}
+            return 0;
+        }
         if(wp==VK_RETURN && session->phase==kCharacterTransferred &&
            !session->world_launched) {
             try{session->enter_first_level();}
@@ -510,17 +570,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 const int selected=rloft::StartupPresenter::
                     menu_selection_from_y(row);
                 if(selected<0)return 0;
-                session->boot.select_startup_menu(selected);
-                if(selected==rloft::BootFlow::kCharacterWorkflowMenuIndex) {
-                    session->begin_character();
-                } else {
-                    MessageBoxW(hwnd,
-                        L"The original CODE.2 menu selection has been accepted\n"
-                        L"by the shared supervisor. Its game-facing handler is\n"
-                        L"not yet implemented in the native executable.",
-                        L"Original menu route — implementation pending",
-                        MB_OK|MB_ICONINFORMATION);
-                }
+                session->choose_startup_menu(selected);
             } catch(const std::exception& e){report_failure(hwnd,e.what());}
             return 0;
         }
@@ -553,7 +603,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 :(session->phase==kCharacterChoice?
                     L"Original CODE.1 character creation | Esc closes"
                     :(session->phase==kMenu?
-                        L"Original CODE.2 title menu | Select an item | Esc closes"
+                        L"Original CODE.2 menu | Click or Up/Down + Enter | Esc quits"
                         :(session->phase<0?
                     L"Original CINE00/CINE12 indexed ANM (sound pending) | Space skips | Esc closes"
                     :L"Original RES0 startup presentation | Space skips to menu | Esc closes")))),
