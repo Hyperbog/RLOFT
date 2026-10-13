@@ -12,6 +12,9 @@ on:
       - 'NativeEngine/src/win32_native_startup.cpp'
       - 'NativeEngine/src/win32_native_gpu_exploration.cpp'
       - 'NativeEngine/src/native_scene_instances.cpp'
+      - 'NativeEngine/src/native_scene_frame_ranges.cpp'
+      - 'NativeEngine/include/rloft_native/native_scene_frame_ranges.hpp'
+      - 'NativeEngine/tests/native_scene_frame_ranges_tests.cpp'
       - 'NativeEngine/include/rloft_native/native_scene_instances.hpp'
       - 'NativeEngine/tests/native_scene_instances_tests.cpp'
       - 'NativeEngine/src/native_scene_target.cpp'
@@ -107,6 +110,11 @@ jobs:
           }
           if (-not $report.original_first_level_npc9_inspection_target_verified) {
             throw "Original Level22 NPC9 native source targeting audit failed"
+          }
+          if ($report.original_first_level_distinct_eh7_bases_decoded -lt 1 -or
+              $report.original_first_level_distinct_eh7_bases_decoded -gt 4 -or
+              $report.original_first_level_live_eh7_frames_verified) {
+            throw "Original Level22 EH7 source bases not decoded or live-frame claim invalid"
           }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
