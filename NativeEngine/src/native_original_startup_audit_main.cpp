@@ -237,9 +237,11 @@ int main(int argc,char** argv) {
                 inventory_fixture[base+0x41U+2U*slot]=0xffU;
             }
         }
-        inventory_fixture[0x40U]=6U; // original QUIVER type
+        inventory_fixture[0x40U]=6U; // original QUIVER type, uint16
+        inventory_fixture[0x41U]=0U;
         inventory_fixture[0x12BU]=1U; // slot0 known
-        inventory_fixture[0x248U+0x40U]=12U; // original LEATHER ARMOR
+        inventory_fixture[0x248U+0x40U]=12U; // original LEATHER ARMOR, uint16
+        inventory_fixture[0x248U+0x41U]=0U;
         const auto inventory=rloft_native::inspect_native_party_inventory(
             rloft_native::decode_native_party_start(inventory_fixture),
             media.read("OBJECTS.DAT"));
