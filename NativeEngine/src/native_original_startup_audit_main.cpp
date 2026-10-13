@@ -3,6 +3,7 @@
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_creation_flow.hpp"
+#include "rloft/character_transfer.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -64,6 +65,14 @@ int main(int argc,char** argv) {
                     throw std::runtime_error("original startup DAC6 palette channel outside range");
             }
         }
+        const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
+            media.read("CODE.1"),media.read("OBJECTS.DAT"));
+        // Validate all real 90 family/race rows and original object ID
+        // bounds. The serializer's actor data remains a source-only fixture;
+        // the game runtime never fabricates a player party.
+        for(std::size_t family=0;family<15;++family)
+            for(std::size_t race=0;race<6;++race)
+                static_cast<void>(original_tables.starting_loadout(family,race));
         // Original CODE.1: validate the same source-backed presenter that
         // the Windows supervisor uses, including the full 70-frame opening.
         rloft::CharacterCreationPresenter character(visuals);
@@ -88,6 +97,7 @@ int main(int argc,char** argv) {
         if(character.framebuffer().pixels().size()!=320U*400U)
             throw std::runtime_error("original CODE.1 first choice screen size");
         std::cout<<"{\"schema\":\"native-source-startup-v1\","
+                 <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
                  <<"\"character_frame_hashes\":["
