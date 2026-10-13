@@ -45,6 +45,11 @@ if(Python3_Interpreter_FOUND)
         NAME alpha_input_phase_isolation_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
+    # Ordinary continuous cold startup release regression.
+    add_test(
+        NAME alpha_continuous_game_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_continuous_alpha_launch.py")
     # Original CODE.2 07B94 numbered-slot Load: ten-source-slot
     # geometry, save-directory copy chain and source-hash proof.
     # Public CI verifies source-only contract; --original privately
