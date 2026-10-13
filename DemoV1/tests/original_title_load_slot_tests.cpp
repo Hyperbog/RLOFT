@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <initializer_list>
 #include <limits>
 
 using rloft::OriginalTitleLoadHitKind;
