@@ -5,6 +5,7 @@
 #include "rloft_native/native_startup_visuals.hpp"
 #include "rloft_native/native_media.hpp"
 #include "rloft/startup_presenter.hpp"
+#include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
 #include <algorithm>
 #include <array>
@@ -25,6 +26,10 @@ struct Preview {
     NativeStartupVisualSource source;
     rloft::StartupPresenter presenter;
     rloft::BootFlow boot;
+    std::unique_ptr<rloft::AnmCinematic> cine00;
+    std::unique_ptr<rloft::AnmCinematic> cine12;
+    unsigned cinematic_wait_ms{14U};
+    unsigned cinematic_audio_events{};
     HWND hwnd{};
     bool ownership_transferred{};
     int phase{};
@@ -40,10 +45,21 @@ struct Preview {
         boot.finish_code2_startup(false,false);
         presenter.first_logo();
         palette=presenter.palette14();
-        refresh();
+        // The shipped CD source stores ANM files inside game.gog or the
+        // extracted CD RLOFT folder. A loose DOS-only installation may not.
+        if(media.contains("CINE00.ANM") && media.contains("CINE12.ANM")) {
+            cine00=std::make_unique<rloft::AnmCinematic>(
+                media.read("CINE00.ANM"),0,source);
+            cine12=std::make_unique<rloft::AnmCinematic>(
+                media.read("CINE12.ANM"),12,source);
+            phase=-2;
+            render_cinematic_frame();
+        } else refresh();
     }
     void refresh() {
-        const auto& pixels=presenter.framebuffer().pixels();
+        const auto& pixels=phase<0?
+            (phase==-2?cine00->framebuffer().pixels():cine12->framebuffer().pixels())
+            :presenter.framebuffer().pixels();
         if(pixels.size()!=std::size_t(kWidth)*kHeight)
             throw std::runtime_error("original CODE.2 menu framebuffer size invalid");
         for(std::size_t i=0;i<pixels.size();++i) {
@@ -58,6 +74,30 @@ struct Preview {
             bgra[out+3U]=255U;
         }
         if(hwnd)InvalidateRect(hwnd,nullptr,FALSE);
+    }
+    void render_cinematic_frame() {
+        auto& current=phase==-2?*cine00:*cine12;
+        if(current.finished()) {
+            if(phase==-2) {
+                phase=-1;
+                cine12->reset();
+                render_cinematic_frame();
+            } else {
+                select_phase(0);
+            }
+            return;
+        }
+        const auto frame=current.render_next();
+        cinematic_audio_events+=unsigned(frame.audio.size());
+        // Original DOS BIOS PIT 1193182/65536 = approximately 18.2065 Hz.
+        // ANM type-3/8 frame overrides are already computed by the shared
+        // source decoder. Music/VOC playback is a separate open A1 item.
+        cinematic_wait_ms=frame.wait_ticks>0?
+            unsigned((double(frame.wait_ticks)*1000.0)/
+                rloft::StartupPresenter::kPitHz+0.5):14U;
+        phase_started=GetTickCount64();
+        palette=current.palette();
+        refresh();
     }
     void select_phase(int next) {
         phase=next;
@@ -79,6 +119,10 @@ struct Preview {
     void advance() {
         if(phase>=kMenu)return;
         const auto elapsed=GetTickCount64()-phase_started;
+        if(phase<0) {
+            if(elapsed>=cinematic_wait_ms)render_cinematic_frame();
+            return;
+        }
         const unsigned wait=phase<4?kLogoWaitMs[std::size_t(phase)]:14U;
         if(elapsed>=wait)select_phase(phase+1);
     }
@@ -203,7 +247,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         DrawTextW(dc,
             session->phase==kMenu?
                 L"Original CODE.2 title menu | Select an item | Esc closes"
-                :L"Original RES0 startup presentation | Space skips to menu | Esc closes",
+                :(session->phase<0?
+                    L"Original CINE00/CINE12 indexed ANM (sound pending) | Space skips | Esc closes"
+                    :L"Original RES0 startup presentation | Space skips to menu | Esc closes"),
             -1,&help,DT_LEFT|DT_SINGLELINE|DT_END_ELLIPSIS);
         EndPaint(hwnd,&ps);return 0;
     }
