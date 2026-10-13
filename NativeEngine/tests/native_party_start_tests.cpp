@@ -1,5 +1,6 @@
 #include "rloft_native/native_party_start.hpp"
 #include "rloft/character_transfer.hpp"
+#include "rloft/boot_flow.hpp"
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
@@ -28,7 +29,23 @@ int main() {
         original_actors,original_shape);
     static_assert(std::tuple_size<rloft::CharacterTransferImage>::value==0x920U,
         "source CHARS image must occupy four 0x248 records");
+    // CODE.2 title -> R.EXE status10 -> CODE.1 -> CHARS -> CODE.2
+    // -> world is the ONLY first-party startup route. No fake skip party.
+    rloft::BootFlow supervisor;
+    supervisor.boot();
+    supervisor.finish_code2_startup(false,false);
+    supervisor.finish_cold_start_presentation();
+    supervisor.select_startup_menu(rloft::BootFlow::kCharacterWorkflowMenuIndex);
+    supervisor.supervisor_dispatch();
+    assert(supervisor.snapshot().stage==rloft::BootStage::CharacterCreation);
+    supervisor.finish_character_creation(
+        rloft::LegacyResult::ContinueModuleCycle);
+    supervisor.supervisor_dispatch();
+    assert(supervisor.snapshot().stage==rloft::BootStage::Code2Startup);
+    assert(supervisor.snapshot().chars_present);
     const auto start=rloft_native::decode_native_party_start(chars);
+    supervisor.finish_code2_startup(true,false);
+    assert(supervisor.snapshot().stage==rloft::BootStage::Exploration);
     assert(start.chars==chars);
     assert(start.level==22U && start.column==4.5 && start.row==4.5);
     assert(start.heading_degrees==270U);
