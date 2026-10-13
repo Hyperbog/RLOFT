@@ -3,7 +3,7 @@
 **Date:** 2026-10-13  
 **Branch:** `native-engine`  
 **Implementation checkpoint:** `ec48d572e342db4e339ca4ab18a5ee0f2cea3e56`  
-**Status:** Native source code committed; Windows CI requires independent exact-source acceptance. **Pre-Alpha, not DOS inventory UI parity or mutable gameplay.**
+**Status:** Source integrated and source-exact Windows MSVC/CI accepted. **Pre-Alpha, not DOS inventory UI parity or mutable gameplay.**
 
 ## What changed
 
@@ -26,7 +26,7 @@ The real original-media executable `rloft_native_startup_audit` now must prove a
 
 `native_party_item_icon_tests` builds a synthetic RES archive with exactly 428 offset entries and two genuine-header EH1 resources; it tests RGBA source palette channel order, transparent-key alpha, `0xFF` no-key behavior, a valid intentionally empty icon, complete 168-slot namespace traversal, exact lower/upper bounds and corrupt resource rejection.
 
-The Windows x64 build script now requires **43** CTests; [QA PR #22](https://github.com/Hyperbog/RLOFT/pull/22) is the exact-source acceptance request. Do not assert a green CI run without checking actual GitHub Actions job logs and original-media audit execution.
+The Windows x64 build script requires **43** CTests. [GitHub Windows CI #116](https://github.com/Hyperbog/RLOFT/actions/runs/38477973832), source QA head `ff38269fca8e7a09187911b422276e251a472c75`, **COMPLETED SUCCESS**: `native_party_item_icon_tests` passed, **43/43 native CTests passed**, real original-media startup and whole-RES1-object-UI-source audits passed, `NATIVE_ORIGINAL_ASSET_ENGINE_WINDOWS_BUILD_PASS` emitted, and the media-free [native Windows package](https://github.com/Hyperbog/RLOFT/actions/runs/38477973832/artifacts/11857165588) (artifact ID `11857165588`) was uploaded. PR #22 was merged into `native-engine` as `d25706de33eb87a5516dc34fe1f43e26a2e118bd`. There is no separately confirmed GPU screenshot / physical Windows F7 panel acceptance.
 
 ## Remaining playable Alpha gaps
 
