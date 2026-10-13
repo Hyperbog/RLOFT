@@ -97,6 +97,11 @@ add_executable(rloft_native_original_preview_audit
 target_link_libraries(rloft_native_original_preview_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_original_preview_audit)
 
+add_executable(rloft_native_anm_audit
+  src/native_original_anm_audit_main.cpp)
+target_link_libraries(rloft_native_anm_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_anm_audit)
+
 add_executable(rloft_native_startup_audit
   src/native_original_startup_audit_main.cpp)
 target_link_libraries(rloft_native_startup_audit PRIVATE rloft_native_assets)
