@@ -36,13 +36,18 @@ Independently validated from owner-supplied original binaries:
 - CI produced media-free Windows package `RLOFT-Native-A1-Original-Startup-Windows-x64` (GitHub artifact ID `11837940388`, run URL `https://github.com/Hyperbog/RLOFT/actions/runs/38442392623`). The artifact contains no original licensed media.
 - The PR's additional source-hash regression passed and was merged as `8d068583f6efc99be4ccdebf0293fba8f7738c46`.
 
-**Important version boundary:** The later original Assassin-315 shape audit, dark HUD panel and source-specific CI check landed after the run #78 source checkpoint. **PR #17** (head `d31bd80d493b1832ec5e9df99fca236e8348af85`, CI run `38443286600`) is the separate exact-source acceptance for those changes. Do not assert its success unless current run jobs/logs actually verify it.
+**Updated-source acceptance — Windows GitHub Actions PR #17 / run #83:**
+- Run ID `38443286600`, QA head `d31bd80d493b1832ec5e9df99fca236e8348af85` based on `native-engine` commit `8d068583f6efc99be4ccdebf0293fba8f7738c46`.
+- **Completed SUCCESS** on Windows 2022 x64 MSVC. Job logs explicitly show **40/40 native CTests PASS, zero failures** and the original-media startup/equipment/Level22 source check succeeded, including the new `original_first_level_assassin_res3_315_base_verified` gate. The original CINE00/CINE12 checks succeeded as well.
+- Authenticated media-free artifact `RLOFT-Native-A1-Original-Startup-Windows-x64`, ID `11837511757`, from `https://github.com/Hyperbog/RLOFT/actions/runs/38443286600/artifacts/11837511757`.
+- Regression asserting EH7 x_max is less than its original source width was merged from PR #17 as `c6c000e2cda8854be0d0b7188832723818e507a8`.
+- These source acceptance results cover the implemented baseline and Assassin audit through the exact PR head. Later documentation-only commits and merge SHAs are not independently new binary acceptance runs. Do **not** confuse accepted source with an exercised Windows GPU field playthrough.
 
 **Not verified by either CI:** actual interactive native Windows startup through every GUI page, installed Windows GPU driver, original DOS 3D view parity, source runtime sprite frame selection, real Level22 NPC9 encounter/AI, inventory, combat, sound, or native profile save/reload.
 
 ## Next
 
-1. Read Windows CI #83 and fix all genuine MSVC/source failures. Mark PR #17 accepted/merge only if that exact-source run passes.
+1. The original-data Windows CI #83 is confirmed green (40/40). Next obtain actual owner GPU screenshots and an interactive normal launch → character creation → Level22 field run; use those findings to fix runtime defects.
 2. Reconstruct live CODE.2 world-record `+0x14` selector and the view/animation subframe logic for `2B2F4`, NPC `2B77A..2BA4F`, and class-one `2BBA0..2BDF0` before live sprite draw. The existing `NativeCode2StagedNonNpc`, `NativeType7VgaDispatch` and safe SINTAB interpreter are source building blocks, not an excuse to assign guessed frames.
 3. Implement real 3D NPC/placed entity rendering, first Level 22 scene/Assassin event VM, actor interaction/inventory, and separate profile save/load. Keep original files read-only. **No Level22→23 priority until a continuous normal-launch playable Alpha passes.**
 
