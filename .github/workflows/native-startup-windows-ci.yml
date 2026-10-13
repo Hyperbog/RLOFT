@@ -96,6 +96,9 @@ jobs:
               -not $report.original_first_level_res3_bases_valid) {
             throw "Original 111 Level22 RES3 placement mappings not verified"
           }
+          if (($report.original_first_level_source_type_counts -join ',') -ne '1,52,42,16') {
+            throw "Level22 source actor/placed type distribution changed"
+          }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
           }
