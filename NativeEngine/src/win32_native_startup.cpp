@@ -126,12 +126,13 @@ struct Preview {
     void begin_character() {
         // Real source presentation begins only after the CODE.2 supervisor
         // dispatched the selected character workflow to CODE.1.
+        auto prepared=std::make_unique<rloft::CharacterCreationPresenter>(source);
+        prepared->opening_frame(0); // validate original art before dispatch
         boot.supervisor_dispatch();
-        character=std::make_unique<rloft::CharacterCreationPresenter>(source);
+        character=std::move(prepared);
         character_frame=0;
         phase=kCharacterOpening;
         palette=character->palette();
-        character->opening_frame(0);
         phase_started=GetTickCount64();
         refresh();
     }
@@ -255,8 +256,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                        rloft::CharacterCreationState::PortraitChoice &&
                        event>=1&&event<=6) {
                         MessageBoxW(hwnd,
-                            L"Original CODE.1 statistic generation, naming and\\n"
-                            L"CHARS transfer are not yet integrated.\\n"
+                            L"Original CODE.1 statistic generation, naming and\n"
+                            L"CHARS transfer are not yet integrated.\n"
                             L"No character was saved or fabricated.",
                             L"CODE.1 Alpha integration boundary",
                             MB_OK|MB_ICONINFORMATION);
