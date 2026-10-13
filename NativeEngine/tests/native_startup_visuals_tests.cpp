@@ -55,6 +55,17 @@ int main() {
             for(unsigned i=0;i<768;++i)
                 colors[1U+bank*768U+i]=std::uint8_t(bank);
         file(root/"RES0",record);
+        file(root/"RES1",record);
+        file(root/"RES7",record);
+        file(root/"RES8",record);
+        auto code1=std::vector<std::uint8_t>(0x43D1BU,0);
+        const auto base=0x3E724U;
+        code1[base+0x4B8U]=0x78U;
+        code1[base+0x4B9U]=0x56U;
+        code1[base+0x4BAU]=0x34U;
+        code1[base+0x4BBU]=0x12U;
+        code1[base+0x70U]='R';code1[base+0x71U]='L';
+        file(root/"CODE.1",code1);
         file(root/"COLORS",colors);
         file(root/"INIT",{0U,0U});
         file(root/"T",{1U,2U,3U});
@@ -65,6 +76,21 @@ int main() {
         assert(sprite.count==1&&sprite.width==8&&sprite.height==1);
         assert(sprite.pixels.front()==104U);
         assert(images.colors_palette(14).rgb.front()==14U);
+        assert(images.type1(7,104).pixels.front()==104U);
+        assert(images.type1(8,2).pixels.front()==2U);
+        assert(images.type1(1,3).pixels.front()==3U);
+        assert(images.code1_u8(0x4B8U)==0x78U);
+        assert(images.code1_u16(0x4B8U)==0x5678U);
+        assert(images.code1_s32(0x4B8U)==0x12345678);
+        assert(images.code1_cstring(0x70U)=="RL");
+        bool denied=false;
+        try {static_cast<void>(images.type1(2,0));}
+        catch(const std::out_of_range&){denied=true;}
+        assert(denied);
+        denied=false;
+        try {static_cast<void>(images.code1_s32(0x43D1BU));}
+        catch(const std::out_of_range&){denied=true;}
+        assert(denied);
         rloft::StartupPresenter presenter(images);
         presenter.first_logo();
         assert(presenter.framebuffer().pixels().at(143U*320U+40U)==94U);
