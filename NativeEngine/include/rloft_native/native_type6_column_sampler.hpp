@@ -25,6 +25,10 @@ struct NativeType6ProjectedColumn {
     // Host-only optional mouse-look offset. 0 retains exact original
     // 338C8 sampler placement; nonzero shifts/clips inside same region.
     int host_pitch_pixels{};
+    // Bounded optional host upper-wall tier. Default 128 rows and
+    // offset 0 retain byte-equivalent CODE.2 338C8 core behavior.
+    int host_vertical_offset{};
+    unsigned host_source_rows{128U};
 };
 
 struct NativeType6ColumnDraw {
