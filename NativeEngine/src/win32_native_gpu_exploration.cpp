@@ -53,11 +53,30 @@ std::filesystem::path native_quicksave_path() {
     return std::filesystem::path(root.data()) /
            L"RLOFT-Native" / L"Level22-Quicksave.rnp";
 }
+std::vector<std::uint8_t> read_native_quicksave_bytes() {
+    std::ifstream input(native_quicksave_path(),
+                        std::ios::binary|std::ios::ate);
+    if(!input)
+        throw std::runtime_error("native Level22 quicksave is not present");
+    const auto end=input.tellg();
+    if(end<=0 || end>65536)
+        throw std::runtime_error("native quicksave byte count invalid");
+    std::vector<std::uint8_t> encoded(static_cast<std::size_t>(end));
+    input.seekg(0);
+    input.read(reinterpret_cast<char*>(encoded.data()),
+               static_cast<std::streamsize>(encoded.size()));
+    if(!input)
+        throw std::runtime_error("native quicksave read was truncated");
+    return encoded;
+}
 
 struct State {
     NativeWorldRuntime world;
     // Null only for the explicitly separate technical viewport preview.
     std::optional<NativePartyStart> party;
+    // Only present for an explicit native-only cross-launch resume.
+    // Never used to bypass normal CODE.1 character creation.
+    std::optional<NativeSessionProfile> resume_checkpoint;
     std::optional<NativeAuthoredSceneDirectory> authored_scenes;
     std::optional<NativeAuthoredFrameRangeDirectory> authored_frames;
     std::optional<NativeRes3SceneBanks> scene_banks;
@@ -503,25 +522,9 @@ struct State {
         inspected_source="NATIVE LEVEL22 SESSION CHECKPOINT SAVED";
         inspected_shape="HOST CAMERA + CHARS + MAP DISCOVERY; NOT DOS SAVE.DAT";
     }
-    void restore_native_session() {
+    void apply_native_session(const NativeSessionProfile& saved) {
         if(!party)
             throw std::logic_error("native quickload requires original CODE.1 party");
-        const auto path=native_quicksave_path();
-        std::ifstream input(path,std::ios::binary|std::ios::ate);
-        if(!input)
-            throw std::runtime_error("native Level22 quicksave is not present");
-        const auto end=input.tellg();
-        if(end<=0 || end>65536)
-            throw std::runtime_error("native quicksave byte count invalid");
-        std::vector<std::uint8_t> encoded(static_cast<std::size_t>(end));
-        input.seekg(0);
-        input.read(reinterpret_cast<char*>(encoded.data()),
-                   static_cast<std::streamsize>(encoded.size()));
-        if(!input)
-            throw std::runtime_error("native quicksave read was truncated");
-        // Decode fully, authenticate original world+CHARS, and verify
-        // source collision BEFORE mutating any running camera/map state.
-        const auto saved=decode_native_session_profile(encoded,world);
         if(saved.chars!=party->chars)
             throw std::runtime_error(
                 "native quicksave belongs to another CODE.1 character party");
@@ -539,6 +542,13 @@ struct State {
         mark_seen();
         inspected_source="NATIVE LEVEL22 SESSION CHECKPOINT RESTORED";
         inspected_shape="HOST CAMERA + ORIGINAL CHARS + DISCOVERY; GAME EVENTS PENDING";
+    }
+    void restore_native_session() {
+        // Full file SHA/source/CHARS/collision checks finish before any
+        // live exploration state is updated.
+        const auto saved=decode_native_session_profile(
+            read_native_quicksave_bytes(),world);
+        apply_native_session(saved);
     }
     void automap_draw(int width,int height) {
         if(!automap)return;
@@ -885,6 +895,13 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             s->make_graphics();
             s->initialize_level(
                 s->party?s->party->level:0U);
+            if(s->resume_checkpoint) {
+                // Native-only Continue route: already source-authenticated
+                // before opening this window. Apply after Level22 geometry
+                // and palette are initialized, without rerunning CODE.1.
+                s->apply_native_session(*s->resume_checkpoint);
+                s->resume_checkpoint.reset();
+            }
             if(!SetTimer(hwnd,kTimer,16U,nullptr))
                 throw std::runtime_error("GPU frame timer unavailable");
             title(hwnd,*s);
@@ -1087,6 +1104,21 @@ HWND open_native_gpu_world_session(
     return open_native_gpu_window(owner,
         std::make_unique<State>(load_native_world_payload(media),
                                 media,std::move(party)));
+}
+HWND open_native_gpu_saved_world_session(HWND owner,const NativeMedia& media) {
+    // Explicit user native Continue (distinct from DOS CODE.2 menu). The
+    // checkpoint embeds actual CODE.1 transfer bytes but no fake character.
+    // Authenticate ALL game source/pose/terrain first; fail closed before
+    // Win32 creates a world window.
+    auto original=load_native_world_payload(media);
+    const NativeWorldRuntime evidence(original);
+    auto saved=decode_native_session_profile(
+        read_native_quicksave_bytes(),evidence);
+    auto party=decode_native_party_start(saved.chars);
+    auto window=std::make_unique<State>(
+        std::move(original),media,std::move(party));
+    window->resume_checkpoint=std::move(saved);
+    return open_native_gpu_window(owner,std::move(window));
 }
 } // namespace rloft_native
 #endif
