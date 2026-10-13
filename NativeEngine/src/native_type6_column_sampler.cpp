@@ -19,6 +19,8 @@ struct Prepared {
     unsigned page{};
     unsigned top{};
     unsigned height{};
+    unsigned source_rows_skip{};
+    unsigned visible_height{};
     std::uint8_t shade{};
     std::uint32_t step{};
 };
@@ -32,12 +34,16 @@ Prepared prepare(const NativeType6ProjectedColumn& r) {
     require(r.original_source_column<t.width && r.viewport_x<320U &&
             r.projected_height>=1U && r.projected_height<=256U &&
             r.active_400_line_page<=1U &&
-            r.working_region_top_row<=144U,
+            r.working_region_top_row<=144U &&
+            r.host_pitch_pixels>=-96 && r.host_pitch_pixels<=96,
             "original type-6 column/height/VGA page out of bounds");
-    const auto y=r.working_region_top_row+
-                 (256U-r.projected_height)/2U;
-    require(y+r.projected_height<=400U,
-            "type-6 projected strip extends beyond planar screen page");
+    const int original_y=int(r.working_region_top_row)+
+                int((256U-r.projected_height)/2U)+r.host_pitch_pixels;
+    const int first=std::max(original_y,int(r.working_region_top_row));
+    const int last=std::min(original_y+int(r.projected_height),
+                            int(r.working_region_top_row+256U));
+    require(first>=0 && last<=400 && first<last,
+            "type-6 pitched wall outside host presentation viewport");
     // CODE.2 338D3..338E5: unsigned source phase stride. For positive
     // height <=256 the final decoded source row cannot exceed 127.
     constexpr std::uint32_t source_domain=0x800000U;
@@ -45,7 +51,8 @@ Prepared prepare(const NativeType6ProjectedColumn& r) {
     require(step>0 && (std::uint64_t(r.projected_height-1U)*step>>16U)<128U,
             "original type-6 source step exceeds 128-texel column");
     return {&t,r.original_source_column,r.viewport_x,
-            r.active_400_line_page,y,r.projected_height,
+            r.active_400_line_page,unsigned(first),r.projected_height,
+            unsigned(first-original_y),unsigned(last-first),
             r.palette_index_subtraction,step};
 }
 }
@@ -71,10 +78,10 @@ NativeType6ColumnDraw draw_native_type6_columns(
         const auto mask=static_cast<std::uint8_t>(1U<<(p.x&3U));
         result.first_scanline=result.first_scanline<p.top?
                               result.first_scanline:p.top;
-        const auto bottom=std::size_t(p.top)+p.height-1U;
+        const auto bottom=std::size_t(p.top)+p.visible_height-1U;
         if(bottom>result.last_scanline)result.last_scanline=bottom;
-        std::uint64_t phase=0;
-        for(unsigned pixel=0;pixel<p.height;++pixel) {
+        std::uint64_t phase=std::uint64_t(p.source_rows_skip)*p.step;
+        for(unsigned pixel=0;pixel<p.visible_height;++pixel) {
             const auto sy=static_cast<unsigned>(phase>>16U);
             require(sy<128U,"type-6 fixed-point sample outside source column");
             const auto source=t.pixels[std::size_t(sy)*t.width+p.source_column];
