@@ -87,9 +87,16 @@ if ($copyStatus -ge 8) {
 # Original CODE.2 tests CHARS before intro. Force cold start only
 # in the temporary copy so the full established audiovisual front-end
 # always runs. Real installation, saved parties, and saves are untouched.
-$chars = @(Get-ChildItem -LiteralPath $scratch -Filter 'CHARS' -File -Recurse -ErrorAction Stop)
-foreach ($entry in $chars) {
-    Remove-Item -LiteralPath $entry.FullName -Force -ErrorAction Stop
+# GameSource::runtime_file("CHARS") probes only these two roots.
+# Do NOT remove same-named files from SAVE## snapshots or other folders.
+$charsCandidates = @(
+    (Join-Path $scratch 'CHARS'),
+    (Join-Path (Join-Path $scratch 'RLOFT') 'CHARS')
+)
+foreach ($candidate in $charsCandidates) {
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+        Remove-Item -LiteralPath $candidate -Force -ErrorAction Stop
+    }
 }
 Write-Host ('Native build source: ' + $sourceSha.Substring(0,12))
 Write-Host 'Launching original intro, logos, title, character creation, then Level 22.'
