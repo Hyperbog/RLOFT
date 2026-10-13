@@ -81,6 +81,7 @@ int main(){
     assert(result.actors[0].slots[20].object_id==-1);
     assert(result.actors[1].slots[19].source_name=="QUIVER");
     assert(result.actors[1].slots[19].identified);
+    assert(((result.actors[1].original_known_mask>>19U)&1U)==1U);
     assert(result.actors[1].slots[19].absolute_res1_ui_id==174U);
     assert(std::string(native_inventory_slot_label(14))=="Hand A");
     assert(std::string(native_inventory_slot_label(19))=="Quiver");
@@ -112,4 +113,13 @@ int main(){
     const auto no_quiver=inspect_native_party_inventory(foreign,objects);
     assert(!no_quiver.actors[1].slots[19].occupied);
     assert(no_quiver.occupied_total==3U);
+    // The original 336-definition corpus deliberately contains 16
+    // valid but unnamed object types. An in-range blank name must never
+    // be converted into a fake item name or treated as an empty slot.
+    auto unnamed=party;
+    ch16(unnamed.chars,0x40U+2U*2U,9U);
+    const auto unnamed_party=inspect_native_party_inventory(unnamed,objects);
+    assert(unnamed_party.actors[0].slots[2].occupied);
+    assert(unnamed_party.actors[0].slots[2].object_id==9);
+    assert(unnamed_party.actors[0].slots[2].source_name.empty());
 }
