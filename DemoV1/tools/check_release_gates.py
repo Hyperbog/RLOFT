@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only Alpha/Beta/Final release-gate manifest validator.
+"""Read-only enhanced native PC port Alpha/Beta/Final release validator.
 
-This checks schema, evidence *presence*, stage ordering and status honesty.
-It does NOT fetch GitHub Actions, play the game, or authenticate a DOS
-comparison. An evidence link must be independently inspected by humans.
+Checks schema, proof *presence*, stage order, honest statuses, and active
+enhanced-port policy. It does not run Windows builds or the game.
+Original DOS captures remain optional research, not mandatory release proof.
+Any external evidence link still needs human inspection.
 """
 from __future__ import annotations
 
@@ -49,8 +50,8 @@ def validate(data: dict) -> list[tuple[str, int, int]]:
             "Windows CI provenance cannot be called DOS parity")
     require(isinstance(data.get("release_policy"), str) and
             data["release_policy"] ==
-            "DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md",
-            "original-game charter must remain release authority")
+            "DemoV1/ENHANCED_PC_PORT_CHARTER.md",
+            "enhanced PC port charter must remain release authority")
     require(data.get("current_classification") in
             {"pre-alpha", "alpha", "beta", "final"},
             "unknown declared release classification")
@@ -78,6 +79,9 @@ def validate(data: dict) -> list[tuple[str, int, int]]:
                     len(required) == len(set(required)) and
                     required and set(required) <= TYPES,
                     f"{code}: unknown/duplicate proof requirements")
+            require("dos_comparison" not in required,
+                    f"{code}: DOS parity cannot be a mandatory enhanced-port release gate")
+
             status = g.get("status")
             require(status in {"open", "met"}, f"{code}: invalid status")
             evidence = g.get("evidence")
@@ -126,7 +130,7 @@ def self_test(original: dict) -> None:
 
     bad = copy.deepcopy(original)
     bad["stages"][0]["gates"][0]["status"] = "met"
-    failures.append(bad)  # cannot pass without field/DOS evidence
+    failures.append(bad)  # cannot pass without required Windows evidence
 
     bad = copy.deepcopy(original)
     bad["stages"][0]["gates"][0]["blocked_by"] = []
@@ -147,6 +151,14 @@ def self_test(original: dict) -> None:
     bad = copy.deepcopy(original)
     bad["stages"] = list(reversed(bad["stages"]))
     failures.append(bad)  # stage order
+
+    bad = copy.deepcopy(original)
+    bad["stages"][0]["gates"][0]["requires"] = ["dos_comparison"]
+    failures.append(bad)  # retired DOS parity requirement must stay optional
+
+    bad = copy.deepcopy(original)
+    bad["release_policy"] = "DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md"
+    failures.append(bad)  # cannot revert to old project goal
 
     bad = copy.deepcopy(original)
     bad["stages"][0]["gates"][0]["requires"] = []
