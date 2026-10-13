@@ -5,6 +5,7 @@
 #include "rloft_native/native_party_start.hpp"
 #include "rloft_native/native_scene_instances.hpp"
 #include "rloft_native/native_scene_target.hpp"
+#include "rloft_native/native_scene_frame_ranges.hpp"
 #include "rloft_native/native_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/character_creation_presenter.hpp"
@@ -14,6 +15,7 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <set>
 #include <utility>
 #include <vector>
 namespace {
@@ -101,8 +103,8 @@ int main(int argc,char** argv) {
         // The normal new-game GPU session now consumes the authentic
         // NPC/INIT/OBJECTS → RES3 scene definition and 11-byte placement
         // directory. Fail closed if the initial original scene changes.
-        const auto res3_count=rloft_native::NativeResArchive(
-            media.read("RES3")).entry_count();
+        const rloft_native::NativeResArchive source_res3(media.read("RES3"));
+        const auto res3_count=source_res3.entry_count();
         const auto banks=rloft_native::decode_native_res3_scene_banks(
             media.read("INIT"),res3_count);
         const auto definitions=rloft_native::decode_native_scene_definitions(
@@ -163,6 +165,40 @@ int main(int argc,char** argv) {
            std::array<std::size_t,4>{{1U,52U,42U,16U}})
             throw std::runtime_error(
                 "Level22 original source entity types/counts changed");
+        // For each *distinct* Level22 original RES3 base, decode the
+        // source-authenticated EH7 geometry. Source frame ranges are legal
+        // allocations only; current animation/view is still unproven.
+        const auto legal_frames=rloft_native::derive_native_authored_frame_ranges(
+            placements,definitions);
+        const auto& legal_first=legal_frames.levels.at(22U);
+        if(legal_first.size()!=initial.size())
+            throw std::runtime_error(
+                "original Level22 scene/frame ledger alignment changed");
+        std::set<std::size_t> decoded_base_ids;
+        for(std::size_t index=0;index<initial.size();++index) {
+            const auto& actor=initial.at(index);
+            const auto& range=legal_first.at(index);
+            if(range.source_class!=actor.source_class ||
+               range.compact_record_index!=actor.compact_record_index ||
+               range.original_type_id!=actor.original_type_id ||
+               range.first_absolute_res3_id!=actor.absolute_res3_base)
+                throw std::runtime_error(
+                    "original Level22 typed entity/frame provenance mismatch");
+            const auto id=rloft_native::select_native_authored_res3_frame(
+                range,banks,0U,0U);
+            if(!decoded_base_ids.insert(id).second)continue;
+            const auto shape=rloft_native::probe_native_authored_base_eh7(
+                range,banks,source_res3);
+            if(shape.absolute_res3_id!=id ||
+               shape.original_entry_sha256.size()!=64U ||
+               shape.original_body_sha256.size()!=64U ||
+               shape.live_view_subframe_verified)
+                throw std::runtime_error(
+                    "original Level22 RES3 EH7 base evidence invalid");
+        }
+        if(decoded_base_ids.empty()||decoded_base_ids.size()>4U)
+            throw std::runtime_error(
+                "original Level22 unique base-frame count outside source type bound");
         // This source-data check NEVER assigns sprite animation frames,
         // encounter AI, pickup eligibility or in-world interactivity.
         const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
@@ -207,6 +243,9 @@ int main(int argc,char** argv) {
                  <<"\"original_first_level_source_type_counts\":[1,52,42,16],"
                  <<"\"original_first_level_npc9_original_pose_verified\":true,"
                  <<"\"original_first_level_npc9_inspection_target_verified\":true,"
+                 <<"\"original_first_level_distinct_eh7_bases_decoded\":"
+                 <<decoded_base_ids.size()<<","
+                 <<"\"original_first_level_live_eh7_frames_verified\":false,"
                  <<"\"original_first_level_res3_bases_valid\":true,"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
