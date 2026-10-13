@@ -332,6 +332,58 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW P0 CODE.1 LEDGER BENCHMARK — WINDOWS #59 BUILD/SYNTHETIC PASS:
+- The 28 original-source outer-MZ instruction comparisons are too
+  narrow to measure code/data separation. A separate completed
+  CODE.1 decompilation branch has original LE object-1 evidence:
+  70402 total bytes = 69361 translated instructions + 1041
+  excluded-from-translation data/alignment/generic bytes;
+  282 complete, nonoverlapping exclusion spans.
+- Canonical reference derived from exact
+  code1-decompilation Code1/RESIDUAL_LEDGER.md Git blob
+  2ce282b0d9acd15620e8d852cf958461fe247ea6,
+  original whole-file SHA fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed,
+  original extracted object SHA
+  c0bf2c313aa8a24c9a0c0a3ce498f87a1d09299bb826413acaeb844412007203.
+  Only range offsets, no original executable bytes, committed.
+- Core CodeClassificationBenchmark checks original/object
+  SHA, LE object geometry, exact source instruction bytes,
+  overlapping/forged candidates and source-bound reference,
+  then measures candidate byte precision and translated byte
+  recall. Unknown/excluded abstentions not treated as proven
+  true-negative data. Reports bounded disagreement spans.
+- WPF Benchmark... action (only after LE Analyze) loads an
+  owner-local JSON reference, displays four byte-classification
+  counts and navigable disagreement offsets; selecting a finding
+  opens original physical Hex WITHOUT making up executable
+  code. The pinned manifest is copied into desktop publish.
+- Automatic Windows CI #59 / 38342771655 SUCCESS for
+  canonical compiled code/test SHA
+  2f3a02f59c6e8db9c5842d2f945f8bd994de4bcf:
+  Windows desktop/core + both C# smoke projects 0 errors,
+  0 warnings; independent synthetic SHA/reference integrity,
+  source bytes, false positive/negative, null precision,
+  malformed and overlapping test cases PASS. Project smoke
+  PASS. Desktop-only artifact 11787113883, ZIP 66931033
+  bytes, SHA256
+  6e1663fbae60ba0b051d8fd50c8e13272ecab3b7b1e041cf787e7b2f9d561c71.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38342771655/artifacts/11787113883
+- IMPORTANT: first ACTUAL original CODE.1 score NOT YET RUN;
+  precision/recall, independent instruction start/length oracle,
+  runtime trace and real WPF interaction still PENDING.
+  A ledger-excluded alignment NOP could decode validly and
+  still count as a translation-ledger false positive; do not
+  conflate this metric with ISA correctness or DOS execution.
+- Next owner-local interaction: original CODE.1 -> Analyze
+  -> Benchmark... -> packaged benchmarks/strahd-code1-
+  object1-classification.json. Retain only benchmark counts
+  and classification summaries for public progress, not
+  game bytes/paths/private reports.
+- Independent instruction-boundary catalog, annotation/retype
+  workbench, indirect trace import, reassembling x86 source
+  and compact xUnit/golden tests remain future work.
+- Detailed contract: docs/CODE1_CLASSIFICATION_BENCHMARK_P0_20261012.md.
+HISTORICAL PRIOR STATUS BELOW:
 NEW 2026-10-11 STANDING DOSDIS BUILD PERMISSION AND FIRST AUTO SUCCESS:
 - User explicitly removed the DOSDis manual build rule.
   .github/workflows/disassembler-core.yml now auto-runs on scoped
