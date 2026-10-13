@@ -56,27 +56,22 @@ public:
         // all scales instead of stretching a decoded sprite with a guessed
         // screen-height ratio. Source row 128 is the exclusive end.
         std::size_t upper=0U;
-        for (std::size_t y=0U;y<64U;++y)
-            upper+=scale_steps[y];
-        // Original 127 scale blocks have sum <=508; reject implausible
-        // malformed external tables to avoid arithmetic overflow.
-        if (upper>4096U) {
-            throw std::out_of_range("enhanced RES3 scale outside safe range");
+        std::size_t total=0U;
+        for (std::size_t y=0U;y<128U;++y) {
+            const auto step=static_cast<std::size_t>(scale_steps[y]);
+            if (step>4096U || total>4096U-step) {
+                throw std::out_of_range("enhanced RES3 scale outside safe range");
+            }
+            total+=step;
+            if (y<64U) upper+=step;
         }
         int dst_y=kHorizonY-static_cast<int>(upper);
         auto& dst=framebuffer.mutable_pixels();
         std::size_t writes=0U;
         for (std::size_t sy=0;sy<height;++sy) {
             const auto repeats=static_cast<std::size_t>(scale_steps[sy]);
-            if (repeats>4096U) {
-                throw std::out_of_range("enhanced RES3 row scale exceeds safe range");
-            }
-            // Preflight all rows before writes would be stricter for malformed
-            // tables. These are already source-validated by RendererTables;
-            // enforce a bounded cumulative sum below, too.
-            if (dst_y < -4096 || dst_y > 4096) {
-                throw std::out_of_range("enhanced RES3 scaled Y exceeds safe range");
-            }
+            // All row counts and the cumulative total were preflighted;
+            // no partially drawn sprite is possible from malformed scales.
             for (std::size_t ry=0;ry<repeats;++ry) {
                 const int yy=dst_y+static_cast<int>(ry);
                 if (yy<kViewportTop || yy>kViewportBottom) continue;
