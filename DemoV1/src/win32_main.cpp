@@ -2613,7 +2613,15 @@ int run(HINSTANCE instance) {
         source = std::move(*chosen);
     } else if (const auto explicit_path = options.source) {
         source = rloft::GameSource::open(*explicit_path);
-        save_preferred_install(source.location().install_root);
+        // The isolated Alpha launcher passes an ephemeral %TEMP%
+        // installation as an explicit argument. A trace session
+        // MUST NOT replace the user's persistent owned-game folder
+        // preference with that disposable test copy.
+        // Non-diagnostic explicit normal launches still remember the
+        // selected installation exactly as before.
+        if (!options.dev_trace) {
+            save_preferred_install(source.location().install_root);
+        }
     } else {
         bool resolved = false;
 

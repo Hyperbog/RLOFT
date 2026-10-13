@@ -38,7 +38,10 @@ The separate development-only CI artifact
 original game installation and makes a unique **local temporary copy**
 before running the ordinary `--dev-trace` path. The selected original
 CHARS/SAVE.DAT files are never deleted or rewritten; a cold start may
-delete CHARS **from the copy only**. The copied data remains under
+delete CHARS **from the copy only**. A `--dev-trace` explicit temporary
+installation also **does not change the saved Windows game-folder
+preference**; normal non-diagnostic installation selection retains
+its existing remembered-folder behavior. The copied data remains under
 `%TEMP%\\RLOFT-Alpha-Field` until the tester elects to remove it.
 Captured diagnostic ZIPs are local and may contain personal party names.
 The opt-in `--dev-trace` field run now also creates a **separate startup

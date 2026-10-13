@@ -21,6 +21,17 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
     assert 'arg == L"--dev-trace"' in host
     assert 'result.source = std::filesystem::path(argv[index]);' in host
     assert 'source = rloft::GameSource::open(*explicit_path);' in host
+    # A disposable explicit test copy must never replace the normal
+    # user's persistent Windows installation preference in HKCU.
+    conditional = re.search(
+        r'} else if \(const auto explicit_path = options\.source\) \{'
+        r'\s*source = rloft::GameSource::open\(\*explicit_path\);'
+        r'[\s\S]*?if \(!options\.dev_trace\) \{'
+        r'\s*save_preferred_install\(source\.location\(\)\.install_root\);'
+        r'\s*\}',
+        host)
+    if conditional is None:
+        raise ValueError("diagnostic temporary game copy overwrites saved install preference")
 
     required = (
         "$original = [System.IO.Path]::GetFullPath($folder.SelectedPath)",
@@ -100,6 +111,20 @@ def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         except (ValueError,AssertionError):
             continue
         raise ValueError(f"unsafe Alpha field launcher mutation {i} survived")
+    # Sixth mutation attacks only Win32 persistent registry behavior.
+    broken_host=host.replace(
+        'if (!options.dev_trace) {\n'
+        '            save_preferred_install(source.location().install_root);',
+        'if (true) {\n'
+        '            save_preferred_install(source.location().install_root);',1)
+    if broken_host==host:
+        raise ValueError("registry mutation did not match host")
+    try:
+        check(cmd,ps,workflow,broken_host,intro)
+    except (ValueError,AssertionError):
+        pass
+    else:
+        raise ValueError("diagnostic install preference corruption escaped")
 
 
 def main()->int:
@@ -117,7 +142,7 @@ def main()->int:
         mutate(cmd,ps,workflow,host,intro)
     except (ValueError,AssertionError,OSError) as exc:
         p.exit(1,"ALPHA_SANDBOX_FIELD_REJECTED: "+str(exc)+"\n")
-    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 5 unsafe variants rejected")
+    print("ALPHA_SANDBOX_FIELD_SOURCE_PASS: 6 unsafe variants rejected")
     return 0
 
 if __name__=="__main__":
