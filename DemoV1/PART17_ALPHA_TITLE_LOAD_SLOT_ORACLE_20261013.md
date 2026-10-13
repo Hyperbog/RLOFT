@@ -41,6 +41,46 @@ quicksave slot `SAVE00`, and normal snapshot coupling of
 `WORK/SAVE.DAT` with **all** `WORK/LEVnnn.DAT` level snapshots.
 Restoring `SAVE.DAT` alone would destroy continuity.
 
+## Original error, retry and persistent-template side effects
+
+Targeted disassembly of immutable CODE.2 `07B94..07D42` identified
+**seven instruction-aligned conditional/unconditional branches**, now
+checked as decoded relative branch targets by the optional binary oracle:
+
+| Source | Original destination | Meaning |
+| --- | --- | --- |
+| `07BD8` | `07BE2` | No right-button bit: test X/Y |
+| `07CA3` | `07D1F` | Change to WORK failed: exit with status 1 |
+| `07CBD` | `07CCD` | Return to parent succeeded: continue to copy |
+| `07CE9` | `07D0F` | Wildcard copy returned status 1: display message |
+| `07D08` | `07CF4` | Close next of ten global handles |
+| `07D1A` | `07BA4` | Error dialog returns to selection/release loop |
+| `07D3C` | `07D28` | Early-error path closes next handle |
+
+The sequence `07C8C` sets mutable DGROUP `0x6692` (slash inside
+`SAVE??\\SAVE.DAT`) to **NUL**, before `07C99` tries to chdir into
+WORK. If that chdir fails, `07CA3→07D1F` returns **without** executing
+`07CDC`, so the global template slash remains NUL on that exit.
+The ordinary copy path **does restore** the slash at `07CDC` *before*
+testing for a copy error. Do not normalize this original failure quirk
+out of a claimed exact native implementation.
+
+The source also calls `07378` (clear existing files) **inside WORK
+before checking whether copying the selected numbered save succeeds**.
+Thus original load is **not an atomic filesystem restore**. A correct
+native integration must retain original-visible failure semantics while
+ensuring the user's original installation is never used as a test
+workspace. At `07CBB`, failure to return to the parent directory
+displays the source error `2F580` yet control continues into the
+copy helper; do not silently treat that branch as an unconditional
+abort. Successful copying calls `07938`, which constructs
+`WORK\\SAVE.DAT` and enters the previously audited shared loader
+tail at `06CAD`, then closes ten handles before returning status.
+
+This analysis certifies bounded **source control flow**, not a safe
+native transaction implementation, source-conditioned graphics modal,
+or observed DOS behavior.
+
 ## Committed guard and observed tests
 
 `DemoV1/tools/verify_original_title_load_slot.py` now:
@@ -52,7 +92,7 @@ Restoring `SAVE.DAT` alone would destroy continuity.
    negative cases, including X=379 rejection.
 3. With optional `--original /path/to/CODE.2`, validates **whole-file
    SHA**, function-span SHA, **14** opcode windows, **8** decoded
-   relative call targets, and **7** DGROUP fixed strings. It rejects
+   relative call targets, **7** DGROUP fixed strings and **7** decoded control-flow branches. It rejects
    differing patched or unrelated executables before interpreting offsets.
 
 The private original-file oracle was executed locally on the provided
