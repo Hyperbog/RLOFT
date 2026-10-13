@@ -183,11 +183,11 @@ public static class CodeClassificationBenchmark
             throw new InvalidDataException("Benchmark byte partition does not reconcile.");
 
         // Keep actionable disagreements bounded; incomplete lists are marked.
-        int totalFindings = 0;
+        int falsePositiveFindings = 0, missedFindings = 0;
         var falsePositive = BuildFindings(i => excluded[i] && candidate[i],
-            "candidate-on-excluded", n, ref totalFindings);
+            "candidate-on-excluded", n, ref falsePositiveFindings);
         var missed = BuildFindings(i => !excluded[i] && !candidate[i],
-            "translated-not-discovered", n, ref totalFindings);
+            "translated-not-discovered", n, ref missedFindings);
         int predicted = coveredCode + coveredExcluded;
         return new CodeClassificationScore(artifact.Sha256, reference.ObjectNumber, n,
             reference.ReferenceStatus,
@@ -197,7 +197,7 @@ public static class CodeClassificationBenchmark
             coveredCode, coveredExcluded, missingCode, missingExcluded,
             predicted == 0 ? null : (double)coveredCode / predicted,
             reference.ExpectedTranslatedBytes == 0 ? null : (double)coveredCode / reference.ExpectedTranslatedBytes,
-            falsePositive, missed, totalFindings > MaxFindings);
+            falsePositive, missed, falsePositiveFindings > MaxFindings || missedFindings > MaxFindings);
     }
 
     private static IReadOnlyList<ClassificationFinding> BuildFindings(
