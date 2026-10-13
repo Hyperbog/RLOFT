@@ -98,8 +98,8 @@
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
                       <TextBlock FontFamily="Consolas">
-                        <Run Text="{Binding BytesBefore}"/><Run Text="{Binding BytesMatched}" Background="#D59D30"
-                          Foreground="#101923"/><Run Text="{Binding BytesAfter}"/>
+                        <Run Text="{Binding BytesBefore, Mode=OneWay}"/><Run Text="{Binding BytesMatched, Mode=OneWay}" Background="#D59D30"
+                          Foreground="#101923"/><Run Text="{Binding BytesAfter, Mode=OneWay}"/>
                       </TextBlock>
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
