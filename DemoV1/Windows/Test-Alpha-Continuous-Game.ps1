@@ -50,6 +50,12 @@ $original = [System.IO.Path]::GetFullPath($folder.SelectedPath)
 if (-not (Test-Path -LiteralPath $original -PathType Container)) {
     Fail-Alpha 'Selected original installation is not a directory.'
 }
+# A selected root can itself be a junction or symlink. Checking only
+# descendant reparse points would not detect that escape path.
+$rootEntry = Get-Item -LiteralPath $original -Force -ErrorAction Stop
+if (($rootEntry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+    Fail-Alpha 'Selected original installation root is a filesystem link; choose its real directory.'
+}
 
 $choice = [System.Windows.Forms.MessageBox]::Show(
     'YES: Cold startup, hide CHARS ONLY IN THE TEMPORARY COPY.' +
@@ -170,6 +176,12 @@ if ([string]::IsNullOrWhiteSpace($bootSession) -or $bootSession -eq $previousBoo
 } else {
     $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd($sep) + $sep
     $bootPath = [System.IO.Path]::GetFullPath($bootSession)
+    # Shared TEMP pointers can be replaced by another test process.
+    # Refuse to label an unrelated process's trace as this field run.
+    $expectedBootSuffix = '-boot-' + [string]$process.Id
+    if (-not [System.IO.Path]::GetFileName($bootPath).EndsWith($expectedBootSuffix, [StringComparison]::Ordinal)) {
+        Fail-Alpha 'Startup trace belongs to a different native process.'
+    }
     if (-not $bootPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         Fail-Alpha 'Startup trace pointer escapes the local diagnostics root.'
     }
@@ -177,6 +189,10 @@ if ([string]::IsNullOrWhiteSpace($bootSession) -or $bootSession -eq $previousBoo
     if (-not (Test-Path -LiteralPath $bootManifest -PathType Leaf)) {
         Write-Host 'Startup trace has no manifest; it is not field acceptance.'
     } else {
+        $bootIdentity = Get-Content -LiteralPath $bootManifest -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not ([string]$bootIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)) {
+            Fail-Alpha 'Startup trace revision does not match this packaged native build.'
+        }
         $bootZip = $bootPath + '.zip'
         Compress-Archive -LiteralPath $bootPath -DestinationPath $bootZip -Force -ErrorAction Stop
         Write-Host "Startup-stage diagnostic ZIP (not uploaded): $bootZip"
@@ -188,6 +204,10 @@ if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
 } else {
     $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd($sep) + $sep
     $sessionPath = [System.IO.Path]::GetFullPath($session)
+    $expectedSessionSuffix = '-' + [string]$process.Id
+    if (-not [System.IO.Path]::GetFileName($sessionPath).EndsWith($expectedSessionSuffix, [StringComparison]::Ordinal)) {
+        Fail-Alpha 'Exploration trace belongs to a different native process.'
+    }
     if (-not $sessionPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         Fail-Alpha 'Trace pointer escapes the local diagnostics root.'
     }
@@ -195,6 +215,10 @@ if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
     if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
         Write-Host 'Trace session has no manifest; it is not field acceptance.'
     } else {
+        $sessionIdentity = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not ([string]$sessionIdentity.source_revision).Equals($sha, [StringComparison]::OrdinalIgnoreCase)) {
+            Fail-Alpha 'Exploration trace revision does not match this packaged native build.'
+        }
         # Report only whitelisted symbolic stage IDs, never raw event
         # JSON or keystrokes. A ready presenter is NOT a rendered frame.
         $preloadStages = @(
