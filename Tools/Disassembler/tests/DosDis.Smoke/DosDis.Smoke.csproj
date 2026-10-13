@@ -6,5 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../src/DosDis.Core/DosDis.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/DosDis.Core/DosDis.Core.csproj" />
+    <None Include="../../benchmarks/strahd-code1-object1-classification.json"
+          Link="strahd-code1-object1-classification.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
