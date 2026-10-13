@@ -70,7 +70,7 @@ inline std::string sha256_hex(const std::vector<std::uint8_t>& bytes) {
             const auto sum0=rotate_right(a,2u)^rotate_right(a,13u)^rotate_right(a,22u);
             const auto t1=h+sum1+choose+round_constants[i]+w[i];
             const auto t2=sum0+majority;
-            h=g;g=f;f=e;e=d+t1;d=c;c=b;b=a=t1+t2;
+            h=g;g=f;f=e;e=d+t1;d=c;c=b;b=a;a=t1+t2;
         }
         const std::array<std::uint32_t,8> round={a,b,c,d,e,f,g,h};
         for(unsigned i=0;i<8u;++i)state[i]+=round[i];
