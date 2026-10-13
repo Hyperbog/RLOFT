@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private System.Windows.Point? _hexMouseDownPosition;
     private bool _suppressAutomaticHexRefresh;
     private AssemblyRow? _highlightedAssemblyRow;
+    private bool _bindingNewSource;
 
     private void Trace(DiagnosticStage stage, int? objectNumber = null,
         uint? objectOffset = null, int? instructionCount = null)
@@ -181,6 +182,7 @@ public partial class MainWindow : Window
                     catch (InvalidDataException) { /* Malformed MZ remains raw. */ }
                     catch (NotSupportedException) { /* Unsupported container remains raw. */ }
                 }
+                App.Diagnostics.Record(DiagnosticStage.FileOpenMappingComplete, artifact.Sha256);
                 var intelligence = FileIntelligence.Inspect(artifact, image, mz: mz);
                 IReadOnlyList<DecodedLine> preview = Array.Empty<DecodedLine>();
                 IReadOnlyList<Dos16Instruction> mzPreview = Array.Empty<Dos16Instruction>();
@@ -195,8 +197,11 @@ public partial class MainWindow : Window
                     catch (ArgumentException) { /* Keep backed image available for explicit navigation. */ }
                     catch (InvalidDataException) { /* Invalid initial instruction is not executable proof. */ }
                 }
+                App.Diagnostics.Record(DiagnosticStage.FileOpenPreviewComplete, artifact.Sha256);
                 return (artifact, image, mz, intelligence, preview, mzPreview);
             });
+            _bindingNewSource = true;
+            App.Diagnostics.Record(DiagnosticStage.FileOpenPresentationStarted, result.artifact.Sha256);
             _artifact = result.artifact;
             _openedBinaryPath = Path.GetFullPath(picker.FileName);
             _filePreferences.RememberBinary(_openedBinaryPath);
@@ -275,9 +280,14 @@ public partial class MainWindow : Window
                 : _mzImage is not null
                   ? "Standalone DOS MZ loaded. Initial CS:IP is module-relative. Run Analyze for bounded x86-16 candidate control flow; not verified executed code."
                   : "RAW HEX VIEW ONLY: original file bytes at physical offsets. No executable mapping or instructions inferred.";
+            App.Diagnostics.Record(DiagnosticStage.FileOpenPresentationComplete, _artifact.Sha256);
         }
         catch (Exception ex) { Error("Unable to open file", ex); }
-        finally { SetWorking(false); }
+        finally
+        {
+            _bindingNewSource = false;
+            SetWorking(false);
+        }
     }
 
     private async void Analyze_Click(object sender, RoutedEventArgs e)
@@ -551,6 +561,12 @@ public partial class MainWindow : Window
 
     private void SetRows(IReadOnlyList<AssemblyRow> items)
     {
+        // Disconnect stale selection state before rebinding the next file.
+        // WPF DataGrid selection events may fire synchronously when the
+        // ItemsSource is replaced. They must not interpret previous-file
+        // rows using the NEW file's object mapping.
+        AssemblyGrid.SelectedItem = null;
+        ReferencesGrid.SelectedItem = null;
         _rows = items;
         AssemblyGrid.ItemsSource = items;
         ReferencesGrid.ItemsSource = null;
@@ -568,7 +584,7 @@ public partial class MainWindow : Window
 
     private void FunctionsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (FunctionsList.SelectedItem is not FunctionRow row) return;
+        if (_bindingNewSource || FunctionsList.SelectedItem is not FunctionRow row) return;
         if (_mzImage is not null && row.MzAddress is { } mzAddress)
             NavigateMz(mzAddress);
         else if (_image is not null && row.LeAddress is { } leAddress)
@@ -576,6 +592,7 @@ public partial class MainWindow : Window
     }
     private void AssemblyGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_bindingNewSource) return;
         if (AssemblyGrid.SelectedItem is not AssemblyRow row || _artifact is null)
         {
             SaveNoteButton.IsEnabled = false;
@@ -627,6 +644,7 @@ public partial class MainWindow : Window
 
     private void SelectedReferencesOnly_Changed(object sender, RoutedEventArgs e)
     {
+        if (_bindingNewSource) return;
         RefreshReferences();
         if (AssemblyGrid.SelectedItem is AssemblyRow selected)
             SelectMatchingReference(selected);
@@ -708,7 +726,8 @@ public partial class MainWindow : Window
 
     private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!ReferenceEquals(e.Source, MainTabs) || MainTabs.SelectedIndex != 1) return;
+        if (_bindingNewSource || !ReferenceEquals(e.Source, MainTabs) ||
+            MainTabs.SelectedIndex != 1) return;
         // The TextBox may have been collapsed while its selection changed.
         Dispatcher.BeginInvoke(new Action(HighlightVisibleHexByte),
             System.Windows.Threading.DispatcherPriority.Loaded);
