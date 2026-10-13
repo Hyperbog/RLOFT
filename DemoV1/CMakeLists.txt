@@ -222,7 +222,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/CharacterCreation"
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../Shared/StartupPresentation"
                  "${CMAKE_CURRENT_BINARY_DIR}/shared-startup-presentation")
 add_library(rloft_boot_flow
-    src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
     src/character_creation_presenter.cpp
