@@ -2,6 +2,8 @@
 #include "rloft_native/native_probe_original_textures.hpp"
 #include "rloft_native/native_scene_view.hpp"
 #include "rloft_native/native_gpu_world_mesh.hpp"
+#include "rloft_native/native_type6_texture.hpp"
+#include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_sha256.hpp"
 #include "rloft_native/native_world_payload.hpp"
 #include <algorithm>
@@ -9,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <set>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -25,6 +28,8 @@ int main(int argc,char** argv) {
         auto payload=load_native_world_payload(media);
         NativeWorldRuntime world(std::move(payload));
         NativeProbeOriginalTextures materials(media);
+        const NativeResArchive original_gpu_textures(media.read("RES4"));
+        std::set<unsigned> gpu_decoded_ids;
         std::vector<std::uint8_t> frames;
         unsigned hit_rays=0,texels=0,nonempty_levels=0;
         unsigned floors=0,ceilings=0,upper_columns=0;
@@ -88,6 +93,26 @@ int main(int argc,char** argv) {
             gpu_floor+=gpu.floor_faces;
             gpu_ceiling+=gpu.ceiling_faces;
             gpu_unique_level_materials+=unsigned(gpu.textured_triangles.size());
+            // Exercise exactly what the WGL texture uploader expects.
+            // A source-batch ID which is not an EH6 32/64x128 single
+            // frame must fail the original-data gate, not wait for the
+            // user to see a generic GPU dialog.
+            for(const auto& batch:gpu.textured_triangles) {
+                const auto id=batch.first;
+                if(!gpu_decoded_ids.insert(id).second)continue;
+                try {
+                    const auto raster=decode_native_type6_texture(
+                        original_gpu_textures.entry(id));
+                    if(raster.frames!=1 || raster.height!=128 ||
+                       (raster.width!=32 && raster.width!=64) ||
+                       raster.pixels.size()!=
+                           std::size_t(raster.width)*raster.height)
+                        throw std::runtime_error("invalid WGL EH6 raster dimensions");
+                } catch(const std::exception& error) {
+                    throw std::runtime_error("GPU source RES4 ID "+
+                        std::to_string(id)+": "+error.what());
+                }
+            }
             NativeProbeCamera camera{};
             camera.level=level;
             camera.column_position=double(selected_x)+0.5;
@@ -155,6 +180,7 @@ int main(int argc,char** argv) {
                  <<"\"source_authored_gpu_floor_faces\":"<<gpu_floor<<","
                  <<"\"source_authored_gpu_ceiling_faces\":"<<gpu_ceiling<<","
                  <<"\"source_gpu_level_material_batches\":"<<gpu_unique_level_materials<<","
+                 <<"\"source_gpu_res4_textures_verified\":"<<gpu_decoded_ids.size()<<","
                  <<"\"source_floor_preview_texels\":"<<floors<<","
                  <<"\"source_ceiling_preview_texels\":"<<ceilings<<","
                  <<"\"frames_rgb6_bgra_sha256\":\""<<native_sha256_hex(frames)<<"\","
