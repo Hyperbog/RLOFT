@@ -38,7 +38,7 @@ bytes or original media paths. The isolated PowerShell runner prints
 only the last whitelisted stage, never raw diagnostic JSONL contents.
 
 The source-only boot-trace contract now rejects **10** deliberate
-negative cases; the sandbox field safety contract rejects **12**.
+negative cases; the sandbox field safety contract rejects **17**.
 Those tests and the CMake declarations are not substitutes for verified
 exact-checkout Windows execution. A reported `present.submitted`
 means only that the native host returned from its presentation call;
@@ -77,13 +77,37 @@ misleading evidence without changing the engine's original-game paths.
   original installation remains read-only to the runner, and the chosen
   route is not silently relabeled after launch.
 - The standalone source-only `alpha_sandbox_normal_launch_contract_tests`
-  now rejects **12** negative variants including checksum tampering and
+  now rejects **17** negative variants including checksum tampering and
   absent/malformed existing-party CHARS preflight.
 
 These checks do **not** prove a valid party can load, nor that the native
 first frame matches DOS. The newly staged checksum file is required by
 the new Alpha launcher; older manually assembled launch packages without
 this file are intentionally rejected.
+
+## Session provenance and owner-folder safety
+
+Because `latest-boot-session.txt` and `latest-session.txt` are shared
+TEMP pointers, a separate native process can replace them during a
+field run. The launcher now accepts a session only when its directory
+name ends in the **actual launched process ID** (`-boot-<PID>` for
+startup; `-<PID>` for exploration) and the read-only diagnostic
+`manifest.json` names the packaged `build-source-sha.txt` revision.
+Checks occur before any ZIP or console stage summary. An unrelated
+run cannot be packaged as a successful result merely by updating the
+shared latest pointer; instead the runner fails with a clear error.
+
+The selected owner source directory is now also rejected if its
+**root itself** is a Windows reparse point (junction/symlink); the
+earlier recursive check already rejected such descendants. This
+protects the original-versus-TEMP overlap check from an alias at the
+selected root. The launcher still does not modify the owner source.
+
+The source-only sandbox contract now rejects **17** distinct unsafe
+mutations, including five new root/session provenance violations.
+**No new field observation is claimed.** Normal `--dev-trace`
+instrumentation stays opt-in; none of these guards alter the DOS
+world, original party bytes, or gameplay input.
 
 ## Validation still required
 
