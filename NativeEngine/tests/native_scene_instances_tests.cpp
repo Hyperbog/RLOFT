@@ -143,8 +143,8 @@ void run() {
     rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
         current,ledger,32,discovered,3));});
     auto unauthenticated=ledger;
-    unauthenticated.original_compact_families_sha256[0]='0'==
-        unauthenticated.original_compact_families_sha256[0]?'1':'0';
+    auto& first_digest_char=unauthenticated.original_compact_families_sha256[0];
+    first_digest_char=(first_digest_char=='0'?'1':'0');
     rejects([&]{static_cast<void>(native_explored_scene_instance_candidates(
         current,unauthenticated,22,discovered,3));});
     current.clear_transient_visibility(22);
