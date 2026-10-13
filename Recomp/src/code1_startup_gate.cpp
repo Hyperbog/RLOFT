@@ -174,7 +174,20 @@ void cd97_write16(u16 selector,u32 offset,u16 value) noexcept {
 // Original FCE8 source constructors can opt into actual source allocator
 // dispatch. No native malloc allocation is substituted for Watcom 104E0.
 u32 source_cd97_extend_break(u32 target) noexcept;
-u32 cd97_guest_allocate(u32 requested) noexcept {
+// Original runtime allocator contract: DAC9 -> DAD9 -> 104E0,
+// 10AA9/10DD7, 10C46; the harness only supplies memory/address services.
+// No test-side reimplementation of the original retry or OOM decisions.
+u32 cd97_call_104e0(u32 request,u16 ds,u32 arena) noexcept {
+    if(ds!=current->machine.cpu.ds || arena!=0x30B8u) {
+        current->bad_cd97_access=true;
+        return 0u;
+    }
+    code1::HeapCoreBoundaries h{};
+    h.read32=&heap_read32;
+    h.write32=&heap_write32;
+    return code1::function_104e0(h,request,arena);
+}
+u32 cd97_call_10aa9(u32 request) noexcept {
     auto& s=*current;
     code1::HeapCoreBoundaries h{};
     h.read32=&heap_read32;
@@ -182,14 +195,20 @@ u32 cd97_guest_allocate(u32 requested) noexcept {
     code1::HeapGrowthBoundaries g{};
     g.extend_10dd7=&source_cd97_extend_break;
     g.free_db5b=&heap_source_db5b;
-    u32 p=code1::function_104e0(h,requested,0x30B8u);
-    if(!p) {
-        if(code1::function_10aa9(s.machine,h,g,requested)!=1u) {
-            s.bad_cd97_access=true;
-            return 0u;
-        }
-        p=code1::function_104e0(h,requested,0x30B8u);
-    }
+    return code1::function_10aa9(s.machine,h,g,request);
+}
+u32 cd97_call_10c46(u32) noexcept {
+    return code1::function_10c46();
+}
+u32 cd97_guest_allocate(u32 requested) noexcept {
+    auto& s=*current;
+    code1::AllocBoundary a{};
+    a.ds=s.machine.cpu.ds;
+    a.call_104e0=&cd97_call_104e0;
+    a.call_10aa9=&cd97_call_10aa9;
+    a.call_10c46=&cd97_call_10c46;
+    a.write_linear8=&heap_source_clear8;
+    const u32 p=code1::function_dac9(a,requested);
     if(!p || p>=s.dgroup.size() || s.bad_heap_access)
         s.bad_cd97_access=true;
     else ++s.source_constructor_allocs;
