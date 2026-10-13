@@ -48,10 +48,11 @@ def contract(host:str,ps:str,cmake:str,readme:str)->None:
            "exploration trace still starts after first-level initialization")
     expect('if(dev_trace) {' in exploration[:start] and
            'host.set_session_trace(trace.get());' in exploration[:load] and
-           'trace->event("exploration.load.begin");' in exploration[:load],
+           'exploration_stage("exploration.load.begin");' in exploration[:load],
            "initial load failure cannot leave a source-pinned trace")
     for stage in ('exploration.load.failed','exploration.load.ready',
-                  'exploration.world.failed','exploration.world.ready'):
+                  'exploration.world.failed','exploration.world.ready',
+                  'exploration.presenters.ready'):
         expect('exploration_stage("'+stage+'")' in exploration,
                "missing source-safe exploration checkpoint "+stage)
     expect('~ExplorationTraceEarlyDetach() {host.set_session_trace(nullptr);}' in exploration,
@@ -113,7 +114,7 @@ def main()->int:
             host.replace('startup_handoff();','/* no trace transfer */',1),
             host.replace('std::ofstream latest(root/"latest-boot-session.txt"',
                          'std::ofstream latest(root/"latest-session.txt"',1),
-            host.replace('trace->event("exploration.load.begin");',
+            host.replace('exploration_stage("exploration.load.begin");',
                          '/*no early load checkpoint*/',1),
             host.replace('exploration_stage("exploration.load.failed");',
                          '/*no load exception boundary*/',1),
