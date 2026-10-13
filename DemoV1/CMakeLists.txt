@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Exact CODE.1 10BB4 x86-to-C++ DS-break comparison guard.
+    # Uses only source during CI; optional privately authenticated original media.
+    add_test(
+        NAME original_code1_break_growth_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_code1_10aa9_break_growth.py")
     # Read-only process safety tests; no build dispatch, original-media copy,
     # DOS parity claim, or mutation of gameplay state.
     add_test(
