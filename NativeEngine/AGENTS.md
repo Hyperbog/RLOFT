@@ -1,5 +1,9 @@
 # NativeEngine — Active developer/agent instructions
 
+## CURRENT A1 — CODE.1 character opening and original actor/choice graphics (source checkpoint)
+
+[Implemented integration and unaccepted Windows validation](ALPHA_A1_SHARED_CODE1_CHARACTER_PRESENTER_20261013.md). Neutral `Shared/StartupPresentation` now owns original CODE.1 presenter/palette/stats source once, consumed by DemoV1 and independent NativeEngine. Native CODE.2 title option routes into actual CODE.1 70-frame opening and source first actor/sex/race/class/portrait screens, using only original indexed RES1/7/8/T/CODE.1 resources through `NativeMedia`. Original stats/RNG, name input, 0x920 CHARS transfer and party/Level22 entry **remain unfinished**. New Windows source build/38-suite/original-media acceptance is **not verified yet**; never claim Alpha or DOS parity. The next task is CI/real-original acceptance of the current SHA, then original stats and CHARS. Avoid duplicate presenter implementations or a second native branch.
+
 ## CURRENT A1 character presenter resource handoff — source only
 
 [Read-only CODE.1 visual source contract and open validation](ALPHA_A1_CODE1_CHARACTER_MEDIA_SEAM_20261013.md). The neutral `CharacterVisualSource` now underlies DemoV1's original character presenter/stats as well as `NativeStartupVisualSource`. Native media decodes source RES0/1/7/8 EH1 and bounded CODE.1 DGROUP on demand; the native source index is lifetime safe. New fixture regressions are authored but **not yet current-HEAD CI confirmed**. The interactive CODE.1 presenter still lives in DemoV1; move that original implementation and its source stats/remaps to Shared next, then integrate presentation/input and source CHARS, not a duplicate renderer. NO playable Alpha claim.
