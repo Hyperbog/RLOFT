@@ -24,6 +24,7 @@ struct NativeProbeTexturedFrame {
     bool original_code2_sampler_used{false};
     bool source_quadrant_state_used{false};
     bool original_code2_backdrop_used{false};
+    bool original_environment_surface_source_verified{false};
     bool original_runtime_camera_verified{false};
     bool original_dos_frame_verified{false};
 };
