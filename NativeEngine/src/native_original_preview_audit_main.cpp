@@ -1,6 +1,7 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_probe_original_textures.hpp"
 #include "rloft_native/native_scene_view.hpp"
+#include "rloft_native/native_gpu_world_mesh.hpp"
 #include "rloft_native/native_sha256.hpp"
 #include "rloft_native/native_world_payload.hpp"
 #include <algorithm>
@@ -27,6 +28,8 @@ int main(int argc,char** argv) {
         std::vector<std::uint8_t> frames;
         unsigned hit_rays=0,texels=0,nonempty_levels=0;
         unsigned floors=0,ceilings=0,upper_columns=0;
+        unsigned gpu_lower=0,gpu_upper=0,gpu_floor=0,gpu_ceiling=0;
+        unsigned gpu_unique_level_materials=0;
         // Exact source-placed material regression from the field
         // screenshot: original LEVELS.DAT level 1 (14,10), code 0x2c
         // with +0x0200 upper tier, four authored wall resource IDs.
@@ -60,6 +63,19 @@ int main(int argc,char** argv) {
             }
             if(!found)throw std::runtime_error("original level has no passable camera cell");
             world.select_level(level);
+            // The accelerated viewport is checked against the actual
+            // owner-source LEVELS.DAT, not only a synthetic map fixture.
+            const auto gpu=build_native_gpu_scene(world,level);
+            if(!gpu.original_material_bank_layout ||
+               gpu.original_dos_frame_verified ||
+               gpu.lower_wall_faces==0U || gpu.floor_faces==0U ||
+               gpu.textured_triangles.empty())
+                throw std::runtime_error("real original 3D mesh missing source geometry");
+            gpu_lower+=gpu.lower_wall_faces;
+            gpu_upper+=gpu.upper_wall_faces;
+            gpu_floor+=gpu.floor_faces;
+            gpu_ceiling+=gpu.ceiling_faces;
+            gpu_unique_level_materials+=unsigned(gpu.textured_triangles.size());
             NativeProbeCamera camera{};
             camera.level=level;
             camera.column_position=double(selected_x)+0.5;
@@ -112,7 +128,8 @@ int main(int argc,char** argv) {
         }
         if(nonempty_levels!=32 || hit_rays==0 || texels==0 ||
            materials.cache_size()==0 || floors==0 || ceilings==0 ||
-           upper_columns==0)
+           upper_columns==0 || gpu_lower==0 || gpu_upper==0 ||
+           gpu_floor==0 || gpu_unique_level_materials==0)
             throw std::runtime_error("original source preview emitted no authentic walls");
         std::cout<<"{\"schema\":\"native-real-original-interactive-preview-v1\","
                  <<"\"levels_loaded\":32,"
@@ -121,6 +138,11 @@ int main(int argc,char** argv) {
                  <<"\"original_res4_texel_samples\":"<<texels<<","
                  <<"\"unique_eh6_textures_decoded\":"<<materials.cache_size()<<","
                  <<"\"source_upper_wall_columns\":"<<upper_columns<<","
+                 <<"\"source_authored_gpu_lower_faces\":"<<gpu_lower<<","
+                 <<"\"source_authored_gpu_upper_faces\":"<<gpu_upper<<","
+                 <<"\"source_authored_gpu_floor_faces\":"<<gpu_floor<<","
+                 <<"\"source_authored_gpu_ceiling_faces\":"<<gpu_ceiling<<","
+                 <<"\"source_gpu_level_material_batches\":"<<gpu_unique_level_materials<<","
                  <<"\"source_floor_preview_texels\":"<<floors<<","
                  <<"\"source_ceiling_preview_texels\":"<<ceilings<<","
                  <<"\"frames_rgb6_bgra_sha256\":\""<<native_sha256_hex(frames)<<"\","
