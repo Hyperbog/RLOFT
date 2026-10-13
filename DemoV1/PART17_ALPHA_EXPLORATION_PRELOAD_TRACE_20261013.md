@@ -18,11 +18,37 @@ This is a missing *diagnostic* boundary. It is not evidence that any of those co
 - A trace-event write failure clears optional session instrumentation instead of blocking original program flow. Without `--dev-trace`, no trace file is created and all original world loading, initialization order, presentation, and mutable character/game state paths remain in place.
 - The existing `alpha_boot_stage_trace_contract_tests` now asserts pre-load trace placement, all six stage IDs, opt-in instrumentation, source order, pointer cleanup, and three additional deliberate negative mutations (seven total). This is **source-only** coverage.
 
+## First actual frame construction and submission
+
+The normal exploration loop now records **one-time** optional diagnostic
+checkpoints on the first real build/render/presentation path, not on a
+synthetic Level22 warp or on every ~70 Hz redraw:
+
+- `exploration.frame.build.begin` → `build.ready` or `build.failed`
+  around the existing `runtime.build_frame()`.
+- `exploration.frame.raster.ready` or `raster.failed`
+  around the original-asset native `presenter.present(...)`.
+- `exploration.frame.present.submitted` **after**
+  `host.present(...)` returns for a normally constructed gameplay view.
+
+The existing exception handlers, source frame capture, indexed draw
+audit and normal gameplay rendering are left in place. These stage
+IDs do not contain actor names, Win32 raw scan records, runtime save
+bytes or original media paths. The isolated PowerShell runner prints
+only the last whitelisted stage, never raw diagnostic JSONL contents.
+
+The source-only boot-trace contract now rejects **10** deliberate
+negative cases; the sandbox field safety contract rejects **8**.
+Those tests and the CMake declarations are not substitutes for verified
+exact-checkout Windows execution. A reported `present.submitted`
+means only that the native host returned from its presentation call;
+it does not certify a visibly correct frame or original-DOS raster.
+
 ## What a first-field report now means
 
 If the generated exploration ZIP ends with `exploration.load.failed`, investigate the original-media Level 22 loading boundary. If it reaches `exploration.load.ready` but then `exploration.world.failed`, investigate original mutable-world initialization. If it reaches `exploration.world.ready` but not `exploration.presenters.ready`, investigate the presenters/resource constructors. Reaching `exploration.presenters.ready` still **does not prove the first gameplay frame rendered**: require an exploration frame capture and owner observation. `session.finish` is not a gameplay pass.
 
-The isolated PowerShell field runner now displays only the last recognized **whitelisted** exploration initialization stage from the new diagnostic ZIP, not unfiltered event records; this leaves typed names and scan events out of console summaries. A source-only seventh sandbox negative mutation rejects removing that stage whitelist.
+The isolated PowerShell field runner now displays only the last recognized **whitelisted** exploration initialization stage from the new diagnostic ZIP, not unfiltered event records; this leaves typed names and scan events out of console summaries. A source-only sandbox negative mutation rejects removing that stage whitelist.
 
 Original installation/game-source or window creation failures can still occur before either trace starts. For all runs use the protected-copy `Test-Alpha-Continuous-Game.cmd`; do not run the native prototype against the owner's original CHARS/SAVE.DAT.
 
