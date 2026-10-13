@@ -13,6 +13,7 @@
 #include "rloft_native/native_code2_backdrop.hpp"
 #include "rloft_native/native_raster_colors.hpp"
 #include "rloft_native/native_assets.hpp"
+#include "rloft_native/native_scene_instances.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -39,6 +40,8 @@ struct State {
     NativeWorldRuntime world;
     // Null only for the explicitly separate technical viewport preview.
     std::optional<NativePartyStart> party;
+    std::optional<NativeAuthoredSceneDirectory> authored_scenes;
+    bool show_authored_markers{true};
     NativeGpuScene mesh;
     NativeProbeCamera camera;
     NativeResArchive res4;
@@ -82,6 +85,23 @@ struct State {
          backdrop(media.read("CODE.2")),
          original_colors(media.read("COLORS")) {
         camera.field_of_view_radians=75.0*kPi/180.0;
+        if(party) {
+            // Consume existing independently verified original RES3 / NPCS /
+            // INIT / OBJECTS compact-placement ledger. No provisional shape
+            // frame, fake actor or world item is instantiated by this step.
+            const auto res3_count=
+                NativeResArchive(media.read("RES3")).entry_count();
+            const auto banks=decode_native_res3_scene_banks(
+                media.read("INIT"),res3_count);
+            const auto definitions=decode_native_scene_definitions(
+                banks,media.read("NPCS.DAT"),media.read("OBJECTS.DAT"));
+            authored_scenes=derive_native_authored_scene_instances(
+                world.original(),definitions);
+            const auto& first=authored_scenes->levels.at(party->level);
+            if(party->level==22U && first.size()!=111U)
+                throw std::runtime_error(
+                    "Level22 original 1+110+0 scene placement inventory changed");
+        }
     }
     void initialize_level(unsigned id) {
         if(id>=32U)throw std::out_of_range("GPU level out of range");
@@ -376,6 +396,32 @@ struct State {
                 glEnd();
             }
         }
+        // Diagnostic-only placement markers from the source-exact
+        // compact 11-byte NPC/INIT/OBJECTS ledger. Show only discovered
+        // cells; preserve original 16.16 subcell coordinates. Markers are
+        // not simulated actors, pickups, EH7 view frames or encounter logic.
+        if(party&&authored_scenes&&show_authored_markers) {
+            const auto present=native_explored_scene_instance_candidates(
+                world,*authored_scenes,level,revealed,32768U);
+            glPointSize(float(std::max(3,z/2)));
+            glBegin(GL_POINTS);
+            for(const auto& item:present) {
+                const double px=double(item.x_position_16_16)/65536.;
+                const double py=double(item.y_position_16_16)/65536.;
+                const float sx=float(ax+size/2)+
+                    float(px-double(cx))*float(z);
+                const float sy=float(ay+size/2)+
+                    float(py-double(cy))*float(z);
+                if(sx<ax+2||sx>ax+size-2||sy<ay+2||sy>ay+size-2)
+                    continue;
+                if(item.source_class==0U)glColor3f(.95f,.31f,.29f);
+                else if(item.source_class==1U)glColor3f(.32f,.85f,.94f);
+                else glColor3f(.89f,.77f,.32f);
+                glVertex2f(sx,sy);
+            }
+            glEnd();
+            glPointSize(1.f);
+        }
         const float mx=float(ax+size/2),my=float(ay+size/2);
         glColor3f(1.f,.76f,.22f);
         glBegin(GL_LINES);
@@ -433,13 +479,13 @@ struct State {
             line(12,y,"F2 resolution (Auto > 720p > 1080p > 1440p > 4K) | F3 filtering");y+=dy;
             line(12,y,"F4 AA (Off / 2x / 4x) | F11 fullscreen | F12 screenshot");y+=dy;
             line(12,y,party?
-                "Tab automap | +/- map zoom | F8 map size | debug noclip DISABLED":
+                "Tab automap | +/- zoom | F5 source placement markers | F8 map size":
                 "Tab automap | +/- map zoom | F8 map size | N noclip diagnostic");y+=dy;
             line(12,y,party?
                 "Level22 first-party state | R reset | Esc release mouse / close":
                 "Page Up/Down original level | R reset | Esc release mouse / close");y+=dy;
             line(12,y,party?
-                "ORIGINAL CHARS PARTY | INTERACTIONS / COMBAT / SAVE PENDING":
+                "SOURCE PLACEMENTS ARE DIAGNOSTIC DOTS / RES3 FRAMES, EVENTS PENDING":
                 "SOURCE-BASED GEOMETRY / PROVISIONAL SCENERY & ACTOR RENDERING");
         }
         glMatrixMode(GL_PROJECTION);glPopMatrix();
@@ -696,6 +742,8 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                 }
             } else if(wp==VK_F12 && !(lp&(1L<<30))) {
                 s->save_screenshot();
+            } else if(wp==VK_F5 && s->party && !(lp&(1L<<30))) {
+                s->show_authored_markers=!s->show_authored_markers;
             } else if(wp==VK_F8 && !(lp&(1L<<30))) {
                 s->map_panel_size=s->map_panel_size==150U?210U:
                                   s->map_panel_size==210U?300U:150U;
