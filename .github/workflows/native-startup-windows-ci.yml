@@ -83,6 +83,11 @@ jobs:
               -not $report.original_first_party_spawn_cell_passable) {
             throw "Original LEVELS.DAT level22 (4,4) party start was not certified"
           }
+          if ($report.original_first_level_controls -ne 10 -or
+              $report.original_first_level_kind1_controls -ne 0 -or
+              $report.original_first_level_nonempty_event_slots -ne 0) {
+            throw "Original Level22 authored control/event corpus no longer matches"
+          }
           if ($report.writes_to_original -ne 0) {
             throw "Original media mutation detected in startup audit report"
           }
