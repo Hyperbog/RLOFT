@@ -23,8 +23,10 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ("$sourceSha = (Get-Content -LiteralPath $sourceFile -Raw).Trim()", player),
         ("-Attributes ReparsePoint", player),
         ("/E /XJ /R:1 /W:1", player),
-        ("$chars = @(Get-ChildItem -LiteralPath $scratch -Filter 'CHARS'", player),
-        ("Remove-Item -LiteralPath $entry.FullName -Force", player),
+        ("$charsCandidates = @(", player),
+        ("Join-Path $scratch 'CHARS'", player),
+        ("Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'", player),
+        ("Remove-Item -LiteralPath $candidate -Force", player),
         ("$arguments = '\"' + $launchMediaRoot + '\"'", player),
         ("$launchMediaRoot = $scratch", player),
         ("if (-not $hasRootMedia -and $hasNestedMedia) {", player),
@@ -66,7 +68,7 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
             "$original = Join-Path $package 'Game'"):
         raise ValueError('binary validation must precede original-media access')
     copy = player.index('& robocopy.exe $original $scratch')
-    remove = player.index('Remove-Item -LiteralPath $entry.FullName')
+    remove = player.index('Remove-Item -LiteralPath $candidate')
     launch = player.index('Start-Process -FilePath $engine')
     # GameSource::open requires nested loose media at the actual RLOFT path.
     if not remove < player.index("$launchMediaRoot = $scratch") < launch:
@@ -112,7 +114,7 @@ def main() -> int:
              'Get-FileHash -LiteralPath $engine -Algorithm MD5'),
             ('player',"$scratch = Join-Path $workspaceRoot $runId",
              "$scratch = $original"),
-            ('player',"Remove-Item -LiteralPath $entry.FullName -Force",
+            ('player',"Remove-Item -LiteralPath $candidate -Force",
              "Remove-Item -LiteralPath $original -Force"),
             ('player',"$arguments = '\"' + $launchMediaRoot + '\"'",
              "$arguments = '--front-end-only \"' + $scratch + '\"'"),
