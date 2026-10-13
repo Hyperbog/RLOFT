@@ -791,7 +791,7 @@ LRESULT CALLBACK gpu_proc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     return DefWindowProcW(hwnd,msg,wp,lp);
 }
 } // namespace
-void open_native_gpu_window(HWND owner,std::unique_ptr<State> state) {
+HWND open_native_gpu_window(HWND owner,std::unique_ptr<State> state) {
     WNDCLASSW type{};
     type.lpfnWndProc=gpu_proc;
     type.hInstance=GetModuleHandleW(nullptr);
@@ -810,18 +810,19 @@ void open_native_gpu_window(HWND owner,std::unique_ptr<State> state) {
     ShowWindow(window,SW_SHOW);
     UpdateWindow(window);
     SetFocus(window);
+    return window;
 }
 
 void open_native_gpu_world_preview(HWND owner,const NativeMedia& media) {
     open_native_gpu_window(owner,
         std::make_unique<State>(load_native_world_payload(media),media));
 }
-void open_native_gpu_world_session(
+HWND open_native_gpu_world_session(
     HWND owner,const NativeMedia& media,const NativeCharsImage& chars) {
     // Import and validate the exact shared CODE.1 output before allocating
     // a graphics context or modifying any mutable world state.
     auto party=decode_native_party_start(chars);
-    open_native_gpu_window(owner,
+    return open_native_gpu_window(owner,
         std::make_unique<State>(load_native_world_payload(media),
                                 media,std::move(party)));
 }
