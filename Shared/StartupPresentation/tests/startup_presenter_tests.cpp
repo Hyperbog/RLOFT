@@ -10,6 +10,12 @@ public:
         if(id<94 || id>105)throw std::out_of_range("startup fixture RES0 id");
         return {1,8,1,0xFF,std::vector<std::uint8_t>(8,std::uint8_t(id))};
     }
+    [[nodiscard]] rloft::Type2Font res0_font(int) const override {
+        return {};
+    }
+    [[nodiscard]] std::string text(int) const override {
+        return {};
+    }
     [[nodiscard]] rloft::Palette6 colors_palette(
         int bank,int brightness=0) const override {
         if(bank<0||bank>=15||brightness!=0)
