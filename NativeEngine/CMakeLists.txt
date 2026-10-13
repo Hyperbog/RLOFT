@@ -62,6 +62,7 @@ add_library(rloft_native_shared_boot STATIC
   ../DemoV1/src/boot_flow.cpp)
 target_include_directories(rloft_native_shared_boot PUBLIC ../DemoV1/include)
 native_warnings(rloft_native_shared_boot)
+add_executable(native_original_boot_flow_tests ../DemoV1/tests/boot_flow_tests.cpp)
 
 # Single executable for all 11 active and optional 2 legacy original RES
 # archives. Source stays read-only; reports metadata JSON to stdout.
