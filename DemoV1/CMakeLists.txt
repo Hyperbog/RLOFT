@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Pre-Alpha field diagnostic: original install must only be READ,
+    # and normal game must execute on a unique disposable copy.
+    add_test(
+        NAME alpha_sandbox_normal_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_alpha_sandbox_normal_launch.py")
     # Original 1F1D6/33DE0/33E28 dual-page planar source oracle.
     add_test(
         NAME original_ground_planar_fill_binary_contract_tests

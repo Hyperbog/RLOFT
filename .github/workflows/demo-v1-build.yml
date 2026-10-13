@@ -121,6 +121,14 @@ jobs:
       - name: Test full (all registered CTests)
         if: ${{ github.event_name == 'push' || inputs.build_mode == 'full' }}
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
+      - name: Stage isolated Alpha normal-game field launcher
+        shell: pwsh
+        run: |
+          # Only the field test copies original game media to a local
+          # disposable workspace. CI/package never includes those assets.
+          Copy-Item DemoV1/Windows/Test-Alpha-Continuous-Game.cmd build/demo-v1/Release/Test-Alpha-Continuous-Game.cmd -Force
+          Copy-Item DemoV1/Windows/Test-Alpha-Continuous-Game.ps1 build/demo-v1/Release/Test-Alpha-Continuous-Game.ps1 -Force
+
       - name: Stage original front-end and character creation
         shell: pwsh
         run: |
@@ -141,6 +149,21 @@ jobs:
             build/demo-v1/Release/Play-Original-Intro.cmd
             build/demo-v1/Release/Audit-Starting-Equipment.cmd
             build/demo-v1/Release/rloft_starting_equipment_probe.exe
+            build/demo-v1/Release/build-source-sha.txt
+            build/demo-v1/Release/build-verification-mode.txt
+          if-no-files-found: error
+
+      # Development-only normal-route artifact. Not the default
+      # player-facing intro showcase. All media is selected/copied
+      # locally; no original game assets are in the GitHub artifact.
+      - name: Publish isolated Alpha continuous-game field test
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Alpha-Field-Test-Windows-x64
+          path: |
+            build/demo-v1/Release/ravenloft_demo_v1.exe
+            build/demo-v1/Release/Test-Alpha-Continuous-Game.cmd
+            build/demo-v1/Release/Test-Alpha-Continuous-Game.ps1
             build/demo-v1/Release/build-source-sha.txt
             build/demo-v1/Release/build-verification-mode.txt
           if-no-files-found: error

@@ -119,6 +119,28 @@ propose graphics/QoL/modding modernization.
 immutable tagged candidate SHA, installed-original-data chooser,
 reproducible verification and retained original fidelity baseline.
 
+## Pre-Alpha normal-route field runner (source checkpoint)
+
+An opt-in **separate** `Ravenloft-Alpha-Field-Test-Windows-x64`
+artifact is now built alongside the existing player-facing intro
+package. `Test-Alpha-Continuous-Game.cmd` invokes PowerShell,
+requires an explicit original media folder selection, copies its
+complete directory tree to a fresh local
+`%TEMP%\\RLOFT-Alpha-Field\\<unique-ID>` sandbox and launches
+`ravenloft_demo_v1.exe --dev-trace "<SANDBOX>"`.
+The user's original folder is **never the executable's argument**.
+Cold-start mode removes CHARS only in that sandbox; existing-party
+mode leaves CHARS as copied. SAVE.DAT is not altered in the source.
+This is a host diagnostic tool with no reconstructed game logic
+changes, and it does not advance any ALPHA-* gate automatically.
+
+A bounded read-only CI contract checks copy-before-execute ordering,
+original save-file safety, source provenance, source-only mutation
+coverage and separate artifact staging. A genuine Win32 field session
+and DOS original-versus-native acceptance still need independent
+evidence. The sandbox must be manually removed after testing, and
+locally created diagnostic reports can include character names.
+
 ## Immediate execution order (no arbitrary calendar dates)
 
 1. Finish original-DOS and Win32 normal-launch/CHARS/first Level22

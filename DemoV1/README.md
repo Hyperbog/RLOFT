@@ -26,6 +26,30 @@ original-DOS parity. The historical build/status paragraphs below
 are retained as dated evidence, not automatically current.
 
 
+## Isolated normal-game Alpha field test (2026-10-12)
+
+The separate development-only CI artifact
+`Ravenloft-Alpha-Field-Test-Windows-x64` provides
+`Test-Alpha-Continuous-Game.cmd`. It selects a user's owned
+original game installation and makes a unique **local temporary copy**
+before running the ordinary `--dev-trace` path. The selected original
+CHARS/SAVE.DAT files are never deleted or rewritten; a cold start may
+delete CHARS **from the copy only**. The copied data remains under
+`%TEMP%\\RLOFT-Alpha-Field` until the tester elects to remove it.
+Captured diagnostic ZIPs are local and may contain personal party names.
+
+**This is an opt-in Pre-Alpha field-test artifact, not an Alpha game
+release and not DOS execution.** It does not restore the retired
+Level22 warp or enter gameplay from the default read-only
+`Play-Original-Intro.cmd` launcher. The main player-facing artifact
+continues to contain only the read-only front-end showcase.
+
+Source-only safety and packaging regressions are registered as
+`alpha_sandbox_normal_launch_contract_tests`; Windows execution,
+the first normal-game blocker, and original-DOS comparison remain
+separate acceptance gates. See
+[formal Alpha/Beta/Final criteria](RELEASE_MILESTONES_ALPHA_BETA_FINAL.md).
+
 ## Original intro / character-creation build (2026-10-11)
 
 The owner has retired the standalone Level 22 demo as a player-facing
