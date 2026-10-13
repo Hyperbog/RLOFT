@@ -55,10 +55,11 @@ $workspaceRoot = Join-Path $env:TEMP 'RLOFT-Alpha-Field'
 # Reject selecting the scratch root or any of its ancestors, including
 # an entire drive; otherwise copying source->child can recursively
 # copy the new temporary folder into itself or copy huge private data.
-$sourcePrefix = [System.IO.Path]::GetFullPath($original).TrimEnd('\\') + '\\'
-$workspacePath = [System.IO.Path]::GetFullPath($workspaceRoot).TrimEnd('\\')
+$sep = [System.IO.Path]::DirectorySeparatorChar
+$sourcePrefix = [System.IO.Path]::GetFullPath($original).TrimEnd($sep) + $sep
+$workspacePath = [System.IO.Path]::GetFullPath($workspaceRoot).TrimEnd($sep)
 if ($workspacePath.StartsWith($sourcePrefix, [StringComparison]::OrdinalIgnoreCase) -or
-    $sourcePrefix.StartsWith($workspacePath + '\\', [StringComparison]::OrdinalIgnoreCase)) {
+    $sourcePrefix.StartsWith($workspacePath + $sep, [StringComparison]::OrdinalIgnoreCase)) {
     Fail-Alpha 'The selected folder overlaps the Alpha temporary workspace.'
 }
 # Filesystem links/junctions could make the original media escape the
@@ -117,7 +118,7 @@ if (Test-Path -LiteralPath $latestPointer -PathType Leaf) {
 if ([string]::IsNullOrWhiteSpace($session) -or $session -eq $previous) {
     Write-Host 'No NEW diagnostic session. Record the exact startup blocker.'
 } else {
-    $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd('\') + '\'
+    $rootPrefix = [System.IO.Path]::GetFullPath($traceRoot).TrimEnd($sep) + $sep
     $sessionPath = [System.IO.Path]::GetFullPath($session)
     if (-not $sessionPath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         Fail-Alpha 'Trace pointer escapes the local diagnostics root.'
