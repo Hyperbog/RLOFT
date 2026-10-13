@@ -41,6 +41,7 @@ add_library(rloft_native_assets STATIC
   src/native_world_materials.cpp
   src/native_code2_wall_emission.cpp
   src/native_code2_projection.cpp
+  src/native_code2_ray_quadrant.cpp
   src/native_code2_scene_order.cpp
   src/native_code2_scene_staging.cpp
   src/native_vga_rgb6_scanout.cpp
@@ -271,6 +272,14 @@ add_executable(native_vga_rgb6_scanout_tests tests/native_vga_rgb6_scanout_tests
 target_link_libraries(native_vga_rgb6_scanout_tests PRIVATE rloft_native_assets)
 native_warnings(native_vga_rgb6_scanout_tests)
 add_test(NAME native_vga_rgb6_scanout_tests COMMAND native_vga_rgb6_scanout_tests)
+
+# The original CODE.2 32954 ray quadrant signed-step/reflect logic;
+# exactly 3600 source-angle values, no extra reconstruction-only tests.
+add_executable(native_code2_ray_quadrant_tests
+  tests/native_code2_ray_quadrant_tests.cpp)
+target_link_libraries(native_code2_ray_quadrant_tests PRIVATE rloft_native_assets)
+native_warnings(native_code2_ray_quadrant_tests)
+add_test(NAME native_code2_ray_quadrant_tests COMMAND native_code2_ray_quadrant_tests)
 
 # Original CODE.2 2C3F1 stable scene-record draw selection and byte marks.
 add_executable(native_code2_scene_order_tests tests/native_code2_scene_order_tests.cpp)
