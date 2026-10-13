@@ -79,6 +79,22 @@ int main(int argc,char** argv) {
            first.cell(4U,4U)!=0x0000U)
             throw std::runtime_error(
                 "original Level22 first-party spawn conflicts with LEVELS.DAT");
+        // Bounded source facts: the supplied initial map does not contain
+        // kind-1 door controls or map-local event-slot commands. Original
+        // executable-driven scene/assassin logic must be implemented from
+        // CODE.2, not invented as a conventional map event.
+        if(first.controls.size()!=10U ||
+           first.families[0].size()!=1U ||
+           first.families[1].size()!=110U ||
+           !first.families[2].empty())
+            throw std::runtime_error("original Level22 source record family count changed");
+        for(const auto& control:first.controls)
+            if(control.bytes[0]!=0U)
+                throw std::runtime_error("original Level22 has unexpected controller kind");
+        for(const auto& slot:first.event_slots)
+            for(const auto byte:slot)
+                if(byte!=0U)
+                    throw std::runtime_error("original Level22 event slot is not empty");
         const auto original_tables=rloft::CharacterTransferTables::from_original_bytes(
             media.read("CODE.1"),media.read("OBJECTS.DAT"));
         // Validate all real 90 family/race rows and original object ID
@@ -113,6 +129,10 @@ int main(int argc,char** argv) {
         std::cout<<"{\"schema\":\"native-source-startup-v1\","
                  <<"\"original_first_party_level\":22,"
                  <<"\"original_first_party_spawn_cell_passable\":true,"
+                 <<"\"original_first_level_controls\":10,"
+                 <<"\"original_first_level_kind1_controls\":0,"
+                 <<"\"original_first_level_nonempty_event_slots\":0,"
+                 <<"\"original_first_level_family_records\":[1,110,0],"
                  <<"\"character_equipment_rows_verified\":90,"
                  <<"\"character_opening_frames\":70,"
                  <<"\"character_controller_actor_and_sex\":true,"
