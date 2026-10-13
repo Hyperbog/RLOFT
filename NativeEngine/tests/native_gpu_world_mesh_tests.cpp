@@ -49,14 +49,14 @@ int main() {
     assert(mesh.lower_wall_faces>0U);
     assert(mesh.upper_wall_faces>0U);
     assert(mesh.floor_faces>0U && mesh.ceiling_faces>0U);
-        assert(mesh.textured_triangles.count(51U)); // X upper: 10+20+1
+        assert(mesh.textured_triangles.count(31U)); // X upper: 10+20+1
         // Distinct X/Y bank IDs are not compass-facing texture substitutes.
     assert(mesh.textured_triangles.count(11U)); // X lower
-    assert(mesh.textured_triangles.count(51U)); // X upper
+    assert(mesh.textured_triangles.count(31U)); // X upper
     assert(mesh.textured_triangles.count(71U)); // Y upper
     assert(mesh.textured_triangles.count(71U));
     assert(mesh.textured_triangles.count(603U)); // original floor RES4 class
-    assert(!mesh.fallback_ceiling.empty()); // -1 is true missing-ceiling marker
+    assert(mesh.fallback_ceiling.empty()); // -1 means outdoor sky, NOT fake flat roof
     for(const auto& batch:mesh.textured_triangles) {
         assert(!batch.second.empty());
         assert(batch.second.size()%6U==0U);
