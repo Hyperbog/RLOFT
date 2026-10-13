@@ -1093,6 +1093,15 @@ target_link_libraries(surface_fill_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
 # Exact CODE.2 C050/EF4D/FDBC page state, callback ordering and
 # byte-only toggles. SOURCE-ONLY model: no speculative live page flip.
+# CODE.2 07BB9..07C18 original title Load slot geometry:
+# tested standalone, intentionally NOT wired to incomplete SAVE## loader.
+add_executable(original_title_load_slot_tests
+    tests/original_title_load_slot_tests.cpp)
+target_include_directories(original_title_load_slot_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_title_load_slot_tests PRIVATE cxx_std_17)
+add_test(NAME original_title_load_slot_tests COMMAND original_title_load_slot_tests)
+
 add_executable(original_vga_page_cycle_tests
     tests/original_vga_page_cycle_tests.cpp)
 target_include_directories(original_vga_page_cycle_tests PRIVATE
