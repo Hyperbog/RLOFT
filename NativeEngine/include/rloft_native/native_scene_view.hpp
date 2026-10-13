@@ -86,6 +86,18 @@ struct NativeProbeView {
 void apply_native_probe_visibility(NativeWorldRuntime& world,
                                     const NativeProbeView& view);
 
+// Shared host-gameplay intent -> world-space movement. This boundary
+// prevents renderer-specific A/D handedness errors. +right moves to the
+// player's right for all headings; +forward faces the camera direction.
+// Preview kinematics are NOT asserted to match original DOS movement.
+struct NativeRelativeMovement {
+    double delta_columns{};
+    double delta_rows{};
+};
+[[nodiscard]] NativeRelativeMovement native_relative_movement(
+    double heading_radians,double forward_axis,double right_axis,
+    double units_per_second,double elapsed_seconds);
+
 // Swept host navigation using the PROVEN normal collision query only.
 // Does not implement actor occupancy, 16.16 motion, hidden passage mode,
 // the original player collision footprint, event triggers, or interpolation.
