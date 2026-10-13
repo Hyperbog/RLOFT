@@ -66,7 +66,8 @@ int main(int argc,char** argv) {
             const auto frame=materials.render(world,view,320U,400U);
             if(!frame.original_code2_sampler_used ||
                !frame.source_quadrant_state_used ||
-               !frame.original_code2_backdrop_used)
+               !frame.original_code2_backdrop_used ||
+               !frame.original_environment_surface_source_verified)
                 throw std::runtime_error("original CODE.2 sampler/quadrant inactive");
             if(frame.bgra.size()!=320U*400U*4U)
                 throw std::runtime_error("original textured frame dimensions wrong");
