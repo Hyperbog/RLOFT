@@ -45,6 +45,12 @@ if(Python3_Interpreter_FOUND)
         NAME alpha_input_phase_isolation_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
+    # Enhanced PC-first scene: native decoded RES3 sprite, textured
+    # original RES4 ground and independent 60Hz exploration display.
+    add_test(
+        NAME enhanced_level22_player_scene_source_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_level22_pipeline.py")
     # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
     add_test(
         NAME alpha_frontend_preservation_contract_tests
