@@ -235,7 +235,11 @@ jobs:
           Copy-Item build/demo-v1/Release/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe -Force
           $hash = (Get-FileHash DemoV1/Windows/ravenloft_demo_v1.exe -Algorithm SHA256).Hash.ToLower()
           Set-Content -NoNewline -Path DemoV1/Windows/ravenloft_demo_v1.exe.sha256 -Value "$hash  ravenloft_demo_v1.exe"
-          git add DemoV1/Windows/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe.sha256
+          # This checked-in EXE may be older than the branch HEAD because
+          # later docs/source commits can arrive during its build. Always
+          # publish the ACTUAL compiled checkout SHA beside the binary.
+          Set-Content -NoNewline -Path DemoV1/Windows/build-source-sha.txt -Value "${{ github.sha }}"
+          git add DemoV1/Windows/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe.sha256 DemoV1/Windows/build-source-sha.txt
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 1) {
             git commit -m "build: refresh Demo v1 Windows executable [skip ci]"
