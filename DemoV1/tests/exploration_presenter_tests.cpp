@@ -229,6 +229,32 @@ int main() {
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
 
+    // The enhanced PC renderer draws the source-verified 4098-byte
+    // RES4 tile as BACKGROUND; foreground wall layers then cover it.
+    // It must not require a DOS VGA full-open-field sentinel in every ray.
+    outdoors.ground_source_verified=true;
+    outdoors.ground_perspective_ready=true;
+    outdoors.ground_raster_source.assign(4098U,0U);
+    outdoors.sweep_records[29U].resource_inner=19U;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    assert(rloft::ExplorationPresenter::enhanced_ground_eligible(
+        outdoors));
+    outdoors.sweep_records.clear();
+    assert(rloft::ExplorationPresenter::enhanced_ground_eligible(
+        outdoors));
+    outdoors.ground_raster_source.pop_back();
+    assert(!rloft::ExplorationPresenter::enhanced_ground_eligible(
+        outdoors));
+    outdoors.ground_raster_source.push_back(0U);
+    outdoors.ground_source_verified=false;
+    assert(!rloft::ExplorationPresenter::enhanced_ground_eligible(
+        outdoors));
+    outdoors.ground_source_verified=true;
+    outdoors.ground_perspective_ready=false;
+    assert(!rloft::ExplorationPresenter::enhanced_ground_eligible(
+        outdoors));
+
     // Clean frames with no RES3 source or raster failure remain complete.
     assert(complete.complete());
 }
