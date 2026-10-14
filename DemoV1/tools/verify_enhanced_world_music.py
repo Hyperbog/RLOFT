@@ -37,10 +37,16 @@ def verify(host:str, model:str, cmake:str, workflow:str) -> None:
                 raise ValueError('duplicate legacy non-testable world music state')
         elif r not in world:
             raise ValueError('missing original level music integration: '+r)
-    if world.count('start_authored_world_music();')!=2:
+    if world.count('start_authored_world_music();')<2:
         raise ValueError('music must start at gameplay entry and check level transitions')
-    if world.count('world_music_state.invalidate();')!=2:
-        raise ValueError('both original CINE08 branches must restore soundtrack')
+    # The enhanced Options menu adds a third invocation when music is
+    # switched back on; no fixed call count should reject new live UI.
+    if 'if(gameplay_music_enabled)start_authored_world_music();' not in world:
+        raise ValueError('music cannot be resumed from in-game Options')
+    if world.count('world_music_state.invalidate();')<2:
+        raise ValueError('original CINE08 branches must restore soundtrack')
+    if 'gameplay_music_enabled=!gameplay_music_enabled;' not in world:
+        raise ValueError('in-game Options music enable toggle is missing')
     if world.index('start_authored_world_music();') > world.index('while (host.pump())'):
         raise ValueError('music must begin before first world frame')
     if world.index('midi_player.play(')>world.index('while (host.pump())'):
