@@ -13,8 +13,8 @@ int main() {
     item.count=1;
     item.width=3;
     item.height=2;
-    item.transparent_index=255;
-    item.pixels={1,255,3,4,5,6};
+    item.transparent_index=254;
+    item.pixels={1,254,3,4,5,6};
     const auto unchanged=item.pixels;
     const auto drawn=EnhancedInventoryBlit::reflected_horizontal(
         screen,item,0,22,42);
