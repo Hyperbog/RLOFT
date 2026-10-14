@@ -1,25 +1,30 @@
-RAVENLOFT: STRAHD'S POSSESSION -- ORIGINAL GAME DATA
+RAVENLOFT: STRAHD'S POSSESSION — NATIVE WINDOWS PRE-ALPHA
 
-Copy your owned original DOS installation files into this Game folder.
-If your copy has a RLOFT subfolder, retain it intact.
+The game needs original resources from your legally owned copy.
+Original game assets are NOT bundled with this Windows executable.
 
-For unpacked DOS installations, supply RES0, INIT, T, CODE.1,
-CODE.2, CINE00.ANM, CINE12.ANM and the other RES/ANM/DAT assets
-in Game or Game\RLOFT.
+RECOMMENDED (full intro, music, character creation and Level 22)
+Copy the CONTENTS of the following original directory into Game:
 
-For GOG installations, Game\game.gog or Game\RLOFT\game.gog is
-also accepted; its original ISO9660 image contains read-only assets.
-The temporary copy is where native CODE.1 writes CHARS.
-No original proprietary game files are bundled with the native Alpha.
+  DnD-Classics/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT
 
-Then double-click Play-Ravenloft-Alpha.cmd in the parent directory.
+The required files include RES0, INIT, T, CODE.1, CODE.2, RES10,
+CINE00.ANM and CINE12.ANM. The other RLOFT installation directory
+without CINE/RES10 is NOT sufficient for the complete cinematic intro.
 
-The launcher makes a fresh temporary COPY of Game, removes CHARS ONLY
-from that disposable copy to force the full intro, then executes the
-ordinary game with no developer warp, without using --front-end-only.
-The created party CHARS and Level22 state remain in the temporary
-run folder printed in the console after the game exits.
-Your original Game files, CHARS and SAVE.DAT remain unchanged.
+You can instead put your original GOG disc image at Game/game.gog.
+The launcher also recognizes Game/RLOFT, Game/CD_Extracted/RLOFT
+and other common nested folders.
 
-This is an incomplete native recreation; real DOS machine instructions
-are not executed. The Level22 scene and gameplay remain Pre-Alpha.
+If Game has no usable files, the launcher automatically checks the
+RLOFT_GAME_DIR environment variable, the GOG Windows registry key
+for product 1432905053, and common GOG/Steam installation paths.
+No folder chooser or developer mode appears.
+
+Double-click Play-Ravenloft-Alpha.cmd. The launcher validates the
+EXE checksum, copies owned media to an isolated temporary workspace,
+removes CHARS only from that temporary copy so the intro always starts,
+and runs the game continuously through character creation to Level 22.
+
+Your original files, installed game, original CHARS and saves are
+never overwritten or modified. Current gameplay remains Pre-Alpha.
