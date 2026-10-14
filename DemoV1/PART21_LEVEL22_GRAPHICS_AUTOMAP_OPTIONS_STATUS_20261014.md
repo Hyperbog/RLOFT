@@ -4,7 +4,7 @@
 **Product policy:** enhanced native PC port; source-DOS parity is optional research.  
 **Release status:** Pre-Alpha. Owner has confirmed build #819 reached Level 22 with audio, but **has not accepted Level 22 graphics, inventory, automap or top menu**.  
 **Latest source-matched Windows candidate:** `2e8bfae494fbfab34d3fc43a7f87621d6ac343c5`.  
-**Windows CI:** [run #? / precise run ID 38623194666](https://github.com/Hyperbog/RLOFT/actions/runs/38623194666); Windows compile, focused native tests, launcher parsing, and Alpha artifact publication **passed**. Artifact ID `11923650326`, `Ravenloft-Continuous-Alpha-Windows-x64`. Package ZIP and executable SHA-256 checked locally.  
+**Windows CI:** [Windows CI run 38623194666](https://github.com/Hyperbog/RLOFT/actions/runs/38623194666); Windows compile, focused native tests, launcher parsing, and Alpha artifact publication **passed**. Artifact ID `11923650326`, `Ravenloft-Continuous-Alpha-Windows-x64`. Package ZIP and executable SHA-256 checked locally.  
 **Current tested executable SHA-256:** `14c5e1ab06a92933c54fcca14a85ed3ce8084c61a58613bcb615e65a413a641a`.
 
 ## Separate defect categories (per owner)
@@ -13,7 +13,7 @@ There are **four Level 22 categories** and **one separate title-screen issue**. 
 
 | Area | Owner observation | New source remediation | Acceptance |
 | --- | --- | --- | --- |
-| Level 22 graphics | Trees/textures poorly placed; colors incorrect; overall rendering unpolished | Prior Part 19–20 native RES3/R​​ES4 rasterization and per-sprite source-top projection retained. Current candidate's RES8 native backdrop shade path clamps indexed underflow instead of wrapping to palette indices 248–255; regression retains original arithmetic separately. | **Open**: actual output on the owner's PC must be visually inspected, including ground, sky, distance, tree/NPC placement and shadowed colors. |
+| Level 22 graphics | Trees/textures poorly placed; colors incorrect; overall rendering unpolished | Prior Part 19–20 native RES3/RES4 rasterization and per-sprite source-top projection retained. Current candidate's RES8 native backdrop shade path clamps indexed underflow instead of wrapping to palette indices 248–255; regression retains original arithmetic separately. | **Open**: actual output on the owner's PC must be visually inspected, including ground, sky, distance, tree/NPC placement and shadowed colors. |
 | Inventory | Still buggy | Prior mirrored second bracer/gauntlet RES1 sprite omission fixed with a safe reflection, plus synthetic C++ regression. Ordinary/equipment/container state handlers remain distinct and incomplete actions are not silently fabricated. | **Open**: owner still needs to identify remaining wrong slots, pointer behavior or item state in live inventory. |
 | Automap | Slightly bugged | Fresh indexed framebuffer clear before each automap presentation prevents leaked old world pixels; player marker and heading arrow clipped to actual map tile rectangle to avoid painting over chrome. Map tests extended. | **Open**: owner to test map boundary, arrow and controls. |
 | Top menu | Only Automap and Quit work | Added **native in-game Options panel** in original indexed game window, real click regions for Music On/Off, native XMIDI stop/restart and return to game. Off-image/letterbox mouse input is no longer translated into first menu entry. | **Partially open**: Automap, Quit and Options now have handlers; **Rest, Pray, Memorize, Load and Save remain deliberately unimplemented** until supported by genuine gameplay/save systems. |
