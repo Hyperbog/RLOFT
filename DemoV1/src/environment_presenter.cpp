@@ -13,7 +13,8 @@ void EnvironmentPresenter::draw_subtracted(
     int row,
     int column,
     int shade,
-    bool clip_to_environment) {
+    bool clip_to_environment,
+    bool clamp_shade_for_enhanced_pc) {
     if (frame < 0 || frame >= raster.count) {
         throw std::out_of_range("environment type-1 frame index");
     }
@@ -65,7 +66,9 @@ void EnvironmentPresenter::draw_subtracted(
                 static_cast<std::size_t>(dy) *
                     IndexedFramebuffer::kWidth +
                 static_cast<std::size_t>(dx)] =
-                static_cast<std::uint8_t>(source - delta);
+                clamp_shade_for_enhanced_pc && source < delta
+                    ? 0U
+                    : static_cast<std::uint8_t>(source - delta);
         }
     }
 }
