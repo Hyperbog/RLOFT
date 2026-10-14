@@ -681,7 +681,8 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
             out.sweep_records, shape_for_id);
         out.world_scene_render_plans = std::move(plans.plans);
         out.scene_plan_failures = std::move(plans.failures);
-        if (scene_vga_masks_.has_value()) {
+        if (scene_vga_masks_.has_value() &&
+            !enhanced_pc_scene_rendering_) {
             // A malformed or unsupported diagnostic VGA trace must
             // never suppress walls, controls or game interaction.
             auto attempt =
