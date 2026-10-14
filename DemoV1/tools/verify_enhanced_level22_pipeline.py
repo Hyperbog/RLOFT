@@ -13,7 +13,8 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 def verify(compositor:str,presenter:str,presenter_header:str,
-           host:str,cmake:str,runtime:str,runtime_header:str) -> None:
+           host:str,cmake:str,runtime:str,runtime_header:str,
+           plan:str,plan_header:str) -> None:
     for item in (
         'class EnhancedType7Compositor final',
         'const Type7NativeRaster& sprite',
@@ -85,10 +86,15 @@ def verify(compositor:str,presenter:str,presenter_header:str,
             'set_enhanced_pc_scene_rendering(bool enabled)' not in runtime_header or
             'runtime.set_enhanced_pc_scene_rendering(!dev_trace);' not in host):
         raise ValueError('normal native frame still builds DOS VGA trace')
+    if ('enhanced_pc_scene_rendering_);' not in runtime or
+            'bool skip_dos_microcode = false' not in plan_header or
+            'if (!skip_dos_microcode) {' not in plan):
+        raise ValueError('native scene still requires DOS x86 descriptor planning')
     for marker in (
         'add_executable(enhanced_type7_compositor_tests',
         'add_test(NAME enhanced_type7_compositor_tests',
         'add_test(NAME enhanced_scene_mode_tests',
+        'add_executable(world_scene_render_plan_tests',
         'NAME alpha_frontend_preservation_contract_tests',
     ):
         if marker not in cmake:
@@ -105,6 +111,8 @@ def main()->int:
         'DemoV1/CMakeLists.txt',
         'DemoV1/src/exploration_runtime.cpp',
         'DemoV1/include/rloft/exploration_runtime.hpp',
+        'DemoV1/src/world_scene_render_plan.cpp',
+        'DemoV1/include/rloft/world_scene_render_plan.hpp',
     )
     try:
         sources=[(p/path).read_text(encoding='utf-8') for path in paths]
@@ -124,6 +132,8 @@ def main()->int:
             (5,'!enhanced_pc_scene_rendering_', 'false'),
             (3,'runtime.set_enhanced_pc_scene_rendering(!dev_trace);',
              '/* native renderer disabled */'),
+            (5,'enhanced_pc_scene_rendering_);','false);'),
+            (7,'if (!skip_dos_microcode) {','if (true) {'),
         )
         for target,before,after in mutations:
             if before not in sources[target]:
@@ -138,7 +148,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (10 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (12 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':
