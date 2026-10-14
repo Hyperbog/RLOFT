@@ -1,5 +1,7 @@
 # Agent rules for Ravenloft reconstruction / native recompilation
 
+**Shared universal mod-forward standard:** Before changing runtime systems, mod-facing resources, menus, save files, gameplay data, importers or future editors, apply [MOD_FORWARD_METHODOLOGY.md](MOD_FORWARD_METHODOLOGY.md). The same standard applies to DOS, NES, SNES, SMS, Genesis and future ports. It does not supersede RLOFT branch ownership, DOS original-image evidence requirements, licensing restrictions or current implementation-status boundaries.
+
 Use [SharedDecomp/AGENT_RULES.md](SharedDecomp/AGENT_RULES.md) and [ResearchInfra/WORKFLOW_INTEGRATION.md](ResearchInfra/WORKFLOW_INTEGRATION.md). Respect the existing [branch ownership](docs/BRANCH_OWNERSHIP.md): CODE.1/CODE.2 research, DOSDis, asset extraction and native engine are separately owned; do not trigger unauthorized Windows gameplay builds.
 
 1. Verified CODE.1/CODE.2 original instruction accounting is **not** complete original DOS behavior or native Windows runtime equivalence.
