@@ -31,7 +31,8 @@ public:
         IndexedFramebuffer& framebuffer,
         const Type7NativeRaster& sprite,
         const std::vector<Type7VisibleColumn>& columns,
-        const std::array<std::uint16_t,129>& scale_steps) {
+        const std::array<std::uint16_t,129>& scale_steps,
+        int source_top = kHorizonY) {
         const auto width=static_cast<std::size_t>(sprite.width);
         const auto height=static_cast<std::size_t>(sprite.height);
         if (width==0U || height!=128U ||
@@ -65,7 +66,13 @@ public:
             total+=step;
             if (y<64U) upper+=step;
         }
-        int dst_y=kHorizonY-static_cast<int>(upper);
+        // The renderer's 36DCD/36E2A setup already computed the
+        // per-source vertical position. PC presentation passes that
+        // position here; fixed-horizon fallback is retained ONLY for
+        // standalone old compositor callers/tests.
+        int dst_y=source_top==kHorizonY
+            ? kHorizonY-static_cast<int>(upper)
+            : source_top;
         auto& dst=framebuffer.mutable_pixels();
         std::size_t writes=0U;
         for (std::size_t sy=0;sy<height;++sy) {
