@@ -100,15 +100,15 @@ int main() {
     // but MUST NOT paint over controls at x=239..319 or the border.
     framebuffer.clear(0x33U);
     rloft::AutomapViewportPresenter::draw_line(
-        framebuffer,385,234,396,246,0xF0U,true);
+        framebuffer,385,234,396,245,0xF0U,true);
     assert(at(385,234)==0xF0U);
     assert(at(389,238)==0xF0U);
     assert(at(390,239)==0x33U);
-    assert(at(396,246)==0x33U);
+    assert(at(396,245)==0x33U);
     framebuffer.clear(0x33U);
     rloft::AutomapViewportPresenter::draw_line(
-        framebuffer,385,234,396,246,0xF0U,false);
-    assert(at(396,246)==0xF0U);
+        framebuffer,385,234,396,245,0xF0U,false);
+    assert(at(396,245)==0xF0U);
     assert(rloft::AutomapViewportPresenter::kMapMinY==6);
     assert(rloft::AutomapViewportPresenter::kMapMaxY==389);
     assert(rloft::AutomapViewportPresenter::kMapMinX==4);
