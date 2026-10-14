@@ -47,6 +47,10 @@ def verify(host:str, model:str, cmake:str, workflow:str) -> None:
         raise ValueError('original CINE08 branches must restore soundtrack')
     if 'gameplay_music_enabled=!gameplay_music_enabled;' not in world:
         raise ValueError('in-game Options music enable toggle is missing')
+    options_begin=world.index('gameplay_music_enabled=!gameplay_music_enabled;')
+    options_end=world.index('options_presenter.draw(',options_begin)
+    if 'world_music_state.invalidate();' not in world[options_begin:options_end]:
+        raise ValueError('Options music toggle must reset the live XMIDI cue')
     if world.index('start_authored_world_music();') > world.index('while (host.pump())'):
         raise ValueError('music must begin before first world frame')
     if world.index('midi_player.play(')>world.index('while (host.pump())'):
