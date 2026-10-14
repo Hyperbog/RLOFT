@@ -1125,6 +1125,14 @@ add_executable(automap_annotation_presenter_tests tests/automap_annotation_prese
 target_link_libraries(automap_annotation_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_annotation_presenter_tests COMMAND automap_annotation_presenter_tests)
 
+# Enhanced native PC map keyboard uses the existing original
+# on-screen nav actions without leaking keys into world movement.
+add_executable(enhanced_automap_keyboard_tests
+    tests/enhanced_automap_keyboard_tests.cpp)
+target_link_libraries(enhanced_automap_keyboard_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_automap_keyboard_tests
+    COMMAND enhanced_automap_keyboard_tests)
+
 add_executable(automap_viewport_presenter_tests tests/automap_viewport_presenter_tests.cpp)
 target_link_libraries(automap_viewport_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_viewport_presenter_tests COMMAND automap_viewport_presenter_tests)
