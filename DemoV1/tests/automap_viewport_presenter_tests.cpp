@@ -94,4 +94,23 @@ int main() {
     assert(at(11,12) == 7);
     assert(at(12,13) == 7);
     assert(at(12,14) == 7);
+
+    // Native map field is 48*8 by 47*5 inside the 320x400
+    // framebuffer. The player facing line may approach the boundaries,
+    // but MUST NOT paint over controls at x=239..319 or the border.
+    framebuffer.clear(0x33U);
+    rloft::AutomapViewportPresenter::draw_line(
+        framebuffer,385,234,396,246,0xF0U,true);
+    assert(at(385,234)==0xF0U);
+    assert(at(389,238)==0xF0U);
+    assert(at(390,239)==0x33U);
+    assert(at(396,246)==0x33U);
+    framebuffer.clear(0x33U);
+    rloft::AutomapViewportPresenter::draw_line(
+        framebuffer,385,234,396,246,0xF0U,false);
+    assert(at(396,246)==0xF0U);
+    assert(rloft::AutomapViewportPresenter::kMapMinY==6);
+    assert(rloft::AutomapViewportPresenter::kMapMaxY==389);
+    assert(rloft::AutomapViewportPresenter::kMapMinX==4);
+    assert(rloft::AutomapViewportPresenter::kMapMaxX==238);
 }
