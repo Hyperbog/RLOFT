@@ -39,29 +39,120 @@ if (-not $actual.Equals($expected, [StringComparison]::OrdinalIgnoreCase)) {
     Fail-ContinuousAlpha 'Released native executable SHA-256 mismatch.'
 }
 
-# The ONE initial setup: copy owned DOS installation into Game/ ONCE.
-# All later launches are single-click, no folder/browser or mode prompt.
-$original = Join-Path $package 'Game'
-if (-not (Test-Path -LiteralPath $original -PathType Container)) {
-    Fail-ContinuousAlpha 'Copy original installed game files into the Game folder beside the launcher.'
+# No folder chooser or manual path selection. Prefer a complete owned
+# Game/ installation; otherwise try common GOG/Steam install locations.
+# Work ONLY on a fresh temp copy -- original saves are never modified.
+function Test-CompleteLooseGame([string] $folder) {
+    if (-not (Test-Path -LiteralPath $folder -PathType Container)) { return $false }
+    # The intro requires CINE/RES10 media, not just the partial DOS
+    # installed RLOFT folder (which may have RES0/INIT/T but no movies).
+    foreach ($name in @('RES0','INIT','T','CODE.1','CODE.2',
+                        'CINE00.ANM','CINE12.ANM','RES10')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $folder $name) -PathType Leaf)) {
+            return $false
+        }
+    }
+    return $true
 }
-$original = [System.IO.Path]::GetFullPath($original)
+
+function Find-OwnedGameMedia([string] $root) {
+    if ([string]::IsNullOrWhiteSpace($root) -or
+        -not (Test-Path -LiteralPath $root -PathType Container)) {
+        return $null
+    }
+    $base = [System.IO.Path]::GetFullPath($root)
+    # Only bounded, known layouts: do not recursively search whole drives.
+    $layouts = @(
+        '.',
+        'RLOFT',
+        'RLOFT\RLOFT',
+        'CD_Extracted\RLOFT',
+        'Game',
+        'Game\RLOFT',
+        'Game\CD_Extracted\RLOFT',
+        "Ravenloft - Strahd's Possession\RLOFT",
+        "Ravenloft - Strahd's Possession\CD_Extracted\RLOFT",
+        "MASTER\Ravenloft - Strahd's Possession\CD_Extracted\RLOFT"
+    )
+    foreach ($relative in $layouts) {
+        $candidate = Join-Path $base $relative
+        if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+        $entry = Get-Item -LiteralPath $candidate -Force -ErrorAction Stop
+        if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            continue
+        }
+        if ((Test-CompleteLooseGame $candidate) -or
+            (Test-Path -LiteralPath (Join-Path $candidate 'game.gog') -PathType Leaf)) {
+            return [System.IO.Path]::GetFullPath($candidate)
+        }
+    }
+    return $null
+}
+
+$original = Join-Path $package 'Game'
+$found = Find-OwnedGameMedia $original
+if (-not $found) {
+    $candidates = New-Object 'System.Collections.Generic.List[string]'
+    if ($env:RLOFT_GAME_DIR) { $candidates.Add($env:RLOFT_GAME_DIR) }
+    if ($env:GOG_GAMES) { $candidates.Add($env:GOG_GAMES) }
+
+    # GOG product 1432905053: read both registry views without changing them.
+    foreach ($hive in @('HKEY_CURRENT_USER','HKEY_LOCAL_MACHINE')) {
+        foreach ($view in @('SOFTWARE\GOG.com\Games\1432905053',
+                             'SOFTWARE\WOW6432Node\GOG.com\Games\1432905053')) {
+            try {
+                $key = Get-ItemProperty -LiteralPath ('Registry::' + $hive + '\' + $view) -ErrorAction Stop
+                if ($key.path) { $candidates.Add([string]$key.path) }
+            } catch { }
+        }
+    }
+
+    $parents = New-Object 'System.Collections.Generic.List[string]'
+    $parents.Add('C:\GOG Games')
+    if ($env:USERPROFILE) { $parents.Add((Join-Path $env:USERPROFILE 'GOG Games')) }
+    foreach ($pf in @([Environment]::GetEnvironmentVariable('ProgramFiles'),
+                       [Environment]::GetEnvironmentVariable('ProgramFiles(x86)'))) {
+        if (-not [string]::IsNullOrWhiteSpace($pf)) {
+            $parents.Add((Join-Path $pf 'GOG Galaxy\Games'))
+            $parents.Add((Join-Path $pf 'Steam\steamapps\common'))
+        }
+    }
+    foreach ($parent in $parents) {
+        foreach ($name in @("Ravenloft - Strahd's Possession",
+                            "Ravenloft Strahd's Possession")) {
+            $candidates.Add((Join-Path $parent $name))
+        }
+    }
+    foreach ($candidate in $candidates) {
+        $found = Find-OwnedGameMedia $candidate
+        if ($found) { break }
+    }
+}
+
+if (-not $found) {
+    Write-Host ('Checked: ' + $original)
+    Write-Host 'For a FULL cinematic start, Game must contain game.gog OR the'
+    Write-Host 'files from MASTER\Ravenloft - Strahd''s Possession\CD_Extracted\RLOFT.'
+    Write-Host 'Those include RES0, INIT, T, CODE.1, CODE.2, CINE00.ANM,'
+    Write-Host 'CINE12.ANM and RES10. A partial installed RLOFT folder is insufficient.'
+    Write-Host 'Alternatively set RLOFT_GAME_DIR to your owned GOG game install.'
+    Fail-ContinuousAlpha 'Complete original movie/game resources were not found.'
+}
+$original = $found
+Write-Host ('Using owned game resources: ' + $original)
+
 $originalEntry = Get-Item -LiteralPath $original -Force -ErrorAction Stop
 if (($originalEntry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-    Fail-ContinuousAlpha 'Game folder must not be a filesystem link or junction.'
+    Fail-ContinuousAlpha 'Original media must not be a filesystem link or junction.'
 }
-$hasRootMedia = (Test-Path -LiteralPath (Join-Path $original 'RES0') -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $original 'INIT') -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $original 'T') -PathType Leaf)
+$hasRootMedia = Test-CompleteLooseGame $original
 $nested = Join-Path $original 'RLOFT'
-$hasNestedMedia = (Test-Path -LiteralPath (Join-Path $nested 'RES0') -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $nested 'INIT') -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $nested 'T') -PathType Leaf)
+$hasNestedMedia = Test-CompleteLooseGame $nested
 $hasGogRoot = Test-Path -LiteralPath (Join-Path $original 'game.gog') -PathType Leaf
 $hasGogNested = Test-Path -LiteralPath (Join-Path $nested 'game.gog') -PathType Leaf
 if (-not $hasRootMedia -and -not $hasNestedMedia -and
     -not $hasGogRoot -and -not $hasGogNested) {
-    Fail-ContinuousAlpha 'Original loose RES0/INIT/T or game.gog must be inside Game or Game\RLOFT.'
+    Fail-ContinuousAlpha 'No complete loose RES/CINE installation or game.gog found.'
 }
 $links = @(Get-ChildItem -LiteralPath $original -Force -Recurse -Attributes ReparsePoint -ErrorAction Stop | Select-Object -First 1)
 if ($links.Count -ne 0) {
