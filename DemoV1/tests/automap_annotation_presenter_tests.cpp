@@ -86,4 +86,50 @@ int main() {
         fb, {clipped}, 0, 0, f);
     assert(at(5, 3) == 0x22);
     assert(at(6, 4) == 0xA2);
+
+    // All map layers must clip to the SAME 48x47 tile field,
+    // not the old text-only 0x189/0xEF extent that hit map controls.
+    assert(rloft::AutomapAnnotationPresenter::kClipRowMin ==
+           rloft::AutomapViewportPresenter::kMapMinY);
+    assert(rloft::AutomapAnnotationPresenter::kClipRowMax ==
+           rloft::AutomapViewportPresenter::kMapMaxY);
+    assert(rloft::AutomapAnnotationPresenter::kClipColumnMin ==
+           rloft::AutomapViewportPresenter::kMapMinX);
+    assert(rloft::AutomapAnnotationPresenter::kClipColumnMax ==
+           rloft::AutomapViewportPresenter::kMapMaxX);
+
+    rloft::AutomapAnnotation bottom{};
+    bottom.raw_x = 389;
+    bottom.raw_y = 238;
+    bottom.payload = {'A', 'B'};
+    fb.clear(0x44);
+    rloft::AutomapAnnotationPresenter::draw_with_font(
+        fb,{bottom},0,0,f);
+    assert(at(389,238)==0xA1);
+    assert(at(389,239)==0x44);
+    assert(at(390,238)==0x44);
+    assert(at(393,239)==0x44);
+
+    // Keep partial left-edge labels instead of dropping their entire
+    // payload when either endpoint extends outside the map rectangle.
+    rloft::AutomapAnnotation left{};
+    left.raw_x=20;
+    left.raw_y=2;
+    left.payload={'A','B'};
+    assert(rloft::AutomapAnnotationPresenter::visible(left,f,0,0));
+    fb.clear(0x55);
+    rloft::AutomapAnnotationPresenter::draw_with_font(
+        fb,{left},0,0,f);
+    assert(at(20,5)==0xB1);
+    assert(at(20,3)==0x55);
+
+    rloft::AutomapAnnotation beyond{};
+    beyond.raw_x=392;
+    beyond.raw_y=240;
+    beyond.payload={'A'};
+    assert(!rloft::AutomapAnnotationPresenter::visible(beyond,f,0,0));
+    fb.clear(0x66);
+    rloft::AutomapAnnotationPresenter::draw_with_font(
+        fb,{beyond},0,0,f);
+    assert(at(392,240)==0x66);
 }
