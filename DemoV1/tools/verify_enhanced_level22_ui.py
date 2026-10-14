@@ -35,10 +35,12 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
     for marker in (
         '#include "rloft/enhanced_automap_keyboard.hpp"',
         'void set_automap_mode(bool enabled)',
-        'if (automap_mode_ && exploration_input_)',
+        'if (automap_mode_ && exploration_input_) {',
         'exploration_input_->clear();',
         'EnhancedAutomapKeyboard::action_for_key(',
         'if (automap_mode_ && exploration_input_) return 0;',
+        'if(inventory_mode_) {',
+        'if(inventory_mode_)return 0;',
     ):
         if marker not in host:
             raise ValueError("automap leaks keyboard input into movement: "+marker)
@@ -119,8 +121,10 @@ def main()->int:
                "/* no music state invalidation */"),
             (0,"host.set_automap_mode(true);",
                "/* map captured no keys */"),
-            (0,"if (automap_mode_ && exploration_input_)",
-               "if (false && exploration_input_)"),
+            (0,"if (automap_mode_ && exploration_input_) {",
+               "if (false && exploration_input_) {"),
+            (0,"if(inventory_mode_) {",
+               "if(false) {"),
             (1,"framebuffer.clear(0U);",
                "/* stale framebuffer */"),
             (2,"EnhancedOptionsSelection::ReturnToGame",
@@ -138,7 +142,7 @@ def main()->int:
             else:raise ValueError("Level22 UI regression escaped: "+old)
     except (OSError,ValueError) as exc:
         raise SystemExit("ENHANCED_LEVEL22_UI_REJECTED: "+str(exc))
-    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (8 negative mutations rejected)")
+    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (9 negative mutations rejected)")
     return 0
 
 if __name__=="__main__":
