@@ -55,14 +55,17 @@ public:
         const std::vector<ViewSweepRecord>& rays,
         const ShapeLookup& shape_lookup);
 
-    // Native presentation recovery only. Preserve the strict original
-    // planning API and the one-to-one original scene draw call positions.
-    // A bad local source becomes an unresolved slot, not missing pixels.
+    // Native presentation recovery, preserving the one-to-one scene
+    // draw-call order and original RES3 shape/occlusion coordinates.
+    // PC rendering doesn't need DOS self-modifying x86 descriptors.
+    // The optional switch skips ONLY those descriptors; strict build()
+    // and default try_build() preserve their established semantics.
     [[nodiscard]] static WorldSceneRenderPlanAttempt try_build(
         const std::vector<WorldSceneDrawCall>& calls,
         const RendererTables& tables,
         const std::vector<ViewSweepRecord>& rays,
-        const ShapeLookup& shape_lookup);
+        const ShapeLookup& shape_lookup,
+        bool skip_dos_microcode = false);
 };
 
 }  // namespace rloft
