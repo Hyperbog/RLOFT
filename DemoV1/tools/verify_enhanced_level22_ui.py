@@ -33,6 +33,14 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
     # Only the original well-tested menu adapter may change screens.
     if source.count("rloft::TopEdgeMenuAction::Options")!=1:
         raise ValueError("in-game options entry has multiple handlers")
+    # The already-existing cinematic code also invalidates the music
+    # cursor: validate the live Options toggle's *own* side effect rather
+    # than accepting unrelated invalidation elsewhere in the host.
+    begin=source.index("gameplay_music_enabled=!gameplay_music_enabled;")
+    end=source.index("options_presenter.draw(",begin)
+    if "world_music_state.invalidate();" not in source[begin:end]:
+        raise ValueError("Options music toggle failed to resynchronize XMIDI")
+
     if source.index("options_presenter.draw(") > source.index(
             'if (ui.state().screen ==\n            rloft::ExplorationUiScreen::Automap) {'):
         raise ValueError("Options overlay must be handled before map modal")
