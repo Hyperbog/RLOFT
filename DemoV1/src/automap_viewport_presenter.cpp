@@ -208,11 +208,34 @@ void AutomapViewportPresenter::draw_player_marker(
         throw std::runtime_error(
             "automap resource lacks player marker frame");
     }
-    framebuffer.draw_frame(
-        tiles,
-        0x34,
-        start_y - 2,
-        start_x);
+    // The normal type-1 framebuffer clip covers the entire 320x400
+    // image. On the automap, this can paint the marker into side controls
+    // when the player is near the final visible tile. Clip to the actual
+    // 48x47 cell map field instead.
+    const auto stride=static_cast<std::size_t>(tiles.width)*
+                      static_cast<std::size_t>(tiles.height);
+    const auto offset=0x34U*stride;
+    if (tiles.width<=0 || tiles.height<=0 ||
+        offset>tiles.pixels.size() ||
+        stride>tiles.pixels.size()-offset) {
+        throw std::runtime_error("automap player marker raster invalid");
+    }
+    auto& framebuffer_pixels=framebuffer.mutable_pixels();
+    for(int sy=0;sy<tiles.height;++sy) {
+        const auto dy=start_y-2+sy;
+        if(dy<kMapMinY || dy>kMapMaxY)continue;
+        for(int sx=0;sx<tiles.width;++sx) {
+            const auto dx=start_x+sx;
+            if(dx<kMapMinX || dx>kMapMaxX)continue;
+            const auto color=tiles.pixels[
+                offset+static_cast<std::size_t>(sy)*tiles.width+sx];
+            if(tiles.transparent_index!=0xFFU &&
+               color==tiles.transparent_index)continue;
+            framebuffer_pixels[
+                static_cast<std::size_t>(dy)*IndexedFramebuffer::kWidth+
+                static_cast<std::size_t>(dx)]=color;
+        }
+    }
 
     const auto step =
         ExplorationMotionModel::direction_vector(
@@ -250,7 +273,8 @@ void AutomapViewportPresenter::draw_player_marker(
         start_x,
         end_y,
         end_x,
-        0xFFU);
+        0xFFU,
+        true);
 }
 
 void AutomapViewportPresenter::draw_line(
@@ -259,10 +283,14 @@ void AutomapViewportPresenter::draw_line(
     int x0,
     int y1,
     int x1,
-    std::uint8_t color) {
+    std::uint8_t color,
+    bool clip_to_map) {
     int dc = x1 - x0;
 
     auto put = [&](int y, int x) {
+        if (clip_to_map &&
+            (y<kMapMinY || y>kMapMaxY ||
+             x<kMapMinX || x>kMapMaxX))return;
         if (y >= 0 &&
             y < IndexedFramebuffer::kHeight &&
             x >= 0 &&
