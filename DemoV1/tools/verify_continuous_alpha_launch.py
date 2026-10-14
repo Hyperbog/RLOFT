@@ -20,6 +20,8 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ("$runId = [Guid]::NewGuid().ToString('N')", player),
         ("$scratch = Join-Path $workspaceRoot $runId", player),
         ("Get-FileHash -LiteralPath $engine -Algorithm SHA256", player),
+        ("if ($hashLine -cmatch", player),
+        ("$expected = $Matches[1]", player),
         ("$sourceSha = (Get-Content -LiteralPath $sourceFile -Raw).Trim()", player),
         ("-Attributes ReparsePoint", player),
         ("/E /XJ /R:1 /W:1", player),
@@ -68,6 +70,8 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
                        'Remove-Item -LiteralPath $sourcePrefix'):
         if prohibited in player:
             raise ValueError('continuous launcher prompts or writes original media: '+prohibited)
+    if "$hashLine -cnotmatch" in player:
+        raise ValueError("negated regex leaves SHA256 capture untrustworthy")
     if player.index('Get-FileHash -LiteralPath $engine') > player.index(
             "$original = Join-Path $package 'Game'"):
         raise ValueError('binary validation must precede original-media access')
@@ -113,6 +117,7 @@ def main() -> int:
             ('player',"$original = Join-Path $package 'Game'",
              "$original = Join-Path $package 'RLOFT-INCORRECT'"),
             ('player','/E /XJ /R:1 /W:1','/E /R:1 /W:1'),
+            ('player','$hashLine -cmatch','$hashLine -cnotmatch'),
             ('player','-Attributes ReparsePoint','-Attributes Hidden'),
             ('player',"Get-FileHash -LiteralPath $engine -Algorithm SHA256",
              'Get-FileHash -LiteralPath $engine -Algorithm MD5'),
@@ -144,7 +149,7 @@ def main() -> int:
             raise ValueError('unsafe mutation escaped: '+before)
     except (ValueError,OSError) as exc:
         ap.exit(1,'CONTINUOUS_ALPHA_REJECTED: '+str(exc)+'\n')
-    print('CONTINUOUS_ALPHA_LAUNCH_SOURCE_PASS (11 negative mutations)')
+    print('CONTINUOUS_ALPHA_LAUNCH_SOURCE_PASS (12 negative mutations)')
     return 0
 
 if __name__=='__main__':
