@@ -125,7 +125,7 @@ def main() -> int:
             ('player','/E /XJ /R:1 /W:1','/E /R:1 /W:1'),
             ('player','$hashLine -cmatch','$hashLine -cnotmatch'),
             ('player','exit [int]$process.ExitCode',
-             'exit [int]$process.ExitCode\\n$original = Join-Path $package \\'Game\\''),
+             "exit [int]$process.ExitCode\n$original = Join-Path $package 'Game'"),
             ('player','-Attributes ReparsePoint','-Attributes Hidden'),
             ('player',"Get-FileHash -LiteralPath $engine -Algorithm SHA256",
              'Get-FileHash -LiteralPath $engine -Algorithm MD5'),
