@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "rloft/automap_annotations.hpp"
+#include "rloft/automap_viewport_presenter.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 
@@ -10,10 +11,12 @@ namespace rloft {
 
 class AutomapAnnotationPresenter final {
 public:
-    static constexpr int kClipRowMin = 6;
-    static constexpr int kClipRowMax = 0x189;
-    static constexpr int kClipColumnMin = 4;
-    static constexpr int kClipColumnMax = 0xEF;
+    // All automap layers share the SAME physical map rectangle.
+    // The older text-only bounds (y=393, x=239) bled into chrome.
+    static constexpr int kClipRowMin = AutomapViewportPresenter::kMapMinY;
+    static constexpr int kClipRowMax = AutomapViewportPresenter::kMapMaxY;
+    static constexpr int kClipColumnMin = AutomapViewportPresenter::kMapMinX;
+    static constexpr int kClipColumnMax = AutomapViewportPresenter::kMapMaxX;
 
     explicit AutomapAnnotationPresenter(
         const RavenloftBootAssets& assets)
