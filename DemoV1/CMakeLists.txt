@@ -51,6 +51,12 @@ if(Python3_Interpreter_FOUND)
         NAME enhanced_level22_player_scene_source_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_level22_pipeline.py")
+    # Player-port releases build quickly; exhaustive original-DOS x86
+    # source research remains an opt-in full workflow, not an Alpha gate.
+    add_test(
+        NAME enhanced_port_build_pipeline_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_port_build_pipeline.py")
     # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
     add_test(
         NAME alpha_frontend_preservation_contract_tests
