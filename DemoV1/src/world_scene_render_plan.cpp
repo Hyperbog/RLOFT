@@ -27,7 +27,8 @@ WorldSceneRenderPlan build_one(
     const WorldSceneDrawCall& call,
     const RendererTables& tables,
     const std::vector<ViewSweepRecord>& rays,
-    const WorldSceneRenderPlanModel::ShapeLookup& shape_lookup) {
+    const WorldSceneRenderPlanModel::ShapeLookup& shape_lookup,
+    bool skip_dos_microcode) {
     WorldSceneRenderPlan plan{};
     plan.call = call;
     const auto& shape = shape_lookup(call.resource_id);
@@ -52,8 +53,10 @@ WorldSceneRenderPlan build_one(
             });
         }
     }
-    plan.microcode_draws = Type7MicrocodePlanModel::build(
-        shape, plan.traversal, plan.visible_columns, tables);
+    if (!skip_dos_microcode) {
+        plan.microcode_draws = Type7MicrocodePlanModel::build(
+            shape, plan.traversal, plan.visible_columns, tables);
+    }
     return plan;
 }
 
@@ -69,7 +72,7 @@ WorldSceneRenderPlanModel::build(
     std::vector<WorldSceneRenderPlan> out;
     out.reserve(calls.size());
     for(const auto& call:calls) {
-        out.push_back(build_one(call,tables,rays,shape_lookup));
+        out.push_back(build_one(call,tables,rays,shape_lookup,false));
     }
     return out;
 }
@@ -78,7 +81,8 @@ WorldSceneRenderPlanAttempt WorldSceneRenderPlanModel::try_build(
     const std::vector<WorldSceneDrawCall>& calls,
     const RendererTables& tables,
     const std::vector<ViewSweepRecord>& rays,
-    const ShapeLookup& shape_lookup) {
+    const ShapeLookup& shape_lookup,
+    bool skip_dos_microcode) {
     require_lookup(calls,shape_lookup);
     WorldSceneRenderPlanAttempt out{};
     out.plans.reserve(calls.size());
@@ -86,7 +90,7 @@ WorldSceneRenderPlanAttempt WorldSceneRenderPlanModel::try_build(
         const auto& call=calls[index];
         try {
             out.plans.push_back(build_one(
-                call,tables,rays,shape_lookup));
+                call,tables,rays,shape_lookup,skip_dos_microcode));
         } catch(const std::exception& error) {
             // Preserve the exact CODE.2 draw-call order, resource and
             // interaction source. A placeholder is NOT a hidden sprite.
