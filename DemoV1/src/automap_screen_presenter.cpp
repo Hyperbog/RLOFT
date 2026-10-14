@@ -29,6 +29,12 @@ void AutomapScreenPresenter::draw(
     const RendererTables& tables,
     const AutomapScreenState& state,
     bool annotation_overlay_enabled) const {
+    // The native viewport retains its previous frame between modal
+    // transitions. Clear it before assembling the automap so undrawn
+    // areas cannot leak old trees, terrain, or UI pixels through
+    // transparent RES0 chrome and unexplored map cells.
+    framebuffer.clear(0U);
+
     // CODE.2 011A8: six copies of RES0 local 3Eh repaint the clipped map
     // field before 0139C emits tiles.
     for (int column = 0;
