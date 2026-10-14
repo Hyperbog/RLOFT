@@ -896,6 +896,13 @@ add_executable(enhanced_scene_mode_tests
 target_link_libraries(enhanced_scene_mode_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_scene_mode_tests COMMAND enhanced_scene_mode_tests)
 
+# Native in-game options (same window/framebuffer) and real audio toggle.
+add_executable(enhanced_options_presenter_tests
+    tests/enhanced_options_presenter_tests.cpp)
+target_link_libraries(enhanced_options_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_options_presenter_tests
+    COMMAND enhanced_options_presenter_tests)
+
 add_executable(enhanced_type7_compositor_tests
     tests/enhanced_type7_compositor_tests.cpp)
 target_link_libraries(enhanced_type7_compositor_tests PRIVATE rloft_boot_flow)
