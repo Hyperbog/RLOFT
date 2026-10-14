@@ -34,21 +34,25 @@ bool AutomapAnnotationPresenter::visible(
     int viewport_row) {
     const int row0 = viewport_column * 8;
     const int column0 = viewport_row * 5;
-    const int row1 = row0 + 0x184;
-    const int column1 = column0 + 0xEC;
 
-    const int rx = annotation.raw_x;
-    const int ry = annotation.raw_y;
-    bool result = rx >= row0 && rx <= row1;
-
-    if (result && (ry < column0 || ry > column1)) {
-        const int end =
-            ry + bounded_extent(annotation, font);
-        result =
-            end >= column0 &&
-            end <= column1;
+    // The raster may enter the viewport from ABOVE or LEFT; testing the
+    // text origin alone drops labels that should be partially visible.
+    // Likewise a label whose end leaves the right edge must not vanish.
+    // Match the real tile/marker bounds, rather than the old 0x189/0xEF
+    // annotation-only rectangle which painted over the chrome.
+    const int row_min = row0 + kClipRowMin;
+    const int row_max = row0 + kClipRowMax;
+    const int column_min = column0 + kClipColumnMin;
+    const int column_max = column0 + kClipColumnMax;
+    int vertical_span = font.raster.height;
+    for (const auto value : annotation.payload) {
+        if (value == 0x0DU) vertical_span += 0x0C;
     }
-    return result;
+    const int rx = static_cast<int>(annotation.raw_x);
+    const int ry = static_cast<int>(annotation.raw_y);
+    const int text_end = ry + bounded_extent(annotation, font);
+    return rx <= row_max && rx + vertical_span > row_min &&
+           ry <= column_max && text_end > column_min;
 }
 
 void AutomapAnnotationPresenter::draw_glyph_clipped(
