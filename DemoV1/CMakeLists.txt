@@ -855,6 +855,14 @@ add_executable(exploration_hud_presenter_tests tests/exploration_hud_presenter_t
 target_link_libraries(exploration_hud_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_tests)
 
+# Enhanced PC port renders original decoded RES3 sprites without DOS VGA
+# execution. Synthetic clipping/mask/SINTAB regressions need no media.
+add_executable(enhanced_type7_compositor_tests
+    tests/enhanced_type7_compositor_tests.cpp)
+target_link_libraries(enhanced_type7_compositor_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_type7_compositor_tests
+    COMMAND enhanced_type7_compositor_tests)
+
 add_executable(exploration_presenter_tests tests/exploration_presenter_tests.cpp)
 target_link_libraries(exploration_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_presenter_tests COMMAND exploration_presenter_tests)
