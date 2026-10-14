@@ -84,6 +84,49 @@ AutomapTileDraw AutomapViewportPresenter::tile_draw(
     };
 }
 
+std::size_t AutomapViewportPresenter::draw_tile_clipped(
+    IndexedFramebuffer& framebuffer,
+    const Type1Raster& raster,
+    int frame,
+    int y,
+    int x,
+    const std::array<std::uint8_t,256>& color_map) {
+    if (frame<0 || frame>=raster.count || raster.width<=0 ||
+        raster.height<=0) {
+        throw std::out_of_range("automap tile frame or geometry invalid");
+    }
+    const auto width=static_cast<std::size_t>(raster.width);
+    const auto height=static_cast<std::size_t>(raster.height);
+    const auto pixels_per_frame=width*height;
+    const auto index=static_cast<std::size_t>(frame);
+    if (pixels_per_frame>raster.pixels.size() ||
+        index>raster.pixels.size()/pixels_per_frame ||
+        pixels_per_frame>raster.pixels.size()-index*pixels_per_frame) {
+        throw std::invalid_argument("automap tile resource payload truncated");
+    }
+    const auto start=index*pixels_per_frame;
+    auto& destination=framebuffer.mutable_pixels();
+    std::size_t writes=0U;
+    for (int yy=0;yy<raster.height;++yy) {
+        const auto row=static_cast<long long>(y)+yy;
+        if(row<kMapMinY || row>kMapMaxY)continue;
+        for(int xx=0;xx<raster.width;++xx) {
+            const auto col=static_cast<long long>(x)+xx;
+            if(col<kMapMinX || col>kMapMaxX)continue;
+            const auto value=raster.pixels[
+                start+static_cast<std::size_t>(yy)*width+
+                static_cast<std::size_t>(xx)];
+            if(raster.transparent_index!=0xFFU &&
+               value==raster.transparent_index)continue;
+            destination[static_cast<std::size_t>(row)*
+                IndexedFramebuffer::kWidth+
+                static_cast<std::size_t>(col)]=color_map[value];
+            ++writes;
+        }
+    }
+    return writes;
+}
+
 void AutomapViewportPresenter::draw_tiles(
     IndexedFramebuffer& framebuffer,
     const ExplorationSessionState& session,
@@ -143,9 +186,7 @@ void AutomapViewportPresenter::draw_tiles(
                     session.level,
                     cell,
                     origin);
-            if (draw.frame >=
-                static_cast<std::uint8_t>(
-                    tiles.count)) {
+            if (static_cast<int>(draw.frame)>=tiles.count) {
                 throw std::runtime_error(
                     "automap tile frame exceeds RES0 resource");
             }
@@ -156,12 +197,11 @@ void AutomapViewportPresenter::draw_tiles(
             remap[0xB1] = draw.remap_b1;
             remap[0xB5] = draw.remap_b5;
 
-            framebuffer.draw_frame_mapped(
-                tiles,
-                draw.frame,
-                draw.screen_y,
-                draw.screen_x,
-                remap);
+            // Source palette remapping is preserved, but the pixel
+            // blit cannot overwrite border/chrome outside the map field.
+            (void)draw_tile_clipped(
+                framebuffer,tiles,draw.frame,draw.screen_y,
+                draw.screen_x,remap);
 
             remap[0xB1] = 0xB1U;
             remap[0xB5] = 0xB5U;
