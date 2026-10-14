@@ -51,9 +51,19 @@ even though the result was no longer used to draw native pixels.
   diagnostics and native runtime source tests (the default constructor
   still retains its previous behavior).
 - `enhanced_scene_mode_tests` checks this opt-in state.
-  `enhanced_level22_player_scene_source_tests` now rejects ten
+  `enhanced_level22_player_scene_source_tests` now rejects twelve
   deliberately introduced regressions, including re-enabling the DOS
   trace on a player frame or failing to opt into the faster native path.
+
+The enhanced scene-planning route also sets
+`skip_dos_microcode=true` in `WorldSceneRenderPlanModel::try_build`,
+which preserves original RES3 shape geometry, draw-call order, SINTAB
+scale and wall-depth clipped columns **without** constructing unused
+self-modifying-x86 patch descriptors. Strict `build()` and default
+`try_build()` remain unchanged for forensic tests. An extended
+`world_scene_render_plan_tests` regression verifies that deliberately
+corrupt DOS-only patch offsets still leave the enhanced sprite visible
+in the planning result, while the strict reference path rejects them.
 
 This is a targeted reduction in CPU work per gameplay frame, not a claim
 of a measured Windows FPS improvement. Such a measurement requires an
