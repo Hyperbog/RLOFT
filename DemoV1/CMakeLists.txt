@@ -642,6 +642,14 @@ add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
 target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
 add_test(NAME level_world_state_tests COMMAND level_world_state_tests)
 
+# PC-port equipment graphics must show both gauntlet/bracer copies,
+# with an immutable source asset and safe transparency.
+add_executable(enhanced_inventory_blit_tests
+    tests/enhanced_inventory_blit_tests.cpp)
+target_link_libraries(enhanced_inventory_blit_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_inventory_blit_tests
+    COMMAND enhanced_inventory_blit_tests)
+
 add_executable(inventory_screen_tests tests/inventory_screen_tests.cpp)
 target_link_libraries(inventory_screen_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
