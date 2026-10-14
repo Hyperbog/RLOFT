@@ -66,8 +66,8 @@ def check(workflow:str,cmake:str) -> None:
                   workflow.index("      - name: Stage isolated Alpha normal-game field launcher")]
     if full.count("github.event_name == 'workflow_dispatch' && inputs.build_mode == 'full'")!=2:
         raise ValueError("the full historical suite must be opt-in")
-    canonical=workflow[workflow.index("      - name: Optional canonical CODE.2 C++17 research syntax audit"):
-                       workflow.index("      - name: Configure")]
+    canonical=windows[windows.index("      - name: Optional canonical CODE.2 C++17 research syntax audit"):
+                       windows.index("      - name: Configure")]
     if "github.event_name == 'workflow_dispatch' && inputs.build_mode == 'full'" not in canonical:
         raise ValueError("CODE.2 syntax audit is still a mandatory PC port gate")
 
