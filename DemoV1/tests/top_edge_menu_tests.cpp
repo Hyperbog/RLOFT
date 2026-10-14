@@ -25,6 +25,12 @@ int main() {
 
     assert(TopEdgeMenuModel::selection_from_mouse(120, 63) == 3);
     assert(TopEdgeMenuModel::selection_from_mouse(120, 64) == -1);
+    // The enhanced PC host can see letterboxed/off-image mouse
+    // positions. Those are never valid gameplay/menu clicks.
+    assert(TopEdgeMenuModel::selection_from_mouse(-1, 20) == -1);
+    assert(TopEdgeMenuModel::selection_from_mouse(40, -1) == -1);
+    assert(TopEdgeMenuModel::selection_from_mouse(319, 63) == 7);
+    assert(TopEdgeMenuModel::selection_from_mouse(320, 30) == -1);
 
     assert(TopEdgeMenuModel::label(TopEdgeMenuAction::Rest) == "rest");
     assert(TopEdgeMenuModel::label(TopEdgeMenuAction::Pray) == "pray");
