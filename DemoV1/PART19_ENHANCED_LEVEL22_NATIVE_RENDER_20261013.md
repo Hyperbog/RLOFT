@@ -36,6 +36,29 @@ Only the eight frame delay sites in `run_exploration` now use `kNativeGameplayRe
 
 The established native GDI window already suppresses WM_ERASEBKGND and paints via an offscreen bitmap; this patch targets a more direct reason for the owner-reported empty/flickering field: scenery drawing used to fail closed when the DOS VGA trace was unsupported.
 
+### 4. Stop executing the DOS VGA tracer during ordinary gameplay
+
+After composing native sprites, the legacy runtime was still computing
+`Type7VgaFrameTraceModel::try_build` for every scene each frame. This could
+require additional original SINTAB generated-code and plane-mask inspection
+even though the result was no longer used to draw native pixels.
+
+- `ExplorationRuntime::set_enhanced_pc_scene_rendering(true)` turns off
+  **only** the DOS VGA trace build. Scene selection, world records,
+  authored draw calls and depth-clipped `WorldSceneRenderPlan` stay intact.
+- Normal Windows `run_exploration` sets this mode when `--dev-trace` is
+  **not** requested. The forensic trace remains available in developer
+  diagnostics and native runtime source tests (the default constructor
+  still retains its previous behavior).
+- `enhanced_scene_mode_tests` checks this opt-in state.
+  `enhanced_level22_player_scene_source_tests` now rejects ten
+  deliberately introduced regressions, including re-enabling the DOS
+  trace on a player frame or failing to opt into the faster native path.
+
+This is a targeted reduction in CPU work per gameplay frame, not a claim
+of a measured Windows FPS improvement. Such a measurement requires an
+actual player device and completed source-matched build.
+
 ## Tests and limits
 
 - `enhanced_type7_compositor_tests` (registered CTest): palette/mask, first and last viewport columns, horizon, 1x/2x/4x vertical scale, blank source rows, clipping, painter order, corrupt source and malformed scale fail-closed behavior.
