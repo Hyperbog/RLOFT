@@ -135,7 +135,7 @@ jobs:
           enhanced_inventory_blit_tests
           enhanced_type7_compositor_tests enhanced_scene_mode_tests
           enhanced_world_music_tests enhanced_options_presenter_tests
-          automap_screen_presenter_tests automap_viewport_presenter_tests automap_viewport_presenter_tests
+          automap_screen_presenter_tests automap_viewport_presenter_tests
           exploration_frame_capture_tests world_scene_render_plan_tests
       - name: Test game and enhanced-port regressions
         if: ${{ github.event_name == 'push' || inputs.build_mode == 'quick' }}
