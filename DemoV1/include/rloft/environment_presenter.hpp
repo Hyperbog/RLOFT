@@ -31,8 +31,9 @@ public:
         const std::vector<EnvironmentDrawCommand>& commands);
 
     // Portable equivalent of CODE.2 2A478 / clipped 2A8A0 for one decoded
-    // type-1 frame: subtract an unsigned byte shade from every nontransparent
-    // palette index, preserving 8-bit wraparound.
+    // type-1 frame: default remains source-authentic 8-bit SUB wrap.
+    // Enhanced PC exploration can opt into clamping negative palette
+    // indices rather than wrapping to an unrelated bright high index.
     static void draw_subtracted(
         IndexedFramebuffer& framebuffer,
         const Type1Raster& raster,
@@ -40,7 +41,8 @@ public:
         int row,
         int column,
         int shade,
-        bool clip_to_environment);
+        bool clip_to_environment,
+        bool clamp_shade_for_enhanced_pc = false);
 
 private:
     const RavenloftBootAssets& assets_;
