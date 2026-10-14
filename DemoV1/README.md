@@ -29,6 +29,23 @@ animation and character creation; fix the actual blank/flickering Level 22
 world, missing environmental scenery and audio; then connect campaign-wide
 mechanics, levels and robust port saves. Windows x64 is the first target.
 
+## Current Level 22 UI/graphics checkpoint — October 14, 2026
+
+The [Part 21 triage](PART21_LEVEL22_GRAPHICS_AUTOMAP_OPTIONS_STATUS_20261014.md)
+records the four **separate** owner-reported Level 22 defect areas
+(graphics, inventory, automap, top menu). Title-screen Continue is a
+**separate** save/load feature, not another Level 22 defect.
+
+The [Part 22 native modal-input checkpoint](PART22_LEVEL22_MODAL_INPUT_20261014.md)
+implements automap arrow/Shift+arrow pan and isolates inventory/map
+keyboard input from world movement. The Windows source-matched build
+[`5c9e87b4`](https://github.com/Hyperbog/RLOFT/actions/runs/38630980570)
+passed **37/37 focused tests** and published a verified Windows Alpha
+artifact. The original opening, sound and character creation remain
+preserved. **No new owner Level 22 graphics/inventory acceptance has yet
+been recorded:** tree placement/colors, other inventory bugs, map visual
+details, missing top-menu gameplay actions, and title Continue remain open.
+
 ## Part 20 — Native Alpha build acceleration and Level 22 music
 
 [Windows enhanced-port release/test workflow and authored XMIDI cue](PART20_ENHANCED_ALPHA_BUILD_AND_WORLD_MUSIC_20261013.md).
