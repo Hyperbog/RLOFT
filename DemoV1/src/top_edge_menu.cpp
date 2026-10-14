@@ -21,7 +21,13 @@ int TopEdgeMenuModel::selection_from_mouse_x(int mouse_x) noexcept {
 int TopEdgeMenuModel::selection_from_mouse(
     int mouse_x,
     int mouse_y) noexcept {
-    if (!active_for_mouse_y(mouse_y)) {
+    // The native window can supply off-canvas coordinates during
+    // pointer capture or scaled letterboxing. Original signed IDIV
+    // truncates -1/40 to zero, which would incorrectly click Rest.
+    // Preserve the source arithmetic in selection_from_mouse_x()
+    // while rejecting non-image pointer coordinates at this boundary.
+    if (mouse_x < 0 || mouse_x >= kWidth ||
+        mouse_y < 0 || !active_for_mouse_y(mouse_y)) {
         return -1;
     }
     return selection_from_mouse_x(mouse_x);
