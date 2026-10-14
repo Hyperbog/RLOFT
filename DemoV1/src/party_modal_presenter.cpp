@@ -1,6 +1,7 @@
 #include "rloft/party_modal_presenter.hpp"
 
 #include "rloft/party_hud.hpp"
+#include "rloft/enhanced_inventory_blit.hpp"
 #include "rloft/original_party_modal_blit.hpp"
 
 #include <algorithm>
@@ -197,13 +198,6 @@ std::size_t PartyModalPresenter::draw_inventory(
 
     std::size_t mirrored_pending = 0;
     for (const auto& draw : model.draws) {
-        if (draw.temporarily_flip_sprite) {
-            // 10BBC brackets this copy with external helper 3A258. Its
-            // transformation axis is not yet certified in the native port.
-            ++mirrored_pending;
-            continue;
-        }
-
         const auto raster =
             assets_.type1(
                 1,
@@ -228,11 +222,19 @@ std::size_t PartyModalPresenter::draw_inventory(
                 0);
         }
 
-        framebuffer.draw_frame(
-            raster,
-            0,
-            draw.x,
-            draw_column);
+        if (draw.temporarily_flip_sprite) {
+            // Native enhanced-PC second bracer/gauntlet image: reflect
+            // the decoded RES1 graphic without mutating the shared
+            // cached original and without dropping a visible item.
+            (void)EnhancedInventoryBlit::reflected_horizontal(
+                framebuffer,raster,0,draw.x,draw_column);
+        } else {
+            framebuffer.draw_frame(
+                raster,
+                0,
+                draw.x,
+                draw_column);
+        }
     }
 
     return mirrored_pending;
