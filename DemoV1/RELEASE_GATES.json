@@ -4,13 +4,13 @@
   "product": "Ravenloft: Strahd's Possession — enhanced native PC port",
   "release_policy": "DemoV1/ENHANCED_PC_PORT_CHARTER.md",
   "current_classification": "pre-alpha",
-  "current_distribution": "continuous opening-to-Level22 Windows Pre-Alpha candidate; owner gameplay and renderer acceptance pending",
+  "current_distribution": "Owner confirmed uninterrupted Windows launch through character creation into Level 22 on artifact from build #819; first Level 22 audiovisual/rendering/gameplay quality remains unaccepted.",
   "observed_windows_ci": {
-    "run_number": 676,
-    "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38346121349",
-    "source_sha": "b17871c9ac2350afd0c4667de78a2aca059a5bad",
-    "ctests_passed": 257,
-    "ctests_total": 257,
+    "run_number": 819,
+    "run_url": "https://github.com/Hyperbog/RLOFT/actions/runs/38494095524",
+    "source_sha": "4dfa3eaa170a4622d46f3fa92989c6dbed726683",
+    "ctests_passed": 29,
+    "ctests_total": 29,
     "qualifies_as_original_dos_parity": false
   },
   "evidence_types": [
@@ -102,7 +102,7 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "New party transfer must be observed on the normal continuous Windows game path, not just isolated source tests."
+            "Owner confirms native character-creation path reaches Level 22; exact transferred party names, stats, equipment and ongoing state have not yet been inspected in the current build."
           ]
         },
         {
@@ -115,7 +115,7 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "The previously observed empty/flickering first scene remains an unresolved high-priority native-rendering blocker."
+            "Owner confirms Level 22 loads but reports issues; current sky, ground, background, tree/assassin sprites, frame pacing and HUD need visual evidence and defect triage."
           ]
         },
         {
@@ -139,11 +139,20 @@
             "windows_ci",
             "package_audit"
           ],
-          "status": "open",
-          "evidence": [],
-          "blocked_by": [
-            "The dedicated enhanced-port continuous artifact needs a completed exact-source build and install audit."
-          ]
+          "status": "met",
+          "evidence": [
+            {
+              "type": "windows_ci",
+              "ref": "https://github.com/Hyperbog/RLOFT/actions/runs/38494095524",
+              "source_sha": "4dfa3eaa170a4622d46f3fa92989c6dbed726683"
+            },
+            {
+              "type": "package_audit",
+              "ref": "https://github.com/Hyperbog/RLOFT/actions/runs/38494095524/artifacts/11863357256",
+              "source_sha": "4dfa3eaa170a4622d46f3fa92989c6dbed726683"
+            }
+          ],
+          "blocked_by": []
         },
         {
           "id": "ALPHA-FIELD",
@@ -156,7 +165,7 @@
           "status": "open",
           "evidence": [],
           "blocked_by": [
-            "No fully successful owner-observed native opening-to-Level22 audiovisual and interaction session exists."
+            "Owner confirms continuous Windows launch into Level 22, but does not yet accept the level's visual/audio quality, controls or first gameplay encounter; Alpha field acceptance remains pending."
           ]
         }
       ]
