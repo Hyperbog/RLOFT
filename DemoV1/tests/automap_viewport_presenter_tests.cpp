@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 
 namespace {
 
@@ -113,4 +114,46 @@ int main() {
     assert(rloft::AutomapViewportPresenter::kMapMaxY==389);
     assert(rloft::AutomapViewportPresenter::kMapMinX==4);
     assert(rloft::AutomapViewportPresenter::kMapMaxX==238);
+
+    // Native automap terrain tiles use the SAME clipping bounds as
+    // the arrow; this must preserve chrome immediately outside map.
+    rloft::Type1Raster tile{};
+    tile.count=1;
+    tile.width=3;
+    tile.height=2;
+    tile.transparent_index=254U;
+    tile.pixels={0xB1U,0xB5U,254U,4U,5U,6U};
+    std::array<std::uint8_t,256> map{};
+    for(std::size_t i=0;i<map.size();++i)map[i]=
+        static_cast<std::uint8_t>(i);
+    map[0xB1]=0x21U;
+    map[0xB5]=0x22U;
+    framebuffer.clear(0x33U);
+    auto drawn=rloft::AutomapViewportPresenter::draw_tile_clipped(
+        framebuffer,tile,0,389,238,map);
+    assert(drawn==1U);
+    assert(at(389,238)==0x21U);
+    assert(at(389,239)==0x33U);
+    assert(at(390,238)==0x33U);
+
+    framebuffer.clear(0x33U);
+    drawn=rloft::AutomapViewportPresenter::draw_tile_clipped(
+        framebuffer,tile,0,388,237,map);
+    assert(drawn==4U);
+    assert(at(388,237)==0x21U);
+    assert(at(388,238)==0x22U);
+    assert(at(389,237)==4U);
+    assert(at(389,238)==5U);
+    assert(at(388,239)==0x33U);
+    assert(at(390,238)==0x33U);
+
+    // Corrupt inputs must not partially overwrite the automap.
+    tile.pixels.pop_back();
+    bool rejected=false;
+    try{
+        (void)rloft::AutomapViewportPresenter::draw_tile_clipped(
+            framebuffer,tile,0,388,237,map);
+    }catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected);
+    assert(at(388,237)==0x21U);
 }
