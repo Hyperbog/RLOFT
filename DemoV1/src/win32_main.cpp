@@ -36,6 +36,7 @@
 #include "rloft/automap_screen_state.hpp"
 #include "rloft/automap_screen_presenter.hpp"
 #include "rloft/automap_controls.hpp"
+#include "rloft/enhanced_automap_keyboard.hpp"
 #include "rloft/boot_flow.hpp"
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
@@ -397,6 +398,17 @@ public:
         inventory_mode_=enabled;
     }
 
+    // In the automap modal, arrow keys pan the map. They must never
+    // reach the exploration movement controller; queued input from
+    // before the modal must not execute when the game resumes.
+    void set_automap_mode(bool enabled) {
+        if (automap_mode_ != enabled) {
+            key_events_.clear();
+            if (exploration_input_) exploration_input_->clear();
+        }
+        automap_mode_ = enabled;
+    }
+
     void set_session_trace(rloft::DevSessionTrace* trace) noexcept {
         session_trace_=trace;
     }
@@ -692,6 +704,15 @@ private:
                     return 0;
                 }
 
+                if (automap_mode_ && exploration_input_) {
+                    if (const auto action =
+                            rloft::EnhancedAutomapKeyboard::action_for_key(
+                                static_cast<std::uint32_t>(wparam),
+                                (GetKeyState(VK_SHIFT) & 0x8000) != 0)) {
+                        key_events_.push_back(*action);
+                    }
+                    return 0;
+                }
                 if (exploration_input_) {
                     if(inventory_mode_ && wparam=='D') {
                         // Original scan 20h -> translated 44h; ignore
@@ -736,6 +757,7 @@ private:
                             static_cast<std::int64_t>(wparam));
                     }catch(...) {session_trace_=nullptr;}
                 }
+                if (automap_mode_ && exploration_input_) return 0;
                 if (exploration_input_) {
                     if(inventory_mode_ && wparam=='D')return 0;
                     if (const auto scan = legacy_scan_from_vk(wparam)) {
@@ -941,6 +963,7 @@ private:
     bool menu_mode_{false};
     bool character_mode_{false};
     bool inventory_mode_{false};
+    bool automap_mode_{false};
     rloft::ExplorationLegacyInputController* exploration_input_{nullptr};
     rloft::DevSessionTrace* session_trace_{nullptr};
     int selection_{-1};
@@ -1310,6 +1333,7 @@ int run_exploration(
                 // automap panel action 11 below.
                 ui.close_screen();
                 automap.reset();
+                host.set_automap_mode(false);
                 input.clear();
                 continue;
             }
@@ -1375,6 +1399,17 @@ int run_exploration(
                 automap.emplace(runtime.session());
             }
 
+            // Repeatable arrow/Shift+arrow navigation uses the SAME
+            // mapped map-controller actions as the clickable arrows.
+            // The host captures these keys exclusively while the map
+            // modal owns input: no latent party movement on return.
+            if (const auto action=host.consume_key_event()) {
+                (void)automap->apply_action(
+                    *action,
+                    runtime.session().level.width,
+                    runtime.session().level.height);
+            }
+
             if (const auto click =
                     host.consume_exploration_click()) {
                 if (const auto action =
@@ -1390,6 +1425,7 @@ int run_exploration(
                         rloft::AutomapModalResult::Close) {
                         ui.close_screen();
                         automap.reset();
+                        host.set_automap_mode(false);
                         input.clear();
                         continue;
                     }
@@ -2007,6 +2043,7 @@ int run_exploration(
                                             runtime.session()));
                             automap.emplace(
                                 runtime.session());
+                            host.set_automap_mode(true);
                         } else if (
                             ui.state().screen ==
                             rloft::ExplorationUiScreen::QuitConfirm) {
