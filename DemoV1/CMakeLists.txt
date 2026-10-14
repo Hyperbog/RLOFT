@@ -863,6 +863,12 @@ add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_
 
 # Enhanced PC port renders original decoded RES3 sprites without DOS VGA
 # execution. Synthetic clipping/mask/SINTAB regressions need no media.
+# Keep expensive DOS-only scene tracing out of normal enhanced play.
+add_executable(enhanced_scene_mode_tests
+    tests/enhanced_scene_mode_tests.cpp)
+target_link_libraries(enhanced_scene_mode_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_scene_mode_tests COMMAND enhanced_scene_mode_tests)
+
 add_executable(enhanced_type7_compositor_tests
     tests/enhanced_type7_compositor_tests.cpp)
 target_link_libraries(enhanced_type7_compositor_tests PRIVATE rloft_boot_flow)
