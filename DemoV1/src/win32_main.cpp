@@ -1091,6 +1091,39 @@ int run_exploration(
     rloft::PartyModalPresenter party_modal_presenter(assets);
     rloft::QuitConfirmPresenter quit_presenter(assets);
     exploration_stage("exploration.presenters.ready");
+
+    // Enhanced PC audio: CODE.2 level header +0x29C is an authored RES5
+    // XMIDI cue, not a DOS hardware timer or a made-up ambient track.
+    // Keep the existing opening/character music unchanged; only activate
+    // world music at the actual CODE.1 -> CODE.2 gameplay boundary.
+    std::optional<std::pair<std::uint32_t,std::uint8_t>>
+        last_requested_world_music;
+    const auto start_authored_world_music = [&]() {
+        const auto key=std::make_pair(
+            runtime.session().level_id,
+            runtime.session().level.music_sequence);
+        if(last_requested_world_music == key) return;
+        // Deduplicate even if no MIDI output device or the owner's RES5
+        // is missing. Audio failure must not erase a visible world.
+        last_requested_world_music=key;
+        try {
+            midi_player.play(
+                rloft::parse_xmidi_sequence(
+                    assets.music_sequence(
+                        static_cast<int>(key.second)),1),
+                0,100,0x9C4);
+        } catch(const std::exception& error) {
+            OutputDebugStringA("RLOFT native level-music unavailable: ");
+            OutputDebugStringA(error.what());
+            OutputDebugStringA("\n");
+            if(trace) {
+                try{trace->error("exploration.music",error.what());}
+                catch(...) {}
+            }
+        }
+    };
+    start_authored_world_music();
+
     // Stage-only reporting on the very first actual gameplay viewport.
     // Rendering, original IRQ ticks and mutable world state are unchanged.
     bool first_scene_submitted = false;
@@ -1258,6 +1291,9 @@ int run_exploration(
     };
 
     while (host.pump()) {
+        // Re-select only if the authored level or its default cue changed,
+        // or if a cinematic stopped the previous sequence.
+        start_authored_world_music();
         if (host.consume_escape()) {
             if (ui.state().screen ==
                 rloft::ExplorationUiScreen::Automap) {
@@ -1462,6 +1498,7 @@ int run_exploration(
                                             audio_player,midi_player);
                                         audio_player.stop_all();
                                         midi_player.stop();
+                                        last_requested_world_music.reset();
                                         host.set_exploration_input(&input);
                                         host.set_inventory_mode(true);
                                         if(result==CinematicResult::Quit)
@@ -1511,6 +1548,7 @@ int run_exploration(
                             // over the resumed original inventory panel.
                             audio_player.stop_all();
                             midi_player.stop();
+                            last_requested_world_music.reset();
                             host.set_exploration_input(&input);
                             host.set_inventory_mode(true);
                             host.set_game_cursor(normal_inventory_cursor);
