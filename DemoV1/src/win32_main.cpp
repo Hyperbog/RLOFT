@@ -53,6 +53,7 @@
 #include "rloft/party_panel_controls.hpp"
 #include "rloft/quit_confirm.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
+#include "rloft/enhanced_options_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -1089,6 +1090,8 @@ int run_exploration(
     rloft::ExplorationPresenter presenter(assets);
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::AutomapScreenPresenter automap_presenter(assets);
+    const auto options_font=assets.res0_font(1);
+    rloft::EnhancedOptionsPresenter options_presenter(options_font);
     rloft::PartyModalPresenter party_modal_presenter(assets);
     rloft::QuitConfirmPresenter quit_presenter(assets);
     exploration_stage("exploration.presenters.ready");
@@ -1098,7 +1101,9 @@ int run_exploration(
     // Keep the existing opening/character music unchanged; only activate
     // world music at the actual CODE.1 -> CODE.2 gameplay boundary.
     rloft::EnhancedWorldMusicState world_music_state;
+    bool gameplay_music_enabled=true;
     const auto start_authored_world_music = [&]() {
+        if (!gameplay_music_enabled) return;
         const auto level_id=runtime.session().level_id;
         const auto sequence_id=runtime.session().level.music_sequence;
         // Audio absence must not erase a playable scene. Deduplicate even
@@ -1294,6 +1299,12 @@ int run_exploration(
         start_authored_world_music();
         if (host.consume_escape()) {
             if (ui.state().screen ==
+                rloft::ExplorationUiScreen::Options) {
+                ui.close_screen();
+                input.clear();
+                continue;
+            }
+            if (ui.state().screen ==
                 rloft::ExplorationUiScreen::Automap) {
                 // Host safety escape. The faithful mouse exit remains
                 // automap panel action 11 below.
@@ -1319,6 +1330,43 @@ int run_exploration(
                 continue;
             }
             break;
+        }
+
+        if (ui.state().screen ==
+            rloft::ExplorationUiScreen::Options) {
+            // A native in-game options surface, not a second Windows
+            // utility window. Options action applies immediately.
+            if (const auto click=host.consume_exploration_click()) {
+                const auto choice=rloft::EnhancedOptionsPresenter::action_at(
+                    click->row,click->column);
+                if (choice==
+                    rloft::EnhancedOptionsSelection::ReturnToGame) {
+                    ui.close_screen();
+                    input.clear();
+                    continue;
+                }
+                if (choice==
+                    rloft::EnhancedOptionsSelection::ToggleMusic) {
+                    gameplay_music_enabled=!gameplay_music_enabled;
+                    if(!gameplay_music_enabled) {
+                        midi_player.stop();
+                    }
+                    world_music_state.invalidate();
+                    if(gameplay_music_enabled)start_authored_world_music();
+                }
+            }
+            options_presenter.draw(
+                presenter.framebuffer(),gameplay_music_enabled);
+            present_traced(presenter.framebuffer(),exploration_palette);
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kNativeGameplayRefreshHz));
+            if (!host.wait_until(next_frame,false))break;
+            const auto now=Clock::now();
+            if(next_frame+std::chrono::milliseconds(100)<now)
+                next_frame=now;
+            continue;
         }
 
         if (ui.state().screen ==
@@ -1934,13 +1982,16 @@ int run_exploration(
                         action_for_selection(
                             pressed_menu);
 
-                // These menu cases now have faithful native modal handlers.
-                // Rest/pray/memorize/load/save/options remain explicitly
-                // deferred rather than entering incomplete state mutation.
+                // Automap/Quit use original modal controllers; Options
+                // now opens a real enhanced native game panel. Rest,
+                // Pray, Memorize, Load and Save still require integrated
+                // mechanics/persistence and must not fake a success.
                 if (action ==
                         rloft::TopEdgeMenuAction::Automap ||
                     action ==
-                        rloft::TopEdgeMenuAction::Quit) {
+                        rloft::TopEdgeMenuAction::Quit ||
+                    action ==
+                        rloft::TopEdgeMenuAction::Options) {
                     ui.update_mouse(
                         click->column,
                         click->row);
