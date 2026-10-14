@@ -46,6 +46,25 @@ preserved. **No new owner Level 22 graphics/inventory acceptance has yet
 been recorded:** tree placement/colors, other inventory bugs, map visual
 details, missing top-menu gameplay actions, and title Continue remain open.
 
+## Part 23 — Level 22 automap annotation clip repair (October 14, 2026)
+
+[Source, tests, build provenance and remaining defects](PART23_LEVEL22_AUTOMAP_ANNOTATION_CLIP_20261014.md).
+
+The enhanced automap text renderer now uses the **same exact 48×47-cell
+clipping rectangle** as its terrain tiles and player marker, preserving
+the right-hand buttons and bottom chrome. Labels overlapping the map
+boundary are partially displayed rather than disappearing. A Windows
+build of source `46d1733d6a145ee7dd7e0eb68f848cdc4216814f`
+[passed 38/38 focused tests](https://github.com/Hyperbog/RLOFT/actions/runs/38654822818)
+and published a continuous Alpha artifact; its ZIP, PE signature,
+source stamp and executable SHA-256 were verified independently.
+
+**Not yet owner-accepted:** Level 22 tree/texture placement and colors,
+other inventory mechanics, remaining automap behaviors, and Rest/Pray/
+Memorize/Load/Save top-menu actions. Title Continue is a **separate**
+native save/load feature. Working intro, character creation and audio
+have not been rewritten.
+
 ## Part 20 — Native Alpha build acceleration and Level 22 music
 
 [Windows enhanced-port release/test workflow and authored XMIDI cue](PART20_ENHANCED_ALPHA_BUILD_AND_WORLD_MUSIC_20261013.md).
