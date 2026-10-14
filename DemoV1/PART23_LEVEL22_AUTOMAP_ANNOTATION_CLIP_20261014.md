@@ -22,7 +22,7 @@ No changes to the intro, title, character creation, audio, world physics, world-
 ## Verified build checkpoint
 
 - Source compiled: **`46d1733d6a145ee7dd7e0eb68f848cdc4216814f`**.
-- [Windows Actions run #?38654822818](https://github.com/Hyperbog/RLOFT/actions/runs/38654822818): **success**, all **38/38 focused Windows CTests passed**, continuous launcher PowerShell syntax and artifact publication passed.
+- [Windows Actions run #38654822818](https://github.com/Hyperbog/RLOFT/actions/runs/38654822818): **success**, all **38/38 focused Windows CTests passed**, continuous launcher PowerShell syntax and artifact publication passed.
 - Published artifact: **`Ravenloft-Continuous-Alpha-Windows-x64`**, GitHub artifact **11935999884**.
 - Downloaded published ZIP was verified independently: ZIP has no bad members; EXE is a Windows PE (`MZ`), **961,536 bytes**; SHA-256 matches `ravenloft_demo_v1.exe.sha256`; `build-source-sha.txt` matches the compiled commit; the launcher has a single owned-media path initialization.
 - This build has **not** been playtested on the owner's Windows PC. The new *annotation-specific* defect is source-and-synthetic-test addressed, **not field accepted**.
