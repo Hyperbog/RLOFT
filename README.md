@@ -2,6 +2,8 @@
 
 **Owner direction, October 13, 2026:** develop a **complete enhanced native PC port** of the game. Original files and all reverse-engineering/decompilation/recompilation work remain valuable research and compatibility resources, but exact DOS x86, VGA, IRQ, mixer, timing and memory/save ABI parity are **not release prerequisites**. Players seeking the unmodified game may use their original copy in DOSBox. The native port remains Pre-Alpha; the authored campaign must still be fully playable and preserve its recognizable content, story and mechanics.
 
+**Universal mod-forward methodology:** [Shared engineering standard](MOD_FORWARD_METHODOLOGY.md) for replaceable game resources, stable content IDs, extensible menus, safe mod packages and editor-ready data across DOS/NES/SNES/SMS/Genesis ports. For RLOFT it is a design policy, **not** evidence that mod loading or editors are already implemented. Existing [workstream branch ownership](docs/BRANCH_OWNERSHIP.md) and original-game preservation rules remain authoritative.
+
 ## Project documentation
 
 **[Central documentation index](docs/INDEX.md)** · [Current cross-workstream status](docs/CURRENT_STATUS.md) · [Branch ownership](docs/BRANCH_OWNERSHIP.md) · [Shared reconstructed source register](docs/SHARED_SOURCE_REGISTER.md) · [Project-specific documentation policy](docs/DOCUMENTATION_POLICY.md)
