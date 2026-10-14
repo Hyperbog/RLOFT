@@ -57,6 +57,12 @@ if(Python3_Interpreter_FOUND)
         NAME enhanced_port_build_pipeline_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_port_build_pipeline.py")
+    # World music defaults come from authored LevelState RES5 cue and
+    # cannot regress back to a silent post-character-creation viewport.
+    add_test(
+        NAME enhanced_world_music_pipeline_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_world_music.py")
     # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
     add_test(
         NAME alpha_frontend_preservation_contract_tests
