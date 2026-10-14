@@ -1,4 +1,5 @@
 #include "rloft/exploration_presenter.hpp"
+#include "rloft/enhanced_type7_compositor.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -154,6 +155,19 @@ bool ExplorationPresenter::original_full_ground_eligible(
         });
 }
 
+bool ExplorationPresenter::enhanced_ground_eligible(
+    const ExplorationRuntimeFrame& frame) {
+    // The modern renderer composites walls *over* the background floor.
+    // Consequently the legacy DOS 22220/FF50 all-rays-sentinel test is
+    // not a requirement for drawing a verified RES4 texture. Keep the
+    // original audit method available for offline parity research.
+    return frame.ground_source_verified &&
+           frame.ground_perspective_ready &&
+           frame.ground_raster_source.size() ==
+               GroundTextureRasterSpec::kTextureHeaderBytes+
+               GroundTextureRasterSpec::kTextureBytes;
+}
+
 void ExplorationPresenter::draw_environment(
     const ExplorationRuntimeFrame& frame) {
     if (!frame.scene.environment_commands.empty()) {
@@ -200,8 +214,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     bool ground_textured_rasterized=false;
     std::size_t ground_indexed_writes=0U;
     std::string ground_render_failure;
-    if (original_c026_initial_enabled_ &&
-        original_full_ground_eligible(frame)) {
+    if (enhanced_ground_eligible(frame)) {
         try {
             GroundTextureRasterSpec ground{};
             ground.phase_u=frame.ground_phase_u;
@@ -383,12 +396,61 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     std::vector<Type7SceneRasterFailure> raster_failures;
     auto scene_outcomes=initial_scene_outcomes(frame);
 
+    // Enhanced PC default: RES3 sprites already have decoded native
+    // 128-row source pixels and a per-pixel transparency mask. Horizontal
+    // placement and wall occlusion remain the existing authored depth-
+    // clipped columns; vertical scale uses SINTAB row spans. The old DOS
+    // VGA interpreter is preserved below as optional historical code,
+    // but it no longer determines whether trees/NPCs are visible.
+    constexpr bool kUseNativePcSprites = true;
+    if (kUseNativePcSprites) {
+        for (std::size_t index=0U;
+             index<frame.world_scene_render_plans.size();++index) {
+            const auto& plan=frame.world_scene_render_plans[index];
+            if (plan.visible_columns.empty()) continue;
+            try {
+                auto found=enhanced_type7_cache_.find(plan.call.resource_id);
+                if (found==enhanced_type7_cache_.end()) {
+                    found=enhanced_type7_cache_.emplace(
+                        plan.call.resource_id,
+                        assets_.res3_type7_native_raster(
+                            plan.call.resource_id)).first;
+                }
+                const auto& block=tables.scale_blocks.at(
+                    plan.traversal.scale_block_index);
+                const auto writes=EnhancedType7Compositor::draw(
+                    framebuffer_,found->second,
+                    plan.visible_columns,block.scale_step);
+                ++output_coverage.type7_calls_rasterized;
+                output_coverage.type7_columns_rasterized+=
+                    plan.visible_columns.size();
+                output_coverage.type7_indexed_writes+=writes;
+                --output_coverage.type7_scene_calls_pending;
+                output_coverage.type7_visible_columns_pending-=
+                    plan.visible_columns.size();
+                scene_outcomes[index]=Type7SceneRenderOutcome::Rasterized;
+            } catch(const std::exception& error) {
+                ++output_coverage.type7_calls_failed;
+                scene_outcomes[index]=Type7SceneRenderOutcome::RasterFailed;
+                raster_failures.push_back(Type7SceneRasterFailure{
+                    plan.call.resource_id,plan.call.source_class,
+                    plan.call.source_index,error.what()});
+            }
+        }
+        // No original VGA microcode trace is needed for enhanced PC
+        // scene drawing; don't label its unsupported wide-instruction
+        // count as missing native-pixel output. Preserve trace failures
+        // separately in ExplorationPresentedFrame for research.
+        output_coverage.type7_unvalidated_wide_runs=0U;
+    }
+
     // The original draw order places world-scene type-7 shapes after
     // the environment and wall surfaces, but before party-panel chrome.
     // 369D8 renders to one of two planar VGA pages. A per-call private
     // copy ensures that a malformed/incompletely modeled descriptor
     // cannot partially corrupt the user's current world framebuffer.
-    if (frame.scene_vga_trace.has_value() &&
+    if (!kUseNativePcSprites &&
+        frame.scene_vga_trace.has_value() &&
         frame.scene_vga_trace->scene_calls.size() ==
             frame.world_scene_render_plans.size()) {
         VgaPlanarMemory video;
