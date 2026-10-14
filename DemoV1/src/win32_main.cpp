@@ -78,6 +78,12 @@ using Clock = std::chrono::steady_clock;
 // next vertical retrace. The same retrace cadence drives DAC burst pacing.
 constexpr double kVgaRefreshHz = 70.0863;
 
+// Enhanced PC exploration display cadence. Unlike the original 70 Hz
+// palette/cinematic/character timing, native gameplay presentation is
+// scheduled for a common 60 Hz monitor. Physics/gameplay integration
+// remains independently clocked by ExplorationGameplayCadence.
+constexpr double kNativeGameplayRefreshHz = 60.0;
+
 std::wstring widen(std::string_view text) {
     if (text.empty()) return {};
     const int count = MultiByteToWideChar(
@@ -1315,7 +1321,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -1354,7 +1360,7 @@ int run_exploration(
                     present_traced(presenter.framebuffer(),exploration_palette);
                     if (!host.pause_frame(
                             std::chrono::duration<double>(
-                                1.0 / kVgaRefreshHz))) {
+                                1.0 / kNativeGameplayRefreshHz))) {
                         break;
                     }
 
@@ -1379,7 +1385,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -1846,7 +1852,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -2118,7 +2124,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -2137,7 +2143,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -2158,7 +2164,7 @@ int run_exploration(
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
-                        1.0 / kVgaRefreshHz));
+                        1.0 / kNativeGameplayRefreshHz));
             if (!host.wait_until(next_frame, false)) {
                 break;
             }
@@ -2366,7 +2372,7 @@ int run_exploration(
 
         next_frame += std::chrono::duration_cast<Clock::duration>(
             std::chrono::duration<double>(
-                1.0 / kVgaRefreshHz));
+                1.0 / kNativeGameplayRefreshHz));
         if (!host.wait_until(next_frame, false)) {
             break;
         }
