@@ -870,6 +870,13 @@ add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_
 # Enhanced PC port renders original decoded RES3 sprites without DOS VGA
 # execution. Synthetic clipping/mask/SINTAB regressions need no media.
 # Keep expensive DOS-only scene tracing out of normal enhanced play.
+# Modern world soundtrack: the original level-header RES5 cue must
+# start once, transition on level change and resume after cinematics.
+add_executable(enhanced_world_music_tests
+    tests/enhanced_world_music_tests.cpp)
+target_link_libraries(enhanced_world_music_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_world_music_tests COMMAND enhanced_world_music_tests)
+
 add_executable(enhanced_scene_mode_tests
     tests/enhanced_scene_mode_tests.cpp)
 target_link_libraries(enhanced_scene_mode_tests PRIVATE rloft_boot_flow)
