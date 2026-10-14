@@ -5,6 +5,14 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Owner field milestone — continuous Windows startup reaches Level 22 (October 13, 2026)
+
+The owner has tested the [Windows continuous-Alpha build #819](https://github.com/Hyperbog/RLOFT/actions/runs/38494095524) and confirmed it **runs all the way to Level 22**. This is the first field-confirmed end-to-end startup checkpoint for the enhanced PC port, including the transition out of character creation. The owner also reports **remaining Level 22 issues**, so this is **not** acceptance of the world renderer, gameplay, audio quality, controls or the full Alpha.
+
+Build source: `4dfa3eaa170a4622d46f3fa92989c6dbed726683`. Windows CI: **29/29 focused tests passed**, clean syntax parse, artifact published. The published ZIP was independently audited for integrity, a matching PE executable SHA-256, exact source revision, original-media auto-discovery, and absence of original copyrighted assets.
+
+**Current release evidence: ALPHA-BUILD met; other nine Alpha gates remain open.** Next work: inspect the current Level 22 frame/video and repair its specific scene/rendering, NPC placement, animation/audio and gameplay defects without regressing the now-working continuous front end.
+
 ## Active policy — enhanced Windows PC port (October 13, 2026)
 
 The project owner superseded the historical strict DOS recreation charter.
