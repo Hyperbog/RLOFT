@@ -420,7 +420,8 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                     plan.traversal.scale_block_index);
                 const auto writes=EnhancedType7Compositor::draw(
                     framebuffer_,found->second,
-                    plan.visible_columns,block.scale_step);
+                    plan.visible_columns,block.scale_step,
+                    plan.rasterizer_setup.source_center+4);
                 ++output_coverage.type7_calls_rasterized;
                 output_coverage.type7_columns_rasterized+=
                     plan.visible_columns.size();
