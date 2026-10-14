@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 def verify(compositor:str,presenter:str,presenter_header:str,
-           host:str,cmake:str) -> None:
+           host:str,cmake:str,runtime:str,runtime_header:str) -> None:
     for item in (
         'class EnhancedType7Compositor final',
         'const Type7NativeRaster& sprite',
@@ -79,9 +79,16 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         raise ValueError('existing CODE.1 animation clock altered')
     if 'frame == 1 || frame == 36' not in host or 'frame == 25' not in host:
         raise ValueError('lady/cat character-opening sound cues changed')
+    # Opt-in enhanced runtime skips the DOS VGA trace on every player frame.
+    if ('!enhanced_pc_scene_rendering_' not in runtime or
+            'scene_vga_masks_.has_value()' not in runtime or
+            'set_enhanced_pc_scene_rendering(bool enabled)' not in runtime_header or
+            'runtime.set_enhanced_pc_scene_rendering(!dev_trace);' not in host):
+        raise ValueError('normal native frame still builds DOS VGA trace')
     for marker in (
         'add_executable(enhanced_type7_compositor_tests',
         'add_test(NAME enhanced_type7_compositor_tests',
+        'add_test(NAME enhanced_scene_mode_tests',
         'NAME alpha_frontend_preservation_contract_tests',
     ):
         if marker not in cmake:
@@ -96,6 +103,8 @@ def main()->int:
         'DemoV1/include/rloft/exploration_presenter.hpp',
         'DemoV1/src/win32_main.cpp',
         'DemoV1/CMakeLists.txt',
+        'DemoV1/src/exploration_runtime.cpp',
+        'DemoV1/include/rloft/exploration_runtime.hpp',
     )
     try:
         sources=[(p/path).read_text(encoding='utf-8') for path in paths]
@@ -112,6 +121,9 @@ def main()->int:
             (3,'frame == 1 || frame == 36','frame == 2 || frame == 36'),
             (4,'add_executable(enhanced_type7_compositor_tests',
              'add_executable(disabled_sprite_tests'),
+            (5,'!enhanced_pc_scene_rendering_', 'false'),
+            (3,'runtime.set_enhanced_pc_scene_rendering(!dev_trace);',
+             '/* native renderer disabled */'),
         )
         for target,before,after in mutations:
             if before not in sources[target]:
@@ -126,7 +138,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (8 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (10 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':
