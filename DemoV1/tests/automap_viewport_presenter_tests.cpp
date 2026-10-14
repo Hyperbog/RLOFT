@@ -115,6 +115,21 @@ int main() {
     assert(rloft::AutomapViewportPresenter::kMapMinX==4);
     assert(rloft::AutomapViewportPresenter::kMapMaxX==238);
 
+    // The arrow may terminate outside the map field; its visible
+    // segment must survive instead of making the entire arrow vanish.
+    framebuffer.clear(0x55U);
+    rloft::AutomapViewportPresenter::draw_line(
+        framebuffer,12,6,-10,6,0xF0U,true);
+    assert(at(6,6)==0xF0U);
+    assert(at(12,6)==0xF0U);
+    assert(at(5,6)==0x55U);
+    framebuffer.clear(0x55U);
+    rloft::AutomapViewportPresenter::draw_line(
+        framebuffer,8,8,8,-5,0xF0U,true);
+    assert(at(8,4)==0xF0U);
+    assert(at(8,8)==0xF0U);
+    assert(at(8,3)==0x55U);
+
     // Native automap terrain tiles use the SAME clipping bounds as
     // the arrow; this must preserve chrome immediately outside map.
     rloft::Type1Raster tile{};
