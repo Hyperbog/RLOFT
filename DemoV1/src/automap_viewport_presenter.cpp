@@ -303,10 +303,10 @@ void AutomapViewportPresenter::draw_player_marker(
     const int end_x =
         static_cast<std::int16_t>(acc_x >> 16U);
 
-    if (end_y < 0 || end_x < 0 || end_y > 0x18F) {
-        return;
-    }
-
+    // Enhanced PC map: preserve the visible portion of the facing
+    // arrow when the tip crosses the map edge. The bounded Bresenham
+    // painter already clips safely to the map field; returning here
+    // made the entire marker arrow disappear at some edge positions.
     draw_line(
         framebuffer,
         start_y,
