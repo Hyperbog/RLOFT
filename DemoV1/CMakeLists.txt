@@ -63,6 +63,11 @@ if(Python3_Interpreter_FOUND)
         NAME enhanced_world_music_pipeline_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_world_music.py")
+    # Enhanced PC in-game Options + automap repaint, not a DOS-only UI demo.
+    add_test(
+        NAME enhanced_level22_ui_source_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_level22_ui.py")
     # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
     add_test(
         NAME alpha_frontend_preservation_contract_tests
