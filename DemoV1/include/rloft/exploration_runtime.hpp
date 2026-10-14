@@ -147,6 +147,16 @@ public:
         return scene_individual_columns_mode_;
     }
     void set_scene_video_page(std::uint8_t page);
+    // PC renderer consumes decoded RES3 sprites directly. Skip per-frame
+    // x86 VGA mask trace in ordinary gameplay; allow it only for offline
+    // source diagnostics. This setting does not alter world/gameplay state.
+    void set_enhanced_pc_scene_rendering(bool enabled) noexcept {
+        enhanced_pc_scene_rendering_ = enabled;
+    }
+    [[nodiscard]] bool enhanced_pc_scene_rendering() const noexcept {
+        return enhanced_pc_scene_rendering_;
+    }
+
     void set_scene_individual_columns_mode(bool individual) noexcept {
         scene_individual_columns_mode_ = individual;
     }
@@ -310,6 +320,7 @@ private:
     std::uint8_t scene_video_page_{};
     std::optional<std::uint8_t> initial_code2_ground_draw_page_c050_{};
     bool scene_individual_columns_mode_{};
+    bool enhanced_pc_scene_rendering_{};
     std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};
     std::uint64_t world_scene_revision_{};
