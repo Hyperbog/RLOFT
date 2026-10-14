@@ -35,6 +35,13 @@ public:
     static constexpr int kRowPitch = 5;
     static constexpr int kBaseY = 6;
     static constexpr int kBaseX = 4;
+    // The 48x47-cell tile field occupies rows 6..389, columns 4..238.
+    // The player arrow/marker must not overwrite the right-hand map
+    // controls or the perimeter chrome on a near-edge position.
+    static constexpr int kMapMinY = kBaseY;
+    static constexpr int kMapMaxY = kBaseY + kVisibleColumns*kColumnPitch - 1;
+    static constexpr int kMapMinX = kBaseX;
+    static constexpr int kMapMaxX = kBaseX + kVisibleRows*kRowPitch - 1;
 
     explicit AutomapViewportPresenter(
         const RavenloftBootAssets& assets)
@@ -73,7 +80,8 @@ public:
         int x0,
         int y1,
         int x1,
-        std::uint8_t color);
+        std::uint8_t color,
+        bool clip_to_map = false);
 
 private:
     const RavenloftBootAssets& assets_;
