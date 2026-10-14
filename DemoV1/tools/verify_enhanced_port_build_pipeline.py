@@ -39,6 +39,7 @@ def check(workflow:str,cmake:str) -> None:
     if "      - demo-v1" not in workflow:
         raise ValueError("demo-v1 source pushes no longer start the build")
 
+    windows=workflow[workflow.index('  windows-build:'):]
     positions={}
     for item in (
         "      - name: Configure",
@@ -49,9 +50,9 @@ def check(workflow:str,cmake:str) -> None:
         "      - name: Publish continuous original intro-to-Level22 Alpha",
         "      - name: Keep Windows executable in git",
     ):
-        if workflow.count(item)!=1:
+        if windows.count(item)!=1:
             raise ValueError("ambiguous or absent step "+item)
-        positions[item]=workflow.index(item)
+        positions[item]=windows.index(item)
     if list(positions.values())!=sorted(positions.values()):
         raise ValueError("Windows steps no longer build-test-stage-publish")
 
