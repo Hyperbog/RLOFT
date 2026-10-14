@@ -186,7 +186,8 @@ void ExplorationPresenter::draw_environment(
                 command.shade,
                 command.kind ==
                     EnvironmentDrawKind::
-                        ProfilePlacement);
+                        ProfilePlacement,
+                true);  // native indexed palette: no wrapped bright hues
         }
         return;
     }
