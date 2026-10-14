@@ -21,6 +21,28 @@ animation and character creation; fix the actual blank/flickering Level 22
 world, missing environmental scenery and audio; then connect campaign-wide
 mechanics, levels and robust port saves. Windows x64 is the first target.
 
+## Part 19 — enhanced native Level 22 scene and pacing (October 13, 2026)
+
+[Actual code changes and outstanding visual field test](PART19_ENHANCED_LEVEL22_NATIVE_RENDER_20261013.md).
+
+The player-facing enhanced renderer now draws **original decoded RES3 type-7
+tree/object/NPC pixels** via a masked native compositor, projected into
+the existing source-authored depth-clipped scene columns. It no longer
+requires successful DOS VGA plane-instruction tracing to show the scenery.
+The verified original **RES4 textured floor** draws as a background behind
+foreground wall surfaces rather than failing the old DOS all-no-wall gate.
+Native exploration uses **60 Hz frame presentation**; the previously
+working CINE, splash, music, lady/cat/card animation and character-creation
+timings have not been rewritten. The original artwork, world placement,
+palette and HUD pipeline remain in use.
+
+A new standalone C++17 sprite compositor test, extended ground eligibility
+tests and an eight-mutation native scene contract test are registered.
+A local GCC 14 interface-equivalent compositor smoke test passed. **The
+full exact-source Windows artifact and owner-visible first Level 22 scene
+are still unverified.** Previous reports of an empty/flickering scene
+remain open until a successful real-game playtest.
+
 ## Part 18 — ONE continuous original frontend → first Level22 Alpha
 
 [Source, launch safety and player acceptance boundaries](PART18_CONTINUOUS_ALPHA_FRONTEND_TO_LEVEL22_20261013.md).
