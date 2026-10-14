@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/world_scene_render_plan.hpp"
 
 #include <cassert>
@@ -106,6 +109,55 @@ int main() {
     assert(plans[1].microcode_draws.size() == 3U);
     assert(plans[1].microcode_draws[0].viewport_x == 63U);
     assert(plans[1].microcode_draws[2].viewport_x == 65U);
+
+    // Enhanced PC rendering consumes precisely these original RES3
+    // projected/occluded columns, but does not need DOS-generated x86.
+    // The strict original planner remains available and unmodified.
+    const auto native=rloft::WorldSceneRenderPlanModel::try_build(
+        {first,second},t,rays,
+        [&native_shape](std::uint16_t)->const rloft::Type7SceneShape& {
+            return native_shape;
+        },true);
+    assert(native.failures.empty());
+    assert(native.plans.size()==2U);
+    assert(native.plans[0].visible_columns.size()==
+           plans[0].visible_columns.size());
+    assert(native.plans[1].visible_columns.size()==
+           plans[1].visible_columns.size());
+    assert(native.plans[0].microcode_draws.empty());
+    assert(native.plans[1].microcode_draws.empty());
+    for (std::size_t i=0;i<native.plans.size();++i) {
+        for (std::size_t c=0;c<native.plans[i].visible_columns.size();++c) {
+            assert(native.plans[i].visible_columns[c].viewport_x==
+                   plans[i].visible_columns[c].viewport_x);
+            assert(native.plans[i].visible_columns[c].source_x==
+                   plans[i].visible_columns[c].source_x);
+        }
+    }
+
+    // A corrupt *DOS-only* patch offset cannot hide original source
+    // sprites in the enhanced port. Old reference planner still
+    // reports an unresolved call for this same invalid x86 operand.
+    auto invalid_patch=t;
+    for (auto& block: invalid_patch.scale_blocks) {
+        block.code_patch_offset[1U]=0U;
+    }
+    const auto old_patch_fail=rloft::WorldSceneRenderPlanModel::try_build(
+        {first},invalid_patch,rays,
+        [&native_shape](std::uint16_t)->const rloft::Type7SceneShape& {
+            return native_shape;
+        });
+    assert(old_patch_fail.failures.size()==1U);
+    assert(old_patch_fail.plans[0].source_unresolved);
+    const auto native_ok=rloft::WorldSceneRenderPlanModel::try_build(
+        {first},invalid_patch,rays,
+        [&native_shape](std::uint16_t)->const rloft::Type7SceneShape& {
+            return native_shape;
+        },true);
+    assert(native_ok.failures.empty());
+    assert(!native_ok.plans[0].source_unresolved);
+    assert(native_ok.plans[0].visible_columns.size()==1U);
+    assert(native_ok.plans[0].microcode_draws.empty());
 
     // A nonzero render-mode call that returns at CODE.2 36E31 must not
     // produce visible columns or execute 369D8 descriptors.
