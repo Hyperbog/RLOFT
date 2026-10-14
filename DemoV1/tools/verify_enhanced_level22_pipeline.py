@@ -70,8 +70,11 @@ def verify(compositor:str,presenter:str,presenter_header:str,
     startup=host[end:]
     if 'constexpr double kNativeGameplayRefreshHz = 60.0;' not in host:
         raise ValueError('normal PC exploration refresh must remain 60Hz')
-    if exploration.count('1.0 / kNativeGameplayRefreshHz')!=8:
-        raise ValueError('all eight gameplay UI presentation paths need one cadence')
+    # Adding a real native Options modal introduces another 60 Hz screen.
+    # Do not penalize legitimate new modals by freezing the old count,
+    # but reject deletion of any established presentation path.
+    if exploration.count('1.0 / kNativeGameplayRefreshHz')<9:
+        raise ValueError('all gameplay/UI modal paths require native cadence')
     if '1.0 / kVgaRefreshHz' in exploration:
         raise ValueError('VGA 70Hz leakage into native scene loop')
     if '1.0 / kVgaRefreshHz' not in startup:
