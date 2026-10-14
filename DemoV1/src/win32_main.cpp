@@ -43,6 +43,7 @@
 #include "rloft/character_transfer.hpp"
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_gameplay_cadence.hpp"
+#include "rloft/enhanced_world_music.hpp"
 #include "rloft/exploration_presenter.hpp"
 #include "rloft/exploration_frame_capture.hpp"
 #include "rloft/exploration_preview.hpp"
@@ -1096,21 +1097,18 @@ int run_exploration(
     // XMIDI cue, not a DOS hardware timer or a made-up ambient track.
     // Keep the existing opening/character music unchanged; only activate
     // world music at the actual CODE.1 -> CODE.2 gameplay boundary.
-    std::optional<std::pair<std::uint32_t,std::uint8_t>>
-        last_requested_world_music;
+    rloft::EnhancedWorldMusicState world_music_state;
     const auto start_authored_world_music = [&]() {
-        const auto key=std::make_pair(
-            runtime.session().level_id,
-            runtime.session().level.music_sequence);
-        if(last_requested_world_music == key) return;
-        // Deduplicate even if no MIDI output device or the owner's RES5
-        // is missing. Audio failure must not erase a visible world.
-        last_requested_world_music=key;
+        const auto level_id=runtime.session().level_id;
+        const auto sequence_id=runtime.session().level.music_sequence;
+        // Audio absence must not erase a playable scene. Deduplicate even
+        // when the MIDI driver or the player's RES5 resource is unavailable.
+        if(!world_music_state.should_start(level_id,sequence_id)) return;
         try {
             midi_player.play(
                 rloft::parse_xmidi_sequence(
                     assets.music_sequence(
-                        static_cast<int>(key.second)),1),
+                        static_cast<int>(sequence_id)),1),
                 0,100,0x9C4);
         } catch(const std::exception& error) {
             OutputDebugStringA("RLOFT native level-music unavailable: ");
@@ -1498,7 +1496,7 @@ int run_exploration(
                                             audio_player,midi_player);
                                         audio_player.stop_all();
                                         midi_player.stop();
-                                        last_requested_world_music.reset();
+                                        world_music_state.invalidate();
                                         host.set_exploration_input(&input);
                                         host.set_inventory_mode(true);
                                         if(result==CinematicResult::Quit)
@@ -1548,7 +1546,7 @@ int run_exploration(
                             // over the resumed original inventory panel.
                             audio_player.stop_all();
                             midi_player.stop();
-                            last_requested_world_music.reset();
+                            world_music_state.invalidate();
                             host.set_exploration_input(&input);
                             host.set_inventory_mode(true);
                             host.set_game_cursor(normal_inventory_cursor);
