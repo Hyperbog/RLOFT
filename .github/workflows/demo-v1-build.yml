@@ -93,6 +93,27 @@ jobs:
             & cmd.exe /d /s /c $command
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - name: Preflight enhanced-port source and launcher contracts
+        shell: pwsh
+        run: |
+          # Source-only tests MUST precede the expensive MSVC compilation.
+          # Reject corrupted launchers, false frontend changes or unsafe
+          # artifact provenance in seconds, rather than after a full build.
+          python -m py_compile DemoV1/tools/verify_enhanced_port_build_pipeline.py DemoV1/tools/verify_continuous_alpha_launch.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/verify_enhanced_port_build_pipeline.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/verify_continuous_alpha_launch.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/verify_alpha_frontend_preservation.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/verify_enhanced_level22_pipeline.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/verify_enhanced_world_music.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python DemoV1/tools/check_release_gates.py --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Configure
         # Compile the checkout revision, not a later bot refresh commit.
         run: cmake -S DemoV1 -B build/demo-v1 -A x64 -DRLOFT_DEMO_SOURCE_SHA=${{ github.sha }}
