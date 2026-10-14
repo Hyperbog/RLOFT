@@ -21,6 +21,31 @@ animation and character creation; fix the actual blank/flickering Level 22
 world, missing environmental scenery and audio; then connect campaign-wide
 mechanics, levels and robust port saves. Windows x64 is the first target.
 
+## Part 20 — Native Alpha build acceleration and Level 22 music
+
+[Windows enhanced-port release/test workflow and authored XMIDI cue](PART20_ENHANCED_ALPHA_BUILD_AND_WORLD_MUSIC_20261013.md).
+
+A normal `demo-v1` source push now compiles and tests the **native
+enhanced Windows game**, front-end preservation and Level 22 motion/
+rendering/audio regression set before publishing the continuous
+`Ravenloft-Continuous-Alpha-Windows-x64` artifact. The canonical
+original-DOS recompiler/source audits remain accessible via manual Full
+CI, no longer automatic Alpha blockers. Every checked-in EXE refresh
+includes the **actual compiled checkout revision** in
+`DemoV1/Windows/build-source-sha.txt`.
+
+At the genuine post-character-creation Level 22 load, native playback
+now starts the authored original RES5 XMIDI cue identified by
+`LevelState::music_sequence` (level 22 = **0**) with a 2500ms fade.
+`EnhancedWorldMusicState` prevents repeated song restarts at 60 Hz,
+updates on level/cue changes, and resumes music after full-screen
+cinematic interruptions. The established CINE/character audio is
+unchanged; remaining NPC/encounter sound effects are unfinished.
+
+**Pre-Alpha:** the latest exact-source Windows build and audible/visual
+owner field acceptance are still pending. Do not treat source-only
+contract results as a successful playthrough.
+
 ## Part 19 — enhanced native Level 22 scene and pacing (October 13, 2026)
 
 [Actual code changes and outstanding visual field test](PART19_ENHANCED_LEVEL22_NATIVE_RENDER_20261013.md).
