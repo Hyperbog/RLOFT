@@ -38,6 +38,20 @@ int main() {
     assert(at(5, 32) == 0);
     assert(at(6, 35) == 7);
 
+    // The enhanced PC scene opts into clamped palette subtraction.
+    // Small/dark source indices must not wrap into unrelated high
+    // palette ramps; original source-mode wrap above stays unchanged.
+    framebuffer.clear(0x55);
+    rloft::EnvironmentPresenter::draw_subtracted(
+        framebuffer, raster, 0, 4, 32, 8, true, true);
+    assert(at(4, 32) == 0x55);  // transparency unchanged
+    assert(at(4, 33) == 0);
+    assert(at(4, 34) == 0);
+    assert(at(4, 35) == 247);  // valid nonunderflow shade
+    assert(at(5, 32) == 0);
+    assert(at(5, 33) == 1);
+    assert(at(6, 35) == 7);
+
     // Profile placements clip to rows 4..131 and columns 32..287.
     framebuffer.clear(0x44);
     rloft::EnvironmentPresenter::draw_subtracted(
