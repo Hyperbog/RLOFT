@@ -68,6 +68,18 @@ public:
         const ExplorationSessionState& session,
         AutomapViewportOrigin origin) const;
 
+    // Keep decoded RES0 terrain tiles inside the native map field.
+    // The unbounded draw_frame_mapped() can overwrite the surrounding
+    // automap controls when the final visible cell crosses an edge.
+    static std::size_t draw_tile_clipped(
+        IndexedFramebuffer& framebuffer,
+        const Type1Raster& raster,
+        int frame,
+        int y,
+        int x,
+        const std::array<std::uint8_t,256>& color_map);
+
+
     void draw_player_marker(
         IndexedFramebuffer& framebuffer,
         const ExplorationSessionState& session,
