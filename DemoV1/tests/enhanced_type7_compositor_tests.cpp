@@ -54,6 +54,23 @@ int main() {
     assert(pixel(fb,133,31)==7U);
     assert(pixel(fb,133,288)==7U);
 
+    // Scene planner computed source_top is per-object. The same pixel
+    // should move with its authored projected vertical position, not
+    // remain glued to a hard-coded global horizon. A literal 132 is
+    // a valid origin and MUST NOT be interpreted as a sentinel.
+    fb.clear(21U);
+    count=EnhancedType7Compositor::draw(fb,source,columns,steps,50);
+    assert(count==2U);
+    assert(pixel(fb,114,32)==42U);
+    assert(pixel(fb,115,287)==83U);
+    assert(pixel(fb,132,32)==21U);
+    fb.clear(24U);
+    count=EnhancedType7Compositor::draw(fb,source,columns,steps,132);
+    assert(count==2U);
+    assert(pixel(fb,196,32)==42U);
+    assert(pixel(fb,197,287)==83U);
+    assert(pixel(fb,132,32)==24U);
+
     // The active mask, not a guessed color-key, owns transparency.
     source.mask[65U*2U+1U]=0U;
     fb.clear(9U);
