@@ -1081,6 +1081,10 @@ int run_exploration(
         throw;
     }
     exploration_stage("exploration.world.ready");
+    // Player-facing enhanced native RES3 rendering needs source world
+    // plans, not the DOS self-modifying VGA instruction trace. Opt-in
+    // --dev-trace can still generate the historical comparison evidence.
+    runtime.set_enhanced_pc_scene_rendering(!dev_trace);
     rloft::ExplorationPresenter presenter(assets);
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::AutomapScreenPresenter automap_presenter(assets);
