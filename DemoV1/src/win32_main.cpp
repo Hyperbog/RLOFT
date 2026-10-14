@@ -394,7 +394,12 @@ public:
     // prevent stale gameplay or character-creation D keys from
     // turning into a later world drop.
     void set_inventory_mode(bool enabled) {
-        if(inventory_mode_!=enabled)key_events_.clear();
+        if(inventory_mode_!=enabled) {
+            key_events_.clear();
+            // Movement keys held before inventory entry must not
+            // carry over into a delayed move when the panel closes.
+            if(exploration_input_) exploration_input_->clear();
+        }
         inventory_mode_=enabled;
     }
 
@@ -714,12 +719,13 @@ private:
                     return 0;
                 }
                 if (exploration_input_) {
-                    if(inventory_mode_ && wparam=='D') {
-                        // Original scan 20h -> translated 44h; ignore
-                        // WM_KEYDOWN auto-repeat bit30 to drop once
-                        // per physical key press, not once per VGA frame.
-                        if((static_cast<std::uint64_t>(lparam)&
-                            (1ULL<<30U))==0U) {
+                    if(inventory_mode_) {
+                        // Inventory exclusively owns the keyboard. D is a
+                        // world-drop command; arrows must not continue
+                        // moving the party behind its modal panel.
+                        if (wparam=='D' &&
+                            (static_cast<std::uint64_t>(lparam)&
+                             (1ULL<<30U))==0U) {
                             key_events_.push_back(0x44);
                         }
                         return 0;
@@ -759,7 +765,7 @@ private:
                 }
                 if (automap_mode_ && exploration_input_) return 0;
                 if (exploration_input_) {
-                    if(inventory_mode_ && wparam=='D')return 0;
+                    if(inventory_mode_)return 0;
                     if (const auto scan = legacy_scan_from_vk(wparam)) {
                         exploration_input_->release(*scan);
                     }
