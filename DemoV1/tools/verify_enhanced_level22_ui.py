@@ -30,6 +30,26 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
         if marker not in host if marker.startswith('#include') else marker not in source:
             raise ValueError("missing in-game native options integration: "+marker)
 
+    # Keyboard automap navigation is modal; arrows must not remain
+    # pressed in exploration movement after closing the map.
+    for marker in (
+        '#include "rloft/enhanced_automap_keyboard.hpp"',
+        'void set_automap_mode(bool enabled)',
+        'if (automap_mode_ && exploration_input_)',
+        'exploration_input_->clear();',
+        'EnhancedAutomapKeyboard::action_for_key(',
+        'if (automap_mode_ && exploration_input_) return 0;',
+    ):
+        if marker not in host:
+            raise ValueError("automap leaks keyboard input into movement: "+marker)
+    if source.count('host.set_automap_mode(true);')!=1 or (
+            source.count('host.set_automap_mode(false);')!=2):
+        raise ValueError("automap input capture is not balanced at entry/exit")
+    if 'if (const auto action=host.consume_key_event()) {' not in source:
+        raise ValueError("keyboard map navigation events are ignored")
+    if source.count('automap->apply_action(')!=2:
+        raise ValueError("map keyboard and mouse must reuse the same modal action handler")
+
     # Only the original well-tested menu adapter may change screens.
     if source.count("rloft::TopEdgeMenuAction::Options")!=1:
         raise ValueError("in-game options entry has multiple handlers")
@@ -71,6 +91,7 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
         if marker not in cmake:
             raise ValueError("native option/modal regressions not registered: "+marker)
     for marker in ('enhanced_options_presenter_tests',
+                   'enhanced_automap_keyboard_tests',
                    'enhanced_level22_ui_source_tests',
                    'automap_screen_presenter_tests',
                    'automap_viewport_presenter_tests'):
@@ -96,6 +117,10 @@ def main()->int:
                "rloft::TopEdgeMenuAction::Rest"),
             (0,"world_music_state.invalidate();",
                "/* no music state invalidation */"),
+            (0,"host.set_automap_mode(true);",
+               "/* map captured no keys */"),
+            (0,"if (automap_mode_ && exploration_input_)",
+               "if (false && exploration_input_)"),
             (1,"framebuffer.clear(0U);",
                "/* stale framebuffer */"),
             (2,"EnhancedOptionsSelection::ReturnToGame",
@@ -113,7 +138,7 @@ def main()->int:
             else:raise ValueError("Level22 UI regression escaped: "+old)
     except (OSError,ValueError) as exc:
         raise SystemExit("ENHANCED_LEVEL22_UI_REJECTED: "+str(exc))
-    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (6 negative mutations rejected)")
+    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (8 negative mutations rejected)")
     return 0
 
 if __name__=="__main__":
