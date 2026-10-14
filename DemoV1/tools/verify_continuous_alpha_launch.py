@@ -54,6 +54,12 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
     for token, source in required:
         if token not in source:
             raise ValueError('missing continuous-game contract: '+token)
+    # A malformed source edit once appended a SECOND launcher body after
+    # its exit statement. String-presence tests alone did not detect it.
+    if player.count("$original = Join-Path $package 'Game'") != 1 or (
+            player.count('exit [int]$process.ExitCode') != 1):
+        raise ValueError('duplicated or truncated player-facing launcher')
+
     # Original launch is no-flag, no chooser or developer warp. The PS
     # script's safety comments name the forbidden arguments, so examine
     # only the actual argument construction and Start-Process.
@@ -118,6 +124,8 @@ def main() -> int:
              "$original = Join-Path $package 'RLOFT-INCORRECT'"),
             ('player','/E /XJ /R:1 /W:1','/E /R:1 /W:1'),
             ('player','$hashLine -cmatch','$hashLine -cnotmatch'),
+            ('player','exit [int]$process.ExitCode',
+             'exit [int]$process.ExitCode\\n$original = Join-Path $package \\'Game\\''),
             ('player','-Attributes ReparsePoint','-Attributes Hidden'),
             ('player',"Get-FileHash -LiteralPath $engine -Algorithm SHA256",
              'Get-FileHash -LiteralPath $engine -Algorithm MD5'),
@@ -149,7 +157,7 @@ def main() -> int:
             raise ValueError('unsafe mutation escaped: '+before)
     except (ValueError,OSError) as exc:
         ap.exit(1,'CONTINUOUS_ALPHA_REJECTED: '+str(exc)+'\n')
-    print('CONTINUOUS_ALPHA_LAUNCH_SOURCE_PASS (12 negative mutations)')
+    print('CONTINUOUS_ALPHA_LAUNCH_SOURCE_PASS (13 negative mutations)')
     return 0
 
 if __name__=='__main__':
