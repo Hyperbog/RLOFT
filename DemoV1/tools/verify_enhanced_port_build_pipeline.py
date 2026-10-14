@@ -29,8 +29,7 @@ def check(workflow:str,cmake:str) -> None:
         "release_readiness_manifest_contract_tests",
         "build/demo-v1/Release/build-source-sha.txt",
         "build/demo-v1/Release/ravenloft_demo_v1.exe.sha256",
-        "DemoV1/Windows/build-source-sha.txt",
-        'Value "${{ github.sha }}"',
+        'Set-Content -NoNewline -Path DemoV1/Windows/build-source-sha.txt -Value "${{ github.sha }}"',
         "name: demo-v1",
     )
     for required_marker in required[:-1]:
@@ -96,8 +95,8 @@ def main() -> int:
              "      - name: Test DOS-only regressions"),
             ("      - name: Publish continuous original intro-to-Level22 Alpha",
              "      - name: Publish only frontend preview"),
-            ("DemoV1/Windows/build-source-sha.txt",
-             "DemoV1/Windows/unknown-source.txt"),
+            ('Set-Content -NoNewline -Path DemoV1/Windows/build-source-sha.txt -Value "${{ github.sha }}"',
+             'Set-Content -NoNewline -Path DemoV1/Windows/unknown-source.txt -Value "${{ github.sha }}"'),
             ("enhanced_type7_compositor_tests enhanced_scene_mode_tests",
              "exploration_presenter_tests"),
             ("if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode == 'full' }}",
