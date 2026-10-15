@@ -272,7 +272,7 @@ int main() {
         fb,low_tile,low_shades,records,native_spec);
     assert(paired.shade_underflow_pixels>=2U);
     assert(pixel(fb,179,32)==0U && pixel(fb,179,33)==0U);
-    assert(pixel(fb,180,32)==128U);
+    assert(pixel(fb,180,32)==2U); // the low source texel remains 2 at row 79
     const auto before_policy=fb.pixels();
     native_spec.shade_policy=static_cast<GroundShadePolicy>(255U);
     assert(rejected([&] {
