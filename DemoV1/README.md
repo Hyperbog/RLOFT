@@ -55,7 +55,7 @@ FE15 per-row shade decrement to palette zero, instead of wrapping into
 unrelated high palette indices. The **standalone DOS-reference raster
 remains byte-accurate** because its default policy retains 8-bit wrap.
 Runtime field captures report potential wrap pixels separately.
-Source verification and native Windows CTests are separate from
+[Windows CI #884](https://github.com/Hyperbog/RLOFT/actions/runs/38820363732) compiled the exact new source and passed **38/38 focused CTests**, with a refreshed continuous Alpha executable. Source checks and CTests remain separate from
 **outstanding Level 22 visual acceptance**.
 
 ## Level 22 native RES3 sprite bounds and palette evidence (October 15, 2026)
