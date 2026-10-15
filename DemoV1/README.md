@@ -46,6 +46,22 @@ preserved. **No new owner Level 22 graphics/inventory acceptance has yet
 been recorded:** tree placement/colors, other inventory bugs, map visual
 details, missing top-menu gameplay actions, and title Continue remain open.
 
+## Level 22 RES8 authored-width clipping (October 15, 2026)
+
+[Source audit, enhanced rendering fix, regression evidence and outstanding
+visual gates](LEVEL22_RES8_AUTHORED_WIDTH_CHECKPOINT_20261015.md).
+
+Environment draw plans already carry authored widths (including 32 contiguous
+eight-pixel randomized backdrop strips). The presenter had disregarded the
+plan's width and used the complete RES8 image stride, allowing one strip to
+overwrite its neighbor when a source raster is wider than the planned draw.
+The native draw path now uses the bounded authored width, retaining source
+transparency and the original resource pixels. The default historical
+full-raster drawing API is unchanged. Explicit invalid widths are rejected;
+large authored coordinates are accumulated without signed-int overflow.
+The Windows build/test result and owner visual acceptance are tracked
+separately.
+
 ## Level 22 enhanced RES4 ground shade-underflow protection (October 15, 2026)
 
 [Native ground shade policy and original-source evidence](LEVEL22_NATIVE_GROUND_SHADE_CHECKPOINT_20261015.md).
