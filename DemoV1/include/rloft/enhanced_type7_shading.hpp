@@ -64,9 +64,16 @@ public:
         const std::vector<Type7VisibleRun>& runs,
         const std::vector<Type7VisibleColumn>& columns,
         std::uint16_t lookup, bool individual,
-        const RendererScaleBlock& block) {
+        const RendererScaleBlock& block,
+        std::uint32_t renderer_row_phase=0U,
+        std::uint32_t renderer_row_base=0U) {
         EnhancedType7ShadePlan out{};
-        out.high_on_even_row=high_on_even(block);
+        // The generated SINTAB store displacement is relative to EDI.
+        // CODE.2 369DF adds a renderer phase in 80-byte scanline units,
+        // plus the original C6E0 row base, before addressing VGA memory.
+        // Convert the source opcode AL/AH parity into *screen-row* parity.
+        out.high_on_even_row=high_on_even(block) !=
+            (((renderer_row_phase+renderer_row_base/80U)&1U)!=0U);
         out.lookup_by_column.reserve(columns.size());
         auto carried=lookup;
         std::size_t index=0U;
