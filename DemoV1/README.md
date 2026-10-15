@@ -46,6 +46,25 @@ preserved. **No new owner Level 22 graphics/inventory acceptance has yet
 been recorded:** tree placement/colors, other inventory bugs, map visual
 details, missing top-menu gameplay actions, and title Continue remain open.
 
+## Level 22 native RES3 sprite bounds and palette evidence (October 15, 2026)
+
+[Exact Windows build, field-capture format, source evidence and remaining graphics gates](LEVEL22_RES3_NATIVE_BOUNDS_PALETTE_CHECKPOINT_20261015.md).
+
+The native RES3 compositor now reports per-source *actual written pixel
+bounds*, potential opaque pixels before viewport clipping, palette-index
+range and zero-output placement, without changing the game's pixels or
+authored scene geometry. Extremely offscreen modded sprite coordinates
+no longer risk signed destination-Y overflow. Existing frame-capture TSVs
+include `scene_native_draw` records for identifying trees/NPCs that are
+projected outside the visible Level 22 window.
+
+[Windows CI #877](https://github.com/Hyperbog/RLOFT/actions/runs/38722251801)
+compiled exact source `c7099fe41a4cef96a0ad8d4fad976b70c790a972`;
+**38/38 focused tests passed**, including compositor, capture and
+frontend-preservation regressions. The verified Windows Alpha artifact
+was published. **Visual sprite placement and palette correctness are
+not yet field accepted.**
+
 ## Part 23 — Level 22 automap annotation clip repair (October 14, 2026)
 
 [Source, tests, build provenance and remaining defects](PART23_LEVEL22_AUTOMAP_ANNOTATION_CLIP_20261014.md).
