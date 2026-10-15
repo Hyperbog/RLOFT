@@ -255,7 +255,7 @@ int main() {
     assert(safe.shade_underflow_samples==4U); // 64-texel horizontal wrap
     assert(safe.shade_underflow_pixels==4U);
     assert(pixel(fb,259,32)==0U);
-    assert(pixel(fb,259,33)==129U);
+    assert(pixel(fb,259,33)==121U); // original texel 129 minus shade 8
     assert(pixel(fb,259,31)==0x55U);
     native_spec.shade_policy=GroundShadePolicy::VgaWrap;
     fb.clear(0x55U);
