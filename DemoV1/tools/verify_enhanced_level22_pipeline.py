@@ -30,6 +30,7 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'EnhancedType7DrawMetrics* metrics = nullptr',
         'std::int64_t dst_y=',
         'observed.potential_opaque_pixels+=repeats;',
+        'EnhancedType7ShadeModel::shade(',
         'std::invalid_argument',
         'std::out_of_range',
     ):
@@ -43,6 +44,7 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'command.width); // authored strip/placement width, not full RES8 image',
         'assets_.res3_type7_native_raster(',
         'EnhancedType7Compositor::draw(',
+        'EnhancedType7ShadeModel::build(',
         'constexpr bool kUseNativePcSprites = true;',
         'if (!kUseNativePcSprites &&',
         'hud_.draw_party_panels(',
@@ -151,6 +153,7 @@ def main()->int:
             (1,'constexpr bool kUseNativePcSprites = true;',
              'constexpr bool kUseNativePcSprites = false;'),
             (1,'EnhancedType7Compositor::draw(', '/* no sprite */ ('),
+            (1,'EnhancedType7ShadeModel::build(', '/* no shader */ ('),
             (1,'if (writes == 0U)', 'if (false)'),
             (3,'constexpr double kNativeGameplayRefreshHz = 60.0;',
              'constexpr double kNativeGameplayRefreshHz = 90.0;'),
@@ -176,7 +179,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (16 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (17 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':
