@@ -242,7 +242,7 @@ int main() {
     // Native-only color rule: low texels with shade 8 would wrap to
     // palette entries 248..255. Historical mode must preserve SUB wrap.
     GroundTextureShadeTable low_shades{};
-    low_shades.subtract[254U]=8U; // lower row 0
+    low_shades.subtract[0U]=8U; // CODE.2 lower row 0 uses FE15[0]
     auto low_tile=source;
     low_tile[2U+2U*64U]=2U; // visible source U0,V2
     auto native_spec=spec;
@@ -266,7 +266,7 @@ int main() {
     // The paired-phase floor duplicates one sampled texel twice.
     native_spec.row_count=81U;
     native_spec.shade_policy=GroundShadePolicy::ClampToBlack;
-    low_shades.subtract[174U]=8U; // lower row 80
+    low_shades.subtract[80U]=8U; // CODE.2 lower row 80 uses FE15[80]
     fb.clear(0x55U);
     const auto paired=OriginalGroundTextureRaster::draw(
         fb,low_tile,low_shades,records,native_spec);
