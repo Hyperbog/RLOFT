@@ -35,6 +35,10 @@ The physical destination address adds the runtime rasterizer row phase and `C6E0
 
 The original CODE.2/RLOFT source assets remain on the `DnD-Classics` branch. This implementation does **not** embed copyrighted raster bytes or use source machine code as a public mod API. It preserves the original RES3 masks, x/y projection and occlusion. Future mods can provide validated replacement images without changing the color lookup or gameplay rules.
 
-The CI run for the exact native source must finish successfully before describing the Windows executable as verified. In-game effect on actual Level 22 tree/NPC RGB and vertical position has **not** been visually measured or owner accepted; the existing `Capture-Level22.cmd` diagnostic can identify which sprite entries and original shade indices matter at a reported pose.
+**Verified Windows CI:** [run #892](https://github.com/Hyperbog/RLOFT/actions/runs/38825500152) completed **successfully** on exact source commit `86230b5a0db09ce1312a3b9d1afed4ed6d91526e`. Native MSVC compilation and **38/38 focused CTests passed**, including `enhanced_type7_compositor_tests`, `exploration_frame_capture_tests` and `exploration_presenter_tests`. The enhanced-Level22 source verifier rejected **17/17 negative mutations**. All intended Windows distributions were published and the checked-in executable refreshed.
+
+**Continuous Alpha artifact:** `Ravenloft-Continuous-Alpha-Windows-x64` (ID `12014339367`); Level 22 Field Test artifact `12015450119`; original intro artifact `12015093036`. Checked-in `DemoV1/Windows/build-source-sha.txt` names the exact compiled source, and `ravenloft_demo_v1.exe.sha256` is `a5b6468c857b1888a145fd31e0d50e1edf68706894a20cb7ba4870173078ceaa`.
+
+**Not field verified:** In-game impact on actual Level 22 tree/NPC RGB and vertical position has **not** been visually measured or owner accepted; `Capture-Level22.cmd` can identify which sprite entries and original shade indices matter at a reported pose.
 
 **Still open:** tree positions and scale, wall/ground interactions, palette appearance beyond this confirmed unshaded path, inventory, automap, top menu, save/load and campaign progression. No release gates are changed.

@@ -57,7 +57,11 @@ compositor now applies per-column, per-row AL/AH shade values and low-byte
 borrow with native underflow clamping. Original RES3 pixels, masks, geometry,
 scene order and DOS-reference rasterization remain intact. A separate typed
 shade plan decouples source lookup, screen-row phase and replacement artwork.
-The screenshot/field acceptance gate is **still open**, independently of CI.
+[Windows CI #892](https://github.com/Hyperbog/RLOFT/actions/runs/38825500152)
+compiled the exact source, with **38/38 focused tests passing** and
+**17/17 source-guard mutations rejected**. The Windows Alpha executable
+was refreshed and published. The screenshot/field acceptance gate is
+**still open**.
 
 ## Level 22 RES8 authored-width clipping (October 15, 2026)
 
