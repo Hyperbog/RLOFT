@@ -89,6 +89,20 @@ struct Type7SceneZeroPixelDraw final {
     std::size_t visible_columns{};
 };
 
+// Per-source native placement and palette-index evidence; contains no
+// extracted artwork or original source data. -1 bounds mean zero pixels.
+struct Type7SceneNativeDraw final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::int32_t source_top{};
+    std::size_t visible_columns{};
+    std::size_t potential_opaque_pixels{};
+    std::size_t indexed_writes{};
+    int left{-1}, top{-1}, right{-1}, bottom{-1};
+    std::uint8_t min_palette_index{}, max_palette_index{};
+};
+
 enum class Type7SceneRenderOutcome : std::uint8_t {
     PlanningFailed,
     FullyOccluded,
@@ -108,6 +122,7 @@ struct ExplorationPresentedFrame final {
     std::vector<SurfaceMainRasterFailure> surface_main_failures;
     std::vector<Type7SceneRasterFailure> type7_failures;
     std::vector<Type7SceneZeroPixelDraw> type7_zero_pixel_draws;
+    std::vector<Type7SceneNativeDraw> type7_native_draws;
     // Per original call position. Native diagnostics only; this is
     // not a replacement for original DOS VGA write order.
     std::vector<Type7SceneRenderOutcome> type7_scene_outcomes;

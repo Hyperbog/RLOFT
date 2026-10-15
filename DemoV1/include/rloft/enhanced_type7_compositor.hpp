@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 #include <stdexcept>
 #include <optional>
 #include <vector>
@@ -12,6 +13,19 @@
 #include "rloft/startup_presenter.hpp"
 
 namespace rloft {
+
+// Non-mutating scene evidence for Windows field captures. Original RES
+// selector numbers are private provenance, not a public mod identity.
+struct EnhancedType7DrawMetrics final {
+    std::size_t potential_opaque_pixels{}; // after scale, before viewport clip
+    std::size_t indexed_writes{};
+    int left{-1};
+    int top{-1};
+    int right{-1};
+    int bottom{-1};
+    std::uint8_t min_palette_index{};
+    std::uint8_t max_palette_index{};
+};
 
 // Enhanced PC renderer, not an attempt to emulate CODE.2's VGA page
 // sequencer or self-modifying SINTAB x86. Uses the existing decoded
@@ -33,7 +47,8 @@ public:
         const Type7NativeRaster& sprite,
         const std::vector<Type7VisibleColumn>& columns,
         const std::array<std::uint16_t,129>& scale_steps,
-        std::optional<int> source_top = std::nullopt) {
+        std::optional<int> source_top = std::nullopt,
+        EnhancedType7DrawMetrics* metrics = nullptr) {
         const auto width=static_cast<std::size_t>(sprite.width);
         const auto height=static_cast<std::size_t>(sprite.height);
         if (width==0U || height!=128U ||
@@ -71,30 +86,62 @@ public:
         // per-source vertical position. PC presentation passes that
         // position here; fixed-horizon fallback is retained ONLY for
         // standalone old compositor callers/tests.
-        int dst_y=source_top.value_or(
+        // A modded draw may legally position scenery outside the frame.
+        // Widen before adding row extents to avoid signed-int overflow.
+        std::int64_t dst_y=source_top.value_or(
             kHorizonY-static_cast<int>(upper));
         auto& dst=framebuffer.mutable_pixels();
         std::size_t writes=0U;
+        EnhancedType7DrawMetrics observed{};
         for (std::size_t sy=0;sy<height;++sy) {
             const auto repeats=static_cast<std::size_t>(scale_steps[sy]);
+            if (metrics != nullptr && repeats != 0U) {
+                for (const auto& c:columns) {
+                    const auto src=sy*width+
+                        static_cast<std::size_t>(c.source_x);
+                    if (sprite.mask[src] != 0U) {
+                        observed.potential_opaque_pixels+=repeats;
+                    }
+                }
+            }
             // All row counts and the cumulative total were preflighted;
             // no partially drawn sprite is possible from malformed scales.
             for (std::size_t ry=0;ry<repeats;++ry) {
-                const int yy=dst_y+static_cast<int>(ry);
+                const auto yy=dst_y+static_cast<std::int64_t>(ry);
                 if (yy<kViewportTop || yy>kViewportBottom) continue;
                 for (const auto& c:columns) {
                     const auto dx=static_cast<int>(c.viewport_x)+kViewportLeft;
                     if (dx<kViewportLeft || dx>kViewportRight) continue;
                     const auto src=sy*width+static_cast<std::size_t>(c.source_x);
                     if (sprite.mask[src]==0U) continue;
+                    const auto color=sprite.pixels[src];
                     dst[static_cast<std::size_t>(yy)*
                         IndexedFramebuffer::kWidth+
-                        static_cast<std::size_t>(dx)]=sprite.pixels[src];
+                        static_cast<std::size_t>(dx)]=color;
                     ++writes;
+                    if (metrics != nullptr) {
+                        if (observed.indexed_writes == 0U) {
+                            observed.left=observed.right=dx;
+                            observed.top=observed.bottom=static_cast<int>(yy);
+                            observed.min_palette_index=color;
+                            observed.max_palette_index=color;
+                        } else {
+                            observed.left=std::min(observed.left,dx);
+                            observed.right=std::max(observed.right,dx);
+                            observed.top=std::min(observed.top,static_cast<int>(yy));
+                            observed.bottom=std::max(observed.bottom,static_cast<int>(yy));
+                            observed.min_palette_index=std::min(
+                                observed.min_palette_index,color);
+                            observed.max_palette_index=std::max(
+                                observed.max_palette_index,color);
+                        }
+                        ++observed.indexed_writes;
+                    }
                 }
             }
-            dst_y+=static_cast<int>(repeats);
+            dst_y+=static_cast<std::int64_t>(repeats);
         }
+        if (metrics != nullptr) *metrics=observed;
         return writes;
     }
 };

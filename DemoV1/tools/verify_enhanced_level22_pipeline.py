@@ -27,6 +27,9 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'kHorizonY = 132',
         'sprite.mask[src]==0U',
         'sprite.pixels[src]',
+        'EnhancedType7DrawMetrics* metrics = nullptr',
+        'std::int64_t dst_y=',
+        'observed.potential_opaque_pixels+=repeats;',
         'std::invalid_argument',
         'std::out_of_range',
     ):
@@ -52,6 +55,7 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'Type7SceneRenderOutcome::RasterizedNoPixels',
         'zero_pixel_draws.push_back(Type7SceneZeroPixelDraw{',
         'out.type7_zero_pixel_draws = std::move(zero_pixel_draws);',
+        'out.type7_native_draws = std::move(native_draws);',
     ):
         if item not in presenter:
             raise ValueError('native zero-write scene falsely accepted: '+item)
@@ -136,6 +140,7 @@ def main()->int:
         mutations=(
             (0,'sprite.mask[src]==0U','false'),
             (0,'kHorizonY = 132','kHorizonY = 0'),
+            (0,'std::int64_t dst_y=', 'int dst_y='),
             (1,'if (enhanced_ground_eligible(frame)) {','if (false) {'),
             (1,'constexpr bool kUseNativePcSprites = true;',
              'constexpr bool kUseNativePcSprites = false;'),
@@ -165,7 +170,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (13 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (14 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':

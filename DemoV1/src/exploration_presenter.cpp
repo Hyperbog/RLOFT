@@ -396,6 +396,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
 
     std::vector<Type7SceneRasterFailure> raster_failures;
     std::vector<Type7SceneZeroPixelDraw> zero_pixel_draws;
+    std::vector<Type7SceneNativeDraw> native_draws;
     auto scene_outcomes=initial_scene_outcomes(frame);
 
     // Enhanced PC default: RES3 sprites already have decoded native
@@ -422,9 +423,18 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                     plan.traversal.scale_block_index);
                 const auto source_top=
                     plan.rasterizer_setup.source_center+4;
+                EnhancedType7DrawMetrics metrics{};
                 const auto writes=EnhancedType7Compositor::draw(
                     framebuffer_,found->second,
-                    plan.visible_columns,block.scale_step,source_top);
+                    plan.visible_columns,block.scale_step,source_top,
+                    &metrics);
+                native_draws.push_back(Type7SceneNativeDraw{
+                    plan.call.resource_id,plan.call.source_class,
+                    plan.call.source_index,source_top,
+                    plan.visible_columns.size(),
+                    metrics.potential_opaque_pixels,writes,
+                    metrics.left,metrics.top,metrics.right,metrics.bottom,
+                    metrics.min_palette_index,metrics.max_palette_index});
                 // Successful invocation is not necessarily visible output.
                 // Preserve zero-write scenes as diagnostic evidence rather
                 // than incorrectly certifying their pixels as rasterized.
@@ -568,6 +578,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         std::move(main_failures);
     out.type7_failures = std::move(raster_failures);
     out.type7_zero_pixel_draws = std::move(zero_pixel_draws);
+    out.type7_native_draws = std::move(native_draws);
     out.type7_scene_outcomes = std::move(scene_outcomes);
     out.type7_trace_failure =
         frame.scene_vga_trace_failure;

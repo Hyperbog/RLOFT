@@ -394,6 +394,21 @@ void ExplorationFrameCapture::write(
                     presented.type7_scene_outcomes[index])
                 <<"\n";
     }
+    // Exact native output bounds and source-index range, without exporting
+    // the image or treating numeric RES IDs as stable public mod IDs.
+    for(const auto& draw:presented.type7_native_draws) {
+        manifest<<"scene_native_draw\t"<<draw.source_class
+                <<"\t"<<draw.source_index
+                <<"\t"<<draw.resource_id
+                <<"\t"<<draw.source_top
+                <<"\t"<<draw.visible_columns
+                <<"\t"<<draw.potential_opaque_pixels
+                <<"\t"<<draw.indexed_writes
+                <<"\t"<<draw.left<<"\t"<<draw.top
+                <<"\t"<<draw.right<<"\t"<<draw.bottom
+                <<"\t"<<unsigned(draw.min_palette_index)
+                <<"\t"<<unsigned(draw.max_palette_index)<<"\n";
+    }
     // Pixel-less projected RES3 calls are neither hidden nor decoded errors.
     for(const auto& gap:presented.type7_zero_pixel_draws) {
         manifest<<"scene_zero_pixel\t"<<gap.source_class

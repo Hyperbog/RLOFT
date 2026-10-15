@@ -7,6 +7,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -44,8 +45,16 @@ int main() {
     steps.fill(1U);
     IndexedFramebuffer fb{};
     fb.clear(7U);
-    auto count=EnhancedType7Compositor::draw(fb,source,columns,steps);
+    rloft::EnhancedType7DrawMetrics metrics{};
+    auto count=EnhancedType7Compositor::draw(
+        fb,source,columns,steps,std::nullopt,&metrics);
     assert(count==2U);
+    assert(metrics.indexed_writes==2U);
+    assert(metrics.potential_opaque_pixels==2U);
+    assert(metrics.left==32 && metrics.right==287);
+    assert(metrics.top==132 && metrics.bottom==133);
+    assert(metrics.min_palette_index==42U &&
+           metrics.max_palette_index==83U);
     assert(pixel(fb,132,32)==42U);
     assert(pixel(fb,133,287)==83U);
     assert(pixel(fb,131,32)==7U);
@@ -127,14 +136,30 @@ int main() {
     all_transparent.mask.assign(all_transparent.mask.size(),0U);
     fb.clear(31U);
     count=EnhancedType7Compositor::draw(
-        fb,all_transparent,columns,steps);
+        fb,all_transparent,columns,steps,std::nullopt,&metrics);
     assert(count==0U);
+    assert(metrics.indexed_writes==0U);
+    assert(metrics.potential_opaque_pixels==0U);
+    assert(metrics.left==-1 && metrics.top==-1);
     assert(pixel(fb,132,32)==31U);
     fb.clear(32U);
     count=EnhancedType7Compositor::draw(
-        fb,source,columns,steps,-256);
+        fb,source,columns,steps,-256,&metrics);
     assert(count==0U);
+    assert(metrics.indexed_writes==0U);
+    assert(metrics.potential_opaque_pixels==2U);
+    assert(metrics.left==-1 && metrics.top==-1);
     assert(pixel(fb,132,32)==32U);
+    // Extreme mod-authored placement cannot wrap signed arithmetic into
+    // the visible viewport or mutate existing framebuffer pixels.
+    for (const int top:{std::numeric_limits<int>::min(),
+                        std::numeric_limits<int>::max()}) {
+        count=EnhancedType7Compositor::draw(
+            fb,source,columns,steps,top,&metrics);
+        assert(count==0U && metrics.indexed_writes==0U);
+        assert(metrics.potential_opaque_pixels==2U);
+        assert(pixel(fb,132,32)==32U);
+    }
 
     // Reject invalid source/pixel/column/scale BEFORE any write.
     fb.clear(30U);
