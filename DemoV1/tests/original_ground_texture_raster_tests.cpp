@@ -252,8 +252,8 @@ int main() {
     const auto safe=OriginalGroundTextureRaster::draw(
         fb,low_tile,low_shades,records,native_spec);
     assert(safe.indexed_writes==256U);
-    assert(safe.shade_underflow_samples==1U);
-    assert(safe.shade_underflow_pixels==1U);
+    assert(safe.shade_underflow_samples==4U); // 64-texel horizontal wrap
+    assert(safe.shade_underflow_pixels==4U);
     assert(pixel(fb,259,32)==0U);
     assert(pixel(fb,259,33)==129U);
     assert(pixel(fb,259,31)==0x55U);
@@ -261,7 +261,7 @@ int main() {
     fb.clear(0x55U);
     const auto wrapped=OriginalGroundTextureRaster::draw(
         fb,low_tile,low_shades,records,native_spec);
-    assert(wrapped.shade_underflow_samples==1U);
+    assert(wrapped.shade_underflow_samples==4U);
     assert(pixel(fb,259,32)==250U);
     // The paired-phase floor duplicates one sampled texel twice.
     native_spec.row_count=81U;
