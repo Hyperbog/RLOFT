@@ -41,6 +41,8 @@ const char* scene_outcome_name(Type7SceneRenderOutcome outcome) {
             return "trace-unavailable";
         case Type7SceneRenderOutcome::Rasterized:
             return "rasterized";
+        case Type7SceneRenderOutcome::RasterizedNoPixels:
+            return "rasterized-no-pixels";
         case Type7SceneRenderOutcome::RasterFailed:
             return "raster-failed";
     }
@@ -276,6 +278,8 @@ void ExplorationFrameCapture::write(
             <<"scene_video_calls\t"<<coverage.type7_calls_rasterized
             <<"\t"<<coverage.type7_scene_calls_pending
             <<"\t"<<coverage.type7_calls_failed<<"\n"
+            <<"scene_zero_pixel_calls\t"
+            <<coverage.type7_calls_zero_pixels<<"\n"
             <<"scene_columns\t"<<coverage.type7_columns_rasterized
             <<"\t"<<coverage.type7_visible_columns_pending
             <<"\t"<<coverage.type7_unvalidated_wide_runs<<"\n"
@@ -389,6 +393,14 @@ void ExplorationFrameCapture::write(
                 <<"\t"<<scene_outcome_name(
                     presented.type7_scene_outcomes[index])
                 <<"\n";
+    }
+    // Pixel-less projected RES3 calls are neither hidden nor decoded errors.
+    for(const auto& gap:presented.type7_zero_pixel_draws) {
+        manifest<<"scene_zero_pixel\t"<<gap.source_class
+                <<"\t"<<gap.source_index
+                <<"\t"<<gap.resource_id
+                <<"\t"<<gap.projected_source_top
+                <<"\t"<<gap.visible_columns<<"\n";
     }
     if(runtime.scene_vga_trace_failure.has_value()) {
         manifest<<"scene_trace_failure\t"

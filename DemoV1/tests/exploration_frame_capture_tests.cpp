@@ -268,8 +268,14 @@ int main() {
     frame.world_scene_render_plans[0].source_unresolved=false;
     frame.world_scene_render_plans[0].visible_runs.push_back(
         Type7VisibleRun{32U,0U,128U,12U});
+    // Projected sprite columns with zero opaque output get distinct
+    // status and position evidence in the diagnostic sidecar.
+    presentation.surface_coverage.type7_calls_zero_pixels=1U;
+    presentation.type7_zero_pixel_draws.push_back({
+        445U,1U,4U,84,12U
+    });
     presentation.type7_scene_outcomes[0]=
-        Type7SceneRenderOutcome::TraceUnavailable;
+        Type7SceneRenderOutcome::RasterizedNoPixels;
     ExplorationFrameCapture::write(
         dir,{3U,22U,4,5,261U},frame,presentation,image,code2,
         "abcdef0123456789");
@@ -310,7 +316,11 @@ int main() {
            std::string::npos);
     assert(third_tsv.find("scene_run\t0\t32\t0\t128\t12\tindividual\tsupported")!=
            std::string::npos);
-    assert(third_tsv.find("scene_outcome\t0\t1\t4\t445\ttrace-unavailable")!=
+    assert(third_tsv.find("scene_outcome\t0\t1\t4\t445\trasterized-no-pixels")!=
+           std::string::npos);
+    assert(third_tsv.find("scene_zero_pixel_calls\t1")!=
+           std::string::npos);
+    assert(third_tsv.find("scene_zero_pixel\t1\t4\t445\t84\t12")!=
            std::string::npos);
     third.close();
     assert(!third.is_open());

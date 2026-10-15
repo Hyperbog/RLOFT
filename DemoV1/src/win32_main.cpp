@@ -2446,7 +2446,11 @@ int run_exploration(
                 L"/" + std::to_wstring(
                     presented.surface_coverage.type7_calls_rasterized +
                     presented.surface_coverage.type7_scene_calls_pending +
+                    presented.surface_coverage.type7_calls_zero_pixels +
                     presented.surface_coverage.type7_plan_calls_failed) +
+                L" | RES3 zero pixels " +
+                std::to_wstring(
+                    presented.surface_coverage.type7_calls_zero_pixels) +
                 L" | RES3 plan errors " +
                 std::to_wstring(
                     presented.surface_coverage.type7_plan_calls_failed) +
