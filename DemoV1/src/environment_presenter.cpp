@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
+#include <optional>
 #include <stdexcept>
 
 namespace rloft {
@@ -14,9 +16,13 @@ void EnvironmentPresenter::draw_subtracted(
     int column,
     int shade,
     bool clip_to_environment,
-    bool clamp_shade_for_enhanced_pc) {
+    bool clamp_shade_for_enhanced_pc,
+    std::optional<int> authored_width) {
     if (frame < 0 || frame >= raster.count) {
         throw std::out_of_range("environment type-1 frame index");
+    }
+    if (authored_width && *authored_width <= 0) {
+        throw std::invalid_argument("environment authored draw width must be positive");
     }
     if (raster.width <= 0 || raster.height <= 0) {
         throw std::invalid_argument("environment raster dimensions");
@@ -33,18 +39,21 @@ void EnvironmentPresenter::draw_subtracted(
     }
 
     const auto delta = static_cast<std::uint8_t>(shade);
+    const int drawable_width=authored_width
+        ? std::min(raster.width,*authored_width)
+        : raster.width;
     auto& dst = framebuffer.mutable_pixels();
 
     for (int sy = 0; sy < raster.height; ++sy) {
-        const int dy = row + sy;
+        const auto dy=static_cast<std::int64_t>(row)+sy;
         if (dy < 0 || dy >= IndexedFramebuffer::kHeight) continue;
         if (clip_to_environment &&
             (dy < kClipRowMin || dy > kClipRowMax)) {
             continue;
         }
 
-        for (int sx = 0; sx < raster.width; ++sx) {
-            const int dx = column + sx;
+        for (int sx = 0; sx < drawable_width; ++sx) {
+            const auto dx=static_cast<std::int64_t>(column)+sx;
             if (dx < 0 || dx >= IndexedFramebuffer::kWidth) continue;
             if (clip_to_environment &&
                 (dx < kClipColumnMin || dx > kClipColumnMax)) {
@@ -84,7 +93,8 @@ void EnvironmentPresenter::draw_commands(
             command.y,
             command.x,
             command.shade,
-            command.kind == EnvironmentDrawKind::ProfilePlacement);
+            command.kind == EnvironmentDrawKind::ProfilePlacement,
+            false,command.width);
     }
 }
 

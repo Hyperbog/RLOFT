@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "rloft/environment_projection.hpp"
@@ -34,6 +35,10 @@ public:
     // type-1 frame: default remains source-authentic 8-bit SUB wrap.
     // Enhanced PC exploration can opt into clamping negative palette
     // indices rather than wrapping to an unrelated bright high index.
+    // Optional authored draw width limits source pixels without changing
+    // the decoded resource. When omitted, historical full-raster drawing
+    // is unchanged. The source can be narrower than the authored width;
+    // it must never be read past its actual decoded stride.
     static void draw_subtracted(
         IndexedFramebuffer& framebuffer,
         const Type1Raster& raster,
@@ -42,7 +47,8 @@ public:
         int column,
         int shade,
         bool clip_to_environment,
-        bool clamp_shade_for_enhanced_pc = false);
+        bool clamp_shade_for_enhanced_pc = false,
+        std::optional<int> authored_width = std::nullopt);
 
 private:
     const RavenloftBootAssets& assets_;

@@ -187,7 +187,8 @@ void ExplorationPresenter::draw_environment(
                 command.kind ==
                     EnvironmentDrawKind::
                         ProfilePlacement,
-                true);  // native indexed palette: no wrapped bright hues
+                true,  // native indexed palette: no wrapped bright hues
+                command.width); // authored strip/placement width, not full RES8 image
         }
         return;
     }

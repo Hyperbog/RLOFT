@@ -40,6 +40,7 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'bool ExplorationPresenter::enhanced_ground_eligible(',
         'if (enhanced_ground_eligible(frame)) {',
         'ground.shade_policy=GroundShadePolicy::ClampToBlack;',
+        'command.width); // authored strip/placement width, not full RES8 image',
         'assets_.res3_type7_native_raster(',
         'EnhancedType7Compositor::draw(',
         'constexpr bool kUseNativePcSprites = true;',
@@ -145,6 +146,8 @@ def main()->int:
             (1,'if (enhanced_ground_eligible(frame)) {','if (false) {'),
             (1,'ground.shade_policy=GroundShadePolicy::ClampToBlack;',
              'ground.shade_policy=GroundShadePolicy::VgaWrap;'),
+            (1,'command.width); // authored strip/placement width, not full RES8 image',
+             'std::nullopt); // authored strip/placement width, not full RES8 image'),
             (1,'constexpr bool kUseNativePcSprites = true;',
              'constexpr bool kUseNativePcSprites = false;'),
             (1,'EnhancedType7Compositor::draw(', '/* no sprite */ ('),
@@ -173,7 +176,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (15 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (16 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':

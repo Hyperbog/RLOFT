@@ -2,6 +2,9 @@
 
 #include <cassert>
 #include <cstdint>
+#include <limits>
+#include <optional>
+#include <stdexcept>
 #include <vector>
 
 int main() {
@@ -51,6 +54,41 @@ int main() {
     assert(at(5, 32) == 0);
     assert(at(5, 33) == 1);
     assert(at(6, 35) == 7);
+
+    // Environment commands carry an authored strip width. Before this
+    // boundary the native renderer projected eight-pixel RES8 strips
+    // but drew their entire decoded raster, causing sideways bleed.
+    framebuffer.clear(0x44);
+    rloft::EnvironmentPresenter::draw_subtracted(
+        framebuffer,raster,0,4,32,0,true,false,2);
+    assert(at(4,32)==0x44); // source transparency still takes precedence
+    assert(at(4,33)==1);
+    assert(at(4,34)==0x44); // never draw outside authored width
+    assert(at(5,32)==8 && at(5,33)==9);
+    assert(at(5,34)==0x44);
+    // If the authored record specifies more than the decoded source
+    // stride, clipping must never read past the raster source.
+    framebuffer.clear(0x44);
+    rloft::EnvironmentPresenter::draw_subtracted(
+        framebuffer,raster,0,4,32,0,true,false,16);
+    assert(at(4,35)==255);
+    assert(at(4,36)==0x44);
+    const auto untouched=framebuffer.pixels();
+    bool invalid_width=false;
+    try {
+        rloft::EnvironmentPresenter::draw_subtracted(
+            framebuffer,raster,0,4,32,0,true,false,0);
+    } catch(const std::invalid_argument&) { invalid_width=true; }
+    assert(invalid_width && framebuffer.pixels()==untouched);
+    // Untrusted authored coordinates cannot overflow int arithmetic and
+    // wrap a backdrop strip back into the visible game field.
+    rloft::EnvironmentPresenter::draw_subtracted(
+        framebuffer,raster,0,std::numeric_limits<int>::max(),
+        std::numeric_limits<int>::max(),0,false,false,2);
+    rloft::EnvironmentPresenter::draw_subtracted(
+        framebuffer,raster,0,std::numeric_limits<int>::min(),
+        std::numeric_limits<int>::min(),0,false,false,2);
+    assert(framebuffer.pixels()==untouched);
 
     // Profile placements clip to rows 4..131 and columns 32..287.
     framebuffer.clear(0x44);
