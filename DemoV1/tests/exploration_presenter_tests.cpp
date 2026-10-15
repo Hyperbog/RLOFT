@@ -129,6 +129,17 @@ int main() {
     assert(orphan_coverage.type7_plan_calls_failed==1U);
     assert(!orphan_coverage.complete());
 
+    // A zero-write native scene is NOT completed or fully occluded:
+    // original depth planning said it was visible, yet no indexed pixel
+    // reached the viewport. Keep this separate from decoder exceptions.
+    auto zero_pixel_scene=complete;
+    zero_pixel_scene.type7_calls_zero_pixels=1U;
+    assert(!zero_pixel_scene.complete());
+    zero_pixel_scene.type7_calls_zero_pixels=0U;
+    assert(zero_pixel_scene.complete());
+    assert(rloft::Type7SceneRenderOutcome::RasterizedNoPixels !=
+           rloft::Type7SceneRenderOutcome::Rasterized);
+
     auto bad_raster=complete;
     bad_raster.type7_calls_failed=1U;
     assert(!bad_raster.complete());

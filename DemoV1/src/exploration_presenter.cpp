@@ -395,6 +395,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         tables);
 
     std::vector<Type7SceneRasterFailure> raster_failures;
+    std::vector<Type7SceneZeroPixelDraw> zero_pixel_draws;
     auto scene_outcomes=initial_scene_outcomes(frame);
 
     // Enhanced PC default: RES3 sprites already have decoded native
@@ -419,18 +420,32 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                 }
                 const auto& block=tables.scale_blocks.at(
                     plan.traversal.scale_block_index);
+                const auto source_top=
+                    plan.rasterizer_setup.source_center+4;
                 const auto writes=EnhancedType7Compositor::draw(
                     framebuffer_,found->second,
-                    plan.visible_columns,block.scale_step,
-                    plan.rasterizer_setup.source_center+4);
-                ++output_coverage.type7_calls_rasterized;
-                output_coverage.type7_columns_rasterized+=
-                    plan.visible_columns.size();
+                    plan.visible_columns,block.scale_step,source_top);
+                // Successful invocation is not necessarily visible output.
+                // Preserve zero-write scenes as diagnostic evidence rather
+                // than incorrectly certifying their pixels as rasterized.
+                if (writes == 0U) {
+                    ++output_coverage.type7_calls_zero_pixels;
+                    scene_outcomes[index]=
+                        Type7SceneRenderOutcome::RasterizedNoPixels;
+                    zero_pixel_draws.push_back(Type7SceneZeroPixelDraw{
+                        plan.call.resource_id,plan.call.source_class,
+                        plan.call.source_index,source_top,
+                        plan.visible_columns.size()});
+                } else {
+                    ++output_coverage.type7_calls_rasterized;
+                    output_coverage.type7_columns_rasterized+=
+                        plan.visible_columns.size();
+                    scene_outcomes[index]=Type7SceneRenderOutcome::Rasterized;
+                }
                 output_coverage.type7_indexed_writes+=writes;
                 --output_coverage.type7_scene_calls_pending;
                 output_coverage.type7_visible_columns_pending-=
                     plan.visible_columns.size();
-                scene_outcomes[index]=Type7SceneRenderOutcome::Rasterized;
             } catch(const std::exception& error) {
                 ++output_coverage.type7_calls_failed;
                 scene_outcomes[index]=Type7SceneRenderOutcome::RasterFailed;
@@ -552,6 +567,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     out.surface_main_failures =
         std::move(main_failures);
     out.type7_failures = std::move(raster_failures);
+    out.type7_zero_pixel_draws = std::move(zero_pixel_draws);
     out.type7_scene_outcomes = std::move(scene_outcomes);
     out.type7_trace_failure =
         frame.scene_vga_trace_failure;

@@ -39,6 +39,9 @@ struct ExplorationSurfaceCoverage final {
     std::size_t type7_calls_rasterized{};
     std::size_t type7_columns_rasterized{};
     std::size_t type7_indexed_writes{};
+    // Visible scene columns were submitted, but no opaque pixel reached
+    // the native viewport. This is not evidence that a tree/NPC was drawn.
+    std::size_t type7_calls_zero_pixels{};
     std::size_t type7_calls_failed{};
 
     [[nodiscard]] bool complete() const noexcept {
@@ -49,6 +52,7 @@ struct ExplorationSurfaceCoverage final {
                type7_scene_calls_pending == 0 &&
                type7_plan_calls_failed == 0 &&
                type7_calls_failed == 0 &&
+               type7_calls_zero_pixels == 0 &&
                type7_visible_columns_pending == 0 &&
                type7_unvalidated_wide_runs == 0;
     }
@@ -75,11 +79,22 @@ struct SurfaceMainRasterFailure final {
     std::string reason;
 };
 
+// Native-only pixel evidence, retaining source identity without treating
+// original RES3 offsets as stable public mod IDs.
+struct Type7SceneZeroPixelDraw final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::int32_t projected_source_top{};
+    std::size_t visible_columns{};
+};
+
 enum class Type7SceneRenderOutcome : std::uint8_t {
     PlanningFailed,
     FullyOccluded,
     TraceUnavailable,
     Rasterized,
+    RasterizedNoPixels,
     RasterFailed,
 };
 
@@ -92,6 +107,7 @@ struct ExplorationPresentedFrame final {
     std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;
     std::vector<SurfaceMainRasterFailure> surface_main_failures;
     std::vector<Type7SceneRasterFailure> type7_failures;
+    std::vector<Type7SceneZeroPixelDraw> type7_zero_pixel_draws;
     // Per original call position. Native diagnostics only; this is
     // not a replacement for original DOS VGA write order.
     std::vector<Type7SceneRenderOutcome> type7_scene_outcomes;

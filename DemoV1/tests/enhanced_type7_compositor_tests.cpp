@@ -119,6 +119,23 @@ int main() {
     count=EnhancedType7Compositor::draw(fb,overlay,columns,steps);
     assert(count==1U && pixel(fb,132,32)==172U);
 
+    // Planned columns do not guarantee any visible opaque pixels: a
+    // transparent RES3 source or a vertically offscreen sprite writes zero.
+    // The caller must not label either draw as a visible rasterization.
+    steps.fill(1U);
+    auto all_transparent=sprite();
+    all_transparent.mask.assign(all_transparent.mask.size(),0U);
+    fb.clear(31U);
+    count=EnhancedType7Compositor::draw(
+        fb,all_transparent,columns,steps);
+    assert(count==0U);
+    assert(pixel(fb,132,32)==31U);
+    fb.clear(32U);
+    count=EnhancedType7Compositor::draw(
+        fb,source,columns,steps,-256);
+    assert(count==0U);
+    assert(pixel(fb,132,32)==32U);
+
     // Reject invalid source/pixel/column/scale BEFORE any write.
     fb.clear(30U);
     auto invalid=sprite();

@@ -46,6 +46,19 @@ def verify(compositor:str,presenter:str,presenter_header:str,
     ):
         if item not in presenter:
             raise ValueError('native terrain/sprite pipeline changed: '+item)
+    for item in (
+        'if (writes == 0U)',
+        '++output_coverage.type7_calls_zero_pixels;',
+        'Type7SceneRenderOutcome::RasterizedNoPixels',
+        'zero_pixel_draws.push_back(Type7SceneZeroPixelDraw{',
+        'out.type7_zero_pixel_draws = std::move(zero_pixel_draws);',
+    ):
+        if item not in presenter:
+            raise ValueError('native zero-write scene falsely accepted: '+item)
+    for item in ('type7_calls_zero_pixels', 'type7_zero_pixel_draws',
+                 'RasterizedNoPixels'):
+        if item not in presenter_header:
+            raise ValueError('missing zero-write scene evidence: '+item)
     for item in ('enhanced_type7_cache_','enhanced_ground_eligible('):
         if item not in presenter_header:
             raise ValueError('missing native sprite/ground interface: '+item)
@@ -127,6 +140,7 @@ def main()->int:
             (1,'constexpr bool kUseNativePcSprites = true;',
              'constexpr bool kUseNativePcSprites = false;'),
             (1,'EnhancedType7Compositor::draw(', '/* no sprite */ ('),
+            (1,'if (writes == 0U)', 'if (false)'),
             (3,'constexpr double kNativeGameplayRefreshHz = 60.0;',
              'constexpr double kNativeGameplayRefreshHz = 90.0;'),
             (3,'frame == 1 || frame == 36','frame == 2 || frame == 36'),
@@ -151,7 +165,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (12 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (13 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':
