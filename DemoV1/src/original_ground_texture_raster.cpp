@@ -155,6 +155,10 @@ GroundTextureRasterReport OriginalGroundTextureRaster::draw(
         throw std::invalid_argument(
             "original 34A74 source lacks 2-byte header plus 64x64 tile");
     }
+    if(spec.shade_policy!=GroundShadePolicy::VgaWrap &&
+       spec.shade_policy!=GroundShadePolicy::ClampToBlack) {
+        throw std::invalid_argument("unsupported ground shade policy");
+    }
     if(spec.row_count==0U ||
        spec.row_count>GroundTextureRasterSpec::kMaxRows ||
        (spec.row_step_bytes!=80 && spec.row_step_bytes!=-80) ||
@@ -235,10 +239,17 @@ GroundTextureRasterReport OriginalGroundTextureRaster::draw(
             const auto v=first_v+
                 delta_v*static_cast<std::uint32_t>(column);
             const auto index=source_offset(u,v);
-            const auto color=static_cast<std::uint8_t>(
-                original_texture[
-                    GroundTextureRasterSpec::kTextureHeaderBytes+index]-
-                shade);
+            const auto texel=original_texture[
+                GroundTextureRasterSpec::kTextureHeaderBytes+index];
+            const bool would_wrap=texel<shade;
+            if(would_wrap) {
+                ++report.shade_underflow_samples;
+                report.shade_underflow_pixels+=phase_step;
+            }
+            const auto color=would_wrap &&
+                spec.shade_policy==GroundShadePolicy::ClampToBlack
+                ? std::uint8_t{0U}
+                : static_cast<std::uint8_t>(texel-shade);
             for(std::size_t lane=0U;lane<phase_step;++lane) {
                 staged[destination_start[row]+column+lane]=color;
                 ++report.indexed_writes;

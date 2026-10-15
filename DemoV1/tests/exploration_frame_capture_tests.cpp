@@ -111,6 +111,7 @@ int main() {
     ExplorationPresentedFrame presentation{};
     presentation.ground_textured_rasterized=true;
     presentation.ground_indexed_writes=32768U;
+    presentation.ground_shade_underflow_pixels=7U;
     presentation.palette.rgb[3U]=42U;
     presentation.surface_coverage.sintab_main_runs_pending=1U;
     presentation.surface_coverage.sintab_main_runs_failed=1U;
@@ -221,6 +222,10 @@ int main() {
            std::string::npos);
     assert(tsv.find("scene_outcome\t0\t1\t4\t445\tplanning-failed")!=
            std::string::npos);
+    assert(tsv.find("ground_shade_policy\tnative-clamp-to-zero")!=
+           std::string::npos);
+    assert(tsv.find("ground_shade_underflow_pixels\t7")!=
+           std::string::npos);
     assert(tsv.find("scene_video_calls\t1\t0\t1")!=std::string::npos);
     assert(tsv.find("scene_columns\t1\t0\t0")!=std::string::npos);
     assert(tsv.find("scene_indexed_writes\t18")!=std::string::npos);
@@ -250,6 +255,7 @@ int main() {
     // source run from unsupported grouped raster-mask lookup.
     frame.scene_individual_columns_mode=true;
     presentation.ground_textured_rasterized=false;
+    presentation.ground_shade_underflow_pixels=0U;
     presentation.ground_indexed_writes=0U;
     presentation.ground_render_failure=
         "source tile unverified; flat fallback";
@@ -289,6 +295,8 @@ int main() {
         std::istreambuf_iterator<char>()};
     assert(third_tsv.find(
         "native_lower_surface\tflat-fill-fallback;other-modes-pending")!=
+           std::string::npos);
+    assert(third_tsv.find("ground_shade_policy\tnot-textured")!=
            std::string::npos);
     assert(third_tsv.find("ground_raster_indexed_writes\t0")!=
            std::string::npos);

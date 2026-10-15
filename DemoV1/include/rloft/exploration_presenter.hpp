@@ -116,6 +116,7 @@ struct ExplorationPresentedFrame final {
     Palette6 palette{};
     bool ground_textured_rasterized{};
     std::size_t ground_indexed_writes{};
+    std::size_t ground_shade_underflow_pixels{};
     std::string ground_render_failure;
     ExplorationSurfaceCoverage surface_coverage{};
     std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;

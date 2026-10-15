@@ -239,6 +239,48 @@ int main() {
     // upper-case test following this bounded cropped floor fixture.
     spec.row_count=GroundTextureRasterSpec::kMaxRows;
 
+    // Native-only color rule: low texels with shade 8 would wrap to
+    // palette entries 248..255. Historical mode must preserve SUB wrap.
+    GroundTextureShadeTable low_shades{};
+    low_shades.subtract[254U]=8U; // lower row 0
+    auto low_tile=source;
+    low_tile[2U+2U*64U]=2U; // visible source U0,V2
+    auto native_spec=spec;
+    native_spec.row_count=1U;
+    native_spec.shade_policy=GroundShadePolicy::ClampToBlack;
+    fb.clear(0x55U);
+    const auto safe=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(safe.indexed_writes==256U);
+    assert(safe.shade_underflow_samples==1U);
+    assert(safe.shade_underflow_pixels==1U);
+    assert(pixel(fb,259,32)==0U);
+    assert(pixel(fb,259,33)==129U);
+    assert(pixel(fb,259,31)==0x55U);
+    native_spec.shade_policy=GroundShadePolicy::VgaWrap;
+    fb.clear(0x55U);
+    const auto wrapped=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(wrapped.shade_underflow_samples==1U);
+    assert(pixel(fb,259,32)==250U);
+    // The paired-phase floor duplicates one sampled texel twice.
+    native_spec.row_count=81U;
+    native_spec.shade_policy=GroundShadePolicy::ClampToBlack;
+    low_shades.subtract[174U]=8U; // lower row 80
+    fb.clear(0x55U);
+    const auto paired=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(paired.shade_underflow_pixels>=2U);
+    assert(pixel(fb,179,32)==0U && pixel(fb,179,33)==0U);
+    assert(pixel(fb,180,32)==128U);
+    const auto before_policy=fb.pixels();
+    native_spec.shade_policy=static_cast<GroundShadePolicy>(255U);
+    assert(rejected([&] {
+        (void)OriginalGroundTextureRaster::draw(
+            fb,low_tile,low_shades,records,native_spec);
+    }));
+    assert(fb.pixels()==before_policy);
+
     // Original upper textured strip at 1F343/1F352 uses +80 and
     // +1 shade index steps rather than reversed gradient indexing.
     fb.clear(0xE9U);

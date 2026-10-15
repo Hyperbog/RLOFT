@@ -184,6 +184,11 @@ void ExplorationFrameCapture::write(
                :"flat-fill-fallback;other-modes-pending")<<"\n"
             <<"ground_raster_indexed_writes\t"
             <<presented.ground_indexed_writes<<"\n"
+            <<"ground_shade_policy\t"
+            <<(presented.ground_textured_rasterized
+                ?"native-clamp-to-zero":"not-textured")<<"\n"
+            <<"ground_shade_underflow_pixels\t"
+            <<presented.ground_shade_underflow_pixels<<"\n"
             <<"ground_raster_error\t"
             <<clean(presented.ground_render_failure)<<"\n"
             // Source sweep record +0C gates alternate/outer material.

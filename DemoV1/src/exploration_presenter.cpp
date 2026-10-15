@@ -214,6 +214,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
 
     bool ground_textured_rasterized=false;
     std::size_t ground_indexed_writes=0U;
+    std::size_t ground_shade_underflow_pixels=0U;
     std::string ground_render_failure;
     if (enhanced_ground_eligible(frame)) {
         try {
@@ -225,11 +226,15 @@ ExplorationPresentedFrame ExplorationPresenter::present(
             // source 15618[0]=0 (materializer-set 22220=0).
             // Other depths/modes must NOT be given a guessed span.
             ground.row_count=128U;
+            // Native palette policy matches the enhanced RES8 sky;
+            // the standalone original raster defaults to VGA wrap.
+            ground.shade_policy=GroundShadePolicy::ClampToBlack;
             const auto report=OriginalGroundTextureRaster::draw(
                 framebuffer_,frame.ground_raster_source,
                 ground_shades_,frame.ground_ff58,ground);
             ground_textured_rasterized=true;
             ground_indexed_writes=report.indexed_writes;
+            ground_shade_underflow_pixels=report.shade_underflow_pixels;
         } catch(const std::exception& error) {
             // Preserve the old lower fill if any original texel
             // lookup/row-bound validation fails. This does not turn
@@ -566,6 +571,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     ExplorationPresentedFrame out{};
     out.ground_textured_rasterized=ground_textured_rasterized;
     out.ground_indexed_writes=ground_indexed_writes;
+    out.ground_shade_underflow_pixels=ground_shade_underflow_pixels;
     out.ground_render_failure=std::move(ground_render_failure);
     out.palette =
         assets_.colors_palette(

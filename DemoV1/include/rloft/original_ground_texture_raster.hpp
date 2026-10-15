@@ -30,6 +30,10 @@ struct GroundTextureShadeTable final {
         const std::vector<std::uint8_t>& code2);
 };
 
+// The reference path must remain exact unsigned VGA SUB; native Windows
+// may opt into clamping low colors instead of wrapping to palette 248..255.
+enum class GroundShadePolicy : std::uint8_t { VgaWrap, ClampToBlack };
+
 struct GroundTextureRasterSpec final {
     static constexpr std::size_t kMaxRows = 128U;
     static constexpr std::size_t kViewportWidth = 256U;
@@ -47,12 +51,15 @@ struct GroundTextureRasterSpec final {
     std::uint8_t phase_u{}; // original mutable C048
     std::uint8_t phase_v{}; // original mutable C044
     std::size_t row_count{kMaxRows};
+    GroundShadePolicy shade_policy{GroundShadePolicy::VgaWrap};
 };
 
 struct GroundTextureRasterReport final {
     std::size_t rows{};
     std::size_t source_reads{};
     std::size_t indexed_writes{};
+    std::size_t shade_underflow_samples{};
+    std::size_t shade_underflow_pixels{};
     std::size_t individual_plane_rows{};
     std::size_t paired_plane_rows{};
 };
