@@ -429,18 +429,25 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                     plan.traversal.scale_block_index);
                 const auto source_top=
                     plan.rasterizer_setup.source_center+4;
+                // Original SINTAB's packed AL/AH subtractors are presentation
+                // color state, separate from original RES3 pixel geometry.
+                const auto shades=EnhancedType7ShadeModel::build(
+                    plan.visible_runs,plan.visible_columns,
+                    plan.traversal.lookup_value,
+                    frame.scene_individual_columns_mode,block);
                 EnhancedType7DrawMetrics metrics{};
                 const auto writes=EnhancedType7Compositor::draw(
                     framebuffer_,found->second,
                     plan.visible_columns,block.scale_step,source_top,
-                    &metrics);
+                    &metrics,&shades);
                 native_draws.push_back(Type7SceneNativeDraw{
                     plan.call.resource_id,plan.call.source_class,
                     plan.call.source_index,source_top,
                     plan.visible_columns.size(),
                     metrics.potential_opaque_pixels,writes,
                     metrics.left,metrics.top,metrics.right,metrics.bottom,
-                    metrics.min_palette_index,metrics.max_palette_index});
+                    metrics.min_palette_index,metrics.max_palette_index,
+                    metrics.shade_underflow_pixels});
                 // Successful invocation is not necessarily visible output.
                 // Preserve zero-write scenes as diagnostic evidence rather
                 // than incorrectly certifying their pixels as rasterized.

@@ -412,7 +412,8 @@ void ExplorationFrameCapture::write(
                 <<"\t"<<draw.left<<"\t"<<draw.top
                 <<"\t"<<draw.right<<"\t"<<draw.bottom
                 <<"\t"<<unsigned(draw.min_palette_index)
-                <<"\t"<<unsigned(draw.max_palette_index)<<"\n";
+                <<"\t"<<unsigned(draw.max_palette_index)
+                <<"\t"<<draw.shade_underflow_pixels<<"\n";
     }
     // Pixel-less projected RES3 calls are neither hidden nor decoded errors.
     for(const auto& gap:presented.type7_zero_pixel_draws) {

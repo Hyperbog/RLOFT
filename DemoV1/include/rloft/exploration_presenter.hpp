@@ -101,6 +101,7 @@ struct Type7SceneNativeDraw final {
     std::size_t indexed_writes{};
     int left{-1}, top{-1}, right{-1}, bottom{-1};
     std::uint8_t min_palette_index{}, max_palette_index{};
+    std::size_t shade_underflow_pixels{};
 };
 
 enum class Type7SceneRenderOutcome : std::uint8_t {

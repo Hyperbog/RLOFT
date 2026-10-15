@@ -281,7 +281,7 @@ int main() {
         445U,1U,4U,84,12U
     });
     presentation.type7_native_draws.push_back({
-        445U,1U,4U,84,12U,37U,0U,-1,-1,-1,-1,0U,0U
+        445U,1U,4U,84,12U,37U,0U,-1,-1,-1,-1,0U,0U,3U
     });
     presentation.type7_scene_outcomes[0]=
         Type7SceneRenderOutcome::RasterizedNoPixels;
@@ -330,7 +330,7 @@ int main() {
     assert(third_tsv.find("scene_outcome\t0\t1\t4\t445\trasterized-no-pixels")!=
            std::string::npos);
     assert(third_tsv.find(
-        "scene_native_draw\t1\t4\t445\t84\t12\t37\t0\t-1\t-1\t-1\t-1\t0\t0")!=
+        "scene_native_draw\t1\t4\t445\t84\t12\t37\t0\t-1\t-1\t-1\t-1\t0\t0\t3")!=
         std::string::npos);
     assert(third_tsv.find("scene_zero_pixel_calls\t1")!=
            std::string::npos);
