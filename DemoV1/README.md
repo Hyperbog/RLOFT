@@ -46,6 +46,18 @@ preserved. **No new owner Level 22 graphics/inventory acceptance has yet
 been recorded:** tree placement/colors, other inventory bugs, map visual
 details, missing top-menu gameplay actions, and title Continue remain open.
 
+## Level 22 enhanced RES4 ground shade-underflow protection (October 15, 2026)
+
+[Native ground shade policy and original-source evidence](LEVEL22_NATIVE_GROUND_SHADE_CHECKPOINT_20261015.md).
+
+The Windows enhanced renderer now clamps RES4 texels below the original
+FE15 per-row shade decrement to palette zero, instead of wrapping into
+unrelated high palette indices. The **standalone DOS-reference raster
+remains byte-accurate** because its default policy retains 8-bit wrap.
+Runtime field captures report potential wrap pixels separately.
+Source verification and native Windows CTests are separate from
+**outstanding Level 22 visual acceptance**.
+
 ## Level 22 native RES3 sprite bounds and palette evidence (October 15, 2026)
 
 [Exact Windows build, field-capture format, source evidence and remaining graphics gates](LEVEL22_RES3_NATIVE_BOUNDS_PALETTE_CHECKPOINT_20261015.md).
