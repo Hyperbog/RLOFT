@@ -177,6 +177,13 @@ int main() {
     const auto individual=rloft::EnhancedType7ShadeModel::build(
         runs,columns,0x0504U,true,shade_block);
     assert(individual.lookup_by_column==shaded.lookup_by_column);
+    // SINTAB code stores relative to EDI. The original sprite phase
+    // shifts destination rows, changing AL/AH parity without changing
+    // the resource or the source code's row selector.
+    const auto row_shifted=rloft::EnhancedType7ShadeModel::build(
+        runs,columns,0x0504U,false,shade_block,1U,328U);
+    assert(row_shifted.high_on_even_row);
+    assert(row_shifted.lookup_by_column==shaded.lookup_by_column);
     std::array<std::uint16_t,129U> shade_steps{};
     shade_steps.fill(1U);
     source=sprite();fb.clear(6U);

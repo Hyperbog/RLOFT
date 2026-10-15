@@ -434,7 +434,9 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                 const auto shades=EnhancedType7ShadeModel::build(
                     plan.visible_runs,plan.visible_columns,
                     plan.traversal.lookup_value,
-                    frame.scene_individual_columns_mode,block);
+                    frame.scene_individual_columns_mode,block,
+                    plan.rasterizer_setup.render_phase_after_mode,
+                    tables.c6e0());
                 EnhancedType7DrawMetrics metrics{};
                 const auto writes=EnhancedType7Compositor::draw(
                     framebuffer_,found->second,
