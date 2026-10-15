@@ -8,6 +8,7 @@
 #include <optional>
 #include <vector>
 
+#include "rloft/enhanced_type7_shading.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/type7_column_traversal.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -19,6 +20,7 @@ namespace rloft {
 struct EnhancedType7DrawMetrics final {
     std::size_t potential_opaque_pixels{}; // after scale, before viewport clip
     std::size_t indexed_writes{};
+    std::size_t shade_underflow_pixels{};
     int left{-1};
     int top{-1};
     int right{-1};
@@ -48,7 +50,8 @@ public:
         const std::vector<Type7VisibleColumn>& columns,
         const std::array<std::uint16_t,129>& scale_steps,
         std::optional<int> source_top = std::nullopt,
-        EnhancedType7DrawMetrics* metrics = nullptr) {
+        EnhancedType7DrawMetrics* metrics = nullptr,
+        const EnhancedType7ShadePlan* shades = nullptr) {
         const auto width=static_cast<std::size_t>(sprite.width);
         const auto height=static_cast<std::size_t>(sprite.height);
         if (width==0U || height!=128U ||
@@ -61,6 +64,8 @@ public:
             static_cast<std::size_t>(IndexedFramebuffer::kHeight)) {
             throw std::invalid_argument("enhanced destination framebuffer invalid");
         }
+        if(shades && shades->lookup_by_column.size()!=columns.size())
+            throw std::invalid_argument("native RES3 shade-column count mismatch");
         for (const auto& c:columns) {
             if (static_cast<std::size_t>(c.source_x)>=width ||
                 c.viewport_x>=256U) {
@@ -109,17 +114,27 @@ public:
             for (std::size_t ry=0;ry<repeats;++ry) {
                 const auto yy=dst_y+static_cast<std::int64_t>(ry);
                 if (yy<kViewportTop || yy>kViewportBottom) continue;
-                for (const auto& c:columns) {
+                for (std::size_t i=0U;i<columns.size();++i) {
+                    const auto& c=columns[i];
                     const auto dx=static_cast<int>(c.viewport_x)+kViewportLeft;
                     if (dx<kViewportLeft || dx>kViewportRight) continue;
                     const auto src=sy*width+static_cast<std::size_t>(c.source_x);
                     if (sprite.mask[src]==0U) continue;
-                    const auto color=sprite.pixels[src];
+                    auto color=sprite.pixels[src];
+                    bool underflow=false;
+                    if(shades) {
+                        const bool high=((yy&1LL)!=0LL) !=
+                            shades->high_on_even_row;
+                        color=EnhancedType7ShadeModel::shade(
+                            color,shades->lookup_by_column[i],high,
+                            &underflow);
+                    }
                     dst[static_cast<std::size_t>(yy)*
                         IndexedFramebuffer::kWidth+
                         static_cast<std::size_t>(dx)]=color;
                     ++writes;
                     if (metrics != nullptr) {
+                        if(underflow) ++observed.shade_underflow_pixels;
                         if (observed.indexed_writes == 0U) {
                             observed.left=observed.right=dx;
                             observed.top=observed.bottom=static_cast<int>(yy);
