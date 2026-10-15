@@ -40,7 +40,7 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         'bool ExplorationPresenter::enhanced_ground_eligible(',
         'if (enhanced_ground_eligible(frame)) {',
         'ground.shade_policy=GroundShadePolicy::ClampToBlack;',
-        'assets_.res3_type7_native_raster(
+        'assets_.res3_type7_native_raster(',
         'EnhancedType7Compositor::draw(',
         'constexpr bool kUseNativePcSprites = true;',
         'if (!kUseNativePcSprites &&',
