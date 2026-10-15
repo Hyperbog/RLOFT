@@ -46,6 +46,19 @@ preserved. **No new owner Level 22 graphics/inventory acceptance has yet
 been recorded:** tree placement/colors, other inventory bugs, map visual
 details, missing top-menu gameplay actions, and title Continue remain open.
 
+## Level 22 native RES3 SINTAB color correction (October 15, 2026)
+
+[Authenticated sprite shade-plan source, original SINTAB verification and
+remaining field gates](LEVEL22_RES3_SINTAB_SHADE_CHECKPOINT_20261015.md).
+
+Native RES3 scenery previously drew decoded palette indices without the
+source-authored SINTAB packed palette subtraction. The enhanced native
+compositor now applies per-column, per-row AL/AH shade values and low-byte
+borrow with native underflow clamping. Original RES3 pixels, masks, geometry,
+scene order and DOS-reference rasterization remain intact. A separate typed
+shade plan decouples source lookup, screen-row phase and replacement artwork.
+The screenshot/field acceptance gate is **still open**, independently of CI.
+
 ## Level 22 RES8 authored-width clipping (October 15, 2026)
 
 [Source audit, enhanced rendering fix, regression evidence and outstanding
