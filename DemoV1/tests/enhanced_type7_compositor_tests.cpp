@@ -161,6 +161,76 @@ int main() {
         assert(pixel(fb,132,32)==32U);
     }
 
+    // The generated SINTAB source chooses AL on even rows and AH on
+    // odd rows. CODE.2's grouped passes swap packed lookup bytes per run.
+    rloft::RendererScaleBlock shade_block{};
+    shade_block.rasterizer_x86={
+        0x8A,0x86,0,0,0,0,0x88,0xC4,0x29,0xC8,
+        0x88,0x87,0,0,0,0,0x88,0xA7,80,0,0,0,0xC3};
+    const std::vector<rloft::Type7VisibleRun> runs={
+        {0U,0U,0U,1U},{1U,1U,255U,1U}};
+    const auto shaded=rloft::EnhancedType7ShadeModel::build(
+        runs,columns,0x0504U,false,shade_block);
+    assert(!shaded.high_on_even_row);
+    assert(shaded.lookup_by_column==
+           (std::vector<std::uint16_t>{0x0504U,0x0405U}));
+    const auto individual=rloft::EnhancedType7ShadeModel::build(
+        runs,columns,0x0504U,true,shade_block);
+    assert(individual.lookup_by_column==shaded.lookup_by_column);
+    std::array<std::uint16_t,129U> shade_steps{};
+    shade_steps.fill(1U);
+    source=sprite();fb.clear(6U);
+    count=EnhancedType7Compositor::draw(
+        fb,source,columns,shade_steps,std::nullopt,&metrics,&shaded);
+    assert(count==2U);
+    assert(pixel(fb,132,32)==38U); // AL:42 minus 4
+    assert(pixel(fb,133,287)==79U); // AH:83 minus 4, swapped
+    assert(metrics.shade_underflow_pixels==0U);
+    source.pixels[64U*2U]=1U;
+    source.pixels[65U*2U+1U]=2U;
+    fb.clear(6U);
+    count=EnhancedType7Compositor::draw(
+        fb,source,columns,shade_steps,std::nullopt,&metrics,&shaded);
+    assert(count==2U && metrics.shade_underflow_pixels==2U);
+    assert(pixel(fb,132,32)==0U && pixel(fb,133,287)==0U);
+    bool underflow=false;
+    assert(rloft::EnhancedType7ShadeModel::shade(
+        2U,0x0004U,true,&underflow)==1U);
+    assert(!underflow); // low-byte borrow reduces the AH result
+    auto inverted=shade_block;
+    inverted.rasterizer_x86[11U]=0xA7U;
+    inverted.rasterizer_x86[17U]=0x87U;
+    const auto opposite=rloft::EnhancedType7ShadeModel::build(
+        runs,columns,0x0504U,false,inverted);
+    assert(opposite.high_on_even_row);
+    source=sprite();fb.clear(6U);
+    count=EnhancedType7Compositor::draw(
+        fb,source,columns,shade_steps,std::nullopt,&metrics,&opposite);
+    assert(count==2U);
+    assert(pixel(fb,132,32)==37U && pixel(fb,133,287)==78U);
+    // Reject malformed palettes, inconsistent runs, corrupt code and
+    // invalid input before overwriting previously drawn source pixels.
+    auto malformed=shaded;
+    malformed.lookup_by_column.pop_back();
+    const auto before=fb.pixels();
+    bool rejected_shade=false;
+    try {(void)EnhancedType7Compositor::draw(
+        fb,source,columns,shade_steps,std::nullopt,&metrics,&malformed);
+    } catch(const std::invalid_argument&) {rejected_shade=true;}
+    assert(rejected_shade && fb.pixels()==before);
+    rejected_shade=false;
+    try {(void)rloft::EnhancedType7ShadeModel::build(
+        runs,{{0U,0U,1U},{1U,1U,255U}},
+        0x0504U,false,shade_block);
+    } catch(const std::invalid_argument&) {rejected_shade=true;}
+    assert(rejected_shade);
+    rejected_shade=false;
+    try {auto bad=shade_block;bad.rasterizer_x86[11U]=0xFFU;
+         (void)rloft::EnhancedType7ShadeModel::build(
+             runs,columns,0x0504U,false,bad);
+    } catch(const std::invalid_argument&) {rejected_shade=true;}
+    assert(rejected_shade);
+
     // Reject invalid source/pixel/column/scale BEFORE any write.
     fb.clear(30U);
     auto invalid=sprite();
