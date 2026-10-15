@@ -59,8 +59,11 @@ The native draw path now uses the bounded authored width, retaining source
 transparency and the original resource pixels. The default historical
 full-raster drawing API is unchanged. Explicit invalid widths are rejected;
 large authored coordinates are accumulated without signed-int overflow.
-The Windows build/test result and owner visual acceptance are tracked
-separately.
+[Windows CI #885](https://github.com/Hyperbog/RLOFT/actions/runs/38823907665)
+compiled exact source `362d66a49c6f` successfully, with **38/38 focused
+CTests** and all 16 native scene source-guard mutations rejected.
+The source-matched Windows Alpha artifact was published. Actual Level 22
+visual acceptance remains open.
 
 ## Level 22 enhanced RES4 ground shade-underflow protection (October 15, 2026)
 

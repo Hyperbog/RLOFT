@@ -22,7 +22,9 @@ Before this change, both `EnvironmentPresenter::draw_commands` and `ExplorationP
 
 ## Verification and limitations
 
-[Windows CI run](https://github.com/Hyperbog/RLOFT/actions/runs/38823907665) executes native MSVC compilation, source preflight, 38 focused CTests and artifact packaging against source commit `362d66a...`. The status of that run must be checked before claiming build success; **source changes alone are not a compiled release**.
+**Verified:** [Windows CI #885](https://github.com/Hyperbog/RLOFT/actions/runs/38823907665) successfully compiled exact source commit `362d66a49c6fa9f83392ead4d1ff9bd7713cbdda`. The enhanced-Level22 source verifier rejected **16/16 negative mutations**; all **38/38 focused CTests passed**, including `environment_presenter_tests`, `original_ground_texture_raster_tests` and frontend-preservation contracts. Continuous Alpha ZIP publication, intro and field-test bundles, and checked-in EXE refresh succeeded.
+
+**Source-matched Windows Alpha artifact:** `Ravenloft-Continuous-Alpha-Windows-x64`, ID `12014805145`. Field-test package ID `12014495566`; original intro package ID `12013199775`. Checked-in PE build source is stored in `DemoV1/Windows/build-source-sha.txt`, and its SHA-256 is `43e7d32ea3b4245338de4d0f6c6d1710de3567ede6a100247c984a5cf3664cf5`.
 
 Without comparing actual RES8 source dimensions at each Level 22 pose, we cannot claim how many pixels this prevents from being overwritten in the owner's installation. The correction protects the draw-command contract and resolves the source-level overdraw possibility, **not** all wrong environment color or tree placement. Real-game screenshot/field validation, palette accuracy, NPC placement, inventory, automap and menu acceptance remain separate and open.
 
