@@ -71,6 +71,21 @@ def verify(compositor:str,presenter:str,presenter_header:str,
         if item not in presenter_header:
             raise ValueError('missing native sprite/ground interface: '+item)
 
+    # The optional 3D scene must receive only original RES8 backdrop and
+    # RES4 ground, captured BEFORE software walls/RES3 sprites. Otherwise
+    # the 3D view ghosts the old projected tree silhouettes behind itself.
+    capture='auto environment_backdrop=framebuffer_.capture(4,32,256,256);'
+    commit='out.environment_backdrop_indices=std::move(environment_backdrop.pixels);'
+    if (capture not in presenter or commit not in presenter or
+            'environment_backdrop_indices' not in presenter_header or
+            'presented.environment_backdrop_indices);' not in host):
+        raise ValueError('original sky/ground background not handed to live GPU')
+    ground=presenter.index('if(!ground_textured_rasterized) {')
+    snap=presenter.index(capture)
+    walls=presenter.index('walls_.draw_main_runs(')
+    if not ground<snap<walls:
+        raise ValueError('GPU backdrop snapshot includes 2D walls or sprites')
+
     order=(
         'draw_environment(frame);',
         'if (enhanced_ground_eligible(frame)) {',
@@ -155,6 +170,10 @@ def main()->int:
             (1,'EnhancedType7Compositor::draw(', '/* no sprite */ ('),
             (1,'EnhancedType7ShadeModel::build(', '/* no shader */ ('),
             (1,'if (writes == 0U)', 'if (false)'),
+            (1,'auto environment_backdrop=framebuffer_.capture(4,32,256,256);',
+               '/* original environment snapshot omitted */;'),
+            (3,'presented.environment_backdrop_indices);',
+               '/* no GPU environment input */);'),
             (3,'constexpr double kNativeGameplayRefreshHz = 60.0;',
              'constexpr double kNativeGameplayRefreshHz = 90.0;'),
             (3,'frame == 1 || frame == 36','frame == 2 || frame == 36'),
@@ -179,7 +198,7 @@ def main()->int:
                 raise ValueError('native scene regression escaped: '+before)
     except (ValueError,OSError) as exc:
         raise SystemExit('ENHANCED_LEVEL22_REJECTED: '+str(exc))
-    print('ENHANCED_LEVEL22_SOURCE_PASS (17 regression mutations rejected)')
+    print('ENHANCED_LEVEL22_SOURCE_PASS (19 regression mutations rejected)')
     return 0
 
 if __name__=='__main__':
