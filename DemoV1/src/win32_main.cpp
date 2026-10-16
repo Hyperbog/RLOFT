@@ -65,6 +65,7 @@
 #include "rloft/sound_config.hpp"
 #include "rloft/voc_decoder.hpp"
 #include "rloft/win32_audio.hpp"
+#include "rloft/original_npc_sound.hpp"
 #include "rloft/win32_midi.hpp"
 #include "rloft/xmidi.hpp"
 
@@ -2610,6 +2611,35 @@ int run_exploration(
                                         ? L"Ravenloft - Assassin struck"
                                         : L"Ravenloft - Attack missed";
                             SetWindowTextW(host.hwnd(),caption);
+                            if(outcome.injury) {
+                                // Original E284 survivor and corpse sounds
+                                // come from DIFFERENT INIT+14/+16 RES6
+                                // banks, never an NPC type hardcoded sound.
+                                // Native immediate SFX is the temporary
+                                // presentation adapter until original 28110
+                                // priority/queue sequencing is implemented.
+                                try {
+                                    const auto sound=
+                                        rloft::OriginalNpcSoundModel::res6_id(
+                                            assets.source().read("INIT"),
+                                            *outcome.injury);
+                                    if(sound)
+                                        audio_player.play(
+                                            rloft::decode_creative_voice(
+                                                assets.sampled_audio(
+                                                    6,*sound)));
+                                }catch(const std::exception& audio_error) {
+                                    // HP/RNG/world already committed: SFX
+                                    // decoding must never roll them back
+                                    // or masquerade as a failed attack.
+                                    if(trace) {
+                                        try{trace->error(
+                                            "combat.level22.audio",
+                                            audio_error.what());}
+                                        catch(...) {}
+                                    }
+                                }
+                            }
                             if(trace) {
                                 try {trace->event(
                                     "combat.level22.strike",
