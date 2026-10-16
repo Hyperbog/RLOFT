@@ -1536,11 +1536,26 @@ int run_exploration(
     // Hit-testing is performed against the frame the player ACTUALLY saw,
     // never against a freshly reconstructed scene after the click arrives.
     std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
-    const auto exploration_palette =
+    // Palette is a CURRENT-LEVEL renderer parameter. A title Continue,
+    // in-game Load, mist transition or ordinary portal may replace the
+    // mutable world and its original DAC bank without replacing Host.
+    auto palette_level_id=runtime.session().level_id;
+    auto exploration_palette=
         assets.colors_palette(
             rloft::LevelDisplayModel::palette_index(
-                static_cast<int>(
-                    runtime.session().level_id)));
+                static_cast<int>(palette_level_id)));
+    const auto refresh_world_palette=[&]() {
+        const auto level_id=runtime.session().level_id;
+        if(level_id==palette_level_id)return;
+        const auto next=assets.colors_palette(
+            rloft::LevelDisplayModel::palette_index(
+                static_cast<int>(level_id)));
+        palette_level_id=level_id;
+        exploration_palette=next;
+        // The one Win32 WGL context stays alive. Only indexed material
+        // textures need reupload with the new authentic source palette.
+        host.begin_gpu_scene(assets,exploration_palette);
+    };
 
     host.set_character_mode(false);
     host.set_menu_mode(false);
@@ -1666,6 +1681,7 @@ int run_exploration(
     };
 
     while (host.pump()) {
+        refresh_world_palette();
         host.set_gpu_world_visible(false);
         host.set_gpu_menu_overlay(false);
         if(host.consume_map_toggle()) {
