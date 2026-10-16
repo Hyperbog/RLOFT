@@ -43,8 +43,13 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
     ):
         if marker not in runtime:
             raise ValueError('Level22 runtime incomplete or not transactional: '+marker)
-    if runtime.index('*this=std::move(staged);') <
-            runtime.index('if(!completed)return false;'):
+    transition=runtime[runtime.index(
+        'bool ExplorationRuntime::complete_level22_relic_transition('):
+        runtime.index('ExplorationRuntime::Level22PickupProgress')]
+    if 'ExplorationRuntime staged=*this;' not in transition:
+        raise ValueError('mist transition is mutating authoritative runtime')
+    if transition.index('*this=std::move(staged);') <
+            transition.index('if(!completed)return false;'):
         raise ValueError('mist quest committed before frame playback finished')
     # The original 21704 pickup and 21F70 event MUST commit as
     # one persistent transaction: an aborted frame must not consume the
