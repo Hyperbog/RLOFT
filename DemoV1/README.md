@@ -26,6 +26,14 @@ remaining graphics integration rather than another independent demo.
 [Precise status, original GPU source inventory and next integration
 contracts](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md).
 
+[Windows CI #901](https://github.com/Hyperbog/RLOFT/actions/runs/38828727846)
+compiled and packaged source `06f2ce565e3bd1` with **39/39 focused
+CTests passed**. The one `Ravenloft-Enhanced-Game-Windows-x64` ZIP
+(artifact 12015779493) was independently verified by matching the
+packaged EXE SHA-256 against its manifest. The GPU world-rendering
+integration and field visual acceptance remain open.
+
+
 ## Owner field milestone — continuous Windows startup reaches Level 22 (October 13, 2026)
 
 The owner has tested the [Windows continuous-Alpha build #819](https://github.com/Hyperbog/RLOFT/actions/runs/38494095524) and confirmed it **runs all the way to Level 22**. This is the first field-confirmed end-to-end startup checkpoint for the enhanced PC port, including the transition out of character creation. The owner also reports **remaining Level 22 issues**, so this is **not** acceptance of the world renderer, gameplay, audio quality, controls or the full Alpha.

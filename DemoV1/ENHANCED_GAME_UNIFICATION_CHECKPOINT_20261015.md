@@ -68,6 +68,40 @@ The regression suite still protects the genuine CODE.1 intro, cinematic
 sound, animations, character creation, native RES3/RES4/RES8 content,
 typed inventory and original-level story state.
 
+## Exact Windows build and package verification
+
+[Windows Actions **#901**](https://github.com/Hyperbog/RLOFT/actions/runs/38828727846)
+completed successfully on source
+`06f2ce565e3bd1c55a4a6c8f494046fd10f576a2`.
+
+- Windows MSVC compiled the continuous enhanced-game Win32 host and all
+  39 focused regression targets; **39/39 CTests passed**. That includes the
+  new `exploration_ui_tests` and updated
+  `exploration_gameplay_cadence_tests`, plus Level 22 surface and asset
+  regressions.
+- Launcher/source preflight passed, including **15** negative continuous
+  launcher mutations, **17** native scene mutations and **9** in-game UI
+  mutations.
+- Published exactly **one** player package:
+  `Ravenloft-Enhanced-Game-Windows-x64`, artifact
+  [12015779493](https://github.com/Hyperbog/RLOFT/actions/runs/38828727846/artifacts/12015779493).
+- Independently tested ZIP integrity and verified the packaged
+  `Ravenloft.exe` against its `Ravenloft.exe.sha256` manifest.
+  SHA-256: `98b538d47e50a1da80c0346d8f617ea9f38a5a920d69514359bee436a3fad490`.
+  `build-source-sha.txt` in the ZIP names `06f2ce565e3bd1c55a4a6c8f494046fd10f576a2`.
+- Original copyrighted game assets are NOT included; the safe launcher
+  discovers/copies owner-supplied media and does not overwrite originals.
+  Preserved GPU prototype, original machine-code dumps, standalone source
+  diagnostics and all research documentation are still available in
+  historical branches.
+
+**What these tests do NOT prove:** correctly textured GPU world scenes,
+true 3D free-look/pitch, screenshot-accurate Level 22 tree positions or
+working end-to-end game content. The ZIP still uses the 320×400 indexed
+software world scanout, not the separate OpenGL world's geometry or
+FBO/mipmap pipeline. **Gameplay field/owner visual acceptance remains
+open.**
+
 ## What is still missing — binding contract for GPU consolidation
 
 **Next code work, in dependency order:**
