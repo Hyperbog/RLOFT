@@ -435,6 +435,7 @@ add_library(rloft_boot_flow
     src/combat_hit_check.cpp
     src/combat_strength_attack.cpp
     src/combat_player_hit_inputs.cpp
+    src/combat_level22_strike.cpp
     src/combat_hand_dispatch.cpp
     src/combat_live_hand_request.cpp
     src/combat_attack_timing.cpp
@@ -708,6 +709,11 @@ add_executable(combat_player_hit_inputs_tests
     tests/combat_player_hit_inputs_tests.cpp)
 target_link_libraries(combat_player_hit_inputs_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_player_hit_inputs_tests COMMAND combat_player_hit_inputs_tests)
+
+add_executable(combat_level22_strike_tests tests/combat_level22_strike_tests.cpp)
+target_link_libraries(combat_level22_strike_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level22_strike_tests COMMAND combat_level22_strike_tests)
+
 add_executable(combat_hand_dispatch_tests tests/combat_hand_dispatch_tests.cpp)
 target_link_libraries(combat_hand_dispatch_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
