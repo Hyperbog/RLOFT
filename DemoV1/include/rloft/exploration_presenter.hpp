@@ -115,6 +115,10 @@ enum class Type7SceneRenderOutcome : std::uint8_t {
 
 struct ExplorationPresentedFrame final {
     Palette6 palette{};
+    // Original-resourced RES8 sky/environment and RES4 ground BEFORE
+    // SINTAB walls and RES3 sprites. The optional 3D view uses this as
+    // its background so old 2D silhouettes cannot ghost through.
+    std::vector<std::uint8_t> environment_backdrop_indices;
     bool ground_textured_rasterized{};
     std::size_t ground_indexed_writes{};
     std::size_t ground_shade_underflow_pixels{};
