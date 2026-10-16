@@ -1540,6 +1540,11 @@ int run_exploration(
     // Hit-testing is performed against the frame the player ACTUALLY saw,
     // never against a freshly reconstructed scene after the click arrives.
     std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
+    // Explicit native-PC two-click target selection. Original DOS
+    // E5F0 also supports automatic DB94(-1), whose projected buffers
+    // are not yet available. The hand is revalidated on actual hit.
+    std::optional<rloft::PartyPanelControlModel::GameplayHandHit>
+        pending_level22_weapon_hand;
     // Palette is a CURRENT-LEVEL renderer parameter. A title Continue,
     // in-game Load, mist transition or ordinary portal may replace the
     // mutable world and its original DAC bank without replacing Host.
@@ -2494,8 +2499,18 @@ int run_exploration(
                         const wchar_t* status=L"Hand action pending";
                         switch(plan.status) {
                           case HandStatus::AttackCandidate:
-                            status=L"Weapon attack ready | "
-                                   L"original target/damage dispatch pending";
+                            if(rloft::DevLevelInteractionPolicy::allow(
+                                   exploration_preview,dev_interact) &&
+                               runtime.session().level_id==
+                                   rloft::Level22Story::kLevelId) {
+                                pending_level22_weapon_hand=*hand;
+                                status=L"Weapon selected | "
+                                       L"click the visible Assassin";
+                            } else {
+                                pending_level22_weapon_hand.reset();
+                                status=L"Original automatic combat "
+                                       L"target cache pending";
+                            }
                             break;
                           case HandStatus::ActorBlocked:
                             status=L"Character cannot attack";
@@ -2523,6 +2538,8 @@ int run_exploration(
                             status=L"Original item action pending";
                             break;
                         }
+                        if(plan.status!=HandStatus::AttackCandidate)
+                            pending_level22_weapon_hand.reset();
                         SetWindowTextW(host.hwnd(),status);
                         if(trace) {
                             try {trace->event(
@@ -2533,6 +2550,7 @@ int run_exploration(
                             catch(...) {}
                         }
                     }catch(const std::exception& error) {
+                        pending_level22_weapon_hand.reset();
                         const auto message=widen(error.what());
                         SetWindowTextW(host.hwnd(),message.c_str());
                         if(trace) {
@@ -2556,14 +2574,67 @@ int run_exploration(
                     }
                 }
 
-                // An unclaimed native primary click uses the ORIGINAL
-                // 223F4 hit rectangles, descending render rank and the
-                // class-2 action-flags bit via the Level 22 runtime API.
-                // Do not synthesize an attack from a clicked NPC: damage
-                // requires the original combat controller's hit roll.
+                // Enhanced-PC explicit target selection: clicking an
+                // eligible hand arms the authentic E5F0 weapon slice;
+                // clicking a source-verified class0 Assassin tests the
+                // actual source NPC rather than a guessed billboard.
+                bool attacked_assassin=false;
+                if(!handled_hand_click && !opened_actor_panel &&
+                   pending_level22_weapon_hand &&
+                   displayed_scene_frame &&
+                   runtime.session().level_id==
+                       rloft::Level22Story::kLevelId &&
+                   rloft::DevLevelInteractionPolicy::allow(
+                       exploration_preview,dev_interact)) {
+                    const auto selected=*pending_level22_weapon_hand;
+                    pending_level22_weapon_hand.reset();
+                    try {
+                        const auto outcome=
+                            runtime.attack_level22_assassin_at(
+                                *displayed_scene_frame,
+                                click->row,click->column,
+                                selected.actor,selected.hand);
+                        if(outcome.found_assassin) {
+                            attacked_assassin=true;
+                            displayed_scene_frame.reset();
+                            input.clear();
+                            const auto caption=
+                                outcome.injury && outcome.injury->died
+                                    ? L"Ravenloft - Assassin defeated | "
+                                      L"four original relics dropped"
+                                    : outcome.strike.hit.hit
+                                      ? L"Ravenloft - Assassin struck"
+                                      : L"Ravenloft - Attack missed";
+                            SetWindowTextW(host.hwnd(),caption);
+                            if(trace) {
+                                try {trace->event(
+                                    "combat.level22.strike",
+                                    static_cast<std::int64_t>(
+                                        outcome.strike.damage_after_c910),
+                                    outcome.injury &&
+                                        outcome.injury->died?1:0);}
+                                catch(...) {}
+                            }
+                        }
+                    }catch(const std::exception& error) {
+                        attacked_assassin=true;
+                        displayed_scene_frame.reset();
+                        if(trace) {
+                            try {trace->error(
+                                "combat.level22.strike",error.what());}
+                            catch(...) {}
+                        }
+                        const auto message=widen(error.what());
+                        SetWindowTextW(host.hwnd(),message.c_str());
+                    }
+                }
+                // An unclaimed viewport click keeps the original 223F4
+                // family-C pickup route. Do not use click-to-damage
+                // as a fallback for a rejected original weapon action.
                 if (rloft::DevLevelInteractionPolicy::allow(
                         exploration_preview,dev_interact) &&
                     !opened_actor_panel && !handled_hand_click &&
+                    !attacked_assassin &&
                     displayed_scene_frame.has_value() &&
                     runtime.session().level_id ==
                         rloft::Level22Story::kLevelId &&
