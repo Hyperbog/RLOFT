@@ -14,6 +14,7 @@
 #include "rloft/combat_irq_message.hpp"
 #include "rloft/combat_level22_strike.hpp"
 #include "rloft/combat_live_hand_request.hpp"
+#include "rloft/combat_xp_award_service.hpp"
 #include "rloft/inventory_save_codec.hpp"
 #include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
@@ -252,6 +253,7 @@ public:
         bool found_assassin{};
         CombatLevel22StrikeResult strike{};
         std::optional<NpcDamageResult> injury;
+        std::optional<CombatXpAwardResult> experience;
     };
     // Explicit native PC target selection: source 223F4 verified
     // class-0 NPC rectangle after selecting a normal equipped hand.
@@ -380,6 +382,7 @@ private:
     OriginalRandom original_random_{};
     std::optional<CombatStrengthAttackModel> combat_strength_source_;
     std::optional<InventoryEncumbranceModel> combat_burden_source_;
+    std::optional<CombatProgressionTables> combat_progression_source_;
     std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
     LevelContinuityStore level_continuity_{};
