@@ -89,6 +89,7 @@ void Win32GpuScene::destroy_textures() noexcept {
     for(const auto& item:materials_)glDeleteTextures(1,&item.second);
     for(const auto& item:sprites_)glDeleteTextures(1,&item.second);
     materials_.clear();sprites_.clear();sprite_uv_.clear();
+    sprite_width_.clear();
 }
 std::uint64_t Win32GpuScene::fingerprint(const LevelState& level) const {
     auto hash=std::uint64_t{14695981039346656037ULL};
@@ -195,6 +196,7 @@ GLuint Win32GpuScene::sprite(unsigned id) {
     sprites_.emplace(id,tex);
     sprite_uv_.emplace(id,std::array<float,2>{
         static_cast<float>(raster.width)/static_cast<float>(w),1.f});
+    sprite_width_.emplace(id,static_cast<unsigned>(raster.width));
     return tex;
 }
 void Win32GpuScene::draw_sprites(double heading) {
@@ -231,10 +233,11 @@ void Win32GpuScene::draw_sprites(double heading) {
         // an invented spawn. The billboard size remains an enhanced 3D
         // presentation estimate; exact original scene projection is kept
         // in the reference compositor and source records.
-        const double width=0.9,half=width/2.;
         try {
             const auto t=sprite(record.resource_id);
             const auto uv=sprite_uv_.at(record.resource_id);
+            const double half=EnhancedGpuCameraModel::billboard_world_width(
+                sprite_width_.at(record.resource_id))/2.0;
             glBindTexture(GL_TEXTURE_2D,t);
             glBegin(GL_QUADS);
             glTexCoord2f(0,0);glVertex3d(x-right_x*half,y-right_y*half,0.0);
@@ -383,6 +386,18 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
             // Leave original software scene enabled on subsequent frames:
             // malformed source media is never converted to invented art.
             world_failed_=true;
+            // After the world-clear, an exception must restore the source
+            // indexed scene on THIS frame. A failed mesh may leave OpenGL
+            // vertex arrays enabled, so reset them before the UI quad.
+            glDisableClientState(GL_VERTEX_ARRAY);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_SCISSOR_TEST);
+            glViewport(0,0,cw,ch);
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(left,ch-bottom,right-left,bottom-top);
+            draw_live_canvas(); // restore source canvas if optional 3D fails
         }
         glDisable(GL_SCISSOR_TEST);
         if(menu_overlay) {
