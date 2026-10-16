@@ -2528,6 +2528,10 @@ int run_exploration(
                                 // resource compositor is not yet lifted:
                                 // show an explicit native-PC palette fade
                                 // without inventing missing original art.
+                                // The event locks input in CODE.2 (BF30=1).
+                                // Detach live movement/click capture until
+                                // the staged event finishes or aborts.
+                                host.set_exploration_input(nullptr);
                                 try {
                                     host.set_gpu_world_visible(false);
                                     const bool completed=
@@ -2583,11 +2587,20 @@ int run_exploration(
                                         host.hwnd(),detail.c_str(),
                                         L"Ravenloft - Level22 transition",
                                         MB_OK|MB_ICONWARNING);
-                                    // Original game state remains in
-                                    // Level22 with all relics intact,
-                                    // except for the completed pickup.
+                                    // Frame handlers are staged, so a
+                                    // refused event leaves Level22 state
+                                    // intact except for the picked item.
+                                    // A later palette/music failure can
+                                    // happen AFTER the real Level23 commit:
+                                    // never claim that state rolled back.
+                                    if(runtime.session().level_id==23U) {
+                                        try {
+                                            refresh_world_palette();
+                                        }catch(...) {}
+                                    }
                                     displayed_scene_frame.reset();
                                 }
+                                host.set_exploration_input(&input);
                             }
                         }
                     } catch (const std::logic_error&) {
