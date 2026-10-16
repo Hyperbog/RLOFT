@@ -65,6 +65,10 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME enhanced_level22_quest_transition_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_level22_transition.py")
+    # E284 survivor/death sound bases 258C0/258BC loaded from INIT.
+    add_test(NAME enhanced_npc_sound_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_npc_sound_pipeline.py")
     # Live E5F0/C80C/1C328/C910 weapon strike and staged NPC death.
     add_test(NAME enhanced_live_level22_weapon_strike_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
