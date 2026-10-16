@@ -387,6 +387,30 @@ bool ExplorationRuntime::complete_level22_relic_transition(
     return true;
 }
 
+ExplorationRuntime::Level22PickupProgress
+ExplorationRuntime::pickup_and_advance_level22_at(
+    const ExplorationRuntimeFrame& frame,
+    int row,int column,
+    const GameSource& source,
+    const Level22MistPresenter& present,
+    std::optional<std::uint32_t> original_irq_tick_30700) {
+    // Copy before the first original 21704 mutation. The fourth pickup
+    // and 21F70 event are ONE transaction: declining frame21, a missing
+    // Level23 archive, a failed F540 removal or a thrown presenter MUST
+    // retain the fourth loose item in the original world.
+    ExplorationRuntime staged=*this;
+    auto pickup=staged.pickup_level22_loose_item_at(
+        frame,row,column,original_irq_tick_30700);
+    if(!pickup)return {};
+    const bool warped=pickup->level22_mist_sequence;
+    if(warped && !staged.complete_level22_relic_transition(
+            source,present)) {
+        return {std::nullopt,true,false};
+    }
+    *this=std::move(staged);
+    return {std::move(pickup),false,warped};
+}
+
 InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
     std::size_t first,std::size_t second,
     std::array<bool,4>& per_actor_inventory_modes) {
