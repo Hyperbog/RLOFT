@@ -425,6 +425,19 @@ int main() {
         assert(before_event.object_id==0x74);
         assert(!before_event.message_assignment_bf44);
         msg_world.loose_items.push_back(holy);
+        // Another pickup while already holding an object must refuse
+        // rather than silently lose the first Holy Symbol.
+        bool held_rejected=false;
+        try {
+            (void)rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,true);
+        }catch(const std::logic_error&){held_rejected=true;}
+        assert(held_rejected);
+        assert(msg_world.loose_items.size()==1U);
+        assert(msg_inventory.held.object_id==0x74);
+        // In the actual game the player first stashes/swaps the cursor.
+        msg_inventory.held.object_id=-1;
+        msg_inventory.held.known=0U;
         const auto after_event=
             rloft::Level22EncounterModel::pickup_loose_item(
                 msg_world,0U,msg_inventory,msg_party,objects,true);
@@ -440,8 +453,8 @@ int main() {
     corrupt.object_type_id=0xFFFFU;
     malformed_world.loose_items.push_back(corrupt);
     rloft::InventoryRuntimeState malformed_inv{};
-    malformed_inv.held.object_id=0x55;
-    malformed_inv.held.known=1U;
+    malformed_inv.held.object_id=-1;
+    malformed_inv.held.known=0U;
     bool bad_item_rejected=false;
     try {
         (void)rloft::Level22EncounterModel::pickup_loose_item(
@@ -450,8 +463,8 @@ int main() {
     assert(bad_item_rejected);
     assert(malformed_world.loose_items.size()==1U);
     assert(malformed_world.loose_items[0].object_type_id==0xFFFFU);
-    assert(malformed_inv.held.object_id==0x55);
-    assert(malformed_inv.held.known==1U);
+    assert(malformed_inv.held.object_id==-1);
+    assert(malformed_inv.held.known==0U);
 
     assert(quick_world.loose_items.empty());
     assert(quick_inventory.held.object_id==0x74);
