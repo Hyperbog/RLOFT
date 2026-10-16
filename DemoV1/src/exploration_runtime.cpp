@@ -5,6 +5,8 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/options_menu.hpp"
 #include "rloft/enhanced_game_save.hpp"
+#include "rloft/assassin_relic_transition.hpp"
+#include "rloft/level22_quest_playback.hpp"
 
 #include <exception>
 #include <stdexcept>
@@ -320,6 +322,66 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     if(result.died) original_story_message_bf44_=1U;
     ++world_scene_revision_;
     return result;
+}
+
+bool ExplorationRuntime::complete_level22_relic_transition(
+    const GameSource& source,const Level22MistPresenter& present) {
+    if(!gameplay_state_initialized_ ||
+       session_.level_id!=Level22Story::kLevelId)
+        throw std::logic_error(
+            "original Level22 mist event requires live Level22 gameplay");
+    if(!present)
+        throw std::invalid_argument("Level22 mist presentation is missing");
+    // The fourth actual pickup places its item in the original cursor.
+    // The other three must be in legitimate inventory/containers; never
+    // transition merely because a test or save set a story selector.
+    for(const auto relic:AssassinRelicTransition::kRelics) {
+        if(!inventory_.has_object(session_.party,object_catalog_,
+               static_cast<std::int16_t>(relic)))
+            throw std::logic_error(
+                "Level22 mist requires all four original quest relics");
+    }
+
+    // Original 21F9D begins the staging sequence from (23.5,7.5)
+    // facing 0xD5. All source world, party, inventory, clock and
+    // deterministic RNG changes happen in this isolated runtime copy.
+    ExplorationRuntime staged=*this;
+    staged.session_.coordinate_a=
+        (static_cast<std::uint32_t>(
+            AssassinRelicTransition::kStagingColumn)<<16U) |
+            AssassinRelicTransition::kStagingFraction;
+    staged.session_.coordinate_b=
+        (static_cast<std::uint32_t>(
+            AssassinRelicTransition::kStagingRow)<<16U) |
+            AssassinRelicTransition::kStagingFraction;
+    staged.session_.facing=AssassinRelicTransition::kStagingFacing;
+    staged.motion_state_.integrator.heading=staged.session_.facing;
+
+    const bool completed=Level22QuestPlayback::execute(
+        [&](std::size_t frame)->bool {
+            return present(frame,staged);
+        },
+        [&](std::uint32_t destination) {
+            if(destination!=AssassinRelicTransition::kDestinationLevel)
+                throw std::logic_error("unexpected original mist destination");
+            staged.transition_to_level(
+                source,LevelTransitionLocation{
+                    static_cast<int>(destination),
+                    AssassinRelicTransition::kDestinationCoordinateA,
+                    AssassinRelicTransition::kDestinationCoordinateB,
+                    AssassinRelicTransition::kDestinationFacing});
+        },
+        [&](std::uint16_t relic) {
+            staged.inventory_.remove_object(
+                staged.session_.party,staged.object_catalog_,
+                static_cast<std::int16_t>(relic));
+        });
+    if(!completed)return false;
+    // Only now make level, original RNG, party, relic consumption,
+    // continuity snapshots, orientation and scene revision live.
+    *this=std::move(staged);
+    ++world_scene_revision_;
+    return true;
 }
 
 InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
