@@ -654,7 +654,8 @@ public partial class MainWindow : Window
             try { AssemblyGrid.SelectedItem = null; }
             finally { _bindingNewSource = false; }
             StatusText.Text = "Disassembly selection could not be displayed. " +
-                "An owner-local incident report was saved under LocalAppData\\DOSDis\\Incidents.";
+                "A local incident was recorded when possible. Choose Logs in the toolbar " +
+                "to open the report folder (portable Logs or LocalAppData fallback).";
         }
     }
     private void SelectMatchingReference(AssemblyRow row)
@@ -1229,6 +1230,29 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { Error("Analysis report export failed", ex); }
         finally { SetWorking(false); }
+    }
+
+    private void OpenLogs_Click(object sender, RoutedEventArgs e)
+    {
+        string? folder = App.Diagnostics.TryGetLogsDirectory();
+        if (folder is null)
+        {
+            MessageBox.Show(this,
+                "Unable to create the crash-report Logs folder beside the application " +
+                "or under LocalAppData\\DOSDis\\Logs. Check Windows folder permissions.",
+                "Logs folder unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = folder,
+                UseShellExecute = true
+            });
+            StatusText.Text = "Local crash-report folder: " + folder;
+        }
+        catch (Exception ex) { Error("Unable to open Logs folder", ex); }
     }
 
     private async void ExportDiagnostic_Click(object sender, RoutedEventArgs e)
