@@ -207,6 +207,7 @@ void Win32GpuScene::draw_sprites(double heading) {
     glAlphaFunc(GL_GREATER,0.1f);
     glDisable(GL_BLEND);
     glColor3f(1.f,1.f,1.f);
+    std::size_t attempted_gpu_sprites=0U,rendered_gpu_sprites=0U;
     for(const auto& record:records_) {
         std::uint32_t raw_x{},raw_y{};
         switch(record.source_class) {
@@ -233,6 +234,7 @@ void Win32GpuScene::draw_sprites(double heading) {
         // an invented spawn. The billboard size remains an enhanced 3D
         // presentation estimate; exact original scene projection is kept
         // in the reference compositor and source records.
+        ++attempted_gpu_sprites;
         try {
             const auto t=sprite(record.resource_id);
             const auto uv=sprite_uv_.at(record.resource_id);
@@ -245,12 +247,17 @@ void Win32GpuScene::draw_sprites(double heading) {
             glTexCoord2f(uv[0],1);glVertex3d(x+right_x*half,y+right_y*half,2.0);
             glTexCoord2f(0,1);glVertex3d(x-right_x*half,y-right_y*half,2.0);
             glEnd();
+            ++rendered_gpu_sprites;
         }catch(const std::exception& error) {
             OutputDebugStringA(error.what());
             // One malformed RES3 drawing never hides other source scenes.
         }
     }
     glDisable(GL_ALPHA_TEST);
+    if(EnhancedGpuCameraModel::all_gpu_sprites_failed(
+           attempted_gpu_sprites,rendered_gpu_sprites))
+        throw std::runtime_error(
+            "all live RES3 sprites failed: using indexed world fallback");
 }
 void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode,double aspect) {
     if(!mesh_initialized_ || !session_)return;
