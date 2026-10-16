@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Regression fence for the previously working original-game frontend.
 
-Pins original cinematic/music/SFX/title/character presenter Git blobs to
-the established ff263c3 checkpoint. This is intentionally a SOURCE gate,
-not DOS audio/visual acceptance. A deliberate verified change may update
-the snapshot, but speculative Level22 work must not rewrite these modules.
+Pins the original cinematic/title/character presenter blobs to the
+established ff263c3 checkpoint. The two WinMM output adapters are
+separately reviewed to allow fallback to installed device IDs when
+Windows has no default multimedia mapper. This SOURCE gate does not
+replace an original audio/video listening or field acceptance test.
 """
 from __future__ import annotations
 import hashlib
@@ -14,8 +15,11 @@ ROOT=Path(__file__).resolve().parents[2]
 KNOWN_GOOD_SOURCE_REF='ff263c3821978c2973c75c692c5089cc2799fcb3'
 BASELINE={
     'DemoV1/src/anm_cinematic.cpp':'50eaa7ba0cccd8264c340b133028ee95250e97e4',
-    'DemoV1/src/win32_audio.cpp':'e69374f44a5908bc41f52d07f7686fb7734de25e',
-    'DemoV1/src/win32_midi.cpp':'8100cb8a45fce4ed1dcfce92713acdb5eba5b406',
+    # Reviewed WinMM-only output compatibility updates. Source sound
+    # events, decoded PCM, XMIDI notes, timing and asset selections remain
+    # under host_contract; the pure device-fallback logic is checked below.
+    'DemoV1/src/win32_audio.cpp':'d0cdeb9d24b8bed413d342bf6f854bca991103e1',
+    'DemoV1/src/win32_midi.cpp':'4c65f75ab1a045d382c80bb0a5fd71fc87b50e8c',
     'DemoV1/src/character_creation_presenter.cpp':'560d83d90e6da218e8da677bb2afcf27a2f14e2b',
     'DemoV1/src/startup_presenter.cpp':'0dfb6692145b39cd6067c3d6c020f804ea8b966e',
     'DemoV1/src/character_creation_flow.cpp':'f395419c839a0c6809366cdc6d3239c3370ef7a0',
@@ -85,6 +89,29 @@ def host_contract(src:str)->None:
         raise ValueError('Original intro/title/creation and CHARS order changed')
 
 
+def audio_backend_contract(pcm:str,midi:str)->None:
+    # The originals still use source-decoded VOC and XMIDI. Only the
+    # OS output selection has changed. A missing MIDI mapper is not
+    # evidence that no physical / synthesizer MIDI device is installed.
+    for required in (
+        'waveOutOpen(', 'WAVE_MAPPER', 'waveOutGetNumDevs()',
+        'waveOutOpen(\n                            &wave,i,&format,',
+        'waveOutReset(wave)', 'waveOutUnprepareHeader(',
+    ):
+        if required not in pcm:
+            raise ValueError('Reviewed PCM backend lost: '+required)
+    for required in (
+        'midiOutOpen(', 'MIDI_MAPPER', 'midiOutGetNumDevs()',
+        'midiOutOpen(\n                            &out,i,0,0,CALLBACK_NULL)',
+        'device_open_failed=true;', 'bool sequence_started{};',
+        'return stop_requested || sequence_started ||',
+        'if (stop_requested || device_open_failed) return;',
+        'sequence_started = true;', 'midiOutShortMsg(out,',
+    ):
+        if required not in midi:
+            raise ValueError('Reviewed XMIDI backend lost: '+required)
+
+
 def main()->int:
     try:
         for path,sha in BASELINE.items():
@@ -94,6 +121,26 @@ def main()->int:
                 raise ValueError(f'Preserved frontend module changed: {path} '
                                  f'(baseline {sha}, got {computed}). '
                                  'Any change requires new original evidence and review.')
+        pcm=(ROOT/'DemoV1/src/win32_audio.cpp').read_text(encoding='utf-8')
+        midi=(ROOT/'DemoV1/src/win32_midi.cpp').read_text(encoding='utf-8')
+        audio_backend_contract(pcm,midi)
+        audio_mutations=(
+            (pcm,midi,'waveOutGetNumDevs()','/* no PCM fallback */'),
+            (pcm,midi,'waveOutOpen(\n                            &wave,i,&format,','/* no PCM retry */('),
+            (midi,pcm,'midiOutGetNumDevs()','/* no MIDI fallback */'),
+            (midi,pcm,'device_open_failed=true;','device_open_failed=false;'),
+            (midi,pcm,'bool sequence_started{};','bool sequence_started_removed{};'),
+        )
+        for index,(original,other,old,new) in enumerate(audio_mutations):
+            if old not in original:
+                raise ValueError('Missing audio negative-test anchor: '+old)
+            candidate=original.replace(old,new,1)
+            try:
+                if index<2: audio_backend_contract(candidate,other)
+                else: audio_backend_contract(other,candidate)
+            except ValueError:
+                continue
+            raise ValueError('WinMM fallback/source-fade mutation escaped: '+old)
         source=HOST.read_text(encoding='utf-8')
         host_contract(source)
         # Mutation test: losing original audio framing must fail.
@@ -125,7 +172,9 @@ def main()->int:
         else:raise ValueError('CHARS regression mutation passed')
     except (OSError,ValueError) as exc:
         raise SystemExit('ALPHA_FRONTEND_PRESERVATION_REJECTED: '+str(exc))
-    print('ALPHA_FRONTEND_SOURCE_PRESERVED '+KNOWN_GOOD_SOURCE_REF[:12]+' 6 blobs')
+    print('ALPHA_FRONTEND_SOURCE_PRESERVED '+KNOWN_GOOD_SOURCE_REF[:12]+
+          ' 4 original blobs + 2 reviewed WinMM adapters; '+
+          str(len(audio_mutations))+' audio mutations rejected')
     return 0
 
 if __name__=='__main__':raise SystemExit(main())
