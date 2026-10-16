@@ -2542,7 +2542,11 @@ int run_exploration(
                                                     presenter.present(
                                                         snapshot,
                                                         staged.renderer_tables());
-                                                const int fade=
+                                                // Source frame21 is on
+                                                // Level23; reveal its first
+                                                // picture at half brightness
+                                                // after the frame20 blackout.
+                                                const int fade=frame==21U?4:
                                                     std::max(0,8-
                                                         static_cast<int>(
                                                             frame*8U/20U));
