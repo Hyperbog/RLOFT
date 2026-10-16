@@ -12,6 +12,8 @@
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/combat_irq_message.hpp"
+#include "rloft/combat_level22_strike.hpp"
+#include "rloft/combat_live_hand_request.hpp"
 #include "rloft/inventory_save_codec.hpp"
 #include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
@@ -246,6 +248,21 @@ public:
         std::uint16_t reaction_mode,
         const Level22EncounterModel::PlacementProbe& can_place = {});
 
+    struct Level22WeaponAttackOutcome final {
+        bool found_assassin{};
+        CombatLevel22StrikeResult strike{};
+        std::optional<NpcDamageResult> injury;
+    };
+    // Explicit native PC target selection: source 223F4 verified
+    // class-0 NPC rectangle after selecting a normal equipped hand.
+    // Follows actual 214B8/24478/26018 and C80C/E5F0/C910/E284.
+    // Original automatic -1 DB94 target cache and 24B48 action
+    // animation/maintenance clock are not yet represented.
+    [[nodiscard]] Level22WeaponAttackOutcome
+    attack_level22_assassin_at(
+        const ExplorationRuntimeFrame& frame,
+        int row,int column,std::size_t actor,std::size_t hand);
+
     [[nodiscard]] InventoryPartyOrderResult exchange_party_order(
         std::size_t first,std::size_t second,
         std::array<bool,4>& per_actor_inventory_modes);
@@ -361,6 +378,8 @@ private:
     bool enhanced_pc_scene_rendering_{};
     std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};
+    std::optional<CombatStrengthAttackModel> combat_strength_source_;
+    std::optional<InventoryEncumbranceModel> combat_burden_source_;
     std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
     LevelContinuityStore level_continuity_{};
