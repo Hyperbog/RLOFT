@@ -29,6 +29,8 @@
                   ToolTip="Score LE analysis byte classification against an independently audited SHA-bound original-file reference. No original bytes leave your machine."/>
           <Button x:Name="ExportDiagnosticButton" Content="Diagnostics…" Click="ExportDiagnostic_Click"
                   ToolTip="Export bounded session events without paths, source bytes, comments or exception messages."/>
+          <Button x:Name="OpenLogsButton" Content="Logs" Click="OpenLogs_Click"
+                  ToolTip="Open crash-report Logs beside this executable (or per-user LocalAppData Logs when protected). No original game bytes or source paths."/>
           <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"
                   ToolTip="Back up your research project. If none exists, you can create one first."/>
           <Button x:Name="AnalyzeButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Analyze" Click="Analyze_Click" ToolTip="Analyze supported LE code or the validated standalone MZ entry segment as unverified candidate control flow."/>
