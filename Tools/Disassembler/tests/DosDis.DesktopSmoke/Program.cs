@@ -58,6 +58,11 @@ internal static class Program
         };
 
         var window = new MainWindow { ShowInTaskbar = false, Title = "Original-free WPF binding smoke" };
+        var logsButton = window.FindName("OpenLogsButton") as Button
+            ?? throw new InvalidOperationException("Crash Logs toolbar button is absent.");
+        Require(logsButton.Content is string text && text == "Logs",
+            "owner needs a clearly discoverable Logs action");
+
         var grid = window.FindName("AssemblyGrid") as DataGrid
             ?? throw new InvalidOperationException("Real MainWindow disassembly grid not found.");
         var bytesColumn = grid.Columns.OfType<DataGridTemplateColumn>().Single();
