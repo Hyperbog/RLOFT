@@ -485,6 +485,7 @@ add_library(rloft_boot_flow
     src/exploration_presenter.cpp
     src/exploration_frame_capture.cpp
     src/exploration_world.cpp
+    src/enhanced_gpu_world_mesh.cpp
     src/exploration_collision.cpp
     src/original_entity_collision.cpp
     src/exploration_motion.cpp
@@ -907,6 +908,10 @@ add_executable(enhanced_options_presenter_tests
 target_link_libraries(enhanced_options_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_options_presenter_tests
     COMMAND enhanced_options_presenter_tests)
+
+add_executable(enhanced_gpu_world_mesh_tests tests/enhanced_gpu_world_mesh_tests.cpp)
+target_link_libraries(enhanced_gpu_world_mesh_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_gpu_world_mesh_tests COMMAND enhanced_gpu_world_mesh_tests)
 
 add_executable(enhanced_type7_compositor_tests
     tests/enhanced_type7_compositor_tests.cpp)
