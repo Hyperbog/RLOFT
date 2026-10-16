@@ -3247,12 +3247,15 @@ int run(HINSTANCE instance) {
         std::array<wchar_t,32768> local{};
         const auto count=GetEnvironmentVariableW(
             L"LOCALAPPDATA",local.data(),static_cast<DWORD>(local.size()));
-        if(count>0U && count<local.size()) {
-            const auto root=std::filesystem::path(local.data())/
-                L"Hyperbog"/L"Ravenloft"/L"Runtime";
-            std::filesystem::create_directories(root);
-            source.set_runtime_overlay(root);
-        }
+        if(count==0U || count>=local.size())
+            throw std::runtime_error(
+                "Private Ravenloft runtime folder unavailable: refusing "
+                "to overwrite original DOS CHARS. Restore Windows "
+                "LOCALAPPDATA before running the game.");
+        const auto root=std::filesystem::path(local.data())/
+            L"Hyperbog"/L"Ravenloft"/L"Runtime";
+        std::filesystem::create_directories(root);
+        source.set_runtime_overlay(root);
     }
 
     // CODE.2 204B3 checks the writable runtime CHARS transfer before the
