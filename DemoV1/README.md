@@ -5,6 +5,15 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Required one-game acceptance sequence
+
+[**Original logos → original introduction → all four title actions →
+CODE.1 characters → faithful Level22 → authentic mist transition**](
+INTRO_LEVEL22_PRODUCT_ACCEPTANCE_20261015.md). Source integration and
+unit tests do not count as completed visual or playable acceptance;
+modern GPU world geometry and filtering are opt-in, original game assets
+and mechanics are always authoritative.
+
 ## Main-game consolidation — October 15, 2026
 
 The active `demo-v1` branch now ships **one enhanced game artifact**,
