@@ -147,7 +147,7 @@ public:
         hwnd_ = CreateWindowExW(
             0,
             wc.lpszClassName,
-            L"Ravenloft: Strahd's Possession - Demo Build v1",
+            L"Ravenloft: Strahd's Possession - Enhanced PC (Pre-Alpha)",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -312,6 +312,11 @@ public:
             exploration_input_->clear();
         }
         exploration_input_ = controller;
+        if(!controller) {
+            stop_mouse_look();
+            strafe_left_=strafe_right_=false;
+            map_toggle_requested_=false;
+        }
         exploration_click_.reset();
         exploration_release_.reset();
         exploration_secondary_click_.reset();
@@ -412,6 +417,60 @@ public:
             if (exploration_input_) exploration_input_->clear();
         }
         automap_mode_ = enabled;
+        if(enabled)stop_mouse_look();
+    }
+
+    // Enhanced Windows controls are active only after genuine CODE.1 party
+    // creation, inside the native exploration process.
+    [[nodiscard]] bool sprint_held() const noexcept {
+        return exploration_input_ && GetFocus()==hwnd_ &&
+            !automap_mode_ && !inventory_mode_ &&
+            (GetKeyState(VK_SHIFT)&0x8000)!=0;
+    }
+    [[nodiscard]] int strafe_axis() const noexcept {
+        return (strafe_right_?1:0)-(strafe_left_?1:0);
+    }
+    [[nodiscard]] bool consume_map_toggle() noexcept {
+        const bool result=map_toggle_requested_;
+        map_toggle_requested_=false;
+        return result;
+    }
+    void stop_mouse_look() {
+        if(!mouse_look_)return;
+        mouse_look_=false;
+        yaw_fraction_=0.0;
+        if(hwnd_ && GetCapture()==hwnd_)ReleaseCapture();
+        refresh_pointer_overlay();
+    }
+    [[nodiscard]] int consume_mouse_yaw() {
+        if(!mouse_look_ || GetFocus()!=hwnd_ || !exploration_input_ ||
+           automap_mode_ || inventory_mode_)return 0;
+        RECT r{};
+        if(!GetClientRect(hwnd_,&r))return 0;
+        POINT center{(r.left+r.right)/2,(r.top+r.bottom)/2};
+        if(!ClientToScreen(hwnd_,&center))return 0;
+        POINT pos{};
+        if(!GetCursorPos(&pos))return 0;
+        const int delta=std::clamp(pos.x-center.x,-256,256);
+        if(pos.x!=center.x || pos.y!=center.y)
+            SetCursorPos(center.x,center.y);
+        yaw_fraction_+=static_cast<double>(delta)*0.18;
+        const int yaw=static_cast<int>(yaw_fraction_);
+        yaw_fraction_-=static_cast<double>(yaw);
+        return std::clamp(yaw,-46,46);
+    }
+    void toggle_mouse_look() {
+        if(mouse_look_){stop_mouse_look();return;}
+        if(!exploration_input_ || automap_mode_ || inventory_mode_)return;
+        SetFocus(hwnd_);
+        RECT r{};GetClientRect(hwnd_,&r);
+        POINT center{(r.left+r.right)/2,(r.top+r.bottom)/2};
+        if(!ClientToScreen(hwnd_,&center) ||
+           !SetCursorPos(center.x,center.y))return;
+        SetCapture(hwnd_);
+        mouse_look_=true;
+        character_pointer_.reset();
+        refresh_pointer_overlay();
     }
 
     void set_session_trace(rloft::DevSessionTrace* trace) noexcept {
@@ -479,7 +538,8 @@ private:
             bgra_[i] = palette_bgra(base_indices_[i]);
         }
 
-        if (!(menu_mode_ || character_mode_ || exploration_input_) ||
+        if (mouse_look_ ||
+            !(menu_mode_ || character_mode_ || exploration_input_) ||
             !character_pointer_ ||
             !game_cursor_ ||
             game_cursor_->count <= 0) {
@@ -613,7 +673,8 @@ private:
             info.bmiHeader.biCompression = BI_RGB;
 
             const auto dst = render_rect();
-            SetStretchBltMode(target, COLORONCOLOR);
+            SetStretchBltMode(target, smooth_scaling_?HALFTONE:COLORONCOLOR);
+            if(smooth_scaling_)SetBrushOrgEx(target,0,0,nullptr);
             StretchDIBits(
                 target,
                 dst.left,
@@ -638,6 +699,32 @@ private:
         if (back_bitmap) DeleteObject(back_bitmap);
         if (back_dc) DeleteDC(back_dc);
         EndPaint(hwnd_, &ps);
+    }
+
+    void toggle_fullscreen() {
+        if(!hwnd_)return;
+        if(!fullscreen_) {
+            saved_placement_.length=sizeof(WINDOWPLACEMENT);
+            if(!GetWindowPlacement(hwnd_,&saved_placement_))return;
+            saved_style_=GetWindowLongPtrW(hwnd_,GWL_STYLE);
+            MONITORINFO mi{sizeof(MONITORINFO)};
+            if(!GetMonitorInfoW(MonitorFromWindow(hwnd_,MONITOR_DEFAULTTONEAREST),
+                                &mi))return;
+            SetWindowLongPtrW(hwnd_,GWL_STYLE,
+                saved_style_ & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW));
+            const auto& r=mi.rcMonitor;
+            SetWindowPos(hwnd_,HWND_TOP,r.left,r.top,
+                r.right-r.left,r.bottom-r.top,
+                SWP_FRAMECHANGED|SWP_NOOWNERZORDER);
+            fullscreen_=true;
+        } else {
+            SetWindowLongPtrW(hwnd_,GWL_STYLE,saved_style_);
+            SetWindowPlacement(hwnd_,&saved_placement_);
+            SetWindowPos(hwnd_,nullptr,0,0,0,0,
+                SWP_FRAMECHANGED|SWP_NOMOVE|SWP_NOSIZE|
+                SWP_NOZORDER|SWP_NOOWNERZORDER);
+            fullscreen_=false;
+        }
     }
 
     LRESULT handle(UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -709,6 +796,25 @@ private:
                     return 0;
                 }
 
+                if (exploration_input_ && wparam==VK_F11 &&
+                    (lparam&(1LL<<30U))==0) {
+                    toggle_fullscreen();return 0;
+                }
+                if (exploration_input_ && !inventory_mode_ &&
+                    !automap_mode_ && wparam==VK_F3 &&
+                    (lparam&(1LL<<30U))==0) {
+                    smooth_scaling_=!smooth_scaling_;
+                    InvalidateRect(hwnd_,nullptr,FALSE);return 0;
+                }
+                if (exploration_input_ && !inventory_mode_ &&
+                    !automap_mode_ && wparam=='M' &&
+                    (lparam&(1LL<<30U))==0) {
+                    toggle_mouse_look();return 0;
+                }
+                if (exploration_input_ && wparam==VK_TAB &&
+                    (lparam&(1LL<<30U))==0) {
+                    map_toggle_requested_=true;return 0;
+                }
                 if (automap_mode_ && exploration_input_) {
                     if (const auto action =
                             rloft::EnhancedAutomapKeyboard::action_for_key(
@@ -730,9 +836,14 @@ private:
                         }
                         return 0;
                     }
-                    if (const auto scan = legacy_scan_from_vk(wparam)) {
-                        exploration_input_->press(*scan);
-                    }
+                    if(wparam=='A')strafe_left_=true;
+                    if(wparam=='D')strafe_right_=true;
+                    const auto scan=legacy_scan_from_vk(wparam).value_or(
+                        wparam=='W'?rloft::ExplorationLegacyInputController::kUp:
+                        wparam=='S'?rloft::ExplorationLegacyInputController::kDown:
+                        wparam=='Q'?rloft::ExplorationLegacyInputController::kLeft:
+                        wparam=='E'?rloft::ExplorationLegacyInputController::kRight:0U);
+                    if(scan)exploration_input_->press(scan);
                     return 0;
                 }
 
@@ -766,9 +877,14 @@ private:
                 if (automap_mode_ && exploration_input_) return 0;
                 if (exploration_input_) {
                     if(inventory_mode_)return 0;
-                    if (const auto scan = legacy_scan_from_vk(wparam)) {
-                        exploration_input_->release(*scan);
-                    }
+                    if(wparam=='A')strafe_left_=false;
+                    if(wparam=='D')strafe_right_=false;
+                    const auto scan=legacy_scan_from_vk(wparam).value_or(
+                        wparam=='W'?rloft::ExplorationLegacyInputController::kUp:
+                        wparam=='S'?rloft::ExplorationLegacyInputController::kDown:
+                        wparam=='Q'?rloft::ExplorationLegacyInputController::kLeft:
+                        wparam=='E'?rloft::ExplorationLegacyInputController::kRight:0U);
+                    if(scan)exploration_input_->release(scan);
                     return 0;
                 }
                 break;
@@ -778,6 +894,9 @@ private:
                 // interrupt any stage. Prevent queued input and
                 // old hover/clicks from executing after focus returns.
                 if (exploration_input_) exploration_input_->clear();
+                stop_mouse_look();
+                strafe_left_=strafe_right_=false;
+                map_toggle_requested_=false;
                 escape_pressed_ = false;
                 key_events_.clear();
                 clicked_.reset();
@@ -798,6 +917,7 @@ private:
                 return 0;
 
             case WM_MOUSEMOVE: {
+                if(mouse_look_)return 0;
                 const int row =
                     native_y_from_client(GET_Y_LPARAM(lparam));
                 const int column =
@@ -906,6 +1026,10 @@ private:
                 return 0;
 
             case WM_RBUTTONDOWN:
+                if(exploration_input_ && !inventory_mode_ &&
+                   !automap_mode_) {
+                    toggle_mouse_look();return 0;
+                }
                 if(session_trace_ && exploration_input_) {
                     try {
                         session_trace_->event("mouse.right.down",
@@ -970,6 +1094,14 @@ private:
     bool character_mode_{false};
     bool inventory_mode_{false};
     bool automap_mode_{false};
+    bool smooth_scaling_{false};
+    bool fullscreen_{false};
+    bool mouse_look_{false};
+    bool strafe_left_{false},strafe_right_{false};
+    bool map_toggle_requested_{false};
+    double yaw_fraction_{};
+    LONG_PTR saved_style_{};
+    WINDOWPLACEMENT saved_placement_{sizeof(WINDOWPLACEMENT)};
     rloft::ExplorationLegacyInputController* exploration_input_{nullptr};
     rloft::DevSessionTrace* session_trace_{nullptr};
     int selection_{-1};
@@ -1323,6 +1455,23 @@ int run_exploration(
     };
 
     while (host.pump()) {
+        if(host.consume_map_toggle()) {
+            const auto current=ui.state().screen;
+            if(current==rloft::ExplorationUiScreen::Automap) {
+                ui.close_screen();
+                automap.reset();
+                host.set_automap_mode(false);
+                input.clear();
+            } else if(current==rloft::ExplorationUiScreen::Viewport) {
+                rloft::ExplorationWorldModel::rebuild_automap_cache(
+                    runtime.session().level,
+                    rloft::ExplorationWorldModel::party_cell(runtime.session()));
+                ui.open_automap();
+                automap.emplace(runtime.session());
+                host.set_automap_mode(true);
+                input.clear();
+            }
+        }
         // Re-select only if the authored level or its default cue changed,
         // or if a cinematic stopped the previous sequence.
         start_authored_world_music();
@@ -2306,11 +2455,15 @@ int run_exploration(
         }
 
         if (hovered_menu < 0 &&
-            gameplay_cadence.should_integrate(Clock::now())) {
-            const auto motion_inputs =
-                input.tick(false);
-            (void)runtime.tick_motion(
-                motion_inputs);
+            gameplay_cadence.should_integrate(Clock::now(),host.sprint_held())) {
+            const int yaw=host.consume_mouse_yaw();
+            if(yaw)runtime.session().facing=
+                rloft::ExplorationMotionModel::normalize_heading(
+                    static_cast<int>(runtime.session().facing)-yaw);
+            auto motion_inputs=input.tick(false);
+            const int strafe=host.strafe_axis();
+            if(strafe)motion_inputs.orthogonal_input=strafe*64;
+            (void)runtime.tick_motion(motion_inputs);
         }
 
         if (!first_scene_submitted) {
@@ -2524,6 +2677,7 @@ int run_exploration(
         }
     }
 
+    host.stop_mouse_look();
     host.set_exploration_input(nullptr);
     return 0;
 }
