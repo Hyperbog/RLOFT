@@ -13,6 +13,8 @@ ROOT=Path(__file__).resolve().parents[2]
 def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->None:
     for marker in (
         'CombatAttackStatusService::apply(',
+        'CombatAttackTargetModel::choose(',
+        'result.target_suppressed_by_rear_party_rule=true;',
         'const bool held=(npc.runtime_flags&0x08U)!=0U;',
         'random.dice(1U,20U)',
         'CombatPlayerHitInputsModel::build(',
@@ -48,6 +50,7 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         'ExplorationRuntime staged=*this;',
         'CombatLevel22StrikeModel::resolve(',
         'staged.original_random_,actor,hand,',
+        'staged.session_.level.header[0x290U]',
         'if(strike.hit.hit)',
         'staged.damage_level22_assassin(',
         '*index,strike.damage_after_c910,0U,',
@@ -87,11 +90,14 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         'assert(held_hit.hit.auto_hit_held);',
         'assert(held_rng.state()==one_die.state());',
         'assert(restricted.damage_after_c910==1U);',
+        'assert(blocked.target_suppressed_by_rear_party_rule);',
+        'assert(rear_rng.state()==1U);',
+        'assert(qualified.hit.hit);',
         'assert(killed.died);',
         'assert(killed.spawned_loose_items==4U);',
         'assert(world.loose_items[0].object_type_id==0x88U);',
         'assert(world.loose_items[3].object_type_id==0x74U);',
-        'assert(failed && invalid_rng.state()==1U);
+        'assert(failed && invalid_rng.state()==1U);',
     ):
         if marker not in tests:
             raise ValueError('essential RNG/HP branch regression absent: '+marker)
@@ -104,8 +110,8 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         if marker not in cmake:
             raise ValueError('native C++ build missing source attack: '+marker)
     for marker in (
-        'combat_player_hit_inputs_tests combat_level22_strike_tests combat_live_hand_request_tests',
-        '|combat_player_hit_inputs_tests|combat_level22_strike_tests|combat_live_hand_request_tests|',
+        'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
+        '|combat_player_hit_inputs_tests|combat_level22_strike_tests|original_npc_sound_tests|combat_live_hand_request_tests|',
         'python DemoV1/tools/verify_live_level22_weapon_strike.py',
         '|enhanced_live_level22_weapon_strike_contract_tests)$"',
     ):
@@ -128,6 +134,8 @@ def main()->None:
         (0,'const bool held=(npc.runtime_flags&0x08U)!=0U;',
            'const bool held=false;'),
         (0,'definition.behavior_flags','0U'),
+        (0,'CombatAttackTargetModel::choose(',
+           '/* rear actor target check erased */('),
         (0,'CombatAttackStatusService::apply(','/* skip E578 */('),
         (1,'*index,strike.damage_after_c910,0U,',
            '*index,1U,0U,'),
@@ -140,11 +148,13 @@ def main()->None:
         (2,'!attacked_assassin','true'),
         (3,'assert(miss_rng.state()==single.state());',
            'assert(miss_rng.state()!=single.state());'),
+        (3,'assert(blocked.target_suppressed_by_rear_party_rule);',
+           'assert(!blocked.target_suppressed_by_rear_party_rule);'),
         (3,'assert(killed.spawned_loose_items==4U);',
            'assert(killed.spawned_loose_items==0U);'),
         (4,'src/combat_level22_strike.cpp',
            'src/missing_combat_level22_strike.cpp'),
-        (5,'combat_player_hit_inputs_tests combat_level22_strike_tests combat_live_hand_request_tests',
+        (5,'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
            'combat_player_hit_inputs_tests combat_hit_check_tests combat_live_hand_request_tests'),
     )
     for index,old,new in mutations:
@@ -155,7 +165,7 @@ def main()->None:
         try:check(*altered)
         except ValueError:continue
         raise ValueError('unsafe real combat change escaped: '+old)
-    print('LIVE_LEVEL22_WEAPON_STRIKE_PASS (13 mutations rejected)')
+    print('LIVE_LEVEL22_WEAPON_STRIKE_PASS (15 mutations rejected)')
 
 if __name__=='__main__':
     main()
