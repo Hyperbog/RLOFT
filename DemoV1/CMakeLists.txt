@@ -61,6 +61,10 @@ if(Python3_Interpreter_FOUND)
         NAME enhanced_port_build_pipeline_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_port_build_pipeline.py")
+    # Live player-hit inputs use original CODE.2 and not generic rules.
+    add_test(NAME enhanced_combat_input_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_combat_inputs.py")
     # World music defaults come from authored LevelState RES5 cue and
     # cannot regress back to a silent post-character-creation viewport.
     add_test(
