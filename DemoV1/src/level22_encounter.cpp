@@ -262,6 +262,12 @@ Level22EncounterModel::pickup_loose_item(
         throw std::out_of_range(
             "loose-item pickup index");
     }
+    // 1A344 held-item replacement requires the original swap path.
+    // That path is not reconstructed here: never silently overwrite
+    // another item and make it permanently unreachable.
+    if(inventory.held.object_id!=-1)
+        throw std::logic_error(
+            "loose-item pickup requires an empty cursor");
 
     const auto item =
         world.loose_items[item_index];
