@@ -42,14 +42,14 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
         ("$hasGogRoot = Test-Path -LiteralPath (Join-Path $original 'game.gog')", player),
         ("$hasGogNested = Test-Path -LiteralPath (Join-Path $nested 'game.gog')", player),
         ("Start-Process -FilePath $engine -ArgumentList $arguments", player),
-        ('Play-Ravenloft-Alpha.ps1', cmd),
+        ('Play-Ravenloft.ps1', cmd),
         ('powershell.exe -NoProfile -ExecutionPolicy Bypass', cmd),
-        ("name: Ravenloft-Continuous-Alpha-Windows-x64", workflow),
-        ('build/demo-v1/Release/Play-Ravenloft-Alpha.cmd', workflow),
-        ('build/demo-v1/Release/Play-Ravenloft-Alpha.ps1', workflow),
+        ("name: Ravenloft-Enhanced-Game-Windows-x64", workflow),
+        ('build/demo-v1/Release/Play-Ravenloft.cmd', workflow),
+        ('build/demo-v1/Release/Play-Ravenloft.ps1', workflow),
         ('build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt', workflow),
         ('build/demo-v1/Release/build-source-sha.txt', workflow),
-        ('build/demo-v1/Release/ravenloft_demo_v1.exe.sha256', workflow),
+        ('build/demo-v1/Release/Ravenloft.exe.sha256', workflow),
         ('if (character_flow.completed()) {', host),
         ('assets.source().read_runtime("CHARS");', host),
         ('return run_exploration(', host),
@@ -125,8 +125,8 @@ def main() -> int:
     args=ap.parse_args()
     try:
         base=args.root
-        player=(base/'DemoV1/Windows/Play-Ravenloft-Alpha.ps1').read_text()
-        cmd=(base/'DemoV1/Windows/Play-Ravenloft-Alpha.cmd').read_text()
+        player=(base/'DemoV1/Windows/Play-Ravenloft.ps1').read_text()
+        cmd=(base/'DemoV1/Windows/Play-Ravenloft.cmd').read_text()
         workflow=(base/'.github/workflows/demo-v1-build.yml').read_text()
         host=(base/'DemoV1/src/win32_main.cpp').read_text()
         check(player,cmd,workflow,host)
@@ -155,7 +155,7 @@ def main() -> int:
              "$arguments = '--explore-level22 \"' + $scratch + '\"'"),
             ('player',"$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'",
              "$arguments = '--choose-install'"),
-            ('workflow','name: Ravenloft-Continuous-Alpha-Windows-x64',
+            ('workflow','name: Ravenloft-Enhanced-Game-Windows-x64',
              'name: Ravenloft-Front-End-Only'),
             ('host','assets.source().read_runtime("CHARS");',
              'std::nullopt;'),

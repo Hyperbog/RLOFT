@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 def check(workflow:str,cmake:str) -> None:
     required=(
-        "name: Ravenloft-Continuous-Alpha-Windows-x64",
+        "name: Ravenloft-Enhanced-Game-Windows-x64",
         "      - name: Build game and enhanced-port regressions",
         "      - name: Test game and enhanced-port regressions",
         "      - name: Build historical full research suite (manual)",
@@ -28,7 +28,7 @@ def check(workflow:str,cmake:str) -> None:
         "alpha_frontend_preservation_contract_tests",
         "release_readiness_manifest_contract_tests",
         "build/demo-v1/Release/build-source-sha.txt",
-        "build/demo-v1/Release/ravenloft_demo_v1.exe.sha256",
+        "build/demo-v1/Release/Ravenloft.exe.sha256",
         'Set-Content -NoNewline -Path DemoV1/Windows/build-source-sha.txt -Value "${{ github.sha }}"',
         "name: demo-v1",
     )
@@ -46,7 +46,7 @@ def check(workflow:str,cmake:str) -> None:
         "      - name: Test game and enhanced-port regressions",
         "      - name: Stage original front-end and character creation",
         "      - name: Stage continuous normal-game Alpha launch (no picker)",
-        "      - name: Publish continuous original intro-to-Level22 Alpha",
+        "      - name: Publish enhanced continuous Windows game",
         "      - name: Keep Windows executable in git",
     ):
         if windows.count(item)!=1:
@@ -62,7 +62,7 @@ def check(workflow:str,cmake:str) -> None:
     if "Verify CODE.2 faithful" in quick:
         raise ValueError("DOS source recompilation incorrectly blocks native game")
     full=workflow[workflow.index("      - name: Build historical full research suite (manual)"):
-                  workflow.index("      - name: Stage isolated Alpha normal-game field launcher")]
+                  workflow.index("      - name: Stage original front-end and character creation")]
     if full.count("github.event_name == 'workflow_dispatch' && inputs.build_mode == 'full'")!=2:
         raise ValueError("the full historical suite must be opt-in")
     canonical=windows[windows.index("      - name: Optional canonical CODE.2 C++17 research syntax audit"):
@@ -93,7 +93,7 @@ def main() -> int:
              "if: ${{ inputs.build_mode == 'quick' }}"),
             ("      - name: Test game and enhanced-port regressions",
              "      - name: Test DOS-only regressions"),
-            ("      - name: Publish continuous original intro-to-Level22 Alpha",
+            ("      - name: Publish enhanced continuous Windows game",
              "      - name: Publish only frontend preview"),
             ('Set-Content -NoNewline -Path DemoV1/Windows/build-source-sha.txt -Value "${{ github.sha }}"',
              'Set-Content -NoNewline -Path DemoV1/Windows/unknown-source.txt -Value "${{ github.sha }}"'),

@@ -152,14 +152,6 @@ jobs:
       - name: Test historical full research suite (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode == 'full' }}
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
-      - name: Stage isolated Alpha normal-game field launcher
-        shell: pwsh
-        run: |
-          # Only the field test copies original game media to a local
-          # disposable workspace. CI/package never includes those assets.
-          Copy-Item DemoV1/Windows/Test-Alpha-Continuous-Game.cmd build/demo-v1/Release/Test-Alpha-Continuous-Game.cmd -Force
-          Copy-Item DemoV1/Windows/Test-Alpha-Continuous-Game.ps1 build/demo-v1/Release/Test-Alpha-Continuous-Game.ps1 -Force
-
       - name: Stage original front-end and character creation
         shell: pwsh
         run: |
@@ -172,16 +164,17 @@ jobs:
           Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ github.event_name == 'push' && 'enhanced-port' || inputs.build_mode }}"
           # Bind packaged launchers to the exact staged EXE bytes;
           # build-source-sha.txt separately names the compiled checkout.
-          $packageExe = 'build/demo-v1/Release/ravenloft_demo_v1.exe'
+          Copy-Item build/demo-v1/Release/ravenloft_demo_v1.exe build/demo-v1/Release/Ravenloft.exe -Force
+          $packageExe = 'build/demo-v1/Release/Ravenloft.exe'
           $packageHash = (Get-FileHash -LiteralPath $packageExe -Algorithm SHA256).Hash.ToLowerInvariant()
-          Set-Content -NoNewline -Path build/demo-v1/Release/ravenloft_demo_v1.exe.sha256 -Value "$packageHash  ravenloft_demo_v1.exe"
+          Set-Content -NoNewline -Path build/demo-v1/Release/Ravenloft.exe.sha256 -Value "$packageHash  Ravenloft.exe"
 
       - name: Verify continuous launcher parses in Windows PowerShell
         shell: powershell
         run: |
           $tokens = $null
           $errors = $null
-          $launcher = (Resolve-Path 'DemoV1/Windows/Play-Ravenloft-Alpha.ps1').Path
+          $launcher = (Resolve-Path 'DemoV1/Windows/Play-Ravenloft.ps1').Path
           [System.Management.Automation.Language.Parser]::ParseFile(
             $launcher, [ref]$tokens, [ref]$errors) | Out-Null
           if ($errors.Count -ne 0) {
@@ -195,51 +188,21 @@ jobs:
           # The earlier front-end-only showcase is retained as a separate
           # optional artifact. The PRIMARY player test must reach Level22
           # through the normal CODE.1 CHARS -> CODE.2 boundary.
-          Copy-Item DemoV1/Windows/Play-Ravenloft-Alpha.cmd build/demo-v1/Release/Play-Ravenloft-Alpha.cmd -Force
-          Copy-Item DemoV1/Windows/Play-Ravenloft-Alpha.ps1 build/demo-v1/Release/Play-Ravenloft-Alpha.ps1 -Force
+          Copy-Item DemoV1/Windows/Play-Ravenloft.cmd build/demo-v1/Release/Play-Ravenloft.cmd -Force
+          Copy-Item DemoV1/Windows/Play-Ravenloft.ps1 build/demo-v1/Release/Play-Ravenloft.ps1 -Force
           New-Item -ItemType Directory -Force build/demo-v1/Release/Game | Out-Null
           Copy-Item DemoV1/Windows/ORIGINAL-GAME-FILES-GO-HERE.txt build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt -Force
 
-      - name: Publish continuous original intro-to-Level22 Alpha
+      - name: Publish enhanced continuous Windows game
         uses: actions/upload-artifact@v4
         with:
-          name: Ravenloft-Continuous-Alpha-Windows-x64
+          name: Ravenloft-Enhanced-Game-Windows-x64
           path: |
-            build/demo-v1/Release/ravenloft_demo_v1.exe
-            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
-            build/demo-v1/Release/Play-Ravenloft-Alpha.cmd
-            build/demo-v1/Release/Play-Ravenloft-Alpha.ps1
+            build/demo-v1/Release/Ravenloft.exe
+            build/demo-v1/Release/Ravenloft.exe.sha256
+            build/demo-v1/Release/Play-Ravenloft.cmd
+            build/demo-v1/Release/Play-Ravenloft.ps1
             build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt
-            build/demo-v1/Release/build-source-sha.txt
-            build/demo-v1/Release/build-verification-mode.txt
-          if-no-files-found: error
-
-      - name: Publish original intro and character creation
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ravenloft-Original-Intro-Windows-x64
-          path: |
-            build/demo-v1/Release/ravenloft_demo_v1.exe
-            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
-            build/demo-v1/Release/Play-Original-Intro.cmd
-            build/demo-v1/Release/Audit-Starting-Equipment.cmd
-            build/demo-v1/Release/rloft_starting_equipment_probe.exe
-            build/demo-v1/Release/build-source-sha.txt
-            build/demo-v1/Release/build-verification-mode.txt
-          if-no-files-found: error
-
-      # Development-only normal-route artifact. Not the default
-      # player-facing intro showcase. All media is selected/copied
-      # locally; no original game assets are in the GitHub artifact.
-      - name: Publish isolated Alpha continuous-game field test
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ravenloft-Alpha-Field-Test-Windows-x64
-          path: |
-            build/demo-v1/Release/ravenloft_demo_v1.exe
-            build/demo-v1/Release/ravenloft_demo_v1.exe.sha256
-            build/demo-v1/Release/Test-Alpha-Continuous-Game.cmd
-            build/demo-v1/Release/Test-Alpha-Continuous-Game.ps1
             build/demo-v1/Release/build-source-sha.txt
             build/demo-v1/Release/build-verification-mode.txt
           if-no-files-found: error

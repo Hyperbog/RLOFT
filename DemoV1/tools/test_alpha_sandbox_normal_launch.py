@@ -88,8 +88,8 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
         raise ValueError("EXE integrity checked after original media picker")
     if ps.index("if ($partySize -ne 0x920)") > before_launch:
         raise ValueError("existing-party route validated only after launch")
-    checksum = "build/demo-v1/Release/ravenloft_demo_v1.exe.sha256"
-    if workflow.count(checksum) < 3 or "Get-FileHash -LiteralPath $packageExe -Algorithm SHA256" not in workflow:
+    checksum = "build/demo-v1/Release/Ravenloft.exe.sha256"
+    if workflow.count(checksum) < 2 or "Get-FileHash -LiteralPath $packageExe -Algorithm SHA256" not in workflow:
         raise ValueError("native executable checksum is not staged in both artifacts")
     for prior in (
         "if ($copyStatus -ge 8)",
@@ -109,20 +109,13 @@ def check(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
     # Only reject a native game launch that names the user's source.
     if re.search(r"(?im)^\s*Start-Process\s+-FilePath\s+\$original(?:\s|$)", ps):
         raise ValueError("native executable executes on original installation")
-    for label in (
-        "Test-Alpha-Continuous-Game.cmd",
-        "Test-Alpha-Continuous-Game.ps1",
-        "Ravenloft-Alpha-Field-Test-Windows-x64",
-    ):
-        if label not in workflow:
-            raise ValueError("isolated Alpha artifact not published: "+label)
-    if "Ravenloft-Original-Intro-Windows-x64" not in workflow:
-        raise ValueError("read-only original intro artifact was removed")
-    # Preserve player-facing intro showcase and retired warp restrictions.
-    block = workflow.split("- name: Publish original intro and character creation",1)[1]
-    block = block.split("- name:",1)[0]
-    if "Test-Alpha-Continuous-Game." in block:
-        raise ValueError("experimental Alpha launcher mixed into intro artifact")
+    # Do not publish superseded standalone game previews. This runner
+    # stays in source as a private source-replay diagnostic only.
+    if "name: Ravenloft-Enhanced-Game-Windows-x64" not in workflow:
+        raise ValueError("canonical enhanced game artifact missing")
+    if ("Ravenloft-Alpha-Field-Test-Windows-x64" in workflow or
+        "Ravenloft-Original-Intro-Windows-x64" in workflow):
+        raise ValueError("retired standalone artifact reintroduced")
 
 
 def mutate(cmd: str, ps: str, workflow: str, host: str, intro: str) -> None:
