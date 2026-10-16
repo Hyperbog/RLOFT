@@ -78,7 +78,8 @@ def verify(compositor:str,presenter:str,presenter_header:str,
     commit='out.environment_backdrop_indices=std::move(environment_backdrop.pixels);'
     if (capture not in presenter or commit not in presenter or
             'environment_backdrop_indices' not in presenter_header or
-            'presented.environment_backdrop_indices);' not in host):
+            'presented.environment_backdrop_indices,' not in host or
+            'presented.palette);' not in host):
         raise ValueError('original sky/ground background not handed to live GPU')
     ground=presenter.index('if(!ground_textured_rasterized) {')
     snap=presenter.index(capture)
@@ -172,8 +173,8 @@ def main()->int:
             (1,'if (writes == 0U)', 'if (false)'),
             (1,'auto environment_backdrop=framebuffer_.capture(4,32,256,256);',
                '/* original environment snapshot omitted */;'),
-            (3,'presented.environment_backdrop_indices);',
-               '/* no GPU environment input */);'),
+            (3,'presented.palette);',
+               '/* no exact frame palette */);'),
             (3,'constexpr double kNativeGameplayRefreshHz = 60.0;',
              'constexpr double kNativeGameplayRefreshHz = 90.0;'),
             (3,'frame == 1 || frame == 36','frame == 2 || frame == 36'),
