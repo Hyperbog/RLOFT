@@ -101,8 +101,10 @@ public:
         return out;
     }
 
-    // Original generated code: MOV AL,src; MOV AH,AL; SUB EAX,ECX.
-    // Preserve low-byte borrow into AH; enhanced PC clamps underflow.
+    // Original generated SINTAB x86: MOV AL,src; MOV AH,AL;
+    // SUB EAX,ECX. Preserve carry into AH and original 8-bit
+    // modulo subtraction; native clamping to black was NOT source
+    // behavior and corrupts the palette indices of scene sprites.
     static std::uint8_t shade(std::uint8_t src,std::uint16_t packed,
                               bool high,bool* underflow=nullptr) noexcept {
         const unsigned lo=packed&0xFFU, hi=(packed>>8U)&0xFFU;
@@ -110,8 +112,7 @@ public:
             ? hi+(static_cast<unsigned>(src)<lo ? 1U:0U) : lo;
         const bool clipped=static_cast<unsigned>(src)<sub;
         if(underflow) *underflow=clipped;
-        return clipped ? std::uint8_t{0U}
-                       : static_cast<std::uint8_t>(src-sub);
+        return static_cast<std::uint8_t>(src-sub);
     }
 };
 } // namespace rloft
