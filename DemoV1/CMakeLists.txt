@@ -1641,6 +1641,7 @@ if(WIN32)
     add_executable(
         ravenloft_demo_v1 WIN32
         src/win32_audio.cpp
+        src/win32_gpu_scene.cpp
         src/win32_main.cpp
         src/win32_midi.cpp
     )
@@ -1648,7 +1649,7 @@ if(WIN32)
         "RLOFT_DEMO_SOURCE_SHA=\"${RLOFT_DEMO_SOURCE_SHA}\"")
     target_link_libraries(
         ravenloft_demo_v1
-        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Ole32 Advapi32 Winmm
+        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Ole32 Advapi32 Winmm Opengl32 Glu32
     )
     target_compile_features(ravenloft_demo_v1 PRIVATE cxx_std_17)
     if(MSVC)
