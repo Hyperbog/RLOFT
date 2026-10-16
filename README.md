@@ -2,6 +2,28 @@
 
 **Current player-facing goal (owner decision, October 13, 2026):** a complete **enhanced native Windows PC port** preserving the original campaign, art, story and game rules while modernizing graphics presentation, frame pacing, sound, input and saves. People seeking unchanged DOS-era behavior can run their original game through DOSBox. Research into original code and assets continues where helpful, but exact DOS CPU/VGA/IRQ, timing or save-format parity is **not a prerequisite** to the port. The playable game remains Pre-Alpha.
 
+## Canonical Windows game — one player build
+
+**Active player executable:** `Ravenloft.exe`, launched using
+`Play-Ravenloft.cmd`. The game still lives in the existing `DemoV1/`
+source directory for build/test continuity, but **this is the evolving
+Ravenloft game, not a disposable Level 22 demo**. The old isolated
+`Explore-Level22.cmd` launcher was deleted and future player releases
+publish one **`Ravenloft-Enhanced-Game-Windows-x64`** package.
+
+The actual free-camera 3D OpenGL prototype remains preserved separately
+on the `native-engine` branch; it is **not yet the world-rendering backend
+of the main game's continuous CODE.1 → party → exploration runtime**.
+Native gameplay has already gained WASD/QE movement, Shift running, M to
+capture horizontal mouse turning, Tab automap, F3 smooth/nearest display
+scaling and F11 fullscreen. F3 currently filters the indexed final
+display; it is **not** the older 3D GPU texture-mipmap implementation.
+No claim is made that vertical GPU freelook/texture upscaling is merged.
+
+[Canonical game / GPU integration ledger](DemoV1/ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md)
+records the remaining 3D-port work without erasing any original
+reverse-engineering or source assets.
+
 ## Shared project coordination
 
 The [cross-workstream documentation index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/INDEX.md), [current status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/CURRENT_STATUS.md), [branch ownership](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/BRANCH_OWNERSHIP.md) and [shared CODE synchronization register](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/SHARED_SOURCE_REGISTER.md) live on the default branch. **Original-game reverse-engineering records, binary provenance and historical fidelity documentation remain preserved in `DemoV1/`** as optional reference material, not as modern release gates.

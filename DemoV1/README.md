@@ -5,6 +5,27 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## Main-game consolidation — October 15, 2026
+
+The active `demo-v1` branch now ships **one enhanced game artifact**,
+named `Ravenloft-Enhanced-Game-Windows-x64`, with the player-facing
+`Ravenloft.exe` and `Play-Ravenloft.cmd`. There is no separate
+Level 22 walkaround game or frontend-only player ZIP. Existing
+`DemoV1/` CMake target names remain internal for continuity.
+The source-only diagnostic capture, original executable research and
+historical `native-engine` OpenGL GPU branch remain available.
+
+The live continuous game now integrates W/A/S/D, Q/E turning, Shift
+running, horizontal mouse turning (M or Ctrl+right-click), Tab
+automap, F3 final-image filter and F11 fullscreen. All world locomotion
+uses the existing native collision model. Authentic OpenGL 3D free-look,
+3D mipmapped texture upscaling, AA and GPU world geometry are **not yet
+merged** from `native-engine` and remain the highest-priority
+remaining graphics integration rather than another independent demo.
+
+[Precise status, original GPU source inventory and next integration
+contracts](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md).
+
 ## Owner field milestone — continuous Windows startup reaches Level 22 (October 13, 2026)
 
 The owner has tested the [Windows continuous-Alpha build #819](https://github.com/Hyperbog/RLOFT/actions/runs/38494095524) and confirmed it **runs all the way to Level 22**. This is the first field-confirmed end-to-end startup checkpoint for the enhanced PC port, including the transition out of character creation. The owner also reports **remaining Level 22 issues**, so this is **not** acceptance of the world renderer, gameplay, audio quality, controls or the full Alpha.
