@@ -33,10 +33,11 @@ internal static class CrashLogsSmoke
             Require(diagnostic.TryWriteLocalIncident(out string? first) &&
                 first is not null && Path.GetDirectoryName(first) == portable &&
                 File.Exists(first), "portable incident is stored beside the executable");
-            Require(Path.GetFileName(first).StartsWith("incident-", StringComparison.Ordinal) &&
-                first.EndsWith(".json", StringComparison.Ordinal),
+            string firstPath = first ?? throw new Exception("Crash Logs: portable report missing");
+            Require(Path.GetFileName(firstPath).StartsWith("incident-", StringComparison.Ordinal) &&
+                firstPath.EndsWith(".json", StringComparison.Ordinal),
                 "unique JSON incident naming is retained");
-            string json = File.ReadAllText(first);
+            string json = File.ReadAllText(firstPath);
             Require(json.Contains("UnhandledUiException", StringComparison.Ordinal) &&
                 json.Contains("System.InvalidOperationException", StringComparison.Ordinal),
                 "failure stage and sanitized exception class must be present");
@@ -65,7 +66,8 @@ internal static class CrashLogsSmoke
             Require(protectedInstall.TryWriteLocalIncident(out string? other) &&
                 other is not null && Path.GetDirectoryName(other) == fallback &&
                 File.Exists(other), "fallback incident must land in per-user Logs folder");
-            Require(!File.ReadAllText(other).Contains("PRIVATE ORIGINAL", StringComparison.Ordinal),
+            string fallbackReport = other ?? throw new Exception("Crash Logs: fallback report missing");
+            Require(!File.ReadAllText(fallbackReport).Contains("PRIVATE ORIGINAL", StringComparison.Ordinal),
                 "fallback must preserve private-report redaction");
             Require(protectedInstall.TryGetLogsDirectory() == fallback,
                 "Logs button must expose the actual fallback directory");
