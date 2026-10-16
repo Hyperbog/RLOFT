@@ -279,11 +279,49 @@ void test_loose_and_env_discovery() {
     fs::remove_all(base);
 }
 
+// Actual release ZIP layout: package/Game/RLOFT contains full loose
+// original media; direct Ravenloft.exe must discover this without
+// requiring PowerShell or the separate launcher to supply a path.
+void test_full_game_nested_package_discovery() {
+    const auto parent=fs::temp_directory_path()/
+        "rloft_full_native_package_discovery";
+    const auto nested=parent/"Game"/"RLOFT";
+    fs::remove_all(parent);
+    fs::create_directories(nested);
+    for(const auto* name:{
+        "RES0","RES1","RES2","RES3","RES4","RES8","RES10",
+        "INIT","T","SINTAB","CODE.1","CODE.2",
+        "CINE00.ANM","CINE12.ANM",
+        "LEVELS.DAT","NPCS.DAT","OBJECTS.DAT"}) {
+        std::ofstream(nested/name,std::ios::binary)<<"fixture";
+    }
+#ifdef _WIN32
+    _putenv_s("RLOFT_GAME_DIR",parent.string().c_str());
+#else
+    setenv("RLOFT_GAME_DIR",parent.string().c_str(),1);
+#endif
+    {
+        auto found=GameSource::auto_locate(true);
+        assert(found.has_value());
+        assert(found->has_full_game_media());
+        std::error_code ec;
+        assert(fs::equivalent(found->location().media_path,nested,ec));
+        assert(!ec);
+    }
+#ifdef _WIN32
+    _putenv_s("RLOFT_GAME_DIR","");
+#else
+    unsetenv("RLOFT_GAME_DIR");
+#endif
+    fs::remove_all(parent);
+}
+
 }  // namespace
 
 int main() {
     test_iso(false);
     test_iso(true);
     test_loose_and_env_discovery();
+    test_full_game_nested_package_discovery();
     std::cout << "game_source_tests: PASS\n";
 }

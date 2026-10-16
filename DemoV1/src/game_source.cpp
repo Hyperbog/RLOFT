@@ -116,9 +116,28 @@ std::optional<fs::path> gog_registry_path(HKEY hive, REGSAM view) {
 std::vector<fs::path> discovery_candidates() {
     std::vector<fs::path> out;
     add_env_candidate(out, "RLOFT_GAME_DIR");
-    out.push_back(fs::current_path());
+    // Both Ravenloft.exe and its convenience CMD must find the same
+    // original package/Game/RLOFT layout, without recursive drive scans.
+    const auto add_game_layout=[&](const fs::path& root) {
+        out.push_back(root);
+        out.push_back(root/"Game");
+        out.push_back(root/"Game"/"RLOFT");
+        out.push_back(root/"Game"/"CD_Extracted"/"RLOFT");
+        out.push_back(root/"RLOFT");
+        out.push_back(root/"CD_Extracted"/"RLOFT");
+    };
+    add_game_layout(fs::current_path());
 
 #ifdef _WIN32
+    // A shortcut may set an unrelated working directory. Also search
+    // relative to the ACTUAL Windows executable, not only the CWD.
+    std::array<wchar_t,32768> module_path{};
+    const DWORD module_size=GetModuleFileNameW(
+        nullptr,module_path.data(),
+        static_cast<DWORD>(module_path.size()));
+    if(module_size>0U && module_size<module_path.size())
+        add_game_layout(fs::path(module_path.data()).parent_path());
+
     for (const auto hive : {HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE}) {
         for (const auto view : {KEY_WOW64_32KEY, KEY_WOW64_64KEY}) {
             if (auto p = gog_registry_path(hive, view)) out.push_back(*p);
