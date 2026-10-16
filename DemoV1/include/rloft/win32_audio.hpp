@@ -18,6 +18,10 @@ public:
     Win32AudioPlayer& operator=(const Win32AudioPlayer&) = delete;
 
     void play(PcmSound sound);
+    // Independently mute sampled Creative Voice effects; MIDI/XMIDI
+    // runs through Win32MidiPlayer and must not be affected.
+    void set_enabled(bool enabled);
+    [[nodiscard]] bool enabled() const noexcept;
     void stop_all();
 
 private:
