@@ -48,8 +48,8 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
         runtime.index('ExplorationRuntime::Level22PickupProgress')]
     if 'ExplorationRuntime staged=*this;' not in transition:
         raise ValueError('mist transition is mutating authoritative runtime')
-    if transition.index('*this=std::move(staged);') <
-            transition.index('if(!completed)return false;'):
+    if (transition.index('*this=std::move(staged);') <
+            transition.index('if(!completed)return false;')):
         raise ValueError('mist quest committed before frame playback finished')
     # The original 21704 pickup and 21F70 event MUST commit as
     # one persistent transaction: an aborted frame must not consume the
