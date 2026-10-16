@@ -19,7 +19,7 @@ def check(resolver:str,host:str,tests:str,cmake:str,workflow:str)->None:
             raise ValueError('original NPC sound source base changed: '+marker)
     for marker in (
         '#include "rloft/original_npc_sound.hpp"',
-        'if(outcome.injury)',
+        'if(outcome.injury && gameplay_sound_enabled)',
         'OriginalNpcSoundModel::res6_id(',
         'assets.source().read("INIT")',
         'assets.sampled_audio(',
@@ -33,7 +33,7 @@ def check(resolver:str,host:str,tests:str,cmake:str,workflow:str)->None:
               host.index('}catch(const std::exception& error) {',
                          host.index('runtime.attack_level22_assassin_at('))]
     if not(main.index('if(outcome.found_assassin)') <
-           main.index('if(outcome.injury)') <
+           main.index('if(outcome.injury && gameplay_sound_enabled)') <
            main.index('OriginalNpcSoundModel::res6_id(')):
         raise ValueError('audio requested before injury or successful world commit')
     if 'catch(const std::exception& audio_error)' not in main:
