@@ -15,8 +15,13 @@ CombatStrengthAttackModel CombatStrengthAttackModel::from_code2(
     if(code2.size()<start+result.table_.size())
         throw std::runtime_error(
             "original CODE.2 attack Strength adjustment table missing");
-    for(std::size_t i=0;i<result.table_.size();++i)
-        result.table_[i]=static_cast<std::int8_t>(code2[start+i]);
+    for(std::size_t i=0;i<result.table_.size();++i) {
+        const auto raw=static_cast<int>(code2[start+i]);
+        // MOVSX signed byte, without relying on unsigned-to-signed
+        // narrowing behavior that may vary between C++ compilers.
+        result.table_[i]=static_cast<std::int8_t>(
+            raw<128 ? raw : raw-256);
+    }
     return result;
 }
 
