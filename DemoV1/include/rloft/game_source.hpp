@@ -35,6 +35,7 @@ public:
     [[nodiscard]] bool contains(std::string_view filename) const;
     [[nodiscard]] std::vector<std::uint8_t> read(std::string_view filename) const;
     [[nodiscard]] const std::filesystem::path& path() const noexcept;
+    [[nodiscard]] std::vector<std::string> file_names() const;
 
 private:
     struct Impl;
@@ -49,6 +50,7 @@ public:
     // metadata-only discovery available for standalone research tools.
     static std::optional<GameSource> auto_locate(bool full_game=false);
     [[nodiscard]] bool has_full_game_media() const;
+    [[nodiscard]] std::vector<std::string> file_names() const;
 
     [[nodiscard]] GameSourceKind kind() const noexcept { return located_.kind; }
     [[nodiscard]] const LocatedGame& location() const noexcept { return located_; }
