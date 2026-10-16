@@ -211,10 +211,12 @@ public:
     void bind_gpu_frame(const rloft::ExplorationSessionState& session,
                         const rloft::LevelWorldState& world,
                         const std::vector<rloft::WorldSceneRecord>& records,
-                        const std::vector<std::uint8_t>& environment_backdrop) {
+                        const std::vector<std::uint8_t>& environment_backdrop,
+                        const rloft::Palette6& frame_palette) {
         if(!gpu_scene_)return;
         try {
-            gpu_scene_->bind(session,world,records,environment_backdrop);
+            gpu_scene_->bind(session,world,records,environment_backdrop,
+                             frame_palette);
             gpu_world_visible_=gpu_world_enabled_;
         }catch(const std::exception& error) {
             OutputDebugStringA(error.what());
@@ -2826,7 +2828,8 @@ int run_exploration(
         if(!exploration_preview && !dev_trace) {
             host.bind_gpu_frame(runtime.session(),runtime.world(),
                                 frame.world_scene_records,
-                                presented.environment_backdrop_indices);
+                                presented.environment_backdrop_indices,
+                                presented.palette);
             host.set_gpu_menu_overlay(hovered_menu>=0);
         }
         present_traced(presenter.framebuffer(),presented.palette,
