@@ -74,6 +74,11 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME enhanced_npc_sound_source_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_npc_sound_pipeline.py")
+    # Exact original DDA4 multiclass XP writes committed with Assassin
+    # corpse/relic transaction; level-up callbacks explicitly pending.
+    add_test(NAME enhanced_live_assassin_xp_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_live_assassin_xp.py")
     # Live E5F0/C80C/1C328/C910 weapon strike and staged NPC death.
     add_test(NAME enhanced_live_level22_weapon_strike_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
