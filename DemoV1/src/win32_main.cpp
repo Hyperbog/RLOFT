@@ -56,6 +56,7 @@
 #include "rloft/original_f790_ordinary_slot_event_plan.hpp"
 #include "rloft/party_panel_controls.hpp"
 #include "rloft/combat_live_hand_request.hpp"
+#include "rloft/enhanced_combat_target_arming.hpp"
 #include "rloft/quit_confirm.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/enhanced_options_presenter.hpp"
@@ -1544,8 +1545,14 @@ int run_exploration(
     // Explicit native-PC two-click target selection. Original DOS
     // E5F0 also supports automatic DB94(-1), whose projected buffers
     // are not yet available. The hand is revalidated on actual hit.
-    std::optional<rloft::PartyPanelControlModel::GameplayHandHit>
-        pending_level22_weapon_hand;
+    rloft::EnhancedCombatTargetArming pending_level22_weapon_hand;
+    const auto combat_scene_stamp=[](
+        const rloft::ExplorationRuntimeFrame& frame) {
+        return rloft::EnhancedCombatSceneStamp{
+            frame.world_scene_revision,frame.source_level_id,
+            frame.source_coordinate_a,frame.source_coordinate_b,
+            frame.source_facing};
+    };
     // Palette is a CURRENT-LEVEL renderer parameter. A title Continue,
     // in-game Load, mist transition or ordinary portal may replace the
     // mutable world and its original DAC bank without replacing Host.
@@ -1714,6 +1721,7 @@ int run_exploration(
         // Modal UI owns the pointer and keyboard exclusively; no captured
         // camera or held strafe may leak into an inventory/map/options panel.
         if(ui.state().screen!=rloft::ExplorationUiScreen::Viewport) {
+            pending_level22_weapon_hand.cancel();
             host.stop_mouse_look();
         }
         // Re-select only if the authored level or its default cue changed,
@@ -2408,6 +2416,7 @@ int run_exploration(
                         click->row);
 
             if (pressed_menu >= 0) {
+                pending_level22_weapon_hand.cancel();
                 if(trace) {
                     try {trace->event("top_menu.select",pressed_menu);}
                     catch(...) {}
@@ -2504,11 +2513,18 @@ int run_exploration(
                                    exploration_preview,dev_interact) &&
                                runtime.session().level_id==
                                    rloft::Level22Story::kLevelId) {
-                                pending_level22_weapon_hand=*hand;
+                                if(displayed_scene_frame) {
+                                    pending_level22_weapon_hand.arm(
+                                        hand->actor,hand->hand,
+                                        combat_scene_stamp(
+                                            *displayed_scene_frame));
+                                } else {
+                                    pending_level22_weapon_hand.cancel();
+                                }
                                 status=L"Weapon selected | "
                                        L"click the visible Assassin";
                             } else {
-                                pending_level22_weapon_hand.reset();
+                                pending_level22_weapon_hand.cancel();
                                 status=L"Original automatic combat "
                                        L"target cache pending";
                             }
@@ -2540,7 +2556,7 @@ int run_exploration(
                             break;
                         }
                         if(plan.status!=HandStatus::AttackCandidate)
-                            pending_level22_weapon_hand.reset();
+                            pending_level22_weapon_hand.cancel();
                         SetWindowTextW(host.hwnd(),status);
                         if(trace) {
                             try {trace->event(
@@ -2551,7 +2567,7 @@ int run_exploration(
                             catch(...) {}
                         }
                     }catch(const std::exception& error) {
-                        pending_level22_weapon_hand.reset();
+                        pending_level22_weapon_hand.cancel();
                         const auto message=widen(error.what());
                         SetWindowTextW(host.hwnd(),message.c_str());
                         if(trace) {
@@ -2572,6 +2588,7 @@ int run_exploration(
                         runtime.inventory().reset_scribe_feedback_13118();
                         input.clear();
                         opened_actor_panel = true;
+                        pending_level22_weapon_hand.cancel();
                     }
                 }
 
@@ -2581,20 +2598,33 @@ int run_exploration(
                 // actual source NPC rather than a guessed billboard.
                 bool attacked_assassin=false;
                 if(!handled_hand_click && !opened_actor_panel &&
-                   pending_level22_weapon_hand &&
-                   displayed_scene_frame &&
-                   runtime.session().level_id==
-                       rloft::Level22Story::kLevelId &&
-                   rloft::DevLevelInteractionPolicy::allow(
-                       exploration_preview,dev_interact)) {
-                    const auto selected=*pending_level22_weapon_hand;
-                    pending_level22_weapon_hand.reset();
-                    try {
+                   pending_level22_weapon_hand.pending()) {
+                    // Every target click is one attempted action, even
+                    // when no NPC is beneath it or the seen scene changed.
+                    // It must NEVER fall through to loose-item pickup.
+                    attacked_assassin=true;
+                    const auto selected=pending_level22_weapon_hand.take(
+                        displayed_scene_frame
+                            ? std::optional<rloft::EnhancedCombatSceneStamp>(
+                                combat_scene_stamp(*displayed_scene_frame))
+                            : std::nullopt);
+                    if(!selected.valid ||
+                       runtime.session().level_id!=
+                           rloft::Level22Story::kLevelId ||
+                       !rloft::DevLevelInteractionPolicy::allow(
+                           exploration_preview,dev_interact)) {
+                        SetWindowTextW(host.hwnd(),
+                            L"Ravenloft - Scene changed; reselect weapon");
+                    } else try {
                         const auto outcome=
                             runtime.attack_level22_assassin_at(
                                 *displayed_scene_frame,
                                 click->row,click->column,
                                 selected.actor,selected.hand);
+                        if(!outcome.found_assassin) {
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - No Assassin at that target");
+                        }
                         if(outcome.found_assassin) {
                             attacked_assassin=true;
                             displayed_scene_frame.reset();
