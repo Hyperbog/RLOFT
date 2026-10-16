@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "rloft/enhanced_game_save.hpp"
+#include "rloft/assassin_relic_transition.hpp"
 #include <cassert>
 #include <stdexcept>
 #include <vector>
@@ -81,6 +82,56 @@ int main(){
     // Save files must be fully round-trippable, not merely decodable.
     // Re-encoding an intact load preserves all persisted bytes.
     assert(rloft::EnhancedGameSaveCodec::encode(out)==b);
+
+    // Original Level22 quest continuity through native Save/Continue:
+    // defeated Assassin, source-authored drops, and story flag persist.
+    // This must also work after one relic has moved into the player's
+    // cursor. Do not restore the enemy or regenerate unique drops.
+    auto quest=s;
+    quest.session.level.width=30;
+    quest.session.level.height=15;
+    quest.session.level.cell_words.assign(30U*15U,0U);
+    quest.session.level.automap_cache.assign(30U*15U,0x2FU);
+    quest.world.npcs[0].npc_type_id=9U;
+    quest.world.npcs[0].current_hp=0;
+    quest.world.npcs[0].runtime_flags=0x02000000U;
+    quest.world.loose_items.clear();
+    quest.inventory.held.object_id=-1;
+    quest.inventory.held.known=0U;
+    quest.original_story_selector=1U;
+    for(const auto relic:rloft::AssassinRelicTransition::kDrops){
+        rloft::LiveObjectRecord record{};
+        record.object_type_id=relic.object_id;
+        record.x_position_16_16=0x000D8000U;
+        record.y_position_16_16=0x00078000U;
+        quest.world.loose_items.push_back(record);
+    }
+    auto quest_bytes=rloft::EnhancedGameSaveCodec::encode(quest);
+    auto quest_loaded=rloft::EnhancedGameSaveCodec::decode(quest_bytes);
+    assert(quest_loaded.world.npcs.size()==1U);
+    assert(quest_loaded.world.npcs[0].current_hp==0);
+    assert(quest_loaded.world.npcs[0].npc_type_id==9U);
+    assert(quest_loaded.world.loose_items.size()==4U);
+    assert(quest_loaded.original_story_selector==1U);
+    for(std::size_t i=0;i<4U;++i)
+        assert(quest_loaded.world.loose_items[i].object_type_id==
+            rloft::AssassinRelicTransition::kDrops[i].object_id);
+    assert(rloft::EnhancedGameSaveCodec::encode(quest_loaded)==quest_bytes);
+
+    quest_loaded.inventory.held.object_id=static_cast<std::int16_t>(
+        quest_loaded.world.loose_items.front().object_type_id);
+    quest_loaded.world.loose_items.erase(
+        quest_loaded.world.loose_items.begin());
+    quest_bytes=rloft::EnhancedGameSaveCodec::encode(quest_loaded);
+    auto after_pickup=rloft::EnhancedGameSaveCodec::decode(quest_bytes);
+    assert(after_pickup.inventory.held.object_id==0x88);
+    assert(after_pickup.world.npcs[0].current_hp==0);
+    assert(after_pickup.world.loose_items.size()==3U);
+    assert(after_pickup.world.loose_items[0].object_type_id==0x87U);
+    assert(after_pickup.world.loose_items[1].object_type_id==0xE9U);
+    assert(after_pickup.world.loose_items[2].object_type_id==0x74U);
+    assert(rloft::EnhancedGameSaveCodec::encode(after_pickup)==quest_bytes);
+
     b[b.size()-2U]^=1U;
     bool bad=false;
     try{(void)rloft::EnhancedGameSaveCodec::decode(b);}
