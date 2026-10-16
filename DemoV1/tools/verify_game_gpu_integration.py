@@ -47,6 +47,11 @@ def check(host,gpu,mesh,cmake,workflow):
     ):
         if item not in host:
             raise ValueError('main game not wired to live GPU: '+item)
+    # The original palette must be refreshed before EVERY normal
+    # host.pump exploration iteration. Merely finding a palette refresh
+    # in an unrelated level-transition branch is insufficient.
+    if 'while (host.pump()) {\n        refresh_world_palette();' not in host:
+        raise ValueError('main exploration world-palette refresh removed')
     # Both the transition-time DAC update and the normal exploration
     # attachment are mandatory. A mutation deleting only one call must
     # still fail even though the other retains the same text signature.
@@ -134,7 +139,8 @@ def main():
         (0,'write_native_save(runtime,assets.source());','/* no Save */'),
         (0,'rloft::TitleKeyboardModel::key_down(','/* no keyboard menu */('),
         (0,'void ensure_gdi_backbuffer(','void ignored_backbuffer('),
-        (0,'refresh_world_palette();','/* stale level palette */'),
+        (0,'while (host.pump()) {\n        refresh_world_palette();',
+           'while (host.pump()) {\n        /* stale level palette */'),
         (0,'if (wparam==VK_F11 &&','if (false &&'),
         (0,'options.resume_existing_party &&','true &&'),
         (0,'presented.palette);','{});'),
