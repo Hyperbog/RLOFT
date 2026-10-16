@@ -3,7 +3,7 @@
 #include "rloft/win32_gpu_scene.hpp"
 #include "rloft/enhanced_gpu_camera.hpp"
 #include "rloft/enhanced_gpu_backdrop.hpp"
- #include "rloft/renderer_tables.hpp"
+#include "rloft/renderer_tables.hpp"
 #include <GL/glu.h>
 #include <algorithm>
 #include <cmath>
