@@ -43,5 +43,15 @@ int main() {
     catch(const std::invalid_argument&){invalid=true;}
     assert(invalid);
   }
+  // A genuinely empty scene is not a decode failure, but losing every
+  // one of the live source sprites must abandon the optional GPU overlay.
+  assert(!EnhancedGpuCameraModel::all_gpu_sprites_failed(0U,0U));
+  assert(EnhancedGpuCameraModel::all_gpu_sprites_failed(1U,0U));
+  assert(EnhancedGpuCameraModel::all_gpu_sprites_failed(110U,0U));
+  assert(!EnhancedGpuCameraModel::all_gpu_sprites_failed(110U,1U));
+  bool invalid_count=false;
+  try{(void)EnhancedGpuCameraModel::all_gpu_sprites_failed(1U,2U);}
+  catch(const std::invalid_argument&){invalid_count=true;}
+  assert(invalid_count);
   return 0;
 }
