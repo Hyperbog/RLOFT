@@ -65,6 +65,11 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME enhanced_level22_quest_transition_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_level22_transition.py")
+    # Source-backed normal gameplay hand clicks: mode header+290,
+    # original 24478 arbitration, no made-up OBJECTS[-1] values.
+    add_test(NAME enhanced_live_hand_dispatch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_live_hand_dispatch.py")
     # Live player-hit inputs use original CODE.2 and not generic rules.
     add_test(NAME enhanced_combat_input_source_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
