@@ -489,6 +489,7 @@ add_library(rloft_boot_flow
     src/exploration_presenter.cpp
     src/exploration_frame_capture.cpp
     src/exploration_world.cpp
+    src/enhanced_game_save.cpp
     src/enhanced_gpu_world_mesh.cpp
     src/exploration_collision.cpp
     src/original_entity_collision.cpp

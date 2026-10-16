@@ -16,6 +16,7 @@
 #include "rloft/inventory_party_order.hpp"
 #include "rloft/level_world_state.hpp"
 #include "rloft/level_continuity.hpp"
+#include "rloft/enhanced_game_save.hpp"
 #include "rloft/level22_encounter.hpp"
 #include "rloft/level22_viewport_target.hpp"
 #include "rloft/npc_catalog.hpp"
@@ -174,6 +175,12 @@ public:
     [[nodiscard]] bool gameplay_state_initialized() const noexcept {
         return gameplay_state_initialized_;
     }
+
+    // Game-owned progress saves. Distinct from original DOS SAVE.DAT.
+    [[nodiscard]] EnhancedGameSnapshot capture_native_checkpoint() const;
+    void restore_native_checkpoint(
+        const EnhancedGameSnapshot& snapshot,
+        const GameSource& original_media);
 
     // Original CODE.2 object-2 DGROUP BF44 story/message selector.
     // Shipped CODE.2 initializes it to zero. Existing Level22

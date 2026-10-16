@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <utility>
 
 #include "rloft/exploration_session.hpp"
 #include "rloft/level_world_state.hpp"
@@ -32,6 +33,12 @@ class LevelContinuityStore final {
 public:
     [[nodiscard]] std::optional<LevelContinuityEntry> recall(
         int level_id) const;
+    [[nodiscard]] const std::map<int,LevelContinuityEntry>& snapshots() const noexcept {
+        return snapshots_;
+    }
+    void restore_snapshots(std::map<int,LevelContinuityEntry> entries) {
+        snapshots_=std::move(entries);
+    }
     [[nodiscard]] std::size_t stored_count() const noexcept {
         return snapshots_.size();
     }

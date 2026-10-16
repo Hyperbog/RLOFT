@@ -4,6 +4,7 @@
 #include "rloft/original_pickup_ribbon_text.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/options_menu.hpp"
+#include "rloft/enhanced_game_save.hpp"
 
 #include <exception>
 #include <stdexcept>
@@ -30,6 +31,73 @@ ExplorationRuntime ExplorationRuntime::load_fresh(
         RendererTables::load(source),
         decode_environment_profiles(
             source.read("INIT")));
+}
+
+EnhancedGameSnapshot ExplorationRuntime::capture_native_checkpoint() const {
+    if(!gameplay_state_initialized_)
+        throw std::logic_error("native save needs initialized gameplay");
+    EnhancedGameSnapshot out{};
+    out.session=session_;
+    out.world=world_;
+    out.inventory=inventory_;
+    out.visited_levels=level_continuity_.snapshots();
+    out.random_state=original_random_.state();
+    out.original_story_selector=original_story_message_bf44_;
+    return out;
+}
+
+void ExplorationRuntime::restore_native_checkpoint(
+    const EnhancedGameSnapshot& saved,
+    const GameSource& source) {
+    if(!gameplay_state_initialized_)
+        throw std::logic_error("native load needs initialized gameplay");
+    if(saved.session.level_id>=32U)
+        throw std::invalid_argument("saved level outside original game");
+    if(saved.session.level.width<=0 || saved.session.level.height<=0 ||
+       saved.session.level.cell_words.size()!=
+       static_cast<std::size_t>(
+           saved.session.level.width*saved.session.level.height))
+        throw std::invalid_argument("saved world geometry does not match");
+
+    // Stage all throwing validation BEFORE the active session changes.
+    // Reacquire immutable CODE.2 mage scroll source from original media.
+    auto staged_inventory=saved.inventory;
+    auto source_inventory=InventoryRuntimeState::fresh(source);
+    staged_inventory.mage_scroll_source=
+        std::move(source_inventory.mage_scroll_source);
+    staged_inventory.mage_scribe_feedback.reset();
+    std::optional<OriginalGroundRes4Selection> staged_ground;
+    std::string staged_ground_failure;
+    if(source.contains("INIT") && source.contains("RES4")) {
+        try {
+            const ResArchive res4(source.read("RES4"));
+            staged_ground=OriginalGroundRes4Audit::resolve(
+                source.read("INIT"),saved.session.level,res4);
+        }catch(const std::exception& e) {
+            staged_ground_failure=e.what();
+        }
+    }
+    auto visited=saved.visited_levels;
+    auto session=saved.session;
+    auto world=saved.world;
+    // Save data was independently decoded and source media verified.
+    // Runtime is authoritative after this one atomic replacement.
+    session_=std::move(session);
+    world_=std::move(world);
+    inventory_=std::move(staged_inventory);
+    level_continuity_.restore_snapshots(std::move(visited));
+    original_random_.seed(saved.random_state);
+    original_story_message_bf44_=saved.original_story_selector;
+    original_pickup_ribbon_.reset();
+    original_pickup_ribbon_prefix_.clear();
+    scene_shape_cache_.clear();
+    ground_source_=std::move(staged_ground);
+    ground_source_failure_=std::move(staged_ground_failure);
+    motion_state_=ExplorationRuntimeMotionState{};
+    motion_state_.integrator.heading=session_.facing;
+    inventory_save_backing_.reset();
+    inventory_save_world_revision_=0U;
+    ++world_scene_revision_;
 }
 
 void ExplorationRuntime::set_scene_video_page(
