@@ -44,7 +44,11 @@ private:
 class GameSource final {
 public:
     static GameSource open(const std::filesystem::path& path);
-    static std::optional<GameSource> auto_locate();
+    // 'full_game' skips partial DOS installations missing movies,
+    // original game logic, scenery or world archive. Leave the default
+    // metadata-only discovery available for standalone research tools.
+    static std::optional<GameSource> auto_locate(bool full_game=false);
+    [[nodiscard]] bool has_full_game_media() const;
 
     [[nodiscard]] GameSourceKind kind() const noexcept { return located_.kind; }
     [[nodiscard]] const LocatedGame& location() const noexcept { return located_; }

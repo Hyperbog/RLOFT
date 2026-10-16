@@ -172,6 +172,7 @@ void test_loose_and_env_discovery() {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::LooseDirectory);
         assert(source.contains("res0"));
+        assert(!source.has_full_game_media());
         {
             const auto cfg = source.read_runtime("SOUND.CFG");
             assert(cfg.has_value());

@@ -340,7 +340,21 @@ GameSource GameSource::open(const fs::path& input) {
         path.string());
 }
 
-std::optional<GameSource> GameSource::auto_locate() {
+bool GameSource::has_full_game_media() const {
+    // The GUI must never start using a partial RES0/INIT/T directory
+    // then fail halfway through the original logos or into Level22.
+    for(const auto* file : {
+        "RES0","RES1","RES2","RES3","RES4","RES8","RES10",
+        "INIT","T","SINTAB","CODE.1","CODE.2",
+        "CINE00.ANM","CINE12.ANM",
+        "LEVELS.DAT","NPCS.DAT","OBJECTS.DAT"
+    }) {
+        if(!contains(file))return false;
+    }
+    return true;
+}
+
+std::optional<GameSource> GameSource::auto_locate(bool full_game) {
     std::set<fs::path> seen;
     for (const auto& candidate : discovery_candidates()) {
         std::error_code ec;
@@ -354,7 +368,8 @@ std::optional<GameSource> GameSource::auto_locate() {
             auto source = open(normalized);
             if (source.contains("RES0") &&
                 source.contains("INIT") &&
-                source.contains("T")) {
+                source.contains("T") &&
+                (!full_game || source.has_full_game_media())) {
                 return source;
             }
         } catch (...) {

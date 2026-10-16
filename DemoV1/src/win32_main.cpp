@@ -3051,9 +3051,7 @@ std::optional<rloft::GameSource> choose_valid_install(HWND owner) {
 
         try {
             auto source = rloft::GameSource::open(*selected);
-            if (!source.contains("RES0") ||
-                !source.contains("INIT") ||
-                !source.contains("T")) {
+            if (!source.has_full_game_media()) {
                 throw std::runtime_error(
                     "The selected folder does not contain a valid Ravenloft installation.");
             }
@@ -3193,6 +3191,11 @@ int run(HINSTANCE instance) {
         source = std::move(*chosen);
     } else if (const auto explicit_path = options.source) {
         source = rloft::GameSource::open(*explicit_path);
+        if(!source.has_full_game_media())
+            throw std::runtime_error(
+                "This is a partial Ravenloft installation. The full "
+                "CINE/RES/LEVELS/CODE media is required to play "
+                "the entire original intro and Level 22.");
         // The isolated Alpha launcher passes an ephemeral %TEMP%
         // installation as an explicit argument. A trace session
         // MUST NOT replace the user's persistent owned-game folder
@@ -3208,14 +3211,14 @@ int run(HINSTANCE instance) {
         if (const auto saved = preferred_install()) {
             try {
                 source = rloft::GameSource::open(*saved);
-                resolved = true;
+                resolved = source.has_full_game_media();
             } catch (...) {
                 // A moved/uninstalled copy is not fatal; continue discovery.
             }
         }
 
         if (!resolved) {
-            if (auto found = rloft::GameSource::auto_locate()) {
+            if (auto found = rloft::GameSource::auto_locate(true)) {
                 source = std::move(*found);
                 save_preferred_install(source.location().install_root);
                 resolved = true;
