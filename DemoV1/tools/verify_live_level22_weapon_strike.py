@@ -110,8 +110,8 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         if marker not in cmake:
             raise ValueError('native C++ build missing source attack: '+marker)
     for marker in (
-        'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
-        '|combat_player_hit_inputs_tests|combat_level22_strike_tests|original_npc_sound_tests|combat_live_hand_request_tests|',
+        'combat_player_hit_inputs_tests combat_xp_award_service_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
+        '|combat_player_hit_inputs_tests|combat_xp_award_service_tests|combat_level22_strike_tests|original_npc_sound_tests|combat_live_hand_request_tests|',
         'python DemoV1/tools/verify_live_level22_weapon_strike.py',
         '|enhanced_live_level22_weapon_strike_contract_tests|',
     ):
@@ -154,7 +154,7 @@ def main()->None:
            'assert(killed.spawned_loose_items==0U);'),
         (4,'src/combat_level22_strike.cpp',
            'src/missing_combat_level22_strike.cpp'),
-        (5,'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
+        (5,'combat_player_hit_inputs_tests combat_xp_award_service_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
            'combat_player_hit_inputs_tests combat_hit_check_tests combat_live_hand_request_tests'),
     )
     for index,old,new in mutations:
