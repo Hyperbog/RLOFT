@@ -18,6 +18,7 @@ Default Windows location: `%LOCALAPPDATA%\\RavenloftEnhanced\\AssetCache\\v3`. O
 - `v3/levels/`: 32 extracted raw level records. These are inspection assets, not a separate live level-authoring schema.
 - `v3/complete.tsv`: ready marker, source file sizes and cache digests.
 - `v3/decode_report.tsv`: per-bank decoder outcomes.
+- `v3/origin.bin`: UTF-8 path identifying the original media installation from which this cache was imported, used to reject mismatched explicit source selections.
 - `runtime/`: mutable native runtime files, intentionally separate from `v3/media/` and imported level archives.
 
 ## Controls, guarantees and limitations
