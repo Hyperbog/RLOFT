@@ -50,9 +50,9 @@ Win32GpuScene::Win32GpuScene(HWND hwnd,const RavenloftBootAssets& assets,
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    canvas_pixels_.assign(512U*512U*4U,0U);
+    canvas_pixels_.assign(320U*400U*4U,0U);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,512,512,0,GL_RGBA,
-                 GL_UNSIGNED_BYTE,canvas_pixels_.data());
+                 GL_UNSIGNED_BYTE,nullptr);
     wglMakeCurrent(nullptr,nullptr);
 }
 Win32GpuScene::~Win32GpuScene() {
@@ -279,7 +279,7 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
     // draws ONLY inside the source 32..287, 4..259 scene rectangle.
     for(unsigned sy=0;sy<400U;++sy)for(unsigned sx=0;sx<320U;++sx) {
         const auto raw=bgra[static_cast<std::size_t>(399U-sy)*320U+sx];
-        const auto di=(static_cast<std::size_t>(sy)*512U+sx)*4U;
+        const auto di=(static_cast<std::size_t>(sy)*320U+sx)*4U;
         canvas_pixels_[di]=static_cast<std::uint8_t>((raw>>16U)&255U);
         canvas_pixels_[di+1U]=static_cast<std::uint8_t>((raw>>8U)&255U);
         canvas_pixels_[di+2U]=static_cast<std::uint8_t>(raw&255U);
