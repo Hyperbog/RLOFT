@@ -38,6 +38,7 @@
 #include "rloft/automap_controls.hpp"
 #include "rloft/enhanced_automap_keyboard.hpp"
 #include "rloft/boot_flow.hpp"
+#include "rloft/enhanced_game_save.hpp"
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_stats.hpp"
@@ -1263,6 +1264,74 @@ CinematicResult play_cinematic(
     rloft::Win32AudioPlayer& audio_player,
     rloft::Win32MidiPlayer& midi_player);
 
+std::filesystem::path native_save_path() {
+    std::array<wchar_t,32768> path{};
+    const auto n=GetEnvironmentVariableW(
+        L"LOCALAPPDATA",path.data(),static_cast<DWORD>(path.size()));
+    if(n==0U || n>=path.size())
+        throw std::runtime_error("Windows LOCALAPPDATA required for game saves");
+    return std::filesystem::path(path.data())/
+        L"Hyperbog"/L"Ravenloft"/L"SavedGame-1.rls";
+}
+std::uint64_t original_media_identity(const rloft::GameSource& source) {
+    auto hash=std::uint64_t{14695981039346656037ULL};
+    for(const auto* name:{"CODE.1","CODE.2","INIT","LEVELS.DAT",
+                          "NPCS.DAT","OBJECTS.DAT"}) {
+        const auto bytes=source.read(name);
+        for(const auto ch:bytes) {
+            hash^=ch;hash*=1099511628211ULL;
+        }
+        hash^=bytes.size();hash*=1099511628211ULL;
+    }
+    return hash;
+}
+rloft::EnhancedGameSnapshot read_native_save(
+    const rloft::GameSource& media) {
+    const auto path=native_save_path();
+    std::ifstream in(path,std::ios::binary|std::ios::ate);
+    if(!in)throw std::runtime_error(
+        "No native Ravenloft saved game found. Start a New Game and Save first.");
+    const auto length=in.tellg();
+    if(length<24 || length>32LL*1024LL*1024LL)
+        throw std::runtime_error("Native game save length invalid");
+    std::vector<std::uint8_t> bytes(static_cast<std::size_t>(length));
+    in.seekg(0);
+    in.read(reinterpret_cast<char*>(bytes.data()),
+            static_cast<std::streamsize>(bytes.size()));
+    if(!in)throw std::runtime_error("Native save read was incomplete");
+    auto state=rloft::EnhancedGameSaveCodec::decode(bytes);
+    if(state.original_media_id!=original_media_identity(media))
+        throw std::runtime_error(
+            "Save was made with different original game files. "
+            "Select the original media used when the save was made.");
+    return state;
+}
+void write_native_save(const rloft::ExplorationRuntime& runtime,
+                       const rloft::GameSource& media) {
+    auto state=runtime.capture_native_checkpoint();
+    state.original_media_id=original_media_identity(media);
+    const auto bytes=rloft::EnhancedGameSaveCodec::encode(state);
+    const auto path=native_save_path();
+    std::filesystem::create_directories(path.parent_path());
+    auto staging=path;staging+=L".tmp";
+    {
+        std::ofstream out(staging,std::ios::binary|std::ios::trunc);
+        if(!out)throw std::runtime_error("Cannot create native save staging file");
+        out.write(reinterpret_cast<const char*>(bytes.data()),
+                  static_cast<std::streamsize>(bytes.size()));
+        out.flush();
+        if(!out)throw std::runtime_error("Native save write failed");
+        out.close();
+        if(!out)throw std::runtime_error("Native save close failed");
+    }
+    if(!MoveFileExW(staging.c_str(),path.c_str(),
+        MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)) {
+        std::error_code ec;
+        std::filesystem::remove(staging,ec);
+        throw std::runtime_error("Unable to commit native game save");
+    }
+}
+
 int run_exploration(
     Host& host,
     rloft::RavenloftBootAssets& assets,
@@ -1274,7 +1343,8 @@ int run_exploration(
     std::size_t capture_limit = 16U,
     bool dev_inspect = false,
     bool dev_interact = false,
-    bool dev_trace = false) {
+    bool dev_trace = false,
+    const rloft::EnhancedGameSnapshot* saved_game = nullptr) {
     // The previous boot-session ends at the CODE.2 handoff. Begin the
     // separate, opt-in exploration diagnostic BEFORE initial world load;
     // otherwise a failing load_fresh never creates an exploration ZIP.
@@ -1323,6 +1393,8 @@ int run_exploration(
     exploration_stage("exploration.load.ready");
     try {
         runtime.initialize_gameplay_state(assets.source());
+        if(saved_game)
+            runtime.restore_native_checkpoint(*saved_game,assets.source());
     } catch(...) {
         exploration_stage("exploration.world.failed");
         throw;
@@ -2268,10 +2340,34 @@ int run_exploration(
                         action_for_selection(
                             pressed_menu);
 
-                // Automap/Quit use original modal controllers; Options
-                // now opens a real enhanced native game panel. Rest,
-                // Pray, Memorize, Load and Save still require integrated
-                // mechanics/persistence and must not fake a success.
+                // The same native checkpoint powers Save/Load and the
+                // title-screen Continue item. No DOS SAVE.DAT mutation.
+                if(action==rloft::TopEdgeMenuAction::Save ||
+                   action==rloft::TopEdgeMenuAction::Load) {
+                    try {
+                        if(action==rloft::TopEdgeMenuAction::Save) {
+                            write_native_save(runtime,assets.source());
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - Game Saved (native slot 1)");
+                        } else {
+                            auto saved=read_native_save(assets.source());
+                            runtime.restore_native_checkpoint(
+                                saved,assets.source());
+                            displayed_scene_frame.reset();
+                            input.clear();
+                            world_music_state.invalidate();
+                            start_authored_world_music();
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - Game Loaded (native slot 1)");
+                        }
+                    }catch(const std::exception& e) {
+                        const auto message=widen(e.what());
+                        MessageBoxW(host.hwnd(),message.c_str(),
+                            L"Ravenloft - Save / Load",
+                            MB_OK|MB_ICONWARNING);
+                    }
+                }
+                // Automap/Quit/Options remain original modal controllers.
                 if (action ==
                         rloft::TopEdgeMenuAction::Automap ||
                     action ==
@@ -2984,6 +3080,7 @@ struct DemoCommandLine final {
     bool no_remember_install{};
     // Opt-in original-front-end presentation, never gameplay or CHARS I/O.
     bool front_end_only{};
+    bool resume_existing_party{}; // Opt-in original CHARS compatibility
     bool capture_render{};
     std::size_t capture_limit{16U};
     bool custom_capture_limit{};
@@ -3014,6 +3111,8 @@ DemoCommandLine command_line_options() {
                 result.no_remember_install = true;
             } else if (arg == L"--front-end-only") {
                 result.front_end_only = true;
+            } else if (arg == L"--resume-existing-party") {
+                result.resume_existing_party = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
@@ -3137,9 +3236,14 @@ int run(HINSTANCE instance) {
     // The original CODE.2 CHARS-present startup remains untouched in normal
     // mode. Only the explicit, read-only front-end presentation hides CHARS
     // from the startup choice, so the existing intros and title can be seen.
-    auto startup_chars = options.front_end_only
-        ? std::optional<std::vector<std::uint8_t>>{}
-        : source.read_runtime("CHARS");
+    // Direct Ravenloft.exe and the packaged launcher now BOTH follow
+    // the complete introduction -> title -> character creation route.
+    // A stale original DOS CHARS file never silently skips those scenes.
+    // An explicitly opted-in compatibility launch may still import it.
+    auto startup_chars = options.resume_existing_party &&
+                         !options.front_end_only
+        ? source.read_runtime("CHARS")
+        : std::optional<std::vector<std::uint8_t>>{};
 
     rloft::RavenloftBootAssets assets(std::move(source));
     Host host;
@@ -3400,19 +3504,26 @@ int run(HINSTANCE instance) {
                 continue;
             }
 
-            // CODE.2 19464 entry 1 calls original 7B94 load-game
-            // selection. Native full-world SAVE restore and its modal
-            // effects are NOT reconstructed. Reject transparently on
-            // ALL launch paths instead of treating the click as a
-            // successful no-op, or starting gameplay with fake state.
+            // Title-screen Continue now loads the full independent
+            // native session saved from the gameplay Save action.
+            // Never substitute an unrelated original SAVE.DAT.
             if (*click == 1) {
-                MessageBoxW(host.hwnd(),
-                    L"Original Load Game is not yet available.\n"
-                    L"The saved-party and world-state loader is still\n"
-                    L"being reconstructed.\n\n"
-                    L"Character Creation remains available.",
-                    L"Ravenloft - Load Game not yet implemented",
-                    MB_OK | MB_ICONINFORMATION);
+                try {
+                    auto saved=read_native_save(assets.source());
+                    const auto chars=std::vector<std::uint8_t>(
+                        saved.session.party.bytes.begin(),
+                        saved.session.party.bytes.end());
+                    host.set_menu_mode(false);
+                    host.set_game_cursor(raw_cursor);
+                    startup_handoff();
+                    return run_exploration(
+                        host,assets,audio_player,midi_player,chars,
+                        false,false,16U,false,false,options.dev_trace,&saved);
+                }catch(const std::exception& e) {
+                    const auto message=widen(e.what());
+                    MessageBoxW(host.hwnd(),message.c_str(),
+                        L"Ravenloft - Continue",MB_OK|MB_ICONWARNING);
+                }
                 continue;
             }
 
@@ -4594,7 +4705,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         MessageBoxW(
             nullptr,
             text.c_str(),
-            L"Ravenloft Demo Build v1",
+            L"Ravenloft: Strahd\'s Possession",
             MB_OK | MB_ICONERROR);
         return 1;
     }
