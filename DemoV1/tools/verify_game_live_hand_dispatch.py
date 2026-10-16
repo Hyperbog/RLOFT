@@ -66,7 +66,7 @@ def check(model:str,host:str,tests:str,cmake:str,workflow:str)->None:
     for required in (
         'combat_player_hit_inputs_tests combat_live_hand_request_tests',
         'python DemoV1/tools/verify_game_live_hand_dispatch.py',
-        '|enhanced_live_hand_dispatch_contract_tests)$"',
+        '|enhanced_live_hand_dispatch_contract_tests|',
     ):
         if required not in workflow:
             raise ValueError('normal Windows tests omit live hand gate: '+required)
