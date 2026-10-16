@@ -63,6 +63,8 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
     end=runtime.index('InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(',
                       begin)
     part=runtime[begin:end]
+    if 'Level22ViewportTargetModel::assassin_index(' not in part:
+        raise ValueError('explicit real NPC target missing in attack path')
     if not (part.index('world_scene_target_at(') <
             part.index('CombatLiveHandRequestModel::inspect(') <
             part.index('ExplorationRuntime staged=*this;') <
@@ -142,8 +144,8 @@ def main()->None:
            '*index,1U,0U,'),
         (1,'ExplorationRuntime staged=*this;\n    auto& npc=staged.world_.npcs.at(*index);',
            'ExplorationRuntime& staged=*this;\n    auto& npc=staged.world_.npcs.at(*index);'),
-        (1,'Level22ViewportTargetModel::assassin_index(',
-           '/* fake NPC target */('),
+        (1,'const auto index=Level22ViewportTargetModel::assassin_index(\n        target,world_);',
+           'const auto index=/* fake NPC target */(\n        target,world_);'),
         (2,'runtime.attack_level22_assassin_at(',
            'runtime.damage_level22_assassin_at('),
         (2,'!attacked_assassin','true'),
