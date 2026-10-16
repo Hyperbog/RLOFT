@@ -102,7 +102,7 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
     for marker in (
         'combat_level22_strike_tests',
         'python DemoV1/tools/verify_live_level22_weapon_strike.py',
-        'enhanced_live_level22_weapon_strike_contract_tests',
+        '|enhanced_live_level22_weapon_strike_contract_tests)$"',
     ):
         if marker not in workflow:
             raise ValueError('Windows quick run missing player attack: '+marker)
@@ -126,8 +126,8 @@ def main()->None:
         (0,'CombatAttackStatusService::apply(','/* skip E578 */('),
         (1,'*index,strike.damage_after_c910,0U,',
            '*index,1U,0U,'),
-        (1,'ExplorationRuntime staged=*this;',
-           'ExplorationRuntime& staged=*this;'),
+        (1,'ExplorationRuntime staged=*this;\n    auto& npc=staged.world_.npcs.at(*index);',
+           'ExplorationRuntime& staged=*this;\n    auto& npc=staged.world_.npcs.at(*index);'),
         (1,'Level22ViewportTargetModel::assassin_index(',
            '/* fake NPC target */('),
         (2,'runtime.attack_level22_assassin_at(',
