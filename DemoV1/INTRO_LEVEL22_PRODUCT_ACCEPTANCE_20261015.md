@@ -60,6 +60,19 @@ comparisons, original media and byte-source identity, audio inspection,
 no flicker or bad perspective, and a cinematic record including the
 single level transition. Each failure remains an open release gate.
 
+## Startup-sequence discrepancy requiring original DOS visual validation
+
+The requested on-screen sequence is **DreamForge → SSI → TSR logos,
+then introduction cinematic, then title**. The current native `run()`
+source executes original `CINE00.ANM` and `CINE12.ANM` event calls
+first, then draws the three `RES0` logo resources (94,95,96),
+then the title. Its CODE.2 `19888` comment identifies that ordering,
+but the semantic contents of the ANM frames versus the three logo
+resources have **not** been field-verified. Until original DOS startup
+is captured, do not mark the user's requested display sequence as
+achieved or silently reorder historical operations on assumption alone.
+The original game's visible ordering must resolve the discrepancy.
+
 ## Technical and artistic invariants
 
 - Keep the shipped original DOS game content/source code as the behavioral
