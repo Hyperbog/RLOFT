@@ -52,6 +52,8 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
     for marker in (
         'if (pickup->level22_mist_sequence) {',
         'runtime.complete_level22_relic_transition(',
+        'host.set_exploration_input(nullptr);',
+        'host.set_exploration_input(&input);',
         'assets.source(),',
         'staged.build_frame();',
         'presenter.present(',
@@ -66,6 +68,12 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
     ):
         if marker not in quest_host:
             raise ValueError('real game does not play original quest progression: '+marker)
+    if quest_host.index('host.set_exploration_input(nullptr);') >= quest_host.index(
+            'runtime.complete_level22_relic_transition('):
+        raise ValueError('mist playback captured movement before input lock')
+    if quest_host.index('host.set_exploration_input(&input);') <= quest_host.index(
+            'runtime.complete_level22_relic_transition('):
+        raise ValueError('mist gameplay input was restored before the event')
     if 'mist transition pending' in quest_host:
         raise ValueError('playable quest still shows placeholder')
     for marker in (
@@ -129,6 +137,8 @@ def main()->None:
         (1,'if(!completed)return false;','/* partial event commits */'),
         (1,'staged.inventory_.remove_object(','staged.inventory_.has_object('),
         (2,'runtime.complete_level22_relic_transition(','/* fake event */('),
+        (2,'host.set_exploration_input(nullptr);\n                                try {',
+           '/* input not isolated */\n                                try {'),
         (2,'world_music_state.invalidate();\n                                        start_authored_world_music();',
            'world_music_state.invalidate();\n                                        /* source music omitted */'),
         (3,'events.at(22)=="frame 21"','events.at(22)=="frame 20"'),
@@ -146,7 +156,7 @@ def main()->None:
         try:check(*mutated)
         except ValueError:continue
         raise ValueError('unsafe Level22 quest regression escaped: '+old)
-    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (12 mutations rejected)')
+    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (13 mutations rejected)')
 
 if __name__=='__main__':
     main()
