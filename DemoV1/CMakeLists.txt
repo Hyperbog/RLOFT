@@ -419,6 +419,8 @@ add_library(rloft_boot_flow
     src/inventory_encumbrance.cpp
     src/inventory_party_order.cpp
     src/combat_hit_check.cpp
+    src/combat_strength_attack.cpp
+    src/combat_player_hit_inputs.cpp
     src/combat_hand_dispatch.cpp
     src/combat_attack_timing.cpp
     src/combat_attack_status_service.cpp
@@ -686,6 +688,11 @@ add_test(NAME inventory_party_order_tests COMMAND inventory_party_order_tests)
 add_executable(combat_hit_check_tests tests/combat_hit_check_tests.cpp)
 target_link_libraries(combat_hit_check_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hit_check_tests COMMAND combat_hit_check_tests)
+
+add_executable(combat_player_hit_inputs_tests
+    tests/combat_player_hit_inputs_tests.cpp)
+target_link_libraries(combat_player_hit_inputs_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_player_hit_inputs_tests COMMAND combat_player_hit_inputs_tests)
 add_executable(combat_hand_dispatch_tests tests/combat_hand_dispatch_tests.cpp)
 target_link_libraries(combat_hand_dispatch_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
