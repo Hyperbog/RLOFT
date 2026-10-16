@@ -66,6 +66,11 @@ def check(host,gpu,mesh,cmake,workflow):
         'SwapBuffers(dc_);',
         'if(draw_world && mesh_initialized_ && !world_failed_)',
         'glTexSubImage2D(',
+        'EnhancedGpuCameraModel::billboard_world_width(',
+        'sprite_width_.at(record.resource_id)',
+        'sprite_width_.clear();',
+        'draw_live_canvas(); // restore source canvas if optional 3D fails',
+        'glDisableClientState(GL_VERTEX_ARRAY);',
     ):
         if item not in gpu:
             raise ValueError('native GPU graphics path lost: '+item)
@@ -129,6 +134,9 @@ def main():
         (1,'assets_.res3_type7_native_raster(','/* no sprites */ ('),
         (1,'gluBuild2DMipmaps(','/* no authentic GPU texture */('),
         (1,'glScissor(left,ch-bottom,right-left,bottom-top);','/* no clipped world */'),
+        (1,'sprite_width_.at(record.resource_id)','0U'),
+        (1,'draw_live_canvas(); // restore source canvas if optional 3D fails',
+           '/* erased frame left blank after GPU failure */'),
         (2,'l.group2','l.group1'),
         (3,'Opengl32 Glu32',''),
         (4,'Ravenloft-Enhanced-Game-Windows-x64','Standalone-Preview'),
