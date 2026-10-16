@@ -15,10 +15,12 @@ ROOT=Path(__file__).resolve().parents[2]
 KNOWN_GOOD_SOURCE_REF='ff263c3821978c2973c75c692c5089cc2799fcb3'
 BASELINE={
     'DemoV1/src/anm_cinematic.cpp':'50eaa7ba0cccd8264c340b133028ee95250e97e4',
-    # Reviewed WinMM-only output compatibility updates. Source sound
-    # events, decoded PCM, XMIDI notes, timing and asset selections remain
-    # under host_contract; the pure device-fallback logic is checked below.
-    'DemoV1/src/win32_audio.cpp':'d0cdeb9d24b8bed413d342bf6f854bca991103e1',
+    # Reviewed native sampled-SFX mute update (October 16):
+    # preserves the original VOC decode/PCM WinMM mapper and fallback,
+    # merely prevents NEW voices while disabled and stops active voices.
+    # Original CODE.1 cinematic frames/sounds, XMIDI and character
+    # creation remain governed by their unchanged baseline/source gates.
+    'DemoV1/src/win32_audio.cpp':'eeb6e8acfaacf533d10ec343b64929731520c3c6',
     'DemoV1/src/win32_midi.cpp':'4c65f75ab1a045d382c80bb0a5fd71fc87b50e8c',
     'DemoV1/src/character_creation_presenter.cpp':'560d83d90e6da218e8da677bb2afcf27a2f14e2b',
     'DemoV1/src/startup_presenter.cpp':'0dfb6692145b39cd6067c3d6c020f804ea8b966e',
@@ -97,6 +99,11 @@ def audio_backend_contract(pcm:str,midi:str)->None:
         'waveOutOpen(', 'WAVE_MAPPER', 'waveOutGetNumDevs()',
         'waveOutOpen(\n                            &wave,i,&format,',
         'waveOutReset(wave)', 'waveOutUnprepareHeader(',
+        'bool effects_enabled{true};',
+        'if(!effects_enabled)return;',
+        'effects_enabled=enabled;',
+        'if(!enabled)stop_all();',
+        'void Win32AudioPlayer::set_enabled(bool enabled)',
     ):
         if required not in pcm:
             raise ValueError('Reviewed PCM backend lost: '+required)
@@ -126,6 +133,8 @@ def main()->int:
         audio_backend_contract(pcm,midi)
         audio_mutations=(
             (pcm,midi,'waveOutGetNumDevs()','/* no PCM fallback */'),
+            (pcm,midi,'if(!effects_enabled)return;','/* mute ignored */'),
+            (pcm,midi,'if(!enabled)stop_all();','/* keep old sounds */'),
             (pcm,midi,'waveOutOpen(\n                            &wave,i,&format,','/* no PCM retry */('),
             (midi,pcm,'midiOutGetNumDevs()','/* no MIDI fallback */'),
             (midi,pcm,'device_open_failed=true;','device_open_failed=false;'),
@@ -173,7 +182,7 @@ def main()->int:
     except (OSError,ValueError) as exc:
         raise SystemExit('ALPHA_FRONTEND_PRESERVATION_REJECTED: '+str(exc))
     print('ALPHA_FRONTEND_SOURCE_PRESERVED '+KNOWN_GOOD_SOURCE_REF[:12]+
-          ' 4 original blobs + 2 reviewed WinMM adapters; '+
+          ' 4 original blobs + 2 reviewed WinMM adapters/PCM mute; '+
           str(len(audio_mutations))+' audio mutations rejected')
     return 0
 
