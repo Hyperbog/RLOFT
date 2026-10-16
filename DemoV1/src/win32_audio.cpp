@@ -71,14 +71,31 @@ struct Win32AudioPlayer::Impl {
                     format.nSamplesPerSec * format.nBlockAlign;
 
                 HWAVEOUT wave = nullptr;
-                const auto open = waveOutOpen(
+                // The legacy default mapper can be absent even when
+                // Windows has a usable modern PCM output device.
+                // Try the advertised waveOut devices before treating
+                // genuine source VOC playback as unavailable.
+                auto open = waveOutOpen(
                     &wave,
                     WAVE_MAPPER,
                     &format,
                     reinterpret_cast<DWORD_PTR>(event),
                     0,
                     CALLBACK_EVENT);
-                if (open != MMSYSERR_NOERROR) {
+                if(open!=MMSYSERR_NOERROR) {
+                    const auto count=waveOutGetNumDevs();
+                    for(UINT i=0;i<count;++i) {
+                        open=waveOutOpen(
+                            &wave,i,&format,
+                            reinterpret_cast<DWORD_PTR>(event),
+                            0,CALLBACK_EVENT);
+                        if(open==MMSYSERR_NOERROR)break;
+                    }
+                }
+                if (open != MMSYSERR_NOERROR || !wave) {
+                    OutputDebugStringA(
+                        "Ravenloft audio: no Windows PCM output supports "
+                        "the decoded original sound format.\n");
                     CloseHandle(event);
                     done->store(true, std::memory_order_release);
                     return;
