@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 
 def check(service:str,runtime:str,host:str,unit:str,cmake:str,workflow:str,
-          header:str)->None:
+          header:str,saves:str)->None:
     for marker in (
         'CombatXpDistributionModel::inspect(',
         'CombatXpLevelModel::inspect(',
@@ -67,6 +67,12 @@ def check(service:str,runtime:str,host:str,unit:str,cmake:str,workflow:str,
         if marker not in unit:
             raise ValueError('XP rounding/rollback/boundary test lost: '+marker)
     for marker in (
+        'assert(quest_loaded.session.party.bytes[0x26U]==0xC8U);',
+        'assert(warped.session.party.bytes[0x26U]==0xC8U);',
+    ):
+        if marker not in saves:
+            raise ValueError('original class XP lost on native Save/Continue: '+marker)
+    for marker in (
         'src/combat_xp_award_service.cpp',
         'add_executable(combat_xp_award_service_tests',
         'add_test(NAME combat_xp_award_service_tests',
@@ -92,6 +98,7 @@ def main()->None:
         'DemoV1/CMakeLists.txt',
         '.github/workflows/demo-v1-build.yml',
         'DemoV1/include/rloft/exploration_runtime.hpp',
+        'DemoV1/tests/enhanced_game_save_tests.cpp',
     )
     src=[(ROOT/file).read_text(encoding='utf-8') for file in files]
     check(*src)
@@ -113,6 +120,8 @@ def main()->None:
            'combat_player_hit_inputs_tests combat_level22_strike_tests'),
         (6,'std::optional<CombatXpAwardResult> experience;',
            'std::optional<int> experience;'),
+        (7,'assert(warped.session.party.bytes[0x26U]==0xC8U);',
+           'assert(warped.session.party.bytes[0x26U]==0U);'),
     )
     for index,old,replacement in mutations:
         if old not in src[index]:
@@ -122,7 +131,7 @@ def main()->None:
         try:check(*changed)
         except ValueError:continue
         raise ValueError('unsafe XP mutation escaped: '+old)
-    print('LIVE_ASSASSIN_XP_PASS (12 negative mutations rejected)')
+    print('LIVE_ASSASSIN_XP_PASS (13 negative mutations rejected)')
 
 if __name__=='__main__':
     main()
