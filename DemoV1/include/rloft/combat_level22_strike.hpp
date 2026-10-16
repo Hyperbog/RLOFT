@@ -24,6 +24,7 @@ struct CombatLevel22StrikeResult final {
     CombatHitCheckResult hit{};
     std::uint8_t raw_d20{};
     std::uint16_t damage_after_c910{};
+    bool target_suppressed_by_rear_party_rule{};
     std::array<std::uint8_t,PartyImage::kActorCount> redraw_cf5a{};
 };
 
@@ -40,6 +41,8 @@ public:
         OriginalRandom& random,
         std::size_t actor,
         std::size_t hand,
-        std::int32_t item_id);
+        std::int32_t item_id,
+        std::int32_t explicit_target_id,
+        std::uint8_t party_mode_258a8);
 };
 } // namespace rloft
