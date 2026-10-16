@@ -12,7 +12,10 @@ namespace rloft {
 // becoming a different action after movement, map/modal or save-load.
 struct EnhancedCombatSceneStamp final {
     std::uint64_t world_revision{};
-    std::uint32_t level_id{};
+    // ExplorationRuntimeFrame::source_level_id is an int.
+    // Match the actual level source type to avoid a Windows MSVC
+    // brace-initializer narrowing and any signed/unsigned wrap.
+    int level_id{};
     std::uint32_t coordinate_a{};
     std::uint32_t coordinate_b{};
     std::uint32_t facing{};
