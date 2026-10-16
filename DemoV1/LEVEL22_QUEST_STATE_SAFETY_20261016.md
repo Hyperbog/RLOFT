@@ -23,6 +23,8 @@ Preserve the actual original Level22 story event, not a synthetic attack or inve
 - Relics picked up in source order still trigger only after the fourth distinct item; normal inventory stashing preserved
 - Native save/reload before and after the first relic pickup preserves authentic data and re-encodes byte-identically
 
+The existing `level22_story_tests`, `level22_viewport_target_tests` and `exploration_runtime_tests` also explicitly undefine `NDEBUG` **before including any game headers**, so their assertions cannot silently disappear from Release configurations.
+
 The ordinary [Windows quick workflow](../.github/workflows/demo-v1-build.yml) now **builds and runs** the existing `level22_story_tests`, `level22_encounter_tests`, `level22_viewport_target_tests` and `exploration_runtime_tests`, which had previously been excluded from that focused Windows gate. The already-present `enhanced_game_save_tests` gains the quest snapshot regression.
 
 ## Verification boundary
