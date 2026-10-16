@@ -199,7 +199,9 @@ int main() {
     count=EnhancedType7Compositor::draw(
         fb,source,columns,shade_steps,std::nullopt,&metrics,&shaded);
     assert(count==2U && metrics.shade_underflow_pixels==2U);
-    assert(pixel(fb,132,32)==0U && pixel(fb,133,287)==0U);
+    // Original 32-bit SINTAB SUB wraps AL, preserving the high-index
+    // VGA palette ramps instead of forcibly painting black.
+    assert(pixel(fb,132,32)==253U && pixel(fb,133,287)==253U);
     bool underflow=false;
     assert(rloft::EnhancedType7ShadeModel::shade(
         2U,0x0004U,true,&underflow)==1U);
