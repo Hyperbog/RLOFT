@@ -33,7 +33,7 @@ The supplied immutable CODE.2 SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94
 
 **XP/level-up is not yet committed to the party record.** The current E284 routine accurately returns the NPC definition's original experience award; original DDA4 class XP and level-change side effects must be connected before that award can truthfully become a leveled-up character. Do not display the awarded-XP amount as applied experience.
 
-**Damage/death sound playback** through the original NPC sound resource mapping and exact attack animation feedback remain to be integrated. The new actual NPC HP, death and relics will be visible through the existing source-driven scene/world composition.
+**Update October 16:** Source-ID Assassin damage/death VOC playback is now integrated using authentic INIT+0x14/+0x16 banks. See [rear-target and audio checkpoint](LEVEL22_REAR_TARGET_AND_AUDIO_20261016.md). DOS sound priority/queue timing and attack animation feedback remain unfinished. The new actual NPC HP, death and relics will be visible through the existing source-driven scene/world composition.
 
 **Most one-equipped/one-empty and both-empty-hand cases remain blocked** by original 24478's reads of heap-adjacent `OBJECTS[-1]` bytes absent from OBJECTS.DAT. A two-**equipped**-weapon character can use the new bounded native attack. No made-up DOS heap bytes or fake unarmed category are used.
 
