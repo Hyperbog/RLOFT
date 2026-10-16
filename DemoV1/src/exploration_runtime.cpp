@@ -460,7 +460,9 @@ ExplorationRuntime::attack_level22_assassin_at(
         staged.object_catalog_,*staged.combat_burden_source_,
         *staged.combat_strength_source_,definition,npc,
         staged.original_random_,actor,hand,
-        hand_plan.dispatch.object_id);
+        hand_plan.dispatch.object_id,
+        static_cast<std::int32_t>(*index),
+        staged.session_.level.header[0x290U]);
     Level22WeaponAttackOutcome result{};
     result.found_assassin=true;
     result.strike=strike;
