@@ -85,4 +85,30 @@ int main() {
         sidebar_filler_frames(seed));
     assert(frames!=rloft::AutomapScreenPresenter::
         sidebar_filler_frames(seed+1U));
+
+    // 01978..019C9: 38 pairs of 9/10 and 5/6 top/bottom
+    // edge frames. 019D8..01A4C: 23 triples 12/13,
+    // 18/19, 14/15 for the left/interior/right edges.
+    const auto border=rloft::AutomapScreenPresenter::
+        border_filler_frames(seed);
+    assert(border.size()==145U);
+    rloft::OriginalRandom source_border(seed&0xFFFFU);
+    const auto bit=[&source_border]() {
+        return static_cast<unsigned>(
+            (static_cast<std::uint32_t>(
+                source_border.next15())*2U)>>15U);
+    };
+    for(std::size_t x=0U;x<76U;x+=2U) {
+        assert(border[x]==9U+bit());
+        assert(border[x+1U]==5U+bit());
+    }
+    for(std::size_t y=76U;y<border.size();y+=3U) {
+        assert(border[y]==12U+bit());
+        assert(border[y+1U]==18U+bit());
+        assert(border[y+2U]==14U+bit());
+    }
+    assert(border==rloft::AutomapScreenPresenter::
+        border_filler_frames(seed));
+    assert(border!=rloft::AutomapScreenPresenter::
+        border_filler_frames(seed+1U));
 }
