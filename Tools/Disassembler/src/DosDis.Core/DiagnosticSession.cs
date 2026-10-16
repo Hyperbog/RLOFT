@@ -18,12 +18,27 @@ public sealed class DiagnosticSession
     private readonly int _capacity;
     private long _sequence;
     private long _dropped;
+    private readonly string _preferredLogsDirectory;
+    private readonly string _fallbackLogsDirectory;
+    private string? _lastIncidentPath;
 
-    public DiagnosticSession(int capacity = DefaultCapacity)
+    /// <summary>
+    /// Portable deployments write next to the executable by default.
+    /// A separately writable LocalAppData folder is used when the
+    /// executable resides under a protected directory (e.g. Program Files).
+    /// Explicit paths are for original-free synthetic tests only.
+    /// </summary>
+    public DiagnosticSession(int capacity = DefaultCapacity,
+        string? preferredLogsDirectory = null, string? fallbackLogsDirectory = null)
     {
         if (capacity is < 8 or > 4096)
             throw new ArgumentOutOfRangeException(nameof(capacity), "Diagnostic event capacity must be 8–4096.");
         _capacity = capacity;
+        _preferredLogsDirectory = Path.GetFullPath(preferredLogsDirectory ??
+            Path.Combine(AppContext.BaseDirectory, "Logs"));
+        _fallbackLogsDirectory = Path.GetFullPath(fallbackLogsDirectory ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DOSDis", "Logs"));
         SessionId = Guid.NewGuid().ToString("D", CultureInfo.InvariantCulture);
         StartedUtc = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
     }
@@ -135,24 +150,75 @@ public sealed class DiagnosticSession
     }
 
     /// <summary>
-    /// Best-effort private crash report; safe for use from exception callbacks.
-    /// Does not upload or overwrite. Not every fatal/native crash is recoverable.
+    /// Return (and create) the directory to open in Explorer. Prefer the
+    /// directory where this session last wrote an incident, otherwise the
+    /// portable Logs folder, with per-user fallback if not writable.
+    /// Never open or modify the original source file.
     /// </summary>
-    public bool TryWriteLocalIncident()
+    public string? TryGetLogsDirectory()
     {
-        try
+        lock (_gate)
         {
-            string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            if (string.IsNullOrWhiteSpace(root)) return false;
-            string folder = Path.Combine(root, "DOSDis", "Incidents");
-            Directory.CreateDirectory(folder);
-            string name = "incident-" + DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssfff", CultureInfo.InvariantCulture)
-                + "-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".json";
-            WriteReportNew(Path.Combine(folder, name));
-            return true;
+            if (_lastIncidentPath is { } last &&
+                Directory.Exists(Path.GetDirectoryName(last)))
+                return Path.GetDirectoryName(last);
         }
-        catch { return false; /* reporting must not cause a second crash */ }
+        foreach (string folder in CandidateLogsDirectories())
+        {
+            try
+            {
+                Directory.CreateDirectory(folder);
+                // Directory existence is not proof of write permission.
+                // Probe atomically without replacing any existing file.
+                string probe = Path.Combine(folder, "." +
+                    Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".probe");
+                using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write,
+                    FileShare.None, 1, FileOptions.DeleteOnClose)) { }
+                return folder;
+            }
+            catch { /* read-only install, I/O error, invalid path: try fallback */ }
+        }
+        return null;
     }
+
+    /// <summary>
+    /// Best-effort LOCAL report for handled/unhandled failures, always in
+    /// a Logs folder. Never replaces an existing report, never automatically
+    /// uploads anything, and never leaks original bytes, paths, messages or
+    /// stack traces. Fatal/native crashes may bypass managed handlers.
+    /// </summary>
+    public bool TryWriteLocalIncident() => TryWriteLocalIncident(out _);
+
+    public bool TryWriteLocalIncident(out string? incidentPath)
+    {
+        incidentPath = null;
+        string filename = "incident-" +
+            DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssfff", CultureInfo.InvariantCulture) +
+            "-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".json";
+        foreach (string folder in CandidateLogsDirectories())
+        {
+            try
+            {
+                Directory.CreateDirectory(folder);
+                string destination = Path.Combine(folder, filename);
+                WriteReportNew(destination);
+                lock (_gate) _lastIncidentPath = destination;
+                incidentPath = destination;
+                return true;
+            }
+            catch { /* logging must never cause or mask a second crash */ }
+        }
+        return false;
+    }
+
+    private IEnumerable<string> CandidateLogsDirectories()
+    {
+        yield return _preferredLogsDirectory;
+        if (!string.Equals(_preferredLogsDirectory, _fallbackLogsDirectory,
+            StringComparison.OrdinalIgnoreCase))
+            yield return _fallbackLogsDirectory;
+    }
+
 }
 
 public enum DiagnosticStage
