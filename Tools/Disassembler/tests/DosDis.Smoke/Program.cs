@@ -45,6 +45,7 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    CrashLogsSmoke.Run();
     LargeLeOpenSmoke.Run();
     CodeClassificationBenchmarkSmoke.Run();
     Dos16ExternalOracleSmoke.Run();
