@@ -1,11 +1,10 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/level22_viewport_target.hpp"
 
 #include "rloft/level22_story.hpp"
 
-// Regression assertions must execute in Release-mode Windows CI.
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
 #include <cassert>
 #include <optional>
 #include <stdexcept>
