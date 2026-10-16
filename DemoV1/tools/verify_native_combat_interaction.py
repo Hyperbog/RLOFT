@@ -39,7 +39,8 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
         'L"Ravenloft - No Assassin at that target"',
         'rloft::EnhancedOptionsSelection::ToggleSound',
         'gameplay_sound_enabled=!gameplay_sound_enabled;',
-        'if(!gameplay_sound_enabled)audio_player.stop_all();',
+        'audio_player.set_enabled(gameplay_sound_enabled);',
+        'audio_player.set_enabled(true);',
         'if(outcome.injury && gameplay_sound_enabled)',
     ):
         if marker not in host:
