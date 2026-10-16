@@ -31,9 +31,14 @@ contracts](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md).
 compiled and packaged source `06f2ce565e3bd1` with **39/39 focused
 CTests passed**. The one `Ravenloft-Enhanced-Game-Windows-x64` ZIP
 (artifact 12015779493) was independently verified by matching the
-packaged EXE SHA-256 against its manifest. That #901 build predates the new live OpenGL world-renderer integration.
-[GPU source integration](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md)
-is committed; newer Windows CI and owner field acceptance are separate.
+packaged EXE SHA-256 against its manifest. That #901 build predates the live OpenGL integration. The succeeding
+[Windows CI #911](https://github.com/Hyperbog/RLOFT/actions/runs/38832263293)
+compiled the new GPU-backed game source `736105b1b6b6`, with
+**41/41 focused tests passing**, and published the updated single
+Windows player artifact (ID `12017453646`). Original RES4 mipmaps,
+GPU world meshes and native RES3 billboards are now in the same
+CODE.2 gameplay window. Owner visual acceptance, actual original
+sprite scaling, 3D background separation and AA/FBO features remain open.
 
 
 ## Owner field milestone — continuous Windows startup reaches Level 22 (October 13, 2026)

@@ -6,8 +6,15 @@ directory name retained; **not** a disposable demo) · **Release:** Pre-Alpha.
 ## Genuine GPU world integration — source checkpoint (October 15, 2026)
 
 **Source head:** [`736105b1b6b6`](https://github.com/Hyperbog/RLOFT/commit/736105b1b6b6c8bfb2d18bd07d5ef1c0e1340359).
-**Windows validation:** [run #911](https://github.com/Hyperbog/RLOFT/actions/runs/38832263293), in progress when this checkpoint was authored.
-This is a live engine integration and **not** a visual acceptance claim.
+**Windows validation:** [successful run #911](https://github.com/Hyperbog/RLOFT/actions/runs/38832263293), compiled source
+`736105b1b6b6c8bfb2d18bd07d5ef1c0e1340359`. Windows MSVC
+compilation, launcher validation, **41/41 focused CTests** and **11
+deliberate negative GPU source mutations** all passed. Exactly one
+`Ravenloft-Enhanced-Game-Windows-x64` artifact was published (ID
+`12017453646`); its ZIP contents passed an independent CRC check
+and its `Ravenloft.exe` matched the packaged SHA-256:
+`b5c3edb79a393fd6ccc0c06daebb62a86b8078a12516be83aaaa04208db3dab5`.
+It is a live engine integration and **not** a visual acceptance claim.
 
 The actual CODE.1 → CHARS → CODE.2 game now instantiates
 `Win32GpuScene` inside its own Win32 `Host`, at the normal exploration
