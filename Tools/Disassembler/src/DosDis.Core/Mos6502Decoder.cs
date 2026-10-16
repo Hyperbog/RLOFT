@@ -147,6 +147,9 @@ public static class Mos6502FlowAnalysis
         var edges = new List<Mos6502Edge>();
         var unresolved = new List<Mos6502Unresolved>();
         bool truncated = false;
+        // An operand byte may not silently become another instruction
+        // merely because a second static entry hypothesis points into it.
+        var occupied = new Dictionary<ushort, ushort>();
         while (todo.Count != 0)
         {
             if (decoded.Count >= maxInstructions)
@@ -165,6 +168,18 @@ public static class Mos6502FlowAnalysis
                 unresolved.Add(new Mos6502Unresolved(address, reason));
                 continue;
             }
+            bool overlap = false;
+            for (int i = 0; i < inst.Length; i++)
+                if (occupied.ContainsKey((ushort)(inst.Address + i)))
+                    overlap = true;
+            if (overlap)
+            {
+                unresolved.Add(new Mos6502Unresolved(inst.Address,
+                    "overlapping-instruction-candidates"));
+                continue;
+            }
+            for (int i = 0; i < inst.Length; i++)
+                occupied[(ushort)(inst.Address + i)] = inst.Address;
             decoded.Add(inst);
             ushort next = (ushort)(inst.Address + inst.Length);
             void Follow(ushort target, string kind)

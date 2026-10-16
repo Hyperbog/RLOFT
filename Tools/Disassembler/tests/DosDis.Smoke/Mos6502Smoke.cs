@@ -65,6 +65,12 @@ internal static class Mos6502Smoke
         var capped = Mos6502FlowAnalysis.Analyze(memory, view, new ushort[] { 0x8000 }, 2);
         Same(capped.Truncated, true, "analysis cap explicit");
 
+        var overlapping = Mos6502FlowAnalysis.Analyze(memory, view,
+            new ushort[] { 0x8000, 0x8001 });
+        Same(overlapping.Unresolved.Any(x => x.Address == 0x8001 &&
+            x.Reason == "overlapping-instruction-candidates"), true,
+            "operand byte cannot silently become a second instruction");
+
         var bad = Mos6502FlowAnalysis.Analyze(memory, view, new ushort[] { 0x8020 });
         Same(bad.Instructions.Count, 0, "unsupported opcode blocks false code discovery");
         Same(bad.Unresolved[0].Reason, "undocumented-opcode-or-truncated-instruction",

@@ -125,6 +125,9 @@ public static class Z80Decoder
                 }
                 else if (x == 2 && y >= 4 && z <= 3)
                 {
+                    // Repeating ED block ops reexecute at the same PC until
+                    // their terminating condition is satisfied.
+                    if (y >= 6) flow = "repeat";
                     string[] prefix = { "LD", "CP", "IN", "OT" };
                     string[] suffix = { "I", "D", "IR", "DR" };
                     if (z == 2) // INI IND INIR INDR
@@ -303,6 +306,7 @@ public static class Z80FlowAnalysis
         var edges = new List<Z80Edge>();
         var unknowns = new List<Z80Unknown>();
         bool capped = false;
+        var occupied = new Dictionary<ushort, ushort>();
         while (queue.Count != 0)
         {
             if (code.Count >= maxInstructions) { capped = true; break; }
@@ -316,6 +320,17 @@ public static class Z80FlowAnalysis
                         ? "unmapped-source" : "unsupported-or-truncated-opcode"));
                 continue;
             }
+            bool overlap = false;
+            for (int i = 0; i < instruction.Length; i++)
+                if (occupied.ContainsKey((ushort)(instruction.Address + i)))
+                    overlap = true;
+            if (overlap)
+            {
+                unknowns.Add(new Z80Unknown(address, "overlapping-instruction-candidates"));
+                continue;
+            }
+            for (int i = 0; i < instruction.Length; i++)
+                occupied[(ushort)(instruction.Address + i)] = address;
             code.Add(instruction);
             ushort next = (ushort)(address + instruction.Length);
             void Follow(ushort target, string type)
@@ -343,6 +358,10 @@ public static class Z80FlowAnalysis
                     break;
                 case "indirect-jump":
                     unknowns.Add(new Z80Unknown(address, "indirect-jump-register-target"));
+                    break;
+                case "repeat":
+                    Follow(address, "block-repeat");
+                    Follow(next, "block-exit");
                     break;
                 case "return":
                 case "halt":

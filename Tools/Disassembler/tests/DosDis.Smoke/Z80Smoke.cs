@@ -67,6 +67,15 @@ internal static class Z80Smoke
             x.To == 0x4010 && x.Kind == "call"), true, "call edge");
         Same(g.Unknowns.Any(x => x.Address == 0x4022 &&
             x.Reason == "indirect-jump-register-target"), true, "indirect branch unknown");
+        Same(g.Edges.Any(x => x.From == 0x4020 && x.To == 0x4020 &&
+            x.Kind == "block-repeat"), true, "Z80 LDIR repetition edge");
+        Same(g.Edges.Any(x => x.From == 0x4020 && x.To == 0x4022 &&
+            x.Kind == "block-exit"), true, "Z80 LDIR exit edge");
+        Z80Graph overlapping = Z80FlowAnalysis.Analyze(memory, "page",
+            new ushort[] { 0x4000, 0x4001 });
+        Same(overlapping.Unknowns.Any(x => x.Address == 0x4001 &&
+            x.Reason == "overlapping-instruction-candidates"), true,
+            "Z80 operand conflict recorded instead of accepted");
         Same(Z80FlowAnalysis.Analyze(memory, "page", new ushort[] { 0x4030 }).Instructions.Count,
             0, "no false function from unsupported IX");
         Same(Z80FlowAnalysis.Analyze(memory, "page", new ushort[] { 0x4000 }, 1).Truncated,

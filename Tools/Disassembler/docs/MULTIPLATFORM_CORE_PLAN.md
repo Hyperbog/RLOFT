@@ -3,8 +3,10 @@
 **Development targets:** DOS (x86-16/32), NES (6502-derived), SMS/Game Gear
 (Z80); extensible to SNES, Game Boy, Genesis and newer game hardware.
 The product is ONE general-purpose game reverse-engineering workbench.
-DOS is a regression platform, not the architecture. All console/CPU
-backends beyond the current DOS/x86 implementation remain planned.
+DOS is a regression platform, not the architecture. NES NROM/UxROM and SMS
+ROM loaders, documented 6502 and partial Z80 decoders, and conservative
+read-only cartridge previews now exist. Full CPU/lifter and dynamic mapper
+reconstruction remain planned.
 
 ## External research reviewed in October 2026
 
@@ -105,3 +107,15 @@ https://www.smspower.org/Development/MemoryMap ,
 https://www.smspower.org/Development/Mappers ,
 https://www.smspower.org/Development/ROMHeader ,
 https://z80.info/decoding.htm .
+
+## Accuracy guard continuation
+
+The bank/view source map is a hypothesis context, not proof of executed
+control-flow. Both 6502 and Z80 bounded CFGs now explicitly record a
+second instruction candidate that collides with previously claimed
+instruction bytes as `overlapping-instruction-candidates`, rather than
+silently accepting overlapping disassembly. This is order-sensitive
+candidate conflict reporting, **not** a complete constraint solver.
+Repeating Z80 ED block operations expose self-loop and exit candidates.
+No emulator traces or external independent CPU oracle comparisons have
+been run as part of this check. Windows CI remains original-free.
