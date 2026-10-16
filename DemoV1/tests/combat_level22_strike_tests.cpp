@@ -52,6 +52,10 @@ rloft::PartyImage party() {
     p.bytes[0x3FU]=0U;
     p.bytes[0x3EU]=0U;
     p.bytes[0x10AU]=1U;
+    // The synthetic party starts FF-filled: clear Bless/Aid flags
+    // explicitly. C80C treats a raw natural 1 with either effect
+    // as MODIFIED 2 and can therefore hit; that isn't a miss fixture.
+    p.bytes[0xF3U]=0U;
     p.bytes[0x40U+14U*2U]=1U;
     p.bytes[0x40U+14U*2U+1U]=0U;
     p.bytes[0x132U]=0x20U;
@@ -99,6 +103,20 @@ int main() {
     rloft::OriginalRandom single(2U);
     (void)single.next15();
     assert(miss_rng.state()==single.state());
+
+    // CODE.2 C8E5 checks MODIFIED die, not tabletop natural one.
+    // A genuine Bless flag shifts raw1 to modified2, allowing a hit
+    // against this easy AC without inventing any new combat rule.
+    auto blessed_party=party();
+    blessed_party.bytes[0xF3U]=0x01U;
+    rloft::OriginalRandom blessed_rng(2U);
+    const auto blessed=rloft::CombatLevel22StrikeModel::resolve(
+        blessed_party,inventory,objects,burden,strength,
+        definition,assassin,blessed_rng,0U,0U,1,0,0U);
+    assert(blessed.raw_d20==1U);
+    assert(blessed.hit.modified_d20==2);
+    assert(blessed.hit.hit);
+    assert(blessed.damage_after_c910>=1U);
 
     // Original held status skips d20 RNG, then rolls only weapon dice.
     auto held_party=party();
