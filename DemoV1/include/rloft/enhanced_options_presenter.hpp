@@ -8,11 +8,10 @@
 
 namespace rloft {
 
-// Native PC in-game options surface. Unlike a Windows MessageBox this
-// draws inside the same 320x400 indexed game framebuffer and remains
-// compatible with normal window scaling and the current game palette.
+// Native PC in-game options. Indexed framebuffer surface; separate
+// music and sampled-SFX toggles without touching original GAME.OPT.
 enum class EnhancedOptionsSelection : std::uint8_t {
-    None, ToggleMusic, ReturnToGame
+    None, ToggleMusic, ToggleSound, ReturnToGame
 };
 
 class EnhancedOptionsPresenter final {
@@ -21,8 +20,10 @@ public:
     static constexpr int kButtonRight=268;
     static constexpr int kMusicTop=152;
     static constexpr int kMusicBottom=195;
-    static constexpr int kBackTop=218;
-    static constexpr int kBackBottom=261;
+    static constexpr int kSoundTop=211;
+    static constexpr int kSoundBottom=250;
+    static constexpr int kBackTop=270;
+    static constexpr int kBackBottom=313;
 
     explicit EnhancedOptionsPresenter(const Type2Font& font)
         : font_(font) {}
@@ -33,24 +34,32 @@ public:
             return EnhancedOptionsSelection::None;
         if(row>=kMusicTop && row<kMusicBottom)
             return EnhancedOptionsSelection::ToggleMusic;
+        if(row>=kSoundTop && row<kSoundBottom)
+            return EnhancedOptionsSelection::ToggleSound;
         if(row>=kBackTop && row<kBackBottom)
             return EnhancedOptionsSelection::ReturnToGame;
         return EnhancedOptionsSelection::None;
     }
 
-    void draw(IndexedFramebuffer& fb,bool music_enabled) const {
-        // Full opaque repaint avoids stale world/automap pixels behind
-        // unloaded transparent RES UI chrome.
+    void draw(IndexedFramebuffer& fb,bool music_enabled,
+              bool sound_enabled) const {
         fb.clear(0U);
-        fb.fill_rect(64,32,246,256,0xB1U);
-        fb.fill_rect(67,35,240,250,0U);
+        fb.fill_rect(64,32,300,256,0xB1U);
+        fb.fill_rect(67,35,294,250,0U);
+        // Music
         fb.fill_rect(144,kButtonLeft,59,
                      kButtonRight-kButtonLeft,0xB1U);
         fb.fill_rect(147,kButtonLeft+3,53,
                      kButtonRight-kButtonLeft-6,0U);
-        fb.fill_rect(210,kButtonLeft,59,
+        // Sampled original Creative Voice SFX
+        fb.fill_rect(204,kButtonLeft,56,
                      kButtonRight-kButtonLeft,0xB1U);
-        fb.fill_rect(213,kButtonLeft+3,53,
+        fb.fill_rect(207,kButtonLeft+3,50,
+                     kButtonRight-kButtonLeft-6,0U);
+        // Return
+        fb.fill_rect(263,kButtonLeft,57,
+                     kButtonRight-kButtonLeft,0xB1U);
+        fb.fill_rect(266,kButtonLeft+3,51,
                      kButtonRight-kButtonLeft-6,0U);
 
         IndexedFontPresenter::draw_centered(
@@ -59,10 +68,13 @@ public:
             fb,font_,168,kButtonLeft,kButtonRight-kButtonLeft,
             music_enabled?"MUSIC: ON":"MUSIC: OFF");
         IndexedFontPresenter::draw_centered(
-            fb,font_,235,kButtonLeft,kButtonRight-kButtonLeft,
+            fb,font_,226,kButtonLeft,kButtonRight-kButtonLeft,
+            sound_enabled?"SOUND: ON":"SOUND: OFF");
+        IndexedFontPresenter::draw_centered(
+            fb,font_,286,kButtonLeft,kButtonRight-kButtonLeft,
             "RETURN TO GAME");
         IndexedFontPresenter::draw_centered(
-            fb,font_,287,32,256,"ESC TO RETURN");
+            fb,font_,335,32,256,"ESC TO RETURN");
     }
 private:
     const Type2Font& font_;
