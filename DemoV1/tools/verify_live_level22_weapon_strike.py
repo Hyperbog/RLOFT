@@ -113,7 +113,7 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
         '|combat_player_hit_inputs_tests|combat_level22_strike_tests|original_npc_sound_tests|combat_live_hand_request_tests|',
         'python DemoV1/tools/verify_live_level22_weapon_strike.py',
-        '|enhanced_live_level22_weapon_strike_contract_tests)$"',
+        '|enhanced_live_level22_weapon_strike_contract_tests|',
     ):
         if marker not in workflow:
             raise ValueError('Windows quick run missing player attack: '+marker)
