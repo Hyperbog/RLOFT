@@ -87,6 +87,11 @@ def check(host,gpu,mesh,cmake,workflow):
     ):
         if item not in gpu:
             raise ValueError('native GPU graphics path lost: '+item)
+    # The first viewport-scissor call protects the 256px world render;
+    # the second protects the source-canvas fallback after GL failure.
+    # A naive single-string guard missed deletion of one of these.
+    if gpu.count('glScissor(left,ch-bottom,right-left,bottom-top);')!=2:
+        raise ValueError('GPU viewport or fallback scissor missing')
     for item in (
         'const LevelState& l',
         'const auto word=l.cell_words[',
