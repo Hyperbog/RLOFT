@@ -2522,12 +2522,68 @@ int run_exploration(
                             displayed_scene_frame.reset();
                             input.clear();
                             if (pickup->level22_mist_sequence) {
-                                // Preserve honest pending status until the
-                                // original 22-frame cinematic is wired.
-                                SetWindowTextW(
-                                    host.hwnd(),
-                                    L"Ravenloft - Level 22 mist "
-                                    L"transition pending");
+                                // The ORIGINAL quest runs 22 frames, enters
+                                // Level23 after frame20, and then removes
+                                // three relics. The original 2E510 effect
+                                // resource compositor is not yet lifted:
+                                // show an explicit native-PC palette fade
+                                // without inventing missing original art.
+                                try {
+                                    host.set_gpu_world_visible(false);
+                                    const bool completed=
+                                        runtime.complete_level22_relic_transition(
+                                            assets.source(),
+                                            [&](std::size_t frame,
+                                                rloft::ExplorationRuntime& staged)
+                                                ->bool {
+                                                const auto snapshot=
+                                                    staged.build_frame();
+                                                const auto rendered=
+                                                    presenter.present(
+                                                        snapshot,
+                                                        staged.renderer_tables());
+                                                const int fade=
+                                                    std::max(0,8-
+                                                        static_cast<int>(
+                                                            frame*8U/20U));
+                                                const auto palette=
+                                                    rloft::StartupPresenter::
+                                                        fade_factor(
+                                                            rendered.palette,fade);
+                                                host.present(
+                                                    presenter.framebuffer(),
+                                                    palette);
+                                                return host.pause_frame(
+                                                    std::chrono::duration<double>(
+                                                        1.0/30.0));
+                                            });
+                                    if(completed) {
+                                        refresh_world_palette();
+                                        world_music_state.invalidate();
+                                        start_authored_world_music();
+                                        displayed_scene_frame.reset();
+                                        input.clear();
+                                        SetWindowTextW(
+                                            host.hwnd(),
+                                            L"Ravenloft - Level 23 | "
+                                            L"Original quest transition completed");
+                                        if(trace) {
+                                            try{trace->event(
+                                                "level22.mist.enter23",23);}
+                                            catch(...) {}
+                                        }
+                                    }
+                                } catch(const std::exception& error) {
+                                    const auto detail=widen(error.what());
+                                    MessageBoxW(
+                                        host.hwnd(),detail.c_str(),
+                                        L"Ravenloft - Level22 transition",
+                                        MB_OK|MB_ICONWARNING);
+                                    // Original game state remains in
+                                    // Level22 with all relics intact,
+                                    // except for the completed pickup.
+                                    displayed_scene_frame.reset();
+                                }
                             }
                         }
                     } catch (const std::logic_error&) {
