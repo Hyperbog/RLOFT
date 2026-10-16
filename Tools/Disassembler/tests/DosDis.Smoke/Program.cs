@@ -45,6 +45,7 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    Mos6502Smoke.Run();
     CartridgeLoaderSmoke.Run();
     GuestSourceMemorySmoke.Run();
     CrashLogsSmoke.Run();
