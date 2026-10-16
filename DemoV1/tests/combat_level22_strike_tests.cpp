@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "rloft/combat_level22_strike.hpp"
+#include "rloft/level22_encounter.hpp"
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
@@ -118,6 +119,43 @@ int main() {
         restricted_def,assassin,restricted_rng,0U,0U,1);
     assert(restricted.hit.hit);
     assert(restricted.damage_after_c910==1U);
+
+    // Source-only strike result feeds the REAL type9 E284 death
+    // handler, with its four hardcoded CODE.2 2195C drop arguments.
+    // This is a complete arithmetic -> world-state regression, not
+    // a synthetic direct HP assignment or fabricated item bundle.
+    std::vector<std::uint8_t> npc_bytes(4U+10U*0x45U,0U);
+    npc_bytes[0]=10U;
+    npc_bytes[4U+9U*0x45U+0x1CU]=1U;
+    npc_bytes[4U+9U*0x45U+0x21U]=3U;
+    npc_bytes[4U+9U*0x45U+0x23U]=200U;
+    const auto npcs=rloft::NpcCatalog::parse(npc_bytes);
+    rloft::LevelWorldState world{};
+    auto doomed=assassin;
+    doomed.current_hp=1;
+    doomed.x_position_16_16=0x000D8000U;
+    doomed.y_position_16_16=0x00078000U;
+    world.npcs.push_back(doomed);
+    rloft::LevelState level{};
+    level.width=30;
+    level.height=15;
+    for(unsigned i=0;i<3U;++i) {
+        level.header[0x292U+i*2U]=0xFFU;
+        level.header[0x293U+i*2U]=0xFFU;
+    }
+    rloft::RendererTables renderer{};
+    const auto killed=rloft::Level22EncounterModel::damage_assassin(
+        world,level,0U,hit.damage_after_c910,0U,0U,
+        npcs,renderer,{});
+    assert(killed.died);
+    assert(killed.experience_award==200U);
+    assert(killed.spawned_loose_items==4U);
+    assert(world.npcs[0].current_hp<=0);
+    assert(world.loose_items.size()==4U);
+    assert(world.loose_items[0].object_type_id==0x88U);
+    assert(world.loose_items[1].object_type_id==0x87U);
+    assert(world.loose_items[2].object_type_id==0xE9U);
+    assert(world.loose_items[3].object_type_id==0x74U);
 
     // Wrong/unequipped hand and corpse cannot consume original RNG.
     auto invalid_party=party();
