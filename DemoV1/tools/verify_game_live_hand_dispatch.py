@@ -64,7 +64,7 @@ def check(model:str,host:str,tests:str,cmake:str,workflow:str)->None:
         if required not in cmake:
             raise ValueError('native player executable not gated: '+required)
     for required in (
-        'combat_player_hit_inputs_tests combat_level22_strike_tests combat_live_hand_request_tests',
+        'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
         'python DemoV1/tools/verify_game_live_hand_dispatch.py',
         '|enhanced_live_hand_dispatch_contract_tests|',
     ):
@@ -95,7 +95,7 @@ def main()->None:
            'assert(plan.pair_checked && plan.may_enter_player_attack());'),
         (3,'src/combat_live_hand_request.cpp',
            'src/missing_live_hand_request.cpp'),
-        (4,'combat_player_hit_inputs_tests combat_level22_strike_tests combat_live_hand_request_tests',
+        (4,'combat_player_hit_inputs_tests combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
            'combat_player_hit_inputs_tests combat_hand_dispatch_tests'),
     )
     for index,old,new in mutations:
