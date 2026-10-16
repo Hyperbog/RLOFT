@@ -28,5 +28,12 @@ public:
         return 2.0*std::atan(
             128.0/static_cast<double>(source_focal)/physical_aspect)*rad;
     }
+    // Optional GPU sprites retain the 128-row RES3 artwork's native width
+    // proportion; the source software raster and game state are unchanged.
+    [[nodiscard]] static double billboard_world_width(unsigned native_width) {
+        if(native_width==0U || native_width>128U)
+            throw std::invalid_argument("invalid native RES3 sprite width");
+        return 2.0*static_cast<double>(native_width)/128.0;
+    }
 };
 } // namespace rloft
