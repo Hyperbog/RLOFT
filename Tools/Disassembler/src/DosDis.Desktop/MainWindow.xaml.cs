@@ -271,7 +271,7 @@ public partial class MainWindow : Window
             else if (_cartridgePreview is not null)
                 SetRows(_cartridgePreview.Instructions.Select(x => new AssemblyRow(0, x.GuestAddress,
                     x.OriginalBytes, x.Assembly, "cartridge-static-candidate-unverified",
-                    $"{_cartridgePreview.ViewId}:\$" + x.GuestAddress.ToString("X4"),
+                    $"{_cartridgePreview.ViewId}:$" + x.GuestAddress.ToString("X4"),
                     x.SourceFragments)).ToArray());
             else
                 SetRows(result.preview.Select(x => new AssemblyRow(_image is null ? 1 : (int)_image.EntryObject,
