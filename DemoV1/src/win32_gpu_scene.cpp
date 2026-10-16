@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include "rloft/win32_gpu_scene.hpp"
 #include "rloft/enhanced_gpu_camera.hpp"
+#include "rloft/level_display.hpp"
 #include <GL/glu.h>
 #include <algorithm>
 #include <cmath>
@@ -35,9 +36,15 @@ Win32GpuScene::Win32GpuScene(HWND hwnd,const RavenloftBootAssets& assets,
     pfd.dwFlags=PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;
     pfd.iPixelType=PFD_TYPE_RGBA;pfd.cColorBits=32U;
     pfd.cDepthBits=24U;pfd.cAlphaBits=8U;pfd.iLayerType=PFD_MAIN_PLANE;
-    const int format=ChoosePixelFormat(dc_,&pfd);
-    if(!format || !SetPixelFormat(dc_,format,&pfd))
-        throw std::runtime_error("Ravenloft OpenGL pixel format unavailable");
+    // A Win32 window's pixel format is immutable. Reuse its existing
+    // format after game loading/level palette changes; never call
+    // SetPixelFormat twice on the same HWND.
+    const int existing=GetPixelFormat(dc_);
+    if(!existing) {
+        const int format=ChoosePixelFormat(dc_,&pfd);
+        if(!format || !SetPixelFormat(dc_,format,&pfd))
+            throw std::runtime_error("Ravenloft OpenGL pixel format unavailable");
+    }
     context_=wglCreateContext(dc_);
     if(!context_)throw std::runtime_error("Ravenloft OpenGL context unavailable");
     make_current();
@@ -88,10 +95,22 @@ std::uint64_t Win32GpuScene::fingerprint(const LevelState& level) const {
     for(const auto b:level.header)mix(b);
     return hash;
 }
+void Win32GpuScene::set_palette(const Palette6& palette) {
+    if(palette.rgb==palette_.rgb)return;
+    make_current();
+    destroy_textures();
+    palette_=palette;
+    world_failed_=false;
+    wglMakeCurrent(nullptr,nullptr);
+}
 void Win32GpuScene::bind(const ExplorationSessionState& session,
                           const LevelWorldState& world,
                           const std::vector<WorldSceneRecord>& records) {
     session_=&session;world_=&world;records_=records;
+    // Level-specific RES3/RES4 indexed images must never keep another
+    // level's DAC colors after transitions or a loaded game.
+    set_palette(assets_.colors_palette(
+        LevelDisplayModel::palette_index(static_cast<int>(session.level_id))));
     const auto hash=fingerprint(session.level);
     if(!mesh_initialized_ || current_level_!=static_cast<int>(session.level_id) ||
        world_fingerprint_!=hash) {

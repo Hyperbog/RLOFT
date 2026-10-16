@@ -191,7 +191,11 @@ public:
     void begin_gpu_scene(
         const rloft::RavenloftBootAssets& assets,
         const rloft::Palette6& palette) {
-        if(gpu_scene_)return;
+        if(gpu_scene_) {
+            try {gpu_scene_->set_palette(palette);}
+            catch(const std::exception& e){OutputDebugStringA(e.what());}
+            return;
+        }
         try {
             gpu_scene_=std::make_unique<rloft::Win32GpuScene>(
                 hwnd_,assets,palette);
@@ -3270,6 +3274,10 @@ int run(HINSTANCE instance) {
     if (!host.create(instance)) {
         throw std::runtime_error("Unable to create presentation window");
     }
+    // All original intro, movie, title and CODE.1 creation frames now
+    // present through the SAME persistent modern OpenGL backbuffer as
+    // gameplay, with their indexed pixels/palettes preserved verbatim.
+    host.begin_gpu_scene(assets,presenter.palette12());
 
     // OPT-IN host-only trace of the entire startup. Previously
     // --dev-trace started only AFTER the first gameplay level loaded:
@@ -3523,6 +3531,10 @@ int run(HINSTANCE instance) {
                     const auto message=widen(e.what());
                     MessageBoxW(host.hwnd(),message.c_str(),
                         L"Ravenloft - Continue",MB_OK|MB_ICONWARNING);
+                    host.set_menu_mode(true);
+                    host.set_game_cursor(menu_cursor);
+                    presenter.menu_frame(-1);
+                    host.present(presenter.framebuffer(),palette12);
                 }
                 continue;
             }

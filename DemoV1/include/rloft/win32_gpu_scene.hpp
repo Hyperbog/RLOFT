@@ -27,6 +27,7 @@ public:
     ~Win32GpuScene();
     Win32GpuScene(const Win32GpuScene&)=delete;
     Win32GpuScene& operator=(const Win32GpuScene&)=delete;
+    void set_palette(const Palette6& palette);
     void bind(const ExplorationSessionState& session,
               const LevelWorldState& world,
               const std::vector<WorldSceneRecord>& records);
