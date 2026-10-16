@@ -36,7 +36,7 @@ def check(model:str,host:str,tests:str,cmake:str,workflow:str)->None:
         'case HandStatus::MissingOriginalEmptyHandData:',
         'case HandStatus::PairVetoed:',
         'case HandStatus::AttackCandidate:',
-        'trace->event("combat.hand.gate",',
+        'try {trace->event(\n                                "combat.hand.gate",',
         '!opened_actor_panel && !handled_hand_click &&',
     ):
         if required not in host:
