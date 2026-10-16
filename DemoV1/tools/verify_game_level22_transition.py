@@ -70,7 +70,7 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
             transaction.index('*this=std::move(staged);')):
         raise ValueError('world item removed before transaction completes')
 
-    beginning=host.index('bool mist_input_detached=false;')
+    beginning=host.index('bool cinematic_input_detached=false;')
     ending=host.index('} catch(const std::logic_error&)',beginning)
     quest_host=host[beginning:ending]
     for marker in (
