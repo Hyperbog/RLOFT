@@ -104,6 +104,11 @@ jobs:
           # Python errors as one actionable build failure.
           python -m compileall -q DemoV1/tools
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Run every registered source validator once, collecting ALL
+          # failures; older independent invocations stay below for
+          # straightforward provenance and regression test contracts.
+          python DemoV1/tools/verify_all_game_contracts.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m py_compile DemoV1/tools/verify_enhanced_port_build_pipeline.py DemoV1/tools/verify_continuous_alpha_launch.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python DemoV1/tools/verify_enhanced_port_build_pipeline.py
