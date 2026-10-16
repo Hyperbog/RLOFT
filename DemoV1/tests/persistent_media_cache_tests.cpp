@@ -65,6 +65,9 @@ int main(){
     assert(!fs::exists(cache/"v3"/"media"/"SAVE.DAT"));
     assert(!fs::exists(cache/"v3"/"media"/"LEV022.DAT"));
     assert(fs::exists(cache/"v3"/"decode_report.tsv"));
+    assert(fs::exists(cache/"v3"/"origin.bin"));
+    assert(rloft::open_persistent_media_cache_for(original));
+    assert(!rloft::open_persistent_media_cache_for(root/"different-original"));
     auto reused=rloft::open_persistent_media_cache();
     assert(reused && reused->read("LEVELS.DAT")==fixture_levels());
     // Same-size corruption is caught by manifest hashes, not just size checks.
