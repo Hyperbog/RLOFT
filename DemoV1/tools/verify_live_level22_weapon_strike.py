@@ -72,7 +72,8 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         raise ValueError('original world identity or atomic attack order lost')
     for marker in (
         'pending_level22_weapon_hand;',
-        'pending_level22_weapon_hand=*hand;',
+        'pending_level22_weapon_hand.arm(',
+        'pending_level22_weapon_hand.take(',
         'runtime.attack_level22_assassin_at(',
         'outcome.found_assassin',
         'outcome.strike.hit.hit',
