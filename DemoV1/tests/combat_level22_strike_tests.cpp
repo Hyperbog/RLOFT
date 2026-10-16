@@ -4,6 +4,7 @@
 #include "rloft/combat_level22_strike.hpp"
 #include "rloft/level22_encounter.hpp"
 #include <cassert>
+#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
@@ -33,6 +34,11 @@ rloft::ObjectCatalog weapons() {
     bytes[base+0x2FU]=9U;
     bytes[base+0x38U]=1U; // original 1d4
     bytes[base+0x39U]=4U;
+    const auto front=4U+2U*0x41U;
+    bytes[front+0x2FU]=9U;
+    bytes[front+0x35U]=2U;
+    bytes[front+0x38U]=1U;
+    bytes[front+0x39U]=4U;
     return rloft::ObjectCatalog::parse(bytes);
 }
 rloft::PartyImage party() {
@@ -71,7 +77,7 @@ int main() {
     // ONLY after hit. E578 clears sourced actor effects.
     const auto hit=rloft::CombatLevel22StrikeModel::resolve(
         p,inventory,objects,burden,strength,definition,assassin,
-        rng,0U,0U,1);
+        rng,0U,0U,1,0,0U);
     assert(hit.hit.hit);
     assert(hit.raw_d20==11U);
     assert(hit.damage_after_c910>=1U && hit.damage_after_c910<=4U);
@@ -86,7 +92,7 @@ int main() {
     rloft::OriginalRandom miss_rng(2U);
     const auto miss=rloft::CombatLevel22StrikeModel::resolve(
         miss_party,inventory,objects,burden,strength,
-        definition,assassin,miss_rng,0U,0U,1);
+        definition,assassin,miss_rng,0U,0U,1,0,0U);
     assert(!miss.hit.hit);
     assert(miss.raw_d20==1U);
     assert(miss.damage_after_c910==0U);
@@ -101,7 +107,7 @@ int main() {
     rloft::OriginalRandom held_rng(1U);
     const auto held_hit=rloft::CombatLevel22StrikeModel::resolve(
         held_party,inventory,objects,burden,strength,
-        definition,held,held_rng,0U,0U,1);
+        definition,held,held_rng,0U,0U,1,0,0U);
     assert(held_hit.hit.auto_hit_held);
     assert(held_hit.raw_d20==0U);
     rloft::OriginalRandom one_die(1U);
@@ -116,7 +122,7 @@ int main() {
     rloft::OriginalRandom restricted_rng(1U);
     const auto restricted=rloft::CombatLevel22StrikeModel::resolve(
         restricted_party,inventory,objects,burden,strength,
-        restricted_def,assassin,restricted_rng,0U,0U,1);
+        restricted_def,assassin,restricted_rng,0U,0U,1,0,0U);
     assert(restricted.hit.hit);
     assert(restricted.damage_after_c910==1U);
 
@@ -157,20 +163,45 @@ int main() {
     assert(world.loose_items[2].object_type_id==0xE9U);
     assert(world.loose_items[3].object_type_id==0x74U);
 
+    // E5F0 E621/E669: actors2/3 in mode FFh lose explicit
+    // target unless OBJECTS +35 low two bits equal exactly 2.
+    // E578 clears effects before this check, while RNG is untouched.
+    auto rear_party=party();
+    constexpr auto rear_base=2U*rloft::PartyImage::kActorSize;
+    std::copy_n(rear_party.bytes.begin(),
+                rloft::PartyImage::kActorSize,
+                rear_party.bytes.begin()+rear_base);
+    rloft::OriginalRandom rear_rng(1U);
+    const auto blocked=rloft::CombatLevel22StrikeModel::resolve(
+        rear_party,inventory,objects,burden,strength,
+        definition,assassin,rear_rng,2U,0U,1,0,0xFFU);
+    assert(blocked.target_suppressed_by_rear_party_rule);
+    assert(!blocked.hit.hit && blocked.raw_d20==0U);
+    assert(rear_rng.state()==1U);
+    assert((rear_party.bytes[rear_base+0x132U]&0x20U)==0U);
+    rear_party.bytes[rear_base+0x40U+14U*2U]=2U;
+    rloft::OriginalRandom qualified_rng(1U);
+    const auto qualified=rloft::CombatLevel22StrikeModel::resolve(
+        rear_party,inventory,objects,burden,strength,
+        definition,assassin,qualified_rng,2U,0U,2,0,0xFFU);
+    assert(!qualified.target_suppressed_by_rear_party_rule);
+    assert(qualified.hit.hit);
+    assert(qualified_rng.state()!=1U);
+
     // Wrong/unequipped hand and corpse cannot consume original RNG.
     auto invalid_party=party();
     rloft::OriginalRandom invalid_rng(1U);
     bool failed=false;
     try{(void)rloft::CombatLevel22StrikeModel::resolve(
         invalid_party,inventory,objects,burden,strength,
-        definition,assassin,invalid_rng,0U,1U,1);}
+        definition,assassin,invalid_rng,0U,1U,1,0,0U);}
     catch(const std::logic_error&){failed=true;}
     assert(failed && invalid_rng.state()==1U);
     failed=false;
     held.current_hp=0;
     try{(void)rloft::CombatLevel22StrikeModel::resolve(
         invalid_party,inventory,objects,burden,strength,
-        definition,held,invalid_rng,0U,0U,1);}
+        definition,held,invalid_rng,0U,0U,1,0,0U);}
     catch(const std::logic_error&){failed=true;}
     assert(failed && invalid_rng.state()==1U);
 
@@ -180,7 +211,7 @@ int main() {
     failed=false;
     try{(void)rloft::CombatLevel22StrikeModel::resolve(
         invalid_party,inventory,objects,burden,strength,
-        definition,assassin,invalid_rng,0U,0U,0x4A);}
+        definition,assassin,invalid_rng,0U,0U,0x4A,0,0U);}
     catch(const std::logic_error&){failed=true;}
     assert(failed && invalid_rng.state()==1U);
 }
