@@ -1,5 +1,9 @@
 #include "rloft/exploration_runtime.hpp"
 
+// Regression assertions must execute in Release-mode Windows CI.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
