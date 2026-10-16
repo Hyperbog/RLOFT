@@ -914,6 +914,10 @@ target_link_libraries(enhanced_options_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_options_presenter_tests
     COMMAND enhanced_options_presenter_tests)
 
+add_executable(title_keyboard_tests tests/title_keyboard_tests.cpp)
+target_link_libraries(title_keyboard_tests PRIVATE rloft_boot_flow)
+add_test(NAME title_keyboard_tests COMMAND title_keyboard_tests)
+
 add_executable(enhanced_game_save_tests tests/enhanced_game_save_tests.cpp)
 target_link_libraries(enhanced_game_save_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_game_save_tests COMMAND enhanced_game_save_tests)
