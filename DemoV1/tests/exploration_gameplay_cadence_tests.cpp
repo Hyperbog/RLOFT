@@ -36,4 +36,11 @@ int main() {
     cadence.reset();
     assert(cadence.should_integrate(t0));
     assert(!cadence.should_integrate(t0 + microseconds(30000)));
+    assert(cadence.should_integrate(t0 + microseconds(30001),true));
+    assert(!cadence.should_integrate(t0 + microseconds(84925),true));
+    assert(cadence.should_integrate(t0 + microseconds(84926),true));
+    assert(cadence.should_integrate(t0 + microseconds(84927),false));
+    assert(!cadence.should_integrate(t0 + microseconds(84928),false));
+    cadence.reset();
+    assert(cadence.should_integrate(t0 + microseconds(84929),true));
 }

@@ -21,6 +21,12 @@ int main() {
     assert(!ui.state().top_edge_menu_visible);
     ui.close_screen();
     assert(ui.state().screen == ExplorationUiScreen::Viewport);
+    ui.open_automap();
+    assert(ui.state().screen==ExplorationUiScreen::Automap);
+    ui.open_automap();
+    assert(ui.state().screen==ExplorationUiScreen::Automap);
+    ui.close_screen();
+    assert(ui.state().screen==ExplorationUiScreen::Viewport);
 
     ui.update_mouse(319, 63);
     assert(ui.state().top_edge_hover == 7);

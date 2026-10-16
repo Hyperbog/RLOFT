@@ -40,6 +40,8 @@ public:
     bool activate_top_edge_selection();
     void open_character(std::size_t actor_index);
     void open_inventory(std::size_t actor_index);
+    // Native Tab keyboard access to the existing authored automap modal.
+    void open_automap() noexcept;
     void open_party_panels(std::size_t actor_index);
     void toggle_party_panel(std::size_t actor_index);
     // CODE.2 12470 swaps four-byte panel contexts when actors reorder.

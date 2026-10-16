@@ -73,6 +73,13 @@ void ExplorationUiController::open_character(
     state_.top_edge_hover = -1;
 }
 
+void ExplorationUiController::open_automap() noexcept {
+    if(state_.screen!=ExplorationUiScreen::Viewport)return;
+    state_.screen=ExplorationUiScreen::Automap;
+    state_.top_edge_menu_visible=false;
+    state_.top_edge_hover=-1;
+}
+
 void ExplorationUiController::open_inventory(
     std::size_t actor_index) {
     if (actor_index >= PartyImage::kActorCount) {

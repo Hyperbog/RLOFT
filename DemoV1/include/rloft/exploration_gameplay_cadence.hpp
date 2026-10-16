@@ -24,10 +24,14 @@ public:
     // multiple old movement steps after a stalled Windows repaint: the DOS
     // anchored wait also expires immediately after an overrun, and only one
     // gameplay loop step may execute per native presentation iteration.
-    [[nodiscard]] bool should_integrate(Clock::time_point now) noexcept {
-        if (!initialized_ || now >= next_) {
-            initialized_ = true;
-            next_ = now + kFallbackUpdate;
+    // Native Shift-running halves only the player-motion update interval;
+    // all collision and fixed-point distances remain in the same engine.
+    [[nodiscard]] bool should_integrate(
+        Clock::time_point now,bool running=false) noexcept {
+        if(!initialized_ || running!=running_ || now>=next_) {
+            initialized_=true;
+            running_=running;
+            next_=now+(running?kFallbackTick:kFallbackUpdate);
             return true;
         }
         return false;
@@ -35,11 +39,13 @@ public:
 
     void reset() noexcept {
         initialized_ = false;
+        running_ = false;
         next_ = Clock::time_point{};
     }
 
 private:
     bool initialized_{};
+    bool running_{};
     Clock::time_point next_{};
 };
 
