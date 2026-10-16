@@ -734,6 +734,12 @@ add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
 add_executable(combat_live_hand_request_tests tests/combat_live_hand_request_tests.cpp)
 target_link_libraries(combat_live_hand_request_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_live_hand_request_tests COMMAND combat_live_hand_request_tests)
+
+add_executable(enhanced_combat_target_arming_tests
+    tests/enhanced_combat_target_arming_tests.cpp)
+target_link_libraries(enhanced_combat_target_arming_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_combat_target_arming_tests
+    COMMAND enhanced_combat_target_arming_tests)
 add_executable(combat_attack_timing_tests tests/combat_attack_timing_tests.cpp)
 target_link_libraries(combat_attack_timing_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_attack_timing_tests COMMAND combat_attack_timing_tests)
