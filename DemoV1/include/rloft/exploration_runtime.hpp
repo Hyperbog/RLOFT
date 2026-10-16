@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -252,6 +253,18 @@ public:
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
         std::size_t item_index,
         std::optional<std::uint32_t> original_irq_tick_30700 = std::nullopt);
+
+    // Original Level22 21F70..223DE enters Level23 after mist frame20,
+    // shows frame21 in the next level, then consumes items 87/88/74.
+    // The 22 source-order frames play against a full COPY of the live
+    // runtime, so failure/quit cannot strand partial quests or items.
+    // Presentation is currently an explicitly enhanced PC treatment,
+    // not a claim of reconstructed DOS effect resource 2E510.
+    using Level22MistPresenter =
+        std::function<bool(std::size_t frame,
+                           ExplorationRuntime& staged_runtime)>;
+    [[nodiscard]] bool complete_level22_relic_transition(
+        const GameSource& source, const Level22MistPresenter& present);
 
     // Original CODE.2 inventory 13118, logical D key 0x44 ->
     // 2195C family-C loose item creation. The default probe
