@@ -167,10 +167,10 @@ def main()->None:
            'return {std::move(pickup),false,false};'),
         (2,'runtime.pickup_and_advance_level22_at(',
            'runtime.pickup_level22_loose_item_at('),
-        (2,'host.set_exploration_input(nullptr);',
-           '/* mist input was not isolated */;'),
-        (2,'world_music_state.invalidate();',
-           '/* original destination music discarded */;'),
+        (2,'host.set_exploration_input(nullptr);\n                                        host.set_gpu_world_visible(false);',
+           '/* no mist input lock */;\n                                        host.set_gpu_world_visible(false);'),
+        (2,'refresh_world_palette();\n                                world_music_state.invalidate();\n                                start_authored_world_music();',
+           'refresh_world_palette();\n                                /* destination music omitted */;'),
         (3,'events.at(22)=="frame 21"','events.at(22)=="frame 20"'),
         (4,'warped.visited_levels.count(22)==1U',
            'warped.visited_levels.count(22)==0U'),
@@ -186,7 +186,7 @@ def main()->None:
         try:check(*mutated)
         except ValueError:continue
         raise ValueError('unsafe Level22 quest regression escaped: '+old)
-    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (16 mutations rejected)')
+    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (15 mutations rejected)')
 
 if __name__=='__main__':
     main()
