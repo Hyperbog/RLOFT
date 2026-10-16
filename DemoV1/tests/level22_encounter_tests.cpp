@@ -214,6 +214,43 @@ int main() {
     assert(retry.died && retry.spawned_loose_items==4U);
     assert(aborted_world.loose_items.size()==4U);
 
+    // At the original 300-record cap, four drops evict the oldest four
+    // source items. If the third placement throws, even the evictions
+    // must be rolled back (and the living Assassin remains present).
+    auto full_world=before_death;
+    for(unsigned n=0U;n<0x12CU;++n) {
+        rloft::LiveObjectRecord existing{};
+        existing.object_type_id=static_cast<std::uint16_t>(n);
+        full_world.loose_items.push_back(existing);
+    }
+    const auto before_full_death=full_world;
+    std::size_t full_attempts=0U;
+    bool full_abort=false;
+    try {
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            full_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+            [&](std::uint32_t,std::uint32_t,std::uint32_t) {
+                if(++full_attempts==3U)
+                    throw std::runtime_error("full world drop failed");
+                return false;
+            });
+    }catch(const std::runtime_error&){full_abort=true;}
+    assert(full_abort && full_attempts==3U);
+    assert(full_world.npcs[0].current_hp==
+           before_full_death.npcs[0].current_hp);
+    assert(full_world.loose_items.size()==0x12CU);
+    assert(full_world.loose_items.front().object_type_id==0U);
+    assert(full_world.loose_items.back().object_type_id==299U);
+    const auto full_success=rloft::Level22EncounterModel::damage_assassin(
+        full_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){return false;});
+    assert(full_success.died && full_success.spawned_loose_items==4U);
+    assert(full_world.loose_items.size()==0x12CU);
+    assert(full_world.loose_items.front().object_type_id==4U);
+    for(std::size_t n=0U;n<4U;++n)
+        assert(full_world.loose_items[0x12CU-4U+n].object_type_id==
+               rloft::Level22Story::assassin_death_drops()[n].object_id);
+
     // Lethal damage spawns all four story items; failed placement probes make
     // each fall back to the corpse coordinates.
     damage =
