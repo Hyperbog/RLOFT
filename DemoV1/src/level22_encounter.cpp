@@ -265,6 +265,9 @@ Level22EncounterModel::pickup_loose_item(
 
     const auto item =
         world.loose_items[item_index];
+    // Validate the actual source item before either changing the held
+    // cursor or compacting the live family-C records.
+    (void)objects.at(item.object_type_id);
 
     LooseItemPickupResult result{};
     result.object_id =
@@ -275,17 +278,10 @@ Level22EncounterModel::pickup_loose_item(
             (item.packed_runtime_state >>
              10U) & 1U);
 
-    // CODE.2 21704 calls 1A344 before compacting family C.
-    inventory.held.object_id =
-        result.object_id;
-    inventory.held.known =
-        result.known;
-
-    world.loose_items.erase(
-        world.loose_items.begin() +
-        static_cast<std::ptrdiff_t>(
-            item_index));
-
+    // Compute all source queries before changing the world. Their values
+    // are identical after 1A344: the set predicate asks for the THREE
+    // relics other than the selected item, not for the item just held.
+    // The original observable write order remains held item then erase.
     // CODE.2 21767..2187E follows 1A344 and family-C
     // compaction. Query Tome 35h only for scroll fragments;
     // 21866 requires the original persistent bit 51h for 74h.
@@ -310,6 +306,13 @@ Level22EncounterModel::pickup_loose_item(
                         wanted));
             });
 
+    // Live records are trivially movable; no post-mutation catalogue,
+    // inventory or story lookups remain that could fail midway.
+    inventory.held.object_id=result.object_id;
+    inventory.held.known=result.known;
+    world.loose_items.erase(
+        world.loose_items.begin()+
+        static_cast<std::ptrdiff_t>(item_index));
     return result;
 }
 
