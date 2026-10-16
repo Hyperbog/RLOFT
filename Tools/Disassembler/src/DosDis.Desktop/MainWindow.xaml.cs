@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private BinaryArtifact? _artifact;
     private LeImage? _image;
     private DosMzImage? _mzImage;
+    private GameCartridgePreview? _cartridgePreview;
     private FlowAnalysisResult? _graph;
     private Dos16FlowResult? _mzGraph;
     private ProjectStore? _project;
@@ -71,7 +72,8 @@ public partial class MainWindow : Window
         // Do NOT use a record with mutable highlight fields: generated record
         // equality changes when a byte is highlighted.
         public AssemblyRow(int number, uint offset, string bytes, string assembly,
-            string evidence, string? displayAddress = null)
+            string evidence, string? displayAddress = null,
+            IReadOnlyList<GuestSourceFragment>? originalCartridgeSpans = null)
         {
             Object = number;
             Offset = offset;
@@ -79,6 +81,7 @@ public partial class MainWindow : Window
             Assembly = assembly;
             Evidence = evidence;
             DisplayAddress = displayAddress;
+            OriginalCartridgeSpans = originalCartridgeSpans;
         }
 
         public int Object { get; }
@@ -87,6 +90,7 @@ public partial class MainWindow : Window
         public string Assembly { get; }
         public string Evidence { get; }
         public string? DisplayAddress { get; }
+        public IReadOnlyList<GuestSourceFragment>? OriginalCartridgeSpans { get; }
         public string AddressText => DisplayAddress ?? $"{Object}:0x{Offset:X8}";
         private int _highlightStart;
         private int _highlightLength;
@@ -155,8 +159,8 @@ public partial class MainWindow : Window
     {
         var picker = new OpenFileDialog
         {
-            Title = "Open original DOS executable (read-only)",
-            Filter = "All files (*.*)|*.*|Executables (*.exe;*.com)|*.exe;*.com",
+            Title = "Open original game executable or cartridge (read-only)",
+            Filter = "Games (*.exe;*.com;*.nes;*.sms;*.gg)|*.exe;*.com;*.nes;*.sms;*.gg|All files (*.*)|*.*",
             InitialDirectory = _filePreferences.LastBinaryDirectory ?? string.Empty,
             CheckFileExists = true
         };
@@ -197,8 +201,10 @@ public partial class MainWindow : Window
                     catch (ArgumentException) { /* Keep backed image available for explicit navigation. */ }
                     catch (InvalidDataException) { /* Invalid initial instruction is not executable proof. */ }
                 }
+                GameCartridgePreview? cartridge = image is null && mz is null
+                    ? GameCartridgePreview.TryCreate(artifact) : null;
                 App.Diagnostics.Record(DiagnosticStage.FileOpenPreviewComplete, artifact.Sha256);
-                return (artifact, image, mz, intelligence, preview, mzPreview);
+                return (artifact, image, mz, intelligence, preview, mzPreview, cartridge);
             });
             _bindingNewSource = true;
             App.Diagnostics.Record(DiagnosticStage.FileOpenPresentationStarted, result.artifact.Sha256);
@@ -207,6 +213,7 @@ public partial class MainWindow : Window
             _filePreferences.RememberBinary(_openedBinaryPath);
             _image = result.image;
             _mzImage = result.mz;
+            _cartridgePreview = result.cartridge;
             Trace(_image is not null ? DiagnosticStage.FileOpenedLe
                 : _mzImage is not null ? DiagnosticStage.FileOpenedMz : DiagnosticStage.FileOpenedRaw);
             _graph = null;
@@ -235,9 +242,13 @@ public partial class MainWindow : Window
                 ? $"{_artifact.Length:N0} bytes · LE · {_image.Objects.Count} objects · {_image.Relocations.Count:N0} fixups"
                 : _mzImage is not null
                     ? $"{_artifact.Length:N0} bytes · DOS MZ · x86-16 entry {_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4} · {_mzImage.Relocations.Count} stored fixups"
-                    : $"{_artifact.Length:N0} bytes · original raw file · code analysis unavailable";
+                    : _cartridgePreview is not null
+                        ? $"{_artifact.Length:N0} bytes · {_cartridgePreview.PlatformLabel} · " +
+                          $"{_cartridgePreview.Instructions.Count:N0} source-backed candidate instructions"
+                        : $"{_artifact.Length:N0} bytes · original raw file · code analysis unavailable";
             ExplorerSectionTitle.Text = _image is not null ? "FUNCTION CANDIDATES"
                 : _mzImage is not null ? "16-BIT ENTRY — CANDIDATE FLOW"
+                : _cartridgePreview is not null ? "CARTRIDGE SOURCE-BACKED CANDIDATES"
                 : "RAW FILE — NO FUNCTION ANALYSIS";
             IntelligenceList.ItemsSource = result.intelligence.Select(x => new IntelligenceRow(x.Key,
                 $"{x.Value.Value} ({x.Value.Status})", x.Value.Evidence)).ToArray();
@@ -257,6 +268,11 @@ public partial class MainWindow : Window
                 RenderMzHex(new Dos16Address(_mzImage.InitialCs, _mzImage.InitialIp));
                 MainTabs.SelectedIndex = 0;
             }
+            else if (_cartridgePreview is not null)
+                SetRows(_cartridgePreview.Instructions.Select(x => new AssemblyRow(0, x.GuestAddress,
+                    x.OriginalBytes, x.Assembly, "cartridge-static-candidate-unverified",
+                    $"{_cartridgePreview.ViewId}:\$" + x.GuestAddress.ToString("X4"),
+                    x.SourceFragments)).ToArray());
             else
                 SetRows(result.preview.Select(x => new AssemblyRow(_image is null ? 1 : (int)_image.EntryObject,
                     x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
@@ -267,7 +283,7 @@ public partial class MainWindow : Window
                 SetHexWindow(RawHexPreview.Render(_artifact),
                     "Original raw file bytes, starting file+0x00000000");
                 AddressBox.Text = "file:0x0";
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedIndex = _cartridgePreview is not null ? 0 : 1;
             }
             if (_project != null && _image != null)
             {
@@ -279,7 +295,11 @@ public partial class MainWindow : Window
                   : "Showing an UNVERIFIED linear preview. Run Analyze for evidence-tagged reachable code."
                 : _mzImage is not null
                   ? "Standalone DOS MZ loaded. Initial CS:IP is module-relative. Run Analyze for bounded x86-16 candidate control flow; not verified executed code."
-                  : "RAW HEX VIEW ONLY: original file bytes at physical offsets. No executable mapping or instructions inferred.";
+                  : _cartridgePreview is not null
+                    ? $"Read-only {_cartridgePreview.PlatformLabel} view. " +
+                      $"{_cartridgePreview.Qualification} Unknowns: {_cartridgePreview.Unresolved}; " +
+                      $"capped: {_cartridgePreview.Truncated}. No runtime or full-game equivalence claimed."
+                    : "RAW HEX VIEW ONLY: original file bytes at physical offsets. No executable mapping or instructions inferred.";
             App.Diagnostics.Record(DiagnosticStage.FileOpenPresentationComplete, _artifact.Sha256);
         }
         catch (Exception ex)
@@ -610,9 +630,11 @@ public partial class MainWindow : Window
             NoteEditor.IsEnabled = false;
             return;
         }
-        NoteEditor.IsEnabled = !_working && _mzImage is null;
+        NoteEditor.IsEnabled = !_working && _mzImage is null && row.OriginalCartridgeSpans is null;
         SelectedAddressText.Text = row.AddressText;
-        AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
+        AddressBox.Text = row.OriginalCartridgeSpans is { Count: > 0 }
+            ? $"file:0x{row.OriginalCartridgeSpans[0].PhysicalStart:X}"
+            : _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
         RefreshReferences();
         SelectMatchingReference(row);
         if (!_suppressAutomaticHexRefresh)
@@ -621,7 +643,9 @@ public partial class MainWindow : Window
                 ? row.Object is >= 0 and <= ushort.MaxValue && row.Offset <= ushort.MaxValue
                     ? _mzImage.ToFileOffset((ushort)row.Object, (ushort)row.Offset)
                     : null
-                : _image?.ToFileOffset(row.Object, row.Offset);
+                : _image is not null ? _image.ToFileOffset(row.Object, row.Offset)
+                    : row.OriginalCartridgeSpans is { Count: > 0 }
+                        ? row.OriginalCartridgeSpans[0].PhysicalStart : null;
             _highlightedFileOffset = physical is >= 0 and <= int.MaxValue
                 ? checked((int)physical.Value) : null;
             _highlightedByteLength = 1;
@@ -629,6 +653,9 @@ public partial class MainWindow : Window
                 MarkAssemblyBytes(row, originalOffset, 1);
             if (_mzImage is not null)
                 RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
+            else if (row.OriginalCartridgeSpans is { Count: > 0 } spans)
+                SetHexWindow(RawHexPreview.Render(_artifact, checked((int)spans[0].PhysicalStart)),
+                    $"Cartridge CPU {row.AddressText} → original file+0x{spans[0].PhysicalStart:X8}");
             else
                 RenderHex(new FlowAddress(row.Object, row.Offset));
         }
@@ -639,7 +666,8 @@ public partial class MainWindow : Window
             var note = _project.GetAnnotation(_artifact.Sha256, row.Object, row.Offset, "comment");
             if (note != null) { NoteEditor.Text = note.Body; _commentRevision = note.Revision; }
         }
-        SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null;
+        SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null
+            && row.OriginalCartridgeSpans is null;
         }
         catch (Exception ex)
         {
@@ -828,6 +856,12 @@ public partial class MainWindow : Window
                         return row;
                 }
             }
+            else if (row.OriginalCartridgeSpans is { } spans)
+            {
+                if (spans.Any(f => fileOffset >= f.PhysicalStart &&
+                    (long)fileOffset < f.PhysicalStart + f.ByteCount))
+                    return row;
+            }
         }
         return null; // Do not invent a disassembly row for undecoded data.
     }
@@ -860,6 +894,20 @@ public partial class MainWindow : Window
                     firstIndex = i;
                     break;
                 }
+            }
+        }
+        if (firstIndex < 0 && row.OriginalCartridgeSpans is { } sourceSpans)
+        {
+            int position = 0;
+            foreach (GuestSourceFragment fragment in sourceSpans)
+            {
+                if (fileOffset >= fragment.PhysicalStart &&
+                    (long)fileOffset < fragment.PhysicalStart + fragment.ByteCount)
+                {
+                    firstIndex = position + checked((int)(fileOffset - fragment.PhysicalStart));
+                    break;
+                }
+                position += fragment.ByteCount;
             }
         }
         if (firstIndex >= 0)

@@ -71,3 +71,37 @@ cross-platform isolation; overlapping intervals and arithmetic failures.
 **Verification status:** source authored; Windows compilation and synthetic
 tests must be confirmed on the exact resulting commit. This document does
 not imply working NES/SMS disassembly or completed game recompilation.
+
+## Implemented continuation — cartridge parsers, CPU decoders and desktop preview
+
+- **NES:** strict source-length-checked iNES 1.0 NROM/mapper 0 and
+  UxROM/mapper 2; trainer/CHR offsets and reset/NMI/IRQ vectors. NES 2.0,
+  VS/PlayChoice, dubious legacy header variants and unsupported mappers
+  remain explicitly rejected. All 151 documented NMOS 6502 opcodes are
+  independently listed with exact source bytes; undocumented opcodes
+  currently abstain. Bounded candidate CFGs follow direct branches and
+  calls; indirect jump targets and code in RAM remain unknown.
+- **SMS:** source-backed TMR SEGA recognition, explicit Sega and
+  Codemasters mapper profiles with slot selection and the Sega fixed
+  0x0000-0x03FF window. Supported Z80 decoding covers the base instruction
+  family, CB bit/shift group (except undocumented SLL) and documented
+  ED forms. DD/FD indexed instructions and undocumented encodings currently
+  abstain; no unsupported operand sequence is interpreted as base code.
+- **Desktop:** automatically shows read-only cartridge assembly only
+  when the static mapping is unambiguous: NROM from source-backed
+  interrupt/reset vectors, and single-bank SMS from CPU 0000. Byte selection
+  uses original-file fragment offsets. Bank-switched NES/SMS cartridges
+  remain raw/metadata until an explicit mapper-state selection UI exists.
+  This is not game-level recompilation and not proof of executed code.
+- **Verification:** synthetic source-backed per-ISA instruction, CFG,
+  negative opcode, mapper and desktop-preview regressions are run under
+  the authorized Windows .NET workflow. Record the exact passing SHA
+  before advertising a build as verified.
+
+Specification references: https://www.nesdev.org/wiki/INES ,
+https://www.nesdev.org/wiki/UxROM ,
+https://www.nesdev.org/wiki/CPU_unofficial_opcodes ,
+https://www.smspower.org/Development/MemoryMap ,
+https://www.smspower.org/Development/Mappers ,
+https://www.smspower.org/Development/ROMHeader ,
+https://z80.info/decoding.htm .
