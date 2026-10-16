@@ -3,6 +3,8 @@
 **Active development branch:** `demo-v1`  
 **Goal:** create a **complete enhanced native Windows PC port** of Ravenloft. Preserve all authored game content and established cinematics/audio/character creation, but use modern display/input/timing/audio and safe port-native saves. **Exact original DOS execution or DOSBox parity is no longer a release requirement.** [Active port charter](ENHANCED_PC_PORT_CHARTER.md) supersedes the former original-fidelity mandate. The [mod-forward profile](MOD_FORWARD_PROFILE.md) applies the [universal methodology](../MOD_FORWARD_METHODOLOGY.md) without claiming a shipped mod loader. The priority remains one working intro → creation → genuinely rendered playable Level 22 → entire campaign.
 
+**Verified Windows build and tests (October 16):** [Windows Actions run 38955645652](https://github.com/Hyperbog/RLOFT/actions/runs/38955645652) compiled `Ravenloft.exe`, passed 65/65 quick CTests, and published the `Ravenloft-Enhanced-Game-Windows-x64` ZIP. Compiled source SHA `4625ccb358171072fea4816cfbf3c1e9c92dcff8`; visual/audio/quest play acceptance remains open.
+
 **Original Assassin class XP on kill (October 16):** [Transactional DDA4 party/class XP writes, original CODE.2 progression thresholds, and native Save/Continue preservation](LEVEL22_ASSASSIN_CLASS_XP_20261016.md). Full original level-up callbacks remain pending and Windows acceptance is unverified.
 
 **Scene-safe combat targeting + native Sound control (October 16):** [One-shot source-frame attack, no pickup fallthrough, and separate MIDI/SFX mute](SAFE_COMBAT_AIM_AND_SFX_CONTROL_20261016.md). The original action clock remains unintegrated; source changes still need Windows compilation and playtesting.
