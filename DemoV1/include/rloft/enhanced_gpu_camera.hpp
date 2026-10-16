@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 namespace rloft {
 // Original CODE.2 angle convention (exploration_motion): heading 0 = +row,
@@ -30,6 +31,15 @@ public:
     }
     // Optional GPU sprites retain the 128-row RES3 artwork's native width
     // proportion; the source software raster and game state are unchanged.
+    // Empty authored scenes are allowed. A scene with live RES3 records but
+    // no successful sprite upload must fall back instead of silently showing
+    // an empty optional 3D field.
+    [[nodiscard]] static bool all_gpu_sprites_failed(
+        std::size_t attempted,std::size_t rendered) {
+        if(rendered>attempted)
+            throw std::invalid_argument("invalid GPU sprite draw count");
+        return attempted>0U && rendered==0U;
+    }
     [[nodiscard]] static double billboard_world_width(unsigned native_width) {
         if(native_width==0U || native_width>128U)
             throw std::invalid_argument("invalid native RES3 sprite width");
