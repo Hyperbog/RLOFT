@@ -13,15 +13,21 @@ int main() {
            EnhancedOptionsSelection::ToggleMusic);
     assert(EnhancedOptionsPresenter::action_at(195,52)==
            EnhancedOptionsSelection::None);
-    assert(EnhancedOptionsPresenter::action_at(218,52)==
+    assert(EnhancedOptionsPresenter::action_at(211,52)==
+           EnhancedOptionsSelection::ToggleSound);
+    assert(EnhancedOptionsPresenter::action_at(249,267)==
+           EnhancedOptionsSelection::ToggleSound);
+    assert(EnhancedOptionsPresenter::action_at(250,52)==
+           EnhancedOptionsSelection::None);
+    assert(EnhancedOptionsPresenter::action_at(270,52)==
            EnhancedOptionsSelection::ReturnToGame);
-    assert(EnhancedOptionsPresenter::action_at(260,267)==
+    assert(EnhancedOptionsPresenter::action_at(312,267)==
            EnhancedOptionsSelection::ReturnToGame);
-    assert(EnhancedOptionsPresenter::action_at(261,267)==
+    assert(EnhancedOptionsPresenter::action_at(313,267)==
            EnhancedOptionsSelection::None);
     assert(EnhancedOptionsPresenter::action_at(170,51)==
            EnhancedOptionsSelection::None);
-    assert(EnhancedOptionsPresenter::action_at(170,268)==
+    assert(EnhancedOptionsPresenter::action_at(230,268)==
            EnhancedOptionsSelection::None);
 
     rloft::Type2Font font{};
@@ -34,7 +40,7 @@ int main() {
     rloft::IndexedFramebuffer screen{};
     screen.clear(7);
     EnhancedOptionsPresenter panel(font);
-    panel.draw(screen,true);
+    panel.draw(screen,true,true);
     const auto at=[&](int row,int column){
         return screen.pixels()[
             static_cast<std::size_t>(row)*
@@ -45,9 +51,11 @@ int main() {
     assert(at(64,32)==0xB1U);
     assert(at(67,35)==0U);
     assert(at(170,52)==0xB1U);
+    assert(at(230,52)==0xB1U);
+    assert(at(290,52)==0xB1U);
     assert(at(175,56)==0U || at(175,56)==255U);
     screen.clear(7);
-    panel.draw(screen,false);
+    panel.draw(screen,false,false);
     assert(at(0,0)==0U);
     assert(at(64,32)==0xB1U);
 }
