@@ -1,10 +1,9 @@
-#include "rloft/level22_story.hpp"
-
-#include <array>
-// Regression assertions must execute in Release-mode Windows CI.
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
+#include "rloft/level22_story.hpp"
+
+#include <array>
 #include <cassert>
 #include <cstdint>
 
