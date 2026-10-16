@@ -302,10 +302,9 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Assassin damage outside Level 22");
     }
-    // The original death/drop routine can mutate HP and item records
-    // before a later source-data or placement error throws. Invalidate
-    // prior scene indices before starting, even on exceptional exit.
-    ++world_scene_revision_;
+    // The encounter stages NPC injury and all four unique quest drops
+    // atomically. Do not invalidate the displayed source frame if an
+    // unsupported original branch or placement probe rejects the hit.
     const auto result=Level22EncounterModel::damage_assassin(
         world_,
         session_.level,
@@ -319,6 +318,7 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     // Original E436 writes literal 1 to BF44 after its FOUR
     // Level22 type9 death drops; nonlethal E284 leaves it alone.
     if(result.died) original_story_message_bf44_=1U;
+    ++world_scene_revision_;
     return result;
 }
 
@@ -405,6 +405,16 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Level 22 pickup outside Level 22");
     }
+    // The live 21704 input route is a pickup, not an item swap.
+    // Never destroy the existing cursor object or compact the source
+    // family-C array when a click arrives with the hand already full.
+    if(inventory_.held.object_id!=-1)
+        throw std::logic_error(
+            "Level 22 pickup requires an empty held-item cursor");
+    // Preflight source object identity as well as the optional text
+    // before either the world or cursor may be changed.
+    const auto& next_item=world_.loose_items.at(item_index);
+    (void)object_catalog_.at(next_item.object_type_id);
     // Original 22510..225DF composes the live item description
     // after 21704 transfer and before the relic completion branch.
     // Preflight source-only data without changing game state;
@@ -412,15 +422,13 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     std::optional<std::vector<std::uint8_t>> pickup_text;
     if (original_irq_tick_30700 &&
         !original_pickup_ribbon_prefix_.empty()) {
-        const auto& item=world_.loose_items.at(item_index);
-        const auto& definition=object_catalog_.at(item.object_type_id);
-        const bool known=(item.packed_runtime_state & 0x0400U)!=0U;
+        const auto& definition=object_catalog_.at(next_item.object_type_id);
+        const bool known=(next_item.packed_runtime_state & 0x0400U)!=0U;
         pickup_text=OriginalPickupRibbonTextModel::compose_unenchanted(
             original_pickup_ribbon_prefix_,definition,known);
     }
-    // 21704 mutates held inventory and compacts the loose-item array
-    // before checking Level 22 story completion. Invalidate first.
-    ++world_scene_revision_;
+    // The cursor and family-C list change together in this original
+    // bounded pickup. Invalidate stale source targets only on success.
     const auto result=Level22EncounterModel::pickup_loose_item(
         world_,
         item_index,
@@ -429,6 +437,7 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
         object_catalog_,
         (session_.persistent_event_flags[0x51U / 8U] &
          static_cast<std::uint8_t>(1U << (0x51U % 8U))) != 0U);
+    ++world_scene_revision_;
     if(result.message_assignment_bf44.has_value())
         original_story_message_bf44_=*result.message_assignment_bf44;
     if(pickup_text && original_irq_tick_30700) {
