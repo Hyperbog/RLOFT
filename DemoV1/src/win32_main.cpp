@@ -55,6 +55,7 @@
 #include "rloft/party_modal_presenter.hpp"
 #include "rloft/original_f790_ordinary_slot_event_plan.hpp"
 #include "rloft/party_panel_controls.hpp"
+#include "rloft/combat_live_hand_request.hpp"
 #include "rloft/quit_confirm.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/enhanced_options_presenter.hpp"
@@ -2474,6 +2475,73 @@ int run_exploration(
 
             if (pressed_menu < 0) {
                 bool opened_actor_panel = false;
+                bool handled_hand_click = false;
+                // Original D684 gameplay hand rectangles are distinct
+                // from actor inventory panels. Source 214B8 first
+                // validates active actor, then 24478 validates BOTH
+                // equipped hands before 26018 categorizes the action.
+                if(const auto hand=rloft::PartyPanelControlModel::
+                       gameplay_hand_at(click->row,click->column)) {
+                    handled_hand_click=true;
+                    try {
+                        const auto plan=
+                            rloft::CombatLiveHandRequestModel::inspect(
+                                runtime.session().party,
+                                runtime.object_catalog(),
+                                runtime.session().level,
+                                hand->actor,hand->hand);
+                        using HandStatus=rloft::CombatLiveHandStatus;
+                        const wchar_t* status=L"Hand action pending";
+                        switch(plan.status) {
+                          case HandStatus::AttackCandidate:
+                            status=L"Weapon attack ready | "
+                                   L"original target/damage dispatch pending";
+                            break;
+                          case HandStatus::ActorBlocked:
+                            status=L"Character cannot attack";
+                            break;
+                          case HandStatus::ActionBusy:
+                            status=L"Character hand is busy";
+                            break;
+                          case HandStatus::PairVetoed:
+                            status=L"Original two-hand weapon rules "
+                                   L"block this hand";
+                            break;
+                          case HandStatus::MissingOriginalEmptyHandData:
+                            status=L"Original unarmed hand memory "
+                                   L"is not yet reconstructed";
+                            break;
+                          case HandStatus::SpecialAction:
+                            status=L"Original special-item "
+                                   L"action pending";
+                            break;
+                          case HandStatus::CategoryEAction:
+                            status=L"Original category-E "
+                                   L"action pending";
+                            break;
+                          case HandStatus::OtherAction:
+                            status=L"Original item action pending";
+                            break;
+                        }
+                        SetWindowTextW(host.hwnd(),status);
+                        if(trace) {
+                            try {trace->event(
+                                "combat.hand.gate",
+                                static_cast<std::int64_t>(hand->actor*2U+
+                                    hand->hand),
+                                static_cast<std::int64_t>(plan.status));}
+                            catch(...) {}
+                        }
+                    }catch(const std::exception& error) {
+                        const auto message=widen(error.what());
+                        SetWindowTextW(host.hwnd(),message.c_str());
+                        if(trace) {
+                            try {trace->error("combat.hand.gate",
+                                error.what());}
+                            catch(...) {}
+                        }
+                    }
+                }
                 if (const auto actor =
                         rloft::PartyPanelControlModel::
                             gameplay_actor_at(
@@ -2495,7 +2563,7 @@ int run_exploration(
                 // requires the original combat controller's hit roll.
                 if (rloft::DevLevelInteractionPolicy::allow(
                         exploration_preview,dev_interact) &&
-                    !opened_actor_panel &&
+                    !opened_actor_panel && !handled_hand_click &&
                     displayed_scene_frame.has_value() &&
                     runtime.session().level_id ==
                         rloft::Level22Story::kLevelId &&
