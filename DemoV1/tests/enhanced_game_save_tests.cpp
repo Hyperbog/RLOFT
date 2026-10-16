@@ -132,6 +132,46 @@ int main(){
     assert(after_pickup.world.loose_items[2].object_type_id==0x74U);
     assert(rloft::EnhancedGameSaveCodec::encode(after_pickup)==quest_bytes);
 
+    // Native continuation after original Level22 mist event: preserve the
+    // real Level23 destination, the surviving Assassin parchment and the
+    // saved mutable corpse world in Level22 continuity. No original
+    // SAVE.DAT bytes or invented exit topology enter this test.
+    auto level23=quest_loaded;
+    rloft::LevelContinuityEntry level22_before_warp{};
+    level22_before_warp.level=level23.session.level;
+    level22_before_warp.world=level23.world;
+    level22_before_warp.from_direct_save=true;
+    level23.visited_levels.emplace(22,std::move(level22_before_warp));
+    level23.session.level_id=
+        rloft::AssassinRelicTransition::kDestinationLevel;
+    level23.session.coordinate_a=
+        rloft::AssassinRelicTransition::kDestinationCoordinateA;
+    level23.session.coordinate_b=
+        rloft::AssassinRelicTransition::kDestinationCoordinateB;
+    level23.session.facing=
+        rloft::AssassinRelicTransition::kDestinationFacing;
+    level23.session.level.width=64;
+    level23.session.level.height=64;
+    level23.session.level.cell_words.assign(64U*64U,0U);
+    level23.session.level.automap_cache.assign(64U*64U,0xFFU);
+    level23.session.level.group2.clear();
+    level23.world.npcs.clear();
+    level23.world.loose_items.clear();
+    level23.inventory.held.object_id=0xE9;
+    const auto warped_bytes=rloft::EnhancedGameSaveCodec::encode(level23);
+    const auto warped=rloft::EnhancedGameSaveCodec::decode(warped_bytes);
+    assert(warped.session.level_id==23U);
+    assert(warped.session.coordinate_a==0x00098000U);
+    assert(warped.session.coordinate_b==0x003A8000U);
+    assert(warped.session.facing==0xB4U);
+    assert(warped.inventory.held.object_id==0xE9);
+    assert(warped.visited_levels.count(22)==1U);
+    const auto& old22=warped.visited_levels.at(22);
+    assert(old22.world.npcs[0].npc_type_id==9U);
+    assert(old22.world.npcs[0].current_hp==0);
+    assert(old22.world.loose_items.size()==4U);
+    assert(rloft::EnhancedGameSaveCodec::encode(warped)==warped_bytes);
+
     b[b.size()-2U]^=1U;
     bool bad=false;
     try{(void)rloft::EnhancedGameSaveCodec::decode(b);}
