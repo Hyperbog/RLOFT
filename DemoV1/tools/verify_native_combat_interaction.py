@@ -40,16 +40,14 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
     ):
         if marker not in host:
             raise ValueError('unsafe host combat or SFX toggle: '+marker)
-    marker='pending_level22_weapon_hand.take('
-    start=host.index(marker)
+    start=host.index('bool attacked_assassin=false;')
     finish=host.index('runtime.pickup_and_advance_level22_at(',start)
     branch=host[start:finish]
-    if branch.index('pending_level22_weapon_hand.take(') > branch.index(
-            'attacked_assassin=true;',branch.index(marker)):
-        raise ValueError('combat intent must consume click before pickup')
-    if not branch.index('runtime.attack_level22_assassin_at(') < branch.index(
-            '!attacked_assassin &&'):
-        raise ValueError('combat cannot fall through to floor pickup')
+    if not (branch.index('attacked_assassin=true;') <
+            branch.index('pending_level22_weapon_hand.take(') <
+            branch.index('runtime.attack_level22_assassin_at(') <
+            branch.index('!attacked_assassin &&')):
+        raise ValueError('combat click was not consumed before pickup')
     # Original modal screen or menu resets any armed source click.
     if 'if (pressed_menu >= 0) {\n                pending_level22_weapon_hand.cancel();' not in host:
         raise ValueError('top-menu actions retained an armed attack')
