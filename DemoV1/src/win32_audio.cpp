@@ -26,6 +26,9 @@ struct Win32AudioPlayer::Impl {
 
     std::mutex mutex;
     std::vector<std::unique_ptr<Voice>> voices;
+    // All public Win32AudioPlayer control methods are used on the
+    // owning Windows UI thread; workers read only stop_requested.
+    bool effects_enabled{true};
 
     void reap() {
         std::lock_guard<std::mutex> lock(mutex);
@@ -43,6 +46,7 @@ struct Win32AudioPlayer::Impl {
     }
 
     void play(PcmSound sound) {
+        if(!effects_enabled)return;
         reap();
 
         auto done = std::make_shared<std::atomic_bool>(false);
@@ -131,6 +135,11 @@ struct Win32AudioPlayer::Impl {
         voices.push_back(std::move(voice));
     }
 
+    void set_enabled(bool enabled) {
+        effects_enabled=enabled;
+        if(!enabled)stop_all();
+    }
+
     void stop_all() {
         std::vector<std::unique_ptr<Voice>> owned;
         {
@@ -158,6 +167,14 @@ Win32AudioPlayer::~Win32AudioPlayer() {
 
 void Win32AudioPlayer::play(PcmSound sound) {
     impl_->play(std::move(sound));
+}
+
+void Win32AudioPlayer::set_enabled(bool enabled) {
+    impl_->set_enabled(enabled);
+}
+
+bool Win32AudioPlayer::enabled() const noexcept {
+    return impl_->effects_enabled;
 }
 
 void Win32AudioPlayer::stop_all() {
