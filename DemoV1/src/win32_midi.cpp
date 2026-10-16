@@ -69,6 +69,7 @@ struct Win32MidiPlayer::Impl {
     std::condition_variable cv;
     bool stop_requested{};
     bool sequence_active{};
+    bool device_open_failed{};
     HMIDIOUT active_out{};
     int relative_volume{100};
     std::array<std::uint8_t, 16> expression{};
@@ -124,9 +125,10 @@ struct Win32MidiPlayer::Impl {
 
         if (wait_for_sequence_start) {
             cv.wait(lock, [this] {
-                return stop_requested || sequence_active;
+                return stop_requested || sequence_active ||
+                       device_open_failed;
             });
-            if (stop_requested) return;
+            if (stop_requested || device_open_failed) return;
         }
 
         if (milliseconds <= 0) {
@@ -216,6 +218,7 @@ struct Win32MidiPlayer::Impl {
             std::lock_guard<std::mutex> lock(mutex);
             stop_requested = false;
             sequence_active = false;
+            device_open_failed = false;
             active_out = nullptr;
             expression.fill(127);
             relative_volume =
@@ -227,13 +230,28 @@ struct Win32MidiPlayer::Impl {
         worker = std::thread(
             [this, sequence = std::move(sequence)]() mutable {
                 HMIDIOUT out = nullptr;
-                if (midiOutOpen(
-                        &out,
-                        MIDI_MAPPER,
-                        0,
-                        0,
-                        CALLBACK_NULL) != MMSYSERR_NOERROR) {
-                    std::lock_guard<std::mutex> lock(mutex);
+                // Modern Windows installations can expose MIDI devices
+                // without configuring the obsolete MIDI_MAPPER default.
+                // Prefer the system-selected device; on failure try each
+                // real driver rather than silently playing no music.
+                auto open_result=midiOutOpen(
+                    &out,MIDI_MAPPER,0,0,CALLBACK_NULL);
+                if(open_result!=MMSYSERR_NOERROR) {
+                    const auto count=midiOutGetNumDevs();
+                    for(UINT i=0;i<count;++i) {
+                        open_result=midiOutOpen(
+                            &out,i,0,0,CALLBACK_NULL);
+                        if(open_result==MMSYSERR_NOERROR)break;
+                    }
+                }
+                if(open_result!=MMSYSERR_NOERROR || !out) {
+                    OutputDebugStringA(
+                        "Ravenloft MIDI: no usable native WinMM output; "
+                        "install or enable a General MIDI synthesizer.\n");
+                    {
+                        std::lock_guard<std::mutex> lock(mutex);
+                        device_open_failed=true;
+                    }
                     cv.notify_all();
                     return;
                 }
