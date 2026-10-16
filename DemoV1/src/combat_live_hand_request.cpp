@@ -35,7 +35,11 @@ CombatLiveHandPlan CombatLiveHandRequestModel::inspect(
         const auto at=0x40U+2U*(14U+slot);
         const auto raw=static_cast<std::uint16_t>(rec[at]) |
             (static_cast<std::uint16_t>(rec[at+1U])<<8U);
-        return static_cast<std::int16_t>(raw);
+        // Explicit two's-complement decode, not an implementation-
+        // defined unsigned-to-signed narrowing on some C++ targets.
+        return raw>=0x8000U
+            ? static_cast<int>(raw)-0x10000
+            : static_cast<int>(raw);
     };
     if(hand_item(0U)==-1 || hand_item(1U)==-1) {
         out.status=CombatLiveHandStatus::MissingOriginalEmptyHandData;
