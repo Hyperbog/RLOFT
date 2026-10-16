@@ -1,6 +1,7 @@
 #include "rloft/combat_level22_strike.hpp"
 
 #include "rloft/combat_attack_status_service.hpp"
+#include "rloft/combat_attack_target.hpp"
 #include "rloft/combat_damage_dice.hpp"
 #include "rloft/combat_damage_stat_bonus.hpp"
 #include "rloft/combat_player_hit_inputs.hpp"
@@ -33,7 +34,12 @@ CombatLevel22StrikeResult CombatLevel22StrikeModel::resolve(
     const CombatStrengthAttackModel& strength,
     const NpcDefinition& definition,const LiveNpcRecord& npc,
     OriginalRandom& random,std::size_t actor,std::size_t hand,
-    std::int32_t item_id) {
+    std::int32_t item_id,
+    std::int32_t explicit_target_id,
+    std::uint8_t party_mode_258a8) {
+    if(explicit_target_id<0)
+        throw std::out_of_range(
+            "E5F0 explicit native target must be a source actor");
     if(actor>=PartyImage::kActorCount || hand>=2U)
         throw std::out_of_range("E5F0 actor/hand outside party");
     if(item_id<0 || item_id>0xFFFF ||
@@ -65,6 +71,17 @@ CombatLevel22StrikeResult CombatLevel22StrikeModel::resolve(
     // E578 changes the actors' effects before the C80C hit branch.
     CombatLevel22StrikeResult result{};
     CombatAttackStatusService::apply(party,result.redraw_cf5a,actor);
+    // E621..E669 occurs AFTER E578, before C80C. For rear-party
+    // actors in original mode FFh, only item qualifier +35 low2
+    // exactly 2 can retain a target. Keep the action/status cleanup
+    // while skipping hit RNG and injury when source clears target.
+    const auto chosen=CombatAttackTargetModel::choose(
+        objects,actor,item_id,explicit_target_id,party_mode_258a8,
+        [](std::uint8_t)->std::int32_t {return -1;});
+    if(chosen.blocked_by_rear_party_rule) {
+        result.target_suppressed_by_rear_party_rule=true;
+        return result;
+    }
     // Held target bit08 at C818 returns before requesting RNG.
     const bool held=(npc.runtime_flags&0x08U)!=0U;
     if(!held)
