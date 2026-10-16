@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - demo-v1
+      - port/asset-cache
     paths:
       - '.github/workflows/demo-v1-build.yml'
       - 'DemoV1/**'
