@@ -145,7 +145,11 @@ int main(){
     // real Level23 destination, the surviving Assassin parchment and the
     // saved mutable corpse world in Level22 continuity. No original
     // SAVE.DAT bytes or invented exit topology enter this test.
-    auto level23=quest_loaded;
+    // The Level23 mist trigger requires ALL four real relics to
+    // have been collected. In the final visited Level22 world they
+    // are no longer loose floor items; only the corpse/story persist.
+    auto level23=after_pickup;
+    level23.world.loose_items.clear();
     rloft::LevelContinuityEntry level22_before_warp{};
     level22_before_warp.level=level23.session.level;
     level22_before_warp.world=level23.world;
@@ -180,7 +184,8 @@ int main(){
     const auto& old22=warped.visited_levels.at(22);
     assert(old22.world.npcs[0].npc_type_id==9U);
     assert(old22.world.npcs[0].current_hp==0);
-    assert(old22.world.loose_items.size()==4U);
+    assert(old22.world.loose_items.empty());
+    assert(warped.original_story_selector==1U);
     assert(rloft::EnhancedGameSaveCodec::encode(warped)==warped_bytes);
 
     b[b.size()-2U]^=1U;
