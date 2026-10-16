@@ -183,8 +183,14 @@ void ExplorationRuntime::initialize_gameplay_state(
     inventory_save_backing_.reset();
     inventory_save_world_revision_=0U;
     inventory_drop_c02f_center_fraction_=false;
+    combat_strength_source_.reset();
+    combat_burden_source_.reset();
     if(source.contains("CODE.2")) {
         const auto code2=source.read("CODE.2");
+        combat_strength_source_=
+            CombatStrengthAttackModel::from_code2(code2);
+        combat_burden_source_=
+            InventoryEncumbranceModel::from_code2(code2);
         if(const auto prefix=
             OriginalPickupRibbonTextModel::source_prefix_from_code2(code2))
             original_pickup_ribbon_prefix_=*prefix;
@@ -409,6 +415,75 @@ ExplorationRuntime::pickup_and_advance_level22_at(
     }
     *this=std::move(staged);
     return {std::move(pickup),false,warped};
+}
+
+ExplorationRuntime::Level22WeaponAttackOutcome
+ExplorationRuntime::attack_level22_assassin_at(
+    const ExplorationRuntimeFrame& frame,int row,int column,
+    std::size_t actor,std::size_t hand) {
+    if(!gameplay_state_initialized_ ||
+       session_.level_id!=Level22Story::kLevelId ||
+       frame.world_scene_revision!=world_scene_revision_ ||
+       frame.source_level_id!=session_.level_id ||
+       frame.source_coordinate_a!=session_.coordinate_a ||
+       frame.source_coordinate_b!=session_.coordinate_b ||
+       frame.source_facing!=session_.facing)
+        throw std::logic_error(
+            "Level22 weapon attack requires current original scene");
+    if(!combat_strength_source_ || !combat_burden_source_)
+        throw std::logic_error(
+            "Level22 player combat requires authentic CODE.2 tables");
+    // 223F4 resolves original class0 NPC source record, never a
+    // guessed 3D billboard coordinate or family-C floor item.
+    const auto target=world_scene_target_at(
+        frame.world_scene_records,row,column,0U);
+    const auto index=Level22ViewportTargetModel::assassin_index(
+        target,world_);
+    if(!index)return {};
+    const auto hand_plan=CombatLiveHandRequestModel::inspect(
+        session_.party,object_catalog_,session_.level,actor,hand);
+    if(!hand_plan.may_enter_player_attack())
+        throw std::logic_error(
+            "214B8/24478 did not authorize this equipped weapon");
+    if(hand_plan.dispatch.object_id<0)
+        throw std::logic_error(
+            "original unarmed OBJECTS[-1] memory not authenticated");
+
+    // Original E5F0 accepts an EXPLICIT source actor index. The
+    // source DB94(-1) automatic-target buffers are still missing;
+    // the native PC's source-backed two-click target is explicit.
+    ExplorationRuntime staged=*this;
+    auto& npc=staged.world_.npcs.at(*index);
+    const auto& definition=staged.npc_catalog_.at(npc.npc_type_id);
+    auto strike=CombatLevel22StrikeModel::resolve(
+        staged.session_.party,staged.inventory_,
+        staged.object_catalog_,*staged.combat_burden_source_,
+        *staged.combat_strength_source_,definition,npc,
+        staged.original_random_,actor,hand,
+        hand_plan.dispatch.object_id);
+    Level22WeaponAttackOutcome result{};
+    result.found_assassin=true;
+    result.strike=strike;
+    if(strike.hit.hit) {
+        // E963 always pushes reaction_mode=0. Reuse the existing
+        // staged E284 Level22 type9 death/drop implementation.
+        const auto injury=staged.damage_level22_assassin(
+            *index,strike.damage_after_c910,0U,
+            [&staged](std::uint32_t y,std::uint32_t x,
+                      std::uint32_t radius) {
+                return InventoryWorldDropModel::
+                    placement_passable_2d5d0(
+                        staged.session_,staged.world_,
+                        staged.npc_catalog_,y,x,radius);
+            });
+        result.injury=injury;
+    }
+    // C80C misses still consume their d20 and E578 effect changes.
+    // Preserve both in the native save's party and RNG snapshot.
+    // The original 24B48 action clocks/display are a distinct gate.
+    ++staged.world_scene_revision_;
+    *this=std::move(staged);
+    return result;
 }
 
 InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
