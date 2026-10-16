@@ -46,6 +46,11 @@ def check(host,gpu,mesh,cmake,workflow):
     ):
         if item not in host:
             raise ValueError('main game not wired to live GPU: '+item)
+    # Both the transition-time DAC update and the normal exploration
+    # attachment are mandatory. A mutation deleting only one call must
+    # still fail even though the other retains the same text signature.
+    if host.count('host.begin_gpu_scene(assets,exploration_palette);')!=2:
+        raise ValueError('palette-refresh and exploration GPU binds diverged')
     for item in (
         'EnhancedGpuWorldMeshModel::build(session.level)',
         'session_=&session;world_=&world;records_=records;',
