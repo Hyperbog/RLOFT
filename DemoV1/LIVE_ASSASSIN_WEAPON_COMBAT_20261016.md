@@ -31,7 +31,7 @@ The supplied immutable CODE.2 SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94
 
 **Original 24B48 animation, actor +10B busy/write expiry, +19E hand-ready deadline and maintenance clock A7E4 are not connected.** A player can presently issue another eligible weapon attack without the DOS cooldown. This is NOT claimed to be exact combat pacing. Missing source maintenance-clock semantics must be implemented rather than silently treating VGA refresh, BIOS IRQ clock or milliseconds as A7E4.
 
-**XP/level-up is not yet committed to the party record.** The current E284 routine accurately returns the NPC definition's original experience award; original DDA4 class XP and level-change side effects must be connected before that award can truthfully become a leveled-up character. Do not display the awarded-XP amount as applied experience.
+**Update October 16:** Original DDA4 per-class XP DWORD awards **are now applied to the saved party record** on a lethal native Level22 Assassin strike, using authenticated CODE.2 progression data. See [Assassin original XP checkpoint](LEVEL22_ASSASSIN_CLASS_XP_20261016.md). Original 50DC/3EA4/3DE4/DC7C class **level-change side effects** still need integration; pending level-ups are explicitly reported and not invented.
 
 **Update October 16:** Source-ID Assassin damage/death VOC playback is now integrated using authentic INIT+0x14/+0x16 banks. See [rear-target and audio checkpoint](LEVEL22_REAR_TARGET_AND_AUDIO_20261016.md). DOS sound priority/queue timing and attack animation feedback remain unfinished. The new actual NPC HP, death and relics will be visible through the existing source-driven scene/world composition.
 
