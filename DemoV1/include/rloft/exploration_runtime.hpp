@@ -266,6 +266,24 @@ public:
     [[nodiscard]] bool complete_level22_relic_transition(
         const GameSource& source, const Level22MistPresenter& present);
 
+    struct Level22PickupProgress final {
+        std::optional<LooseItemPickupResult> pickup;
+        bool transition_cancelled{};
+        bool entered_level23{};
+    };
+
+    // One atomic live interaction: source 223F4/21704 pickup plus the
+    // original triggered 21F70 mist/level-enter event. Previously the
+    // fourth relic left the world BEFORE a failed effect, permanently
+    // losing the only trigger. No partial pickup, story write, RNG,
+    // level change or relic removal survives a refused mist frame.
+    [[nodiscard]] Level22PickupProgress pickup_and_advance_level22_at(
+        const ExplorationRuntimeFrame& frame,
+        int row,int column,
+        const GameSource& source,
+        const Level22MistPresenter& present,
+        std::optional<std::uint32_t> original_irq_tick_30700=std::nullopt);
+
     // Original CODE.2 inventory 13118, logical D key 0x44 ->
     // 2195C family-C loose item creation. The default probe
     // now reconstructs 2D5D0 mode 0x190's original collision
