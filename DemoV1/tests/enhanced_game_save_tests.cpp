@@ -99,6 +99,13 @@ int main(){
     quest.inventory.held.object_id=-1;
     quest.inventory.held.known=0U;
     quest.original_story_selector=1U;
+    // The native snapshot already owns all original party bytes.
+    // Prove that DDA4's class-track XP DWORD at actor+26 survives
+    // both Assassin death Save/Continue and the Level23 warp.
+    quest.session.party.bytes[0x26U]=0xC8U;
+    quest.session.party.bytes[0x27U]=0U;
+    quest.session.party.bytes[0x28U]=0U;
+    quest.session.party.bytes[0x29U]=0U;
     for(const auto relic:rloft::AssassinRelicTransition::kDrops){
         rloft::LiveObjectRecord record{};
         record.object_type_id=relic.object_id;
@@ -113,6 +120,8 @@ int main(){
     assert(quest_loaded.world.npcs[0].npc_type_id==9U);
     assert(quest_loaded.world.loose_items.size()==4U);
     assert(quest_loaded.original_story_selector==1U);
+    assert(quest_loaded.session.party.bytes[0x26U]==0xC8U);
+    assert(quest_loaded.session.party.bytes[0x27U]==0U);
     for(std::size_t i=0;i<4U;++i)
         assert(quest_loaded.world.loose_items[i].object_type_id==
             rloft::AssassinRelicTransition::kDrops[i].object_id);
@@ -165,6 +174,8 @@ int main(){
     assert(warped.session.coordinate_b==0x003A8000U);
     assert(warped.session.facing==0xB4U);
     assert(warped.inventory.held.object_id==0xE9);
+    assert(warped.session.party.bytes[0x26U]==0xC8U);
+    assert(warped.session.party.bytes[0x27U]==0U);
     assert(warped.visited_levels.count(22)==1U);
     const auto& old22=warped.visited_levels.at(22);
     assert(old22.world.npcs[0].npc_type_id==9U);
