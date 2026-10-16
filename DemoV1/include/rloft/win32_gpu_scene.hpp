@@ -32,7 +32,8 @@ public:
               const std::vector<WorldSceneRecord>& records);
     void paint(const RECT& dst,int client_width,int client_height,
                const std::vector<std::uint32_t>& bgra,
-               bool draw_world,unsigned filter_mode,double pitch_radians);
+               bool draw_world,unsigned filter_mode,double pitch_radians,
+               bool menu_overlay=false);
     [[nodiscard]] bool ready() const noexcept { return context_!=nullptr; }
 private:
     HWND hwnd_{};

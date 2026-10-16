@@ -216,6 +216,9 @@ public:
     void set_gpu_world_visible(bool enabled) noexcept {
         gpu_world_visible_=enabled && gpu_world_enabled_;
     }
+    void set_gpu_menu_overlay(bool enabled) noexcept {
+        gpu_menu_overlay_=enabled;
+    }
     void end_gpu_scene() noexcept {
         gpu_world_visible_=false;
         gpu_scene_.reset();
@@ -700,7 +703,8 @@ private:
         if(gpu_scene_ && bgra_.size()==320U*400U) {
             try {
                 gpu_scene_->paint(render_rect(),width,height,bgra_,
-                    gpu_world_visible_,gpu_filter_mode_,gpu_pitch_);
+                    gpu_world_visible_,gpu_filter_mode_,gpu_pitch_,
+                    gpu_menu_overlay_);
                 EndPaint(hwnd_,&ps);
                 return;
             }catch(const std::exception& error) {
@@ -1165,6 +1169,7 @@ private:
     std::unique_ptr<rloft::Win32GpuScene> gpu_scene_;
     bool gpu_world_enabled_{true};
     bool gpu_world_visible_{};
+    bool gpu_menu_overlay_{};
     unsigned gpu_filter_mode_{2U};
     double gpu_pitch_{};
     bool quit_{false};
@@ -1539,6 +1544,7 @@ int run_exploration(
 
     while (host.pump()) {
         host.set_gpu_world_visible(false);
+        host.set_gpu_menu_overlay(false);
         if(host.consume_map_toggle()) {
             const auto current=ui.state().screen;
             if(current==rloft::ExplorationUiScreen::Automap) {
@@ -2653,9 +2659,11 @@ int run_exploration(
 
         // GPU scene coordinates and living sprites are obtained ONLY
         // from this same source frame, mutable session and world.
-        if(hovered_menu<0 && !exploration_preview && !dev_trace)
+        if(!exploration_preview && !dev_trace) {
             host.bind_gpu_frame(runtime.session(),runtime.world(),
                                 frame.world_scene_records);
+            host.set_gpu_menu_overlay(hovered_menu>=0);
+        }
         present_traced(presenter.framebuffer(),presented.palette,
             hovered_menu>=0 ? "top_edge_menu" : "viewport");
         if (!first_scene_submitted) {

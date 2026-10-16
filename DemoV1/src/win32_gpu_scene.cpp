@@ -276,7 +276,8 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode,double aspect) {
 }
 void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
                           const std::vector<std::uint32_t>& bgra,
-                          bool draw_world,unsigned filter_mode,double pitch) {
+                          bool draw_world,unsigned filter_mode,double pitch,
+                          bool menu_overlay) {
     if(cw<=0 || ch<=0 || bgra.size()!=320U*400U)
         throw std::invalid_argument("invalid enhanced game GPU screen");
     make_current();
@@ -310,12 +311,22 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
     const auto x=static_cast<double>(dst.left),y=static_cast<double>(ch-dst.bottom);
     const auto w=static_cast<double>(dst.right-dst.left),h=static_cast<double>(dst.bottom-dst.top);
     constexpr float u=320.f/512.f,v=400.f/512.f;
-    glBegin(GL_QUADS);
-    glTexCoord2f(0,0);glVertex2d(x,y);
-    glTexCoord2f(u,0);glVertex2d(x+w,y);
-    glTexCoord2f(u,v);glVertex2d(x+w,y+h);
-    glTexCoord2f(0,v);glVertex2d(x,y+h);
-    glEnd();
+    const auto draw_live_canvas=[&]() {
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D,canvas_);
+        glMatrixMode(GL_PROJECTION);glLoadIdentity();
+        glOrtho(0,cw,0,ch,-1,1);
+        glMatrixMode(GL_MODELVIEW);glLoadIdentity();
+        glColor3f(1,1,1);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0,0);glVertex2d(x,y);
+        glTexCoord2f(u,0);glVertex2d(x+w,y);
+        glTexCoord2f(u,v);glVertex2d(x+w,y+h);
+        glTexCoord2f(0,v);glVertex2d(x,y+h);
+        glEnd();
+    };
+    draw_live_canvas();
     if(draw_world && mesh_initialized_ && !world_failed_) {
         const int left=dst.left+(dst.right-dst.left)*32/320;
         const int right=dst.left+(dst.right-dst.left)*288/320;
@@ -334,6 +345,20 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
             world_failed_=true;
         }
         glDisable(GL_SCISSOR_TEST);
+        if(menu_overlay) {
+            // CODE.2 top edge buttons and labels are original UI, not
+            // a wall texture. Draw the 0..63 source rows AFTER 3D, so
+            // moving the pointer onto a top menu never flickers back
+            // to the software-only Level22 world.
+            const int strip_bottom=dst.top+
+                (dst.bottom-dst.top)*64/400;
+            glViewport(0,0,cw,ch);
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(dst.left,ch-strip_bottom,
+                      dst.right-dst.left,strip_bottom-dst.top);
+            draw_live_canvas();
+            glDisable(GL_SCISSOR_TEST);
+        }
     }
     glFlush();
     SwapBuffers(dc_);
