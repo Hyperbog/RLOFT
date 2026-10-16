@@ -104,7 +104,7 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
         'combat_live_hand_request_tests enhanced_combat_target_arming_tests',
         '|combat_live_hand_request_tests|enhanced_combat_target_arming_tests|',
         'python DemoV1/tools/verify_native_combat_interaction.py',
-        '|enhanced_native_combat_interaction_contract_tests)$"',
+        '|enhanced_native_combat_interaction_contract_tests|',
     ):
         if marker not in workflow:
             raise ValueError('Windows quick build missing combat-state test: '+marker)
