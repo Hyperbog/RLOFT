@@ -84,6 +84,25 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
     if auto.count("framebuffer.clear(0U);")!=1:
         raise ValueError("automap clear must occur once per frame")
 
+    # CODE.2 018A8..018E6 repaints 250 RES0+35 wallpaper
+    # tiles before the original KEY icons/text. The missing loop
+    # left the player's right-hand legend blank/unreadable.
+    for marker in (
+        'sidebar_filler_frames(original_irq_seed);',
+        'for(int x=0xF0;x<0x140;x+=0x08)',
+        'for(int y=0;y<0x190;y+=0x10)',
+        'draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);',
+        'draw_original_legend(framebuffer,session.level.header[0x290U]);',
+    ):
+        if marker not in auto:
+            raise ValueError('authentic map legend wallpaper missing: '+marker)
+    if auto.index('draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);') > (
+            auto.index('draw_original_legend(framebuffer,session.level.header[0x290U]);')):
+        raise ValueError('automap wallpaper must precede map legend')
+    if source.count('automap_background_seed=code1_tick_count(exploration_epoch);')!=2 or (
+            'automap_background_seed);' not in source):
+        raise ValueError('map wallpaper was not seeded once per modal entry')
+
     for marker in (
         'class EnhancedOptionsPresenter final',
         'EnhancedOptionsSelection action_at(',
@@ -134,6 +153,8 @@ def main()->int:
                "if(false) {"),
             (1,"framebuffer.clear(0U);",
                "/* stale framebuffer */"),
+            (1,"draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);",
+               "/* no original map sidebar tiles */;"),
             (2,"EnhancedOptionsSelection::ReturnToGame",
                "EnhancedOptionsSelection::None"),
             (3,"add_executable(enhanced_options_presenter_tests",
@@ -149,7 +170,7 @@ def main()->int:
             else:raise ValueError("Level22 UI regression escaped: "+old)
     except (OSError,ValueError) as exc:
         raise SystemExit("ENHANCED_LEVEL22_UI_REJECTED: "+str(exc))
-    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (9 negative mutations rejected)")
+    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (10 negative mutations rejected)")
     return 0
 
 if __name__=="__main__":
