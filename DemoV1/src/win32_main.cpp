@@ -3663,7 +3663,12 @@ int run(HINSTANCE instance) {
             rloft::persistent_media_cache_directory() / "v3" / "media") {
         const auto original_media_path = source.location().media_path;
         try {
-            source = rloft::import_persistent_media_cache(std::move(source));
+            if (auto cached =
+                    rloft::open_persistent_media_cache_for(original_media_path)) {
+                source = std::move(*cached);
+            } else {
+                source = rloft::import_persistent_media_cache(std::move(source));
+            }
         } catch (const std::exception& e) {
             const auto message =
                 widen(std::string("Ravenloft cache import failed; loading ") +
