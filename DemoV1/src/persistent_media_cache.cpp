@@ -9,6 +9,7 @@
 #include <array>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
 #include <limits>
 #include <set>
 #include <sstream>
@@ -166,6 +167,13 @@ fs::path persistent_media_cache_directory() {
     return fs::temp_directory_path() / "rloft-enhanced";
 }
 
+// Preserve original install identity independently of cache file paths.
+std::string normalized_media_path(const fs::path& value) {
+    std::error_code ec;
+    const auto canonical = fs::weakly_canonical(value, ec);
+    return (ec ? value : canonical).u8string();
+}
+
 std::optional<GameSource> open_persistent_media_cache() {
     if (const char* force = std::getenv("RLOFT_REIMPORT_ASSETS"); force && *force=='1')
         return std::nullopt;
@@ -214,6 +222,24 @@ std::optional<GameSource> open_persistent_media_cache() {
     return result;
 }
 
+std::optional<GameSource> open_persistent_media_cache_for(
+    const fs::path& original_media_path) {
+    auto source = open_persistent_media_cache();
+    if (!source) return std::nullopt;
+    const auto origin = persistent_media_cache_directory() / "v3" / "origin.bin";
+    std::error_code ec;
+    if (!fs::is_regular_file(origin, ec) || fs::file_size(origin, ec) > 32768 || ec)
+        return std::nullopt;
+    std::ifstream in(origin, std::ios::binary);
+    if (!in) return std::nullopt;
+    const std::string stored((std::istreambuf_iterator<char>(in)),
+                              std::istreambuf_iterator<char>());
+    if (!in.eof() && !in) return std::nullopt;
+    if (stored != normalized_media_path(original_media_path))
+        return std::nullopt;
+    return source;
+}
+
 GameSource import_persistent_media_cache(GameSource original) {
     auto root = persistent_media_cache_directory();
     auto final = root / "v3";
@@ -250,8 +276,12 @@ GameSource import_persistent_media_cache(GameSource original) {
             }
         }
         const auto manifest_text = manifest.str(), report_text=decoded_log.str();
-        write_file(staging/"complete.tsv",std::vector<std::uint8_t>(manifest_text.begin(), manifest_text.end()));
+        const auto original_name = normalized_media_path(original.location().media_path);
         write_file(staging/"decode_report.tsv",std::vector<std::uint8_t>(report_text.begin(), report_text.end()));
+        write_file(staging/"origin.bin",std::vector<std::uint8_t>(original_name.begin(), original_name.end()));
+        // The last file written is the ready marker. No partial archive is
+        // adopted by readers; staging becomes visible only after rename.
+        write_file(staging/"complete.tsv",std::vector<std::uint8_t>(manifest_text.begin(), manifest_text.end()));
         // Validate before swapping in the new installation. A failed reimport
         // must not destroy an older working cache or the independent save overlay.
         auto checked = GameSource::open(staging/"media");
