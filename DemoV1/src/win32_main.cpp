@@ -36,6 +36,7 @@
 #include "rloft/automap_screen_state.hpp"
 #include "rloft/automap_screen_presenter.hpp"
 #include "rloft/automap_controls.hpp"
+#include "rloft/original_automap_file_export.hpp"
 #include "rloft/enhanced_automap_keyboard.hpp"
 #include "rloft/boot_flow.hpp"
 #include "rloft/title_keyboard.hpp"
@@ -1330,6 +1331,37 @@ std::filesystem::path native_save_path() {
     return std::filesystem::path(path.data())/
         L"Hyperbog"/L"Ravenloft"/L"SavedGame-1.rls";
 }
+// Automap buttons 9 and 10 are actual CODE.2 03321/02A34 export
+// commands. Keep DOS/CP437 bytes unchanged and write in the player's
+// native writable directory, rather than to a potentially read-only CD.
+std::filesystem::path write_original_automap(
+    const rloft::LevelState& level,int source_level_id,
+    bool printer_stream) {
+    const auto source_relative=
+        rloft::OriginalAutomapFileExport::source_filename(source_level_id);
+    auto output=native_save_path().parent_path()/
+        std::filesystem::path(source_relative);
+    const auto bytes=printer_stream
+        ? rloft::OriginalAutomapFileExport::printer_03321(level)
+        : rloft::OriginalAutomapFileExport::merged_02a34(level);
+    if(printer_stream)
+        output.replace_extension(L".PRN");
+    std::filesystem::create_directories(output.parent_path());
+    auto staging=output;
+    staging+=L".tmp";
+    {
+        std::ofstream file(staging,std::ios::binary|std::ios::trunc);
+        if(!file)throw std::runtime_error("Cannot create original automap file");
+        file.write(reinterpret_cast<const char*>(bytes.data()),
+                   static_cast<std::streamsize>(bytes.size()));
+        file.flush();
+        if(!file)throw std::runtime_error("Cannot write original automap file");
+    }
+    std::error_code ec;
+    std::filesystem::remove(output,ec);
+    std::filesystem::rename(staging,output);
+    return output;
+}
 std::uint64_t original_media_identity(const rloft::GameSource& source) {
     auto hash=std::uint64_t{14695981039346656037ULL};
     for(const auto* name:{"CODE.1","CODE.2","INIT","LEVELS.DAT",
@@ -1845,6 +1877,34 @@ int run_exploration(
                         host.set_automap_mode(false);
                         input.clear();
                         continue;
+                    }
+                    if(result==rloft::AutomapModalResult::DeferredAction) {
+                        // CODE.2 02DB0 action9 is PRINT via 03321;
+                        // action10 is SAVE via 02A34. Native map SAVE
+                        // emits the original CP437/CRLF stream; PRINT
+                        // preserves the original CR-overprint bytes in
+                        // a .PRN file until a real printer path is added.
+                        if(*action==9 || *action==10) {
+                            try {
+                                const auto output=write_original_automap(
+                                    runtime.session().level,
+                                    runtime.session().level_id,
+                                    *action==9);
+                                const auto message=(*action==9
+                                    ? L"Original DOS printer stream saved to:\n"
+                                      L"(Not sent to a Windows printer)\n"
+                                    : L"Original automap saved to:\n")+
+                                    output.wstring();
+                                MessageBoxW(host.hwnd(),message.c_str(),
+                                    L"Ravenloft - Automap",
+                                    MB_OK|MB_ICONINFORMATION);
+                            }catch(const std::exception& exc) {
+                                const auto message=widen(exc.what());
+                                MessageBoxW(host.hwnd(),message.c_str(),
+                                    L"Ravenloft - Automap export",
+                                    MB_OK|MB_ICONWARNING);
+                            }
+                        }
                     }
                 }
             }
