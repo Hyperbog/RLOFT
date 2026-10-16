@@ -93,12 +93,22 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
         'for(int y=0;y<0x190;y+=0x10)',
         'draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);',
         'draw_original_legend(framebuffer,session.level.header[0x290U]);',
+        'border_filler_frames(original_irq_seed);',
+        'for(int x=0x08;x<0x138;x+=0x08)',
+        'for(int y=0x10;y<0x180;y+=0x10)',
+        'draw_frame(framebuffer,0x35,edges[edge_index++],y,0x138);',
     ):
         if marker not in auto:
             raise ValueError('authentic map legend wallpaper missing: '+marker)
-    if auto.index('draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);') > (
-            auto.index('draw_original_legend(framebuffer,session.level.header[0x290U]);')):
-        raise ValueError('automap wallpaper must precede map legend')
+    order=(
+        'draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);',
+        'draw_original_legend(framebuffer,session.level.header[0x290U]);',
+        'draw_frame(framebuffer,0x35,edges[edge_index++],y,0x138);',
+        'draw_frame(framebuffer, 0x35, 8,    0,     0);',
+    )
+    if [auto.index(item) for item in order] != sorted(
+            auto.index(item) for item in order):
+        raise ValueError('CODE.2 map wallpaper/legend/edges/chrome layering changed')
     if source.count('automap_background_seed=code1_tick_count(exploration_epoch);')!=2 or (
             'automap_background_seed);' not in source):
         raise ValueError('map wallpaper was not seeded once per modal entry')
@@ -155,6 +165,8 @@ def main()->int:
                "/* stale framebuffer */"),
             (1,"draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);",
                "/* no original map sidebar tiles */;"),
+            (1,"draw_frame(framebuffer,0x35,edges[edge_index++],y,0x138);",
+               "/* no original automap edges */;"),
             (2,"EnhancedOptionsSelection::ReturnToGame",
                "EnhancedOptionsSelection::None"),
             (3,"add_executable(enhanced_options_presenter_tests",
@@ -170,7 +182,7 @@ def main()->int:
             else:raise ValueError("Level22 UI regression escaped: "+old)
     except (OSError,ValueError) as exc:
         raise SystemExit("ENHANCED_LEVEL22_UI_REJECTED: "+str(exc))
-    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (10 negative mutations rejected)")
+    print("ENHANCED_LEVEL22_UI_SOURCE_PASS (11 negative mutations rejected)")
     return 0
 
 if __name__=="__main__":
