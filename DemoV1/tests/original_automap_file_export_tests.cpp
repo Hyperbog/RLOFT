@@ -2,7 +2,9 @@
 #undef NDEBUG
 #endif
 #include "rloft/original_automap_file_export.hpp"
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
