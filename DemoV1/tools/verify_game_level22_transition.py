@@ -46,36 +46,61 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
     if runtime.index('*this=std::move(staged);') <
             runtime.index('if(!completed)return false;'):
         raise ValueError('mist quest committed before frame playback finished')
-    beginning=host.index('if (pickup->level22_mist_sequence) {')
-    ending=host.index('} catch (const std::logic_error&)',beginning)
+    # The original 21704 pickup and 21F70 event MUST commit as
+    # one persistent transaction: an aborted frame must not consume the
+    # fourth trigger relic and make a retry impossible.
+    transaction=runtime[runtime.index(
+        'ExplorationRuntime::pickup_and_advance_level22_at('):
+        runtime.index('InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(')]
+    for marker in (
+        'ExplorationRuntime staged=*this;',
+        'auto pickup=staged.pickup_level22_loose_item_at(',
+        'if(!pickup)return {};',
+        'staged.complete_level22_relic_transition(',
+        'return {std::nullopt,true,false};',
+        '*this=std::move(staged);',
+        'return {std::move(pickup),false,warped};',
+    ):
+        if marker not in transaction:
+            raise ValueError('fourth pickup no longer atomic: '+marker)
+    if not (transaction.index('ExplorationRuntime staged=*this;') <
+            transaction.index('auto pickup=staged.pickup_level22_loose_item_at(') <
+            transaction.index('staged.complete_level22_relic_transition(') <
+            transaction.index('return {std::nullopt,true,false};') <
+            transaction.index('*this=std::move(staged);')):
+        raise ValueError('world item removed before transaction completes')
+
+    beginning=host.index('bool mist_input_detached=false;')
+    ending=host.index('} catch(const std::logic_error&)',beginning)
     quest_host=host[beginning:ending]
     for marker in (
-        'if (pickup->level22_mist_sequence) {',
-        'runtime.complete_level22_relic_transition(',
-        'host.set_exploration_input(nullptr);',
-        'host.set_exploration_input(&input);',
+        'runtime.pickup_and_advance_level22_at(',
         'assets.source(),',
         'staged.build_frame();',
         'presenter.present(',
-        'rloft::StartupPresenter::',
-        'fade_factor(',
+        'rloft::StartupPresenter::fade_factor(',
         'frame==21U?4:',
         'host.pause_frame(',
+        'host.set_exploration_input(nullptr);',
+        'host.set_exploration_input(&input);',
+        'if(progress.pickup)',
+        'if(progress.entered_level23)',
+        'else if(progress.transition_cancelled)',
         'refresh_world_palette();',
         'world_music_state.invalidate();',
         'start_authored_world_music();',
         'displayed_scene_frame.reset();',
     ):
         if marker not in quest_host:
-            raise ValueError('real game does not play original quest progression: '+marker)
+            raise ValueError('live original quest progression unwired: '+marker)
     if quest_host.index('host.set_exploration_input(nullptr);') >= quest_host.index(
-            'runtime.complete_level22_relic_transition('):
-        raise ValueError('mist playback captured movement before input lock')
+            'host.pause_frame('):
+        raise ValueError('mist playback captured player input before frame')
     if quest_host.index('host.set_exploration_input(&input);') <= quest_host.index(
-            'runtime.complete_level22_relic_transition('):
-        raise ValueError('mist gameplay input was restored before the event')
+            'host.pause_frame('):
+        raise ValueError('mist input restored before effect finishes')
     if 'mist transition pending' in quest_host:
-        raise ValueError('playable quest still shows placeholder')
+        raise ValueError('placeholder transition still exposed')
     for marker in (
         'events.size()==26U',
         'events.at(21)=="load 23"',
@@ -136,11 +161,16 @@ def main()->None:
         (1,'ExplorationRuntime staged=*this;','ExplorationRuntime& staged=*this;'),
         (1,'if(!completed)return false;','/* partial event commits */'),
         (1,'staged.inventory_.remove_object(','staged.inventory_.has_object('),
-        (2,'runtime.complete_level22_relic_transition(','/* fake event */('),
-        (2,'host.set_exploration_input(nullptr);\n                                try {',
-           '/* input not isolated */\n                                try {'),
-        (2,'world_music_state.invalidate();\n                                        start_authored_world_music();',
-           'world_music_state.invalidate();\n                                        /* source music omitted */'),
+        (1,'auto pickup=staged.pickup_level22_loose_item_at(',
+           'auto pickup=this->pickup_level22_loose_item_at('),
+        (1,'return {std::nullopt,true,false};',
+           'return {std::move(pickup),false,false};'),
+        (2,'runtime.pickup_and_advance_level22_at(',
+           'runtime.pickup_level22_loose_item_at('),
+        (2,'host.set_exploration_input(nullptr);',
+           '/* mist input was not isolated */;'),
+        (2,'world_music_state.invalidate();',
+           '/* original destination music discarded */;'),
         (3,'events.at(22)=="frame 21"','events.at(22)=="frame 20"'),
         (4,'warped.visited_levels.count(22)==1U',
            'warped.visited_levels.count(22)==0U'),
@@ -156,7 +186,7 @@ def main()->None:
         try:check(*mutated)
         except ValueError:continue
         raise ValueError('unsafe Level22 quest regression escaped: '+old)
-    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (13 mutations rejected)')
+    print('ENHANCED_LEVEL22_QUEST_TRANSITION_PASS (16 mutations rejected)')
 
 if __name__=='__main__':
     main()
