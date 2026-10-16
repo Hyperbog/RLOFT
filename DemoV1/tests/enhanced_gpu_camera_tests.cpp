@@ -30,5 +30,18 @@ int main() {
   try{(void)rloft::EnhancedGpuCameraModel::vertical_fov_degrees(0,1.);}
   catch(const std::invalid_argument&){rejected=true;}
   assert(rejected);
+  // RES3 scenery sprites are 128 rows tall with independently decoded
+  // widths. Do not stretch every optional GPU tree/NPC to one fixed width.
+  using rloft::EnhancedGpuCameraModel;
+  assert(EnhancedGpuCameraModel::billboard_world_width(1U)==2.0/128.0);
+  assert(EnhancedGpuCameraModel::billboard_world_width(32U)==0.5);
+  assert(EnhancedGpuCameraModel::billboard_world_width(64U)==1.0);
+  assert(EnhancedGpuCameraModel::billboard_world_width(128U)==2.0);
+  for(unsigned width:{0U,129U,999U}) {
+    bool invalid=false;
+    try{(void)EnhancedGpuCameraModel::billboard_world_width(width);}
+    catch(const std::invalid_argument&){invalid=true;}
+    assert(invalid);
+  }
   return 0;
 }
