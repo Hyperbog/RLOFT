@@ -5,6 +5,22 @@
 
 This is the active project entry point. Historical development updates have been preserved, without deletion, in [the original full development log](DEVELOPMENT_LOG_ARCHIVE_20261010.md). That archive contains old checkpoint statuses and must **not** be read as a current test or release report.
 
+## October 15–16 Windows opening/Level22 implementation checkpoint
+
+[**Compiled and verified Windows #936: 44/44 focused tests**](OPENING_LEVEL22_IMPLEMENTATION_PASS_20261016.md).
+Restored keyboard navigation for all four original title actions,
+F11 fullscreen from the start, cached flicker-conscious GDI fallback,
+authored palette refresh after Load/level change, Windows PCM/MIDI
+device-enumeration fallbacks and multi-level native-save regression
+coverage. Experimental OpenGL world remains F2 opt-in.
+
+**Important:** these changes have not yet fixed/visually accepted the
+broken Level22 scenery, player combat or original mist transition.
+The source file contains 110 placed object records and an independently
+bounded 84-record horizontal view candidate set, so the missing display
+cannot be attributed to absent original scenery. See the checkpoint
+for the measured scene/source counts and the remaining acceptance work.
+
 ## Required one-game acceptance sequence
 
 [**Original logos → original introduction → all four title actions →
