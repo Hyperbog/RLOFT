@@ -87,7 +87,11 @@ def check(strike:str,runtime:str,host:str,tests:str,cmake:str,workflow:str)->Non
         'assert(held_hit.hit.auto_hit_held);',
         'assert(held_rng.state()==one_die.state());',
         'assert(restricted.damage_after_c910==1U);',
-        'assert(failed && invalid_rng.state()==1U);',
+        'assert(killed.died);',
+        'assert(killed.spawned_loose_items==4U);',
+        'assert(world.loose_items[0].object_type_id==0x88U);',
+        'assert(world.loose_items[3].object_type_id==0x74U);',
+        'assert(failed && invalid_rng.state()==1U);
     ):
         if marker not in tests:
             raise ValueError('essential RNG/HP branch regression absent: '+marker)
@@ -135,6 +139,8 @@ def main()->None:
         (2,'!attacked_assassin','true'),
         (3,'assert(miss_rng.state()==single.state());',
            'assert(miss_rng.state()!=single.state());'),
+        (3,'assert(killed.spawned_loose_items==4U);',
+           'assert(killed.spawned_loose_items==0U);'),
         (4,'src/combat_level22_strike.cpp',
            'src/missing_combat_level22_strike.cpp'),
         (5,'combat_level22_strike_tests',
@@ -148,7 +154,7 @@ def main()->None:
         try:check(*altered)
         except ValueError:continue
         raise ValueError('unsafe real combat change escaped: '+old)
-    print('LIVE_LEVEL22_WEAPON_STRIKE_PASS (12 mutations rejected)')
+    print('LIVE_LEVEL22_WEAPON_STRIKE_PASS (13 mutations rejected)')
 
 if __name__=='__main__':
     main()
