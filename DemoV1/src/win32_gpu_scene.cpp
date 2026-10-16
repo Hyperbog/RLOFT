@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include "rloft/win32_gpu_scene.hpp"
 #include "rloft/enhanced_gpu_camera.hpp"
+#include "rloft/enhanced_gpu_backdrop.hpp"
 #include "rloft/level_display.hpp"
 #include "rloft/renderer_tables.hpp"
 #include <GL/glu.h>
@@ -113,8 +114,12 @@ void Win32GpuScene::set_palette(const Palette6& palette) {
 }
 void Win32GpuScene::bind(const ExplorationSessionState& session,
                           const LevelWorldState& world,
-                          const std::vector<WorldSceneRecord>& records) {
+                          const std::vector<WorldSceneRecord>& records,
+                          const std::vector<std::uint8_t>& environment_backdrop) {
+    if(environment_backdrop.size()!=256U*256U)
+        throw std::invalid_argument("live RES8/RES4 background is not 256x256");
     session_=&session;world_=&world;records_=records;
+    environment_backdrop_=environment_backdrop;
     // Level-specific RES3/RES4 indexed images must never keep another
     // level's DAC colors after transitions or a loaded game.
     set_palette(assets_.colors_palette(
@@ -338,6 +343,13 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         canvas_pixels_[di+2U]=static_cast<std::uint8_t>(raw&255U);
         canvas_pixels_[di+3U]=255U;
     }
+    const bool gpu_frame=draw_world && mesh_initialized_ && !world_failed_;
+    if(gpu_frame) {
+        // The indexed world behind 3D contains only original sky/ground.
+        // Never double-project previous software walls or RES3 scenery.
+        EnhancedGpuBackdrop::compose(
+            environment_backdrop_,palette_,canvas_pixels_,menu_overlay);
+    }
     glDisable(GL_DEPTH_TEST);glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,canvas_);
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -369,7 +381,7 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         glEnd();
     };
     draw_live_canvas();
-    if(draw_world && mesh_initialized_ && !world_failed_) {
+    if(gpu_frame) {
         const int left=dst.left+(dst.right-dst.left)*32/320;
         const int right=dst.left+(dst.right-dst.left)*288/320;
         const int top=dst.top+(dst.bottom-dst.top)*4/400;
@@ -377,15 +389,10 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         glEnable(GL_SCISSOR_TEST);
         glScissor(left,ch-bottom,right-left,bottom-top);
         glViewport(left,ch-bottom,right-left,bottom-top);
-        // Source software world and OpenGL project differently.
-        // Clear legacy software walls, floor and sprites INSIDE the
-        // world viewport before drawing the 3D world.
-        const unsigned ci=static_cast<unsigned>(
-            session_?session_->level.header[0x298U]:0U)*3U;
-        glClearColor(static_cast<float>(palette_.rgb[ci])/63.f,
-            static_cast<float>(palette_.rgb[ci+1U])/63.f,
-            static_cast<float>(palette_.rgb[ci+2U])/63.f,1.f);
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        // The source-only RES8 sky/RES4 ground was already copied into
+        // the indexed canvas. Clear DEPTH only: clearing color here
+        // would erase the actual authored environment panorama again.
+        glClear(GL_DEPTH_BUFFER_BIT);
         try{draw_mesh(pitch,filter_mode,
             static_cast<double>(right-left)/static_cast<double>(bottom-top));}
         catch(const std::exception& error) {
@@ -404,6 +411,12 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
             glViewport(0,0,cw,ch);
             glEnable(GL_SCISSOR_TEST);
             glScissor(left,ch-bottom,right-left,bottom-top);
+            // Re-upload the authentic full software world for the failed
+            // paint, not the environment-only GPU canvas.
+            EnhancedGpuBackdrop::restore(bgra,canvas_pixels_);
+            glBindTexture(GL_TEXTURE_2D,canvas_);
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,0,320,400,
+                GL_RGBA,GL_UNSIGNED_BYTE,canvas_pixels_.data());
             draw_live_canvas(); // restore source canvas if optional 3D fails
         }
         glDisable(GL_SCISSOR_TEST);
