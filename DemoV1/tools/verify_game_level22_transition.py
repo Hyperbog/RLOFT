@@ -135,7 +135,7 @@ def check(playback:str,runtime:str,host:str,tests:str,save:str,
         'level22_mist_timeline_tests level22_quest_playback_tests',
         '|level22_mist_timeline_tests|level22_quest_playback_tests|',
         'python DemoV1/tools/verify_game_level22_transition.py',
-        '|enhanced_level22_quest_transition_contract_tests)',
+        '|enhanced_level22_quest_transition_contract_tests|',
     ):
         if marker not in workflow:
             raise ValueError('normal Windows build cannot gate Level23: '+marker)
