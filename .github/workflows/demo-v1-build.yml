@@ -239,6 +239,9 @@ jobs:
           if-no-files-found: error
 
       - name: Keep Windows executable in git
+        # Only the authoritative game branch may publish its own compiled EXE.
+        # Feature-branch CI must never overwrite the integrated game binary.
+        if: ${{ github.ref == 'refs/heads/demo-v1' }}
         shell: pwsh
         run: |
           # Documentation-only commits can land after the Windows
