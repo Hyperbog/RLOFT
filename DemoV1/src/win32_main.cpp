@@ -1477,6 +1477,9 @@ int run_exploration(
     rloft::EnhancedWorldMusicState world_music_state;
     bool gameplay_music_enabled=true;
     bool gameplay_sound_enabled=true;
+    // A new in-game session defaults to sampled SFX enabled,
+    // even if an earlier exploration session disabled them.
+    audio_player.set_enabled(true);
     const auto start_authored_world_music = [&]() {
         if (!gameplay_music_enabled) return;
         const auto level_id=runtime.session().level_id;
@@ -1789,7 +1792,7 @@ int run_exploration(
                 if (choice==
                     rloft::EnhancedOptionsSelection::ToggleSound) {
                     gameplay_sound_enabled=!gameplay_sound_enabled;
-                    if(!gameplay_sound_enabled)audio_player.stop_all();
+                    audio_player.set_enabled(gameplay_sound_enabled);
                 }
             }
             options_presenter.draw(
