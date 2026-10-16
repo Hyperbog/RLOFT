@@ -38,6 +38,7 @@
 #include "rloft/automap_controls.hpp"
 #include "rloft/enhanced_automap_keyboard.hpp"
 #include "rloft/boot_flow.hpp"
+#include "rloft/title_keyboard.hpp"
 #include "rloft/enhanced_game_save.hpp"
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
@@ -107,6 +108,7 @@ class Host final {
 public:
     ~Host() {
         gpu_scene_.reset();
+        release_gdi_backbuffer();
         if (frame_timer_) {
             CloseHandle(frame_timer_);
         }
@@ -698,6 +700,36 @@ private:
         return (client_x - dst.left) * 320 / width;
     }
 
+    void release_gdi_backbuffer() noexcept {
+        if(gdi_bitmap_ && gdi_dc_ && gdi_old_bitmap_)
+            SelectObject(gdi_dc_,gdi_old_bitmap_);
+        if(gdi_bitmap_)DeleteObject(gdi_bitmap_);
+        if(gdi_dc_)DeleteDC(gdi_dc_);
+        gdi_dc_=nullptr;
+        gdi_bitmap_=nullptr;
+        gdi_old_bitmap_=nullptr;
+        gdi_width_=gdi_height_=0;
+    }
+    void ensure_gdi_backbuffer(HDC dc,int width,int height) {
+        if(gdi_dc_ && gdi_bitmap_ &&
+           gdi_width_==width && gdi_height_==height)return;
+        release_gdi_backbuffer();
+        HDC compatible=CreateCompatibleDC(dc);
+        if(!compatible)return;
+        HBITMAP bitmap=CreateCompatibleBitmap(dc,width,height);
+        if(!bitmap){DeleteDC(compatible);return;}
+        HGDIOBJ previous=SelectObject(compatible,bitmap);
+        if(!previous || previous==HGDI_ERROR) {
+            DeleteObject(bitmap);
+            DeleteDC(compatible);
+            return;
+        }
+        gdi_dc_=compatible;
+        gdi_bitmap_=bitmap;
+        gdi_old_bitmap_=previous;
+        gdi_width_=width;
+        gdi_height_=height;
+    }
     void paint() {
         PAINTSTRUCT ps{};
         HDC dc = BeginPaint(hwnd_, &ps);
@@ -720,15 +752,11 @@ private:
             }
         }
 
-        // Render the complete client image off-screen and publish it with one
-        // BitBlt. Direct FillRect + StretchDIBits to the window could expose
-        // the cleared background between those operations and visibly flash.
-        HDC back_dc = CreateCompatibleDC(dc);
-        HBITMAP back_bitmap = CreateCompatibleBitmap(dc, width, height);
-        HGDIOBJ old_bitmap =
-            back_dc && back_bitmap ? SelectObject(back_dc, back_bitmap) : nullptr;
-
-        HDC target = (back_dc && back_bitmap && old_bitmap) ? back_dc : dc;
+        // Keep one size-matched GDI target across frames. The previous
+        // software fallback allocated an HDC and bitmap for every paint,
+        // adding needless 60 Hz allocation jitter and resize flicker.
+        ensure_gdi_backbuffer(dc,width,height);
+        HDC target=gdi_dc_?gdi_dc_:dc;
         FillRect(
             target,
             &client,
@@ -762,13 +790,7 @@ private:
                 SRCCOPY);
         }
 
-        if (target == back_dc) {
-            BitBlt(dc, 0, 0, width, height, back_dc, 0, 0, SRCCOPY);
-        }
-
-        if (old_bitmap) SelectObject(back_dc, old_bitmap);
-        if (back_bitmap) DeleteObject(back_bitmap);
-        if (back_dc) DeleteDC(back_dc);
+        if(gdi_dc_)BitBlt(dc,0,0,width,height,gdi_dc_,0,0,SRCCOPY);
         EndPaint(hwnd_, &ps);
     }
 
@@ -867,9 +889,24 @@ private:
                     return 0;
                 }
 
-                if (exploration_input_ && wparam==VK_F11 &&
+                // One fullscreen presentation control across logos,
+                // cinematics, title, CODE.1 and all CODE.2 screens.
+                if (wparam==VK_F11 &&
                     (lparam&(1LL<<30U))==0) {
                     toggle_fullscreen();return 0;
+                }
+                if(menu_mode_) {
+                    const auto result=rloft::TitleKeyboardModel::key_down(
+                        static_cast<std::uint32_t>(wparam),
+                        selection_,
+                        (static_cast<std::uint64_t>(lparam)&
+                         (1ULL<<30U))!=0U);
+                    if(result.highlighted!=selection_) {
+                        selection_=result.highlighted;
+                        refresh_pointer_overlay();
+                    }
+                    if(result.activate)clicked_=*result.activate;
+                    return 0;
                 }
                 if(exploration_input_ && !inventory_mode_ &&
                    !automap_mode_ && wparam==VK_F2 &&
@@ -1167,6 +1204,12 @@ private:
 
     HWND hwnd_{};
     HANDLE frame_timer_{};
+    // Lifetime of cached size-matched software backbuffer is the window,
+    // never a per-frame CreateCompatibleBitmap/DeleteObject pair.
+    HDC gdi_dc_{};
+    HBITMAP gdi_bitmap_{};
+    HGDIOBJ gdi_old_bitmap_{};
+    int gdi_width_{},gdi_height_{};
     std::vector<std::uint8_t> base_indices_;
     rloft::Palette6 current_palette_{};
     std::vector<std::uint32_t> bgra_;
