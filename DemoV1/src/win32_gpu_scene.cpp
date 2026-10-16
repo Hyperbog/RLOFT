@@ -90,7 +90,7 @@ std::uint64_t Win32GpuScene::fingerprint(const LevelState& level) const {
 void Win32GpuScene::bind(const ExplorationSessionState& session,
                           const LevelWorldState& world,
                           const std::vector<WorldSceneRecord>& records) {
-    session_=&session;world_=&world;records_=&records;
+    session_=&session;world_=&world;records_=records;
     const auto hash=fingerprint(session.level);
     if(!mesh_initialized_ || current_level_!=static_cast<int>(session.level_id) ||
        world_fingerprint_!=hash) {
@@ -171,13 +171,13 @@ GLuint Win32GpuScene::sprite(unsigned id) {
     return tex;
 }
 void Win32GpuScene::draw_sprites(double heading) {
-    if(!world_ || !records_)return;
+    if(!world_)return;
     const double right_x=-std::sin(heading),right_y=std::cos(heading);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER,0.1f);
     glDisable(GL_BLEND);
     glColor3f(1.f,1.f,1.f);
-    for(const auto& record:*records_) {
+    for(const auto& record:records_) {
         std::uint32_t raw_x{},raw_y{};
         switch(record.source_class) {
           case 0U:
@@ -221,7 +221,7 @@ void Win32GpuScene::draw_sprites(double heading) {
     }
     glDisable(GL_ALPHA_TEST);
 }
-void Win32GpuScene::draw_mesh(double pitch) {
+void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode) {
     if(!mesh_initialized_ || !session_)return;
     const auto heading=static_cast<double>(session_->facing)*pi/180.0;
     const auto x=static_cast<double>(
@@ -241,6 +241,11 @@ void Win32GpuScene::draw_mesh(double pitch) {
     for(const auto& item:mesh_.textured) {
         if(item.second.empty())continue;
         glBindTexture(GL_TEXTURE_2D,material(item.first));
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,
+            filter_mode==0U?GL_NEAREST:
+            filter_mode==1U?GL_LINEAR:GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,
+            filter_mode==0U?GL_NEAREST:GL_LINEAR);
         glBegin(GL_TRIANGLES);
         for(const auto& v:item.second) {
             glTexCoord2f(v.u,v.v);glVertex3f(v.x,v.y,v.z);
@@ -266,7 +271,7 @@ void Win32GpuScene::draw_mesh(double pitch) {
 }
 void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
                           const std::vector<std::uint32_t>& bgra,
-                          bool draw_world,bool smooth,double pitch) {
+                          bool draw_world,unsigned filter_mode,double pitch) {
     if(cw<=0 || ch<=0 || bgra.size()!=320U*400U)
         throw std::invalid_argument("invalid enhanced game GPU screen");
     make_current();
@@ -290,7 +295,7 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glTexSubImage2D(GL_TEXTURE_2D,0,0,0,320,400,GL_RGBA,GL_UNSIGNED_BYTE,
                     canvas_pixels_.data());
-    const GLint filter=smooth?GL_LINEAR:GL_NEAREST;
+    const GLint filter=filter_mode==0U?GL_NEAREST:GL_LINEAR;
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,filter);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,filter);
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
@@ -315,7 +320,7 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         glScissor(left,ch-bottom,right-left,bottom-top);
         glViewport(left,ch-bottom,right-left,bottom-top);
         glClear(GL_DEPTH_BUFFER_BIT);
-        try{draw_mesh(pitch);}
+        try{draw_mesh(pitch,filter_mode);}
         catch(const std::exception& error) {
             OutputDebugStringA(error.what());
             // Leave original software scene enabled on subsequent frames:

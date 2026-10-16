@@ -32,7 +32,7 @@ public:
               const std::vector<WorldSceneRecord>& records);
     void paint(const RECT& dst,int client_width,int client_height,
                const std::vector<std::uint32_t>& bgra,
-               bool draw_world,bool smooth,double pitch_radians);
+               bool draw_world,unsigned filter_mode,double pitch_radians);
     [[nodiscard]] bool ready() const noexcept { return context_!=nullptr; }
 private:
     HWND hwnd_{};
@@ -48,7 +48,7 @@ private:
     EnhancedGpuWorldMesh mesh_;
     const ExplorationSessionState* session_{};
     const LevelWorldState* world_{};
-    const std::vector<WorldSceneRecord>* records_{};
+    std::vector<WorldSceneRecord> records_;
     std::uint64_t world_fingerprint_{};
     bool mesh_initialized_{};
     int current_level_{-1};
@@ -57,7 +57,7 @@ private:
     void make_current() const;
     [[nodiscard]] GLuint material(unsigned id);
     [[nodiscard]] GLuint sprite(unsigned id);
-    void draw_mesh(double pitch);
+    void draw_mesh(double pitch,unsigned filter_mode);
     void draw_sprites(double heading);
     void destroy_textures() noexcept;
 };
