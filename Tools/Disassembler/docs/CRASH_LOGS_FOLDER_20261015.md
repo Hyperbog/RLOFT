@@ -53,12 +53,33 @@ The new `CrashLogsSmoke` covers:
 
 No proprietary game files are included in tests or public builds.
 
-## Release verification
+## Release verification — Windows #78 PASS
 
-This section records the exact Windows run and artifact once CI
-compilation, pure synthetic tests, real WPF smoke and
-desktop-only publish are complete. Actual owner reproduction of a
-CODE.1 or CODE.2 managed error remains a separate GUI acceptance test.
+[Automatic Windows Actions #78](https://github.com/Hyperbog/RLOFT/actions/runs/38844456767)
+**SUCCESS** at application and test source SHA
+`02f3331c412b15afdfcf53e342f88cf24b25d6fa`.
+All four Windows .NET Release builds completed with **zero
+warnings and zero errors**. The core `DosDis.Smoke` suite
+passed the new filesystem regression:
+`PASS: crash incidents in portable Logs, fallback per-user Logs,
+unique files, sanitized diagnostics, Explorer path and safe no-write failure`.
+SQLite project smoke and actual WPF deferred-layout smoke also passed.
+The WPF smoke explicitly verified the new `OpenLogsButton`
+was present in the real desktop window.
+
+Published **one desktop-only Windows x64 ZIP**:
+- Artifact: `DOSDis-Desktop-win-x64-preview`
+- GitHub artifact ID `12022638327`
+- ZIP size `66,934,423` bytes
+- ZIP SHA-256
+  `13b4dd33176a5639bfa2275f156ce6d1c76c79411f772c2290c7b9129a4f0f62`
+- [Download build #78](https://github.com/Hyperbog/RLOFT/actions/runs/38844456767/artifacts/12022638327)
+
+Actual owner Windows click of **Logs**, generation of a new
+incident from original CODE.1/CODE.2, and handling of hard
+native crashes have **not** been separately accepted.
+This feature is managed diagnostic JSON logging, NOT a
+Windows native minidump (`.dmp`) generator.
 
 **Note:** Creating a `Logs` folder improves incident accessibility,
 but does not by itself resolve source-file opening or decoding bugs.
