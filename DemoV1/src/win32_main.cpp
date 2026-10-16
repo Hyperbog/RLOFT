@@ -406,6 +406,10 @@ public:
             if(exploration_input_) exploration_input_->clear();
         }
         inventory_mode_=enabled;
+        if(enabled) {
+            stop_mouse_look();
+            strafe_left_=strafe_right_=false;
+        }
     }
 
     // In the automap modal, arrow keys pan the map. They must never
@@ -417,7 +421,10 @@ public:
             if (exploration_input_) exploration_input_->clear();
         }
         automap_mode_ = enabled;
-        if(enabled)stop_mouse_look();
+        if(enabled) {
+            stop_mouse_look();
+            strafe_left_=strafe_right_=false;
+        }
     }
 
     // Enhanced Windows controls are active only after genuine CODE.1 party
@@ -1476,6 +1483,11 @@ int run_exploration(
                 input.clear();
             }
         }
+        // Modal UI owns the pointer and keyboard exclusively; no captured
+        // camera or held strafe may leak into an inventory/map/options panel.
+        if(ui.state().screen!=rloft::ExplorationUiScreen::Viewport) {
+            host.stop_mouse_look();
+        }
         // Re-select only if the authored level or its default cue changed,
         // or if a cinematic stopped the previous sequence.
         start_authored_world_music();
@@ -2458,12 +2470,14 @@ int run_exploration(
             continue;
         }
 
+        // Mouse yaw samples at native presentation cadence, independent
+        // of the original slower collision/movement integration clock.
+        const int yaw=host.consume_mouse_yaw();
+        if(yaw)runtime.session().facing=
+            rloft::ExplorationMotionModel::normalize_heading(
+                static_cast<int>(runtime.session().facing)-yaw);
         if (hovered_menu < 0 &&
             gameplay_cadence.should_integrate(Clock::now(),host.sprint_held())) {
-            const int yaw=host.consume_mouse_yaw();
-            if(yaw)runtime.session().facing=
-                rloft::ExplorationMotionModel::normalize_heading(
-                    static_cast<int>(runtime.session().facing)-yaw);
             auto motion_inputs=input.tick(false);
             const int strafe=host.strafe_axis();
             if(strafe)motion_inputs.orthogonal_input=strafe*64;
