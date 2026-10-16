@@ -23,6 +23,19 @@ public static class BinaryFormatDetector
                 "Object-relative candidate analysis; runtime targets remain unverified.");
         }
 
+        // ROM signatures only identify a candidate format. Mapper/ROM length
+        // validation remains mandatory before any CPU disassembly.
+        if (bytes.StartsWith(new byte[] { 0x4E, 0x45, 0x53, 0x1A }))
+            return Known("ines-candidate", "iNES/NES 2.0 magic at offset zero",
+                "nes-header-validation-required",
+                "NES mapper selection and PRG/CHR geometry must be validated first.");
+        foreach (int at in new[] { 0x1FF0, 0x3FF0, 0x7FF0 })
+            if (at + 16 <= bytes.Length && bytes.Slice(at, 8).SequenceEqual("TMR SEGA"u8))
+                return new("sms-signature-candidate",
+                    "TMR SEGA header candidate", at, "z80-candidate",
+                    "sms-cartridge-validation-required",
+                    "Header alone cannot identify Sega vs Codemasters mapper or current banks.");
+
         // Container signatures take priority over misleading extensions.
         if (bytes.StartsWith("FBOV"u8))
             return Known("fbov", "FBOV at offset zero", "overlay-parser-required",
