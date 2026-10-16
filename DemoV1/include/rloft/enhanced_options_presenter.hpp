@@ -41,8 +41,10 @@ public:
         return EnhancedOptionsSelection::None;
     }
 
+    // Preserve the old two-argument drawing API for any existing
+    // native presenter callers; the active game provides both toggles.
     void draw(IndexedFramebuffer& fb,bool music_enabled,
-              bool sound_enabled) const {
+              bool sound_enabled=true) const {
         fb.clear(0U);
         fb.fill_rect(64,32,300,256,0xB1U);
         fb.fill_rect(67,35,294,250,0U);
