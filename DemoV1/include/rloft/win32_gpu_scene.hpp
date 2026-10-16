@@ -30,7 +30,8 @@ public:
     void set_palette(const Palette6& palette);
     void bind(const ExplorationSessionState& session,
               const LevelWorldState& world,
-              const std::vector<WorldSceneRecord>& records);
+              const std::vector<WorldSceneRecord>& records,
+              const std::vector<std::uint8_t>& environment_backdrop);
     void paint(const RECT& dst,int client_width,int client_height,
                const std::vector<std::uint32_t>& bgra,
                bool draw_world,unsigned filter_mode,double pitch_radians,
@@ -52,6 +53,7 @@ private:
     const ExplorationSessionState* session_{};
     const LevelWorldState* world_{};
     std::vector<WorldSceneRecord> records_;
+    std::vector<std::uint8_t> environment_backdrop_;
     std::uint64_t world_fingerprint_{};
     bool mesh_initialized_{};
     int current_level_{-1};
