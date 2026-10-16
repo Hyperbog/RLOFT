@@ -16,12 +16,13 @@ The source-only diagnostic capture, original executable research and
 historical `native-engine` OpenGL GPU branch remain available.
 
 The live continuous game now integrates W/A/S/D, Q/E turning, Shift
-running, horizontal mouse turning (M or Ctrl+right-click), Tab
-automap, F3 final-image filter and F11 fullscreen. All world locomotion
-uses the existing native collision model. Authentic OpenGL 3D free-look,
-3D mipmapped texture upscaling, AA and GPU world geometry are **not yet
-merged** from `native-engine` and remain the highest-priority
-remaining graphics integration rather than another independent demo.
+running, mouse yaw/pitch (M or Ctrl+right-click), Tab automap, F2
+GPU/software world switching, F3 GPU RES4 nearest/smooth/mipmap texture
+filtering and F11 fullscreen. Authored GPU world meshes and live original
+RES3 sprites are now in the actual CODE.2 game window, sharing its
+collision, party, world, HUD and menus. The separate GPU FBO resolution
+presets, 2×/4× MSAA, exact tree scale/background layering and visual
+acceptance are **still open**.
 
 [Precise status, original GPU source inventory and next integration
 contracts](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md).
@@ -30,8 +31,9 @@ contracts](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md).
 compiled and packaged source `06f2ce565e3bd1` with **39/39 focused
 CTests passed**. The one `Ravenloft-Enhanced-Game-Windows-x64` ZIP
 (artifact 12015779493) was independently verified by matching the
-packaged EXE SHA-256 against its manifest. The GPU world-rendering
-integration and field visual acceptance remain open.
+packaged EXE SHA-256 against its manifest. That #901 build predates the new live OpenGL world-renderer integration.
+[GPU source integration](ENHANCED_GAME_UNIFICATION_CHECKPOINT_20261015.md)
+is committed; newer Windows CI and owner field acceptance are separate.
 
 
 ## Owner field milestone — continuous Windows startup reaches Level 22 (October 13, 2026)

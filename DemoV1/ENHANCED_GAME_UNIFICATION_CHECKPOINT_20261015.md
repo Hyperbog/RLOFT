@@ -3,6 +3,85 @@
 **Date:** 2026-10-15 · **Canonical game branch:** `demo-v1` (historical
 directory name retained; **not** a disposable demo) · **Release:** Pre-Alpha.
 
+## Genuine GPU world integration — source checkpoint (October 15, 2026)
+
+**Source head:** [`736105b1b6b6`](https://github.com/Hyperbog/RLOFT/commit/736105b1b6b6c8bfb2d18bd07d5ef1c0e1340359).
+**Windows validation:** [run #911](https://github.com/Hyperbog/RLOFT/actions/runs/38832263293), in progress when this checkpoint was authored.
+This is a live engine integration and **not** a visual acceptance claim.
+
+The actual CODE.1 → CHARS → CODE.2 game now instantiates
+`Win32GpuScene` inside its own Win32 `Host`, at the normal exploration
+handoff, rather than opening the old standalone `native-engine` explorer.
+`Host::bind_gpu_frame` hands it the current `ExplorationSessionState`,
+the same `LevelWorldState` used for NPCs, inventory and encounters, and
+the source-authored `world_scene_records` emitted for that frame. No
+duplicate party, sandbox world, preview pose or independent exploration
+loop can advance behind the player's back.
+
+The GPU mesh was ported from `NativeEngine::build_native_gpu_scene` as
+`EnhancedGpuWorldMeshModel::build(const LevelState&)`. It observes the
+**mutable current game map**, authentic original 0x2A4-byte resource banks,
+special-center dynamic door state, upper wall geometry, floor/ceiling
+selectors, outdoor ceiling sentinel and boundary wall sentinel.
+An FNV fingerprint prevents rebuilding geometry until cells, source
+controls or level identity change. Original RES4 `SurfaceTextureArchive`
+decodes source indexed pixels and GLU generates authentic-source-derived
+mipmaps without modifying the game files. The original 3D scene is drawn
+via batched OpenGL vertex arrays with true viewport aspect ratio.
+
+Per-frame **live** NPC, placed-object and loose-item records select the
+original RES3 raster by source ID. Transparent source masks are uploaded
+as alpha textures, and the billboards depth-test against original-resourced
+GPU walls/floor. Their 0.9-world-unit width and two-unit height are an
+**enhanced scene approximation**, NOT authenticated DOS billboard-scale
+equivalence. Source placements/identities/selected frame IDs are real;
+exact projected size/palette shade need in-game capture validation.
+
+The unchanged 320×400 original indexed framebuffer supplies HUD, party
+art, cursor, world backdrop and all modal screens; the GPU draws **only**
+in the original first-person viewport. Repainting an active top-edge menu
+over 3D prevents a cursor-hover swap back to GDI. Input: W/A/S/D, Q/E,
+Shift running, Tab original modal automap, M/Ctrl+right-click to capture
+mouse yaw/pitch, F2 GPU/software world toggle, F3 nearest/smooth/mipmap
+filter modes and F11 fullscreen. Vertical pitch changes GPU camera only:
+the original CODE.2 collision, script state, heading and 16.16 camera
+coordinates remain unchanged. GPU failure falls back to the previous
+software renderer, not a missing-texture dummy world.
+
+**Source-guard regression:** `verify_game_gpu_integration.py` rejects
+11 deliberate deletions of the live game binding, GL textures, sprites,
+world resource selectors, menu clipping and player packaging. A separate
+`enhanced_gpu_world_mesh_tests` exercises mutable passability, special
+door open/closed geometry, outdoor roof sentinel, authored texture banks
+and malformed bounds. Compile/CTest status and owner visual acceptance
+are independent gates.
+
+**Direct asset sanity check:** The supplied `LEV022.DAT` contains
+a 30×15 original grid, authored narrow floor selector 55 and 86
+resource-147 boundary cells. The imported mesh deliberately does not
+invent drawable wall faces from those no-draw resource entries.
+The 110 placed records may include actual trees, but the supplied
+RES3 image archive has not been compared to a live GPU capture in this
+check. GPU content may still have scale, overlay, shader or animation
+defects even if CI is green.
+
+### Further GPU acceptance work
+
+- GPU sky and original RES8 environment should be separated from the
+  software sprite/wall background to avoid duplicate fallback artwork
+  behind GPU billboards.
+- Verify original RES3 tree and assassin scale, animation frame selection,
+  alpha/depth layering, palette shading and source-object disappearance.
+- Port the previous `NativeGlViewportTarget` FBO resolution presets,
+  proper optional 2×/4× MSAA and screenshot capture; current renderer
+  renders at the window's actual pixel resolution, not a separate F2
+  native-to-4K internal render target.
+- Bind level-palette changes and source-texture cache invalidation across
+  transitions, preserve complete scripted game/audio state, and field-test
+  fullscreen, automap, options, inventory and NPC interaction.
+- Do not promote Beta/Final until save/load and full campaign gameplay
+  are source-backed, functional and field-accepted.
+
 ## What the developer builds actually contain
 
 The original owner-tested enhanced viewport was independently developed in
@@ -21,14 +100,16 @@ The current complete startup / character-creation / native CODE.2 gameplay
 and inventory work is in `demo-v1`, chiefly
 `DemoV1/src/win32_main.cpp`, `exploration_runtime.cpp`,
 `exploration_presenter.cpp`, and the original RES* decoders.
-The world currently renders into a faithful 320×400 indexed software
-framebuffer presented by Win32 GDI. Previous `demo-v1` releases therefore
-looked unlike the 3D GPU prototype, despite passing gameplay-focused tests.
+Earlier `demo-v1` releases presented the full 320×400 indexed software
+world through Win32 GDI; the new normal-game renderer now layers the
+OpenGL 3D scene inside that same original indexed HUD/game window.
+The indexed path remains available through F2/fallback.
 
 **A separate GPU explorer is NOT a replacement for the continuous game.**
-The missing task is to move its GPU presentation and world-geometry model into
-the running game and wire it to the same live character/world/inventory/event
-state, not reintroduce a launcher that warps to Level 22.
+The GPU presentation, original RES4 geometry and native RES3 billboard
+path have now been integrated into the running game using the same live
+character/world/inventory records. Field-level visual parity, render
+targets/AA and complete authored game progression remain unfinished.
 
 ## Changes committed to the actual game in this consolidation
 
@@ -54,15 +135,16 @@ state, not reintroduce a launcher that warps to Level 22.
    rotation is sampled at 60 Hz independently of the lower-frequency
    movement/collision integration. Normal right-click inventory/hand
    interactions are preserved. Input/capture is cleared on focus loss,
-   automap, inventory and non-viewport modes. **Vertical GPU pitch is not
-   yet integrated; do not advertise this as full GPU free-look.**
+   automap, inventory and non-viewport modes. **Vertical GPU camera pitch
+   is now available in the live-game OpenGL viewport**, kept separate
+   from original gameplay heading and collisions.
 7. Tab opens/closes the existing game-world automap, using the same
    authored controller and cache used by its menu button. Modal key events
    never leak back into movement. Synthetic UI tests cover repeat behavior.
-8. F3 toggles smooth/nearest scaling of the **final indexed PC game
-   framebuffer**; F11 toggles fullscreen with restoration of the prior
-   Windows placement. **F3 is not true texture upscaling/mipmapping or
-   a substitute for importing the original OpenGL world renderer.**
+8. F3 now cycles GPU original RES4 nearest, smooth and mipmapped
+   texture filters; software-only fallback uses nearest/smooth indexed
+   presentation. F11 toggles fullscreen. F2 selects GPU world vs
+   original software scene, without changing party/AI/encounters.
 
 The regression suite still protects the genuine CODE.1 intro, cinematic
 sound, animations, character creation, native RES3/RES4/RES8 content,
@@ -97,28 +179,24 @@ completed successfully on source
 
 **What these tests do NOT prove:** correctly textured GPU world scenes,
 true 3D free-look/pitch, screenshot-accurate Level 22 tree positions or
-working end-to-end game content. The ZIP still uses the 320×400 indexed
-software world scanout, not the separate OpenGL world's geometry or
-FBO/mipmap pipeline. **Gameplay field/owner visual acceptance remains
+working end-to-end game content. The earlier #901 ZIP still uses the 320×400 indexed
+software world scanout; it predates the new integrated OpenGL 3D
+geometry/mipmap pipeline. Obtain the newer Windows run once verified. **Gameplay field/owner visual acceptance remains
 open.**
 
-## What is still missing — binding contract for GPU consolidation
+## Original GPU renderer follow-on priorities (remaining)
 
 **Next code work, in dependency order:**
 
-1. Introduce a portable `GpuWorldFrame` data transfer under the canonical
-   game, populated solely from `ExplorationRuntimeFrame`,
-   `ExplorationSessionState` and the real current `LevelWorldState`.
-   It must not create a second party, duplicate the world or synthesize
-   Level 22 coordinates.
-2. Port the tested OpenGL context/framebuffer, original RES4 texture upload,
-   real world mesh/visibility and RES3 billboard placement from
-   `NativeEngine` into a renderer class belonging to the existing game.
-   Draw that renderer behind the current party HUD/menus. Test source media
-   revision, cache invalidation and life-cycle on level transitions.
-3. Make original source camera heading/position and modern pitch/FOV values
-   separate and explicit so mouse look never silently changes collision,
-   script triggers or persisted player heading. Map arrows/QE/M uniformly.
+1. Complete the GPU backdrop/sprite compositing and animated RES3
+   acceptance checks detailed above; source-record binding is implemented,
+   but the exact authored billboard scaling and shading remain open.
+2. Bring across the previous render-target resolution/AA infrastructure,
+   with safe fallback and source/palette cache invalidation on level
+   transitions; the first live-game OpenGL backend is now integrated.
+3. Keep original motion-state/camera integration unchanged while improving
+   FOV/pitch and modern input; horizontal and vertical live GPU mouse look
+   are already implemented.
 4. Bind game-world NPC deaths, loose-item pickup/drop, scene object state,
    inventory equipment and animated resource selector to the SAME renderer.
    A static reconstructed world screenshot is not game integration.
