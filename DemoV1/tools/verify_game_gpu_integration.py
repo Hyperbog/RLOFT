@@ -17,19 +17,19 @@ def check(host,gpu,mesh,cmake,workflow):
         'gpu_scene_->paint(render_rect(),width,height,bgra_,',
         'host.set_gpu_world_visible(false);',
         'if(!dev_trace)host.begin_gpu_scene(',
-        // The same modern presentation target owns original logos, movies,
-        // title, character creation and gameplay. Optional 3D starts OFF.
+        # The same modern presentation target owns original logos, movies,
+        # title, character creation and gameplay. Optional 3D starts OFF.
         'host.begin_gpu_scene(assets,presenter.palette12());',
         'bool gpu_world_enabled_{false};',
         'unsigned gpu_filter_mode_{0U};',
         'options.resume_existing_party &&',
         'source.set_runtime_overlay(root);',
-        // The exact four original title actions remain operable.
+        # The exact four original title actions remain operable.
         'if (*click == 0) {',
         'if (*click == 1) {',
         'if (*click == rloft::BootFlow::kCharacterWorkflowMenuIndex) {',
         'if (*click == 3) {',
-        // Native progress is restored independently of original SAVE.DAT.
+        # Native progress is restored independently of original SAVE.DAT.
         'write_native_save(runtime,assets.source());',
         'read_native_save(assets.source());',
         'runtime.restore_native_checkpoint(',
