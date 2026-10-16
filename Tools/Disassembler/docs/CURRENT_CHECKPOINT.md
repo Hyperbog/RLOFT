@@ -1,5 +1,40 @@
 # DOSDis — compact current checkpoint
 
+## Current — crash reports move to local Logs; Windows #78 PASS
+
+- Owner requested that crash files be deposited into a discoverable
+  `Logs` folder. Future managed diagnostic `incident-*.json`
+  reports now go to **`Logs/` beside the Windows
+  `DosDis.Desktop.exe`** by default, or
+  **`%LOCALAPPDATA%\\DOSDis\\Logs`** when the executable
+  directory is protected or unwritable.
+- Added visible WPF **Logs** toolbar action opening the writable
+  or current-session report folder in Windows Explorer.
+  No old report is overwritten; prior
+  `%LOCALAPPDATA%\\DOSDis\\Incidents` reports are not moved.
+  Report privacy remains source-path/byte/message/stack-free,
+  and no automatic uploads occur. Fatal native crashes may
+  bypass managed callbacks; no `.dmp` generation is claimed.
+- Added original-free filesystem regression for portable write,
+  fallback, distinct unique reports, rejection of private
+  exception messages and safe failure when neither path works.
+  The real WPF smoke now verifies the **Logs** button exists.
+- **Automatic [Windows build #78](https://github.com/Hyperbog/RLOFT/actions/runs/38844456767)
+  PASS** at exact app/test SHA
+  `02f3331c412b15afdfcf53e342f88cf24b25d6fa`:
+  four Release builds 0 warnings/errors, core smoke incl.
+  crash Logs tests PASS, SQLite smoke PASS and WPF layout
+  smoke PASS; one Windows desktop ZIP artifact
+  `12022638327`, **66,934,423 bytes**, ZIP SHA-256
+  `13b4dd33176a5639bfa2275f156ce6d1c76c79411f772c2290c7b9129a4f0f62`.
+  [Download #78](https://github.com/Hyperbog/RLOFT/actions/runs/38844456767/artifacts/12022638327).
+- **Pending:** owner clicks the actual desktop **Logs**
+  action on Windows and checks a newly generated report;
+  actual original CODE.1/CODE.2 open and G2 independent
+  accuracy remain separately assessed.
+  [Implementation, safety and acceptance details](CRASH_LOGS_FOLDER_20261015.md).
+
+
 ## Current release blocker triage — WPF Run.Text crash corrected in #71, owner GUI acceptance pending
 
 - User uploaded **10 private incident reports representing five
