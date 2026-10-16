@@ -45,6 +45,7 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    GuestSourceMemorySmoke.Run();
     CrashLogsSmoke.Run();
     LargeLeOpenSmoke.Run();
     CodeClassificationBenchmarkSmoke.Run();

@@ -1,6 +1,8 @@
 # DOSDis — disassembler workstream of RLOFT
 
-This branch owns the **game-agnostic DOS executable disassembler** and its independent-accuracy validation. Its source, build gates and original-comparison evidence remain under [`Tools/Disassembler/`](Tools/Disassembler/README.md); they are intentionally **not moved** to cross-project documentation.
+This branch owns the **multi-platform video game disassembly and recompilation workbench** and its independent-accuracy validation. Its source, build gates and original-comparison evidence remain under [`Tools/Disassembler/`](Tools/Disassembler/README.md); they are intentionally **not moved** to cross-project documentation.
+
+The long-term scope covers systems from the NES era onward. **DOS, NES, and Sega Master System** are the first active platform targets. Current implemented decoding is DOS/x86; console backends are planned. [Multi-platform architecture checkpoint](Tools/Disassembler/docs/MULTIPLATFORM_CORE_PLAN.md).
 
 ## Start here
 
