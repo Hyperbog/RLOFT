@@ -24,6 +24,8 @@ Source change [`def4c19c2b1d36ded0ffa8b6c95f022de4f01b2a`](https://github.com/Hy
 
 Also restore the source-indexed world **on the same frame** when optional GPU geometry raises, clearing left-over client-array state before compositing. Without this recovery, the world had already been cleared and could show a blank failed frame. The next frames fall back to the preserved software renderer. Added portable C++ width tests and negative source-integrity mutations; these are not evidence of full graphical correctness.
 
+**Additional failure handling:** [`57188b55921a7517cc74482ee3011fc95ba24b30`](https://github.com/Hyperbog/RLOFT/commit/57188b55921a7517cc74482ee3011fc95ba24b30) detects when all attempted live RES3 sprites failed to upload/draw. Instead of silently showing an empty optional GPU landscape, the game disables that 3D draw and restores the original indexed scene immediately. Truly empty authored scenes are allowed. A portable test covers 0/0, 1/0, 110/0, partial success and invalid counters. This is a **failure-safe improvement**, not proof the original scenery is correctly drawn.
+
 **Next user-facing defect to close:** compare new direct-executable Level22 screen captures against authentic original gameplay at the same party pose. Check original source panorama, RES3 location/height/masks, indexed palette and SINTAB, OpenGL sprite depth order, and currently missing sky/ground; fix the first reproduced scene defect, not a guessed coordinate. Windows gameplay and owner acceptance remain open at this checkpoint.
 
 ## Technology policy
