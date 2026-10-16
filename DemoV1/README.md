@@ -3,6 +3,8 @@
 **Active development branch:** `demo-v1`  
 **Goal:** create a **complete enhanced native Windows PC port** of Ravenloft. Preserve all authored game content and established cinematics/audio/character creation, but use modern display/input/timing/audio and safe port-native saves. **Exact original DOS execution or DOSBox parity is no longer a release requirement.** [Active port charter](ENHANCED_PC_PORT_CHARTER.md) supersedes the former original-fidelity mandate. The [mod-forward profile](MOD_FORWARD_PROFILE.md) applies the [universal methodology](../MOD_FORWARD_METHODOLOGY.md) without claiming a shipped mod loader. The priority remains one working intro → creation → genuinely rendered playable Level 22 → entire campaign.
 
+**Enhanced renderer + combat inputs (October 16):** [Live original RES8/RES4 OpenGL backdrop and source-authenticated C7C4/C80C player-hit inputs](LEVEL22_GPU_ENVIRONMENT_AND_COMBAT_INPUT_20261016.md). Code and tests committed; the new Windows build and visual/combat acceptance remain open.
+
 **Level22 quest-state integrity (October 16):** [Atomic Assassin death, unique relics, guarded pickup, persistent native quest-save tests](LEVEL22_QUEST_STATE_SAFETY_20261016.md). Source committed; no player attack or mist effect accepted yet.
 
 **Gameplay-first reset (October 16):** [One product, real acceptance and updated next steps](PLAYABLE_GAME_REFRESH_20261016.md). The first post-reset code change repairs proportional optional-GPU RES3 silhouettes and restores the source software scene within a failed GPU frame. Portable checks exist; live Windows visual acceptance is not yet claimed.
