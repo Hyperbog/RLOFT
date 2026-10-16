@@ -451,7 +451,7 @@ public:
         if(!ClientToScreen(hwnd_,&center))return 0;
         POINT pos{};
         if(!GetCursorPos(&pos))return 0;
-        const int delta=std::clamp(pos.x-center.x,-256,256);
+        const int delta=std::clamp(static_cast<int>(pos.x-center.x),-256,256);
         if(pos.x!=center.x || pos.y!=center.y)
             SetCursorPos(center.x,center.y);
         yaw_fraction_+=static_cast<double>(delta)*0.18;
