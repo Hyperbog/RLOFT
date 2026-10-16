@@ -17,6 +17,22 @@ def check(host,gpu,mesh,cmake,workflow):
         'gpu_scene_->paint(render_rect(),width,height,bgra_,',
         'host.set_gpu_world_visible(false);',
         'if(!dev_trace)host.begin_gpu_scene(',
+        // The same modern presentation target owns original logos, movies,
+        // title, character creation and gameplay. Optional 3D starts OFF.
+        'host.begin_gpu_scene(assets,presenter.palette12());',
+        'bool gpu_world_enabled_{false};',
+        'unsigned gpu_filter_mode_{0U};',
+        'options.resume_existing_party &&',
+        'source.set_runtime_overlay(root);',
+        // The exact four original title actions remain operable.
+        'if (*click == 0) {',
+        'if (*click == 1) {',
+        'if (*click == rloft::BootFlow::kCharacterWorkflowMenuIndex) {',
+        'if (*click == 3) {',
+        // Native progress is restored independently of original SAVE.DAT.
+        'write_native_save(runtime,assets.source());',
+        'read_native_save(assets.source());',
+        'runtime.restore_native_checkpoint(',
         'gpu_filter_mode_=(gpu_filter_mode_+1U)%3U;',
         'gpu_world_enabled_=!gpu_world_enabled_;',
         'gpu_pitch_=std::clamp(',
@@ -85,6 +101,12 @@ def main():
     check(*sources)
     mutations=(
         (0,'host.begin_gpu_scene(assets,exploration_palette);','/* GPU init missing */'),
+        (0,'host.begin_gpu_scene(assets,presenter.palette12());','/* full game GL missing */'),
+        (0,'bool gpu_world_enabled_{false};','bool gpu_world_enabled_{true};'),
+        (0,'unsigned gpu_filter_mode_{0U};','unsigned gpu_filter_mode_{2U};'),
+        (0,'if (*click == 1) {','if (false) {'),
+        (0,'write_native_save(runtime,assets.source());','/* no Save */'),
+        (0,'options.resume_existing_party &&','true &&'),
         (0,'frame.world_scene_records);','{});'),
         (0,'gpu_scene_->paint(render_rect(),width,height,bgra_,','/* GPU draw missing */('),
         (0,'gpu_pitch_=std::clamp(','gpu_pitch_=0.0; //'),
@@ -104,7 +126,8 @@ def main():
         try:check(*altered)
         except ValueError:continue
         raise ValueError('GPU game regression escaped: '+old)
-    print('ENHANCED_GAME_GPU_SOURCE_PASS (11 negative mutations rejected)')
+    print('ENHANCED_GAME_GPU_SOURCE_PASS ('+str(len(mutations))+
+          ' negative mutations rejected; original display default protected)')
 
 if __name__=='__main__':
     main()

@@ -6,6 +6,60 @@ creation → CHARS disk handoff → real CODE.2 Level 22 → assassin/relic endi
 authentic 22-frame mist transition. **No further campaign development may be
 promoted until this one contiguous sequence works.**
 
+## Locked owner milestone — required sequence and release freeze
+
+**Owner-directed sequence:** modern API presentation → DreamForge, SSI and
+TSR logos → original introduction → interactive four-choice title →
+original CODE.1 character creation → faithful, fully playable Level 22 →
+authentic 22-frame mist and one source-backed Level 23 transition.
+
+**No expansion or release claim beyond this milestone** until its
+full startup, all title selections, character choices, SAVE/Continue,
+Level 22 environment/actors/interactions/sound/animation and original
+transition are confirmed from a continuous player run. Neither compiling,
+unit tests, static source-contract tests nor isolated screens satisfy
+the gameplay/visual acceptance gate.
+
+**Fidelity by default, enhancements optional:** the default Level 22
+world is the source-raster scene (F2 modern polygon world must be opted
+into); nearest-neighbor/source palette/filter settings are defaults.
+Every graphical or input enhancement must be independently reversible
+without affecting collision, script predicates, actor/item inventory,
+puzzles, RNG, music content or the authoritative save data. The same
+Windows OpenGL presentation path should drive logos, movies, title,
+CODE.1 creation and gameplay, while a safe software path remains for
+machines without a working GPU driver. The existing Win32 WGL backend
+is a **compatibility-profile renderer**, not yet a modern OpenGL core
+profile or DirectX 12 implementation. Modernizing the API must not
+degrade original resource decoding or block gameplay fixes.
+
+**Explicit boot-order mismatch needing original-game verification:** the
+current Windows code plays `CINE00.ANM`, then `CINE12.ANM`, then the
+three separately decoded splash/logo scenes. This does **not** match
+the literal owner-specified logos-before-introduction order. Current
+CODE.2 source research describes CINE events before logo steps, so
+do not rearrange those assets on assumption alone: compare real
+original CD-ROM playback (including the actual content of both movies)
+to the expected owner sequence and resolve the discrepancy before
+calling the front end accepted. The user-facing menu's Show
+Introduction action must replay the correct original cinematic
+without leaving the title unusable.
+
+**Level 22 end-blocker:** `Level22MistTimeline` currently describes
+original CODE.2 `21F70..223DE` operations, but the actual gameplay
+loop still reports "mist transition pending" after the relic trigger.
+Do not silently start Level 23 or substitute an invented cinematic.
+Completion requires original effect startup, authored frame resource
+lookup/draw, audio/timing, event lock, the exact frame-20 transition
+and post-frame object removal, all tested in one live game session.
+
+**Evidence required to close:** captured Win32 gameplay (logo
+ordering, title menu actions, creation, Level 22 with the original
+raster and optional 3D output), deterministic SAVE→quit→Continue
+comparisons, original media and byte-source identity, audio inspection,
+no flicker or bad perspective, and a cinematic record including the
+single level transition. Each failure remains an open release gate.
+
 ## Technical and artistic invariants
 
 - Keep the shipped original DOS game content/source code as the behavioral
