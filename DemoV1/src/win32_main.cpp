@@ -2602,9 +2602,13 @@ int run_exploration(
                                 outcome.injury && outcome.injury->died
                                     ? L"Ravenloft - Assassin defeated | "
                                       L"four original relics dropped"
-                                    : outcome.strike.hit.hit
-                                      ? L"Ravenloft - Assassin struck"
-                                      : L"Ravenloft - Attack missed";
+                                    : outcome.strike.
+                                          target_suppressed_by_rear_party_rule
+                                      ? L"Ravenloft - Rear-party attack "
+                                        L"has no valid target"
+                                      : outcome.strike.hit.hit
+                                        ? L"Ravenloft - Assassin struck"
+                                        : L"Ravenloft - Attack missed";
                             SetWindowTextW(host.hwnd(),caption);
                             if(trace) {
                                 try {trace->event(
