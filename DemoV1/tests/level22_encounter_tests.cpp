@@ -395,6 +395,27 @@ int main() {
         assert(msg_inventory.held.object_id==0x74);
     }
 
+    // A damaged/malformed save or mod may contain an unrecognized item
+    // ID. Do not erase that placed item or clobber a held cursor before
+    // the original OBJECTS catalogue validation rejects it.
+    rloft::LevelWorldState malformed_world{};
+    rloft::LiveObjectRecord corrupt{};
+    corrupt.object_type_id=0xFFFFU;
+    malformed_world.loose_items.push_back(corrupt);
+    rloft::InventoryRuntimeState malformed_inv{};
+    malformed_inv.held.object_id=0x55;
+    malformed_inv.held.known=1U;
+    bool bad_item_rejected=false;
+    try {
+        (void)rloft::Level22EncounterModel::pickup_loose_item(
+            malformed_world,0U,malformed_inv,quick_party,objects);
+    }catch(const std::out_of_range&) {bad_item_rejected=true;}
+    assert(bad_item_rejected);
+    assert(malformed_world.loose_items.size()==1U);
+    assert(malformed_world.loose_items[0].object_type_id==0xFFFFU);
+    assert(malformed_inv.held.object_id==0x55);
+    assert(malformed_inv.held.known==1U);
+
     assert(quick_world.loose_items.empty());
     assert(quick_inventory.held.object_id==0x74);
     for(const auto relic:rloft::Level22Story::quest_objects()) {
