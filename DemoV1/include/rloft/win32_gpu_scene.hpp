@@ -46,6 +46,7 @@ private:
     GLuint canvas_{};
     std::map<unsigned,GLuint> materials_,sprites_;
     std::map<unsigned,std::array<float,2>> sprite_uv_;
+    std::map<unsigned,unsigned> sprite_width_;
     std::vector<std::uint8_t> canvas_pixels_;
     EnhancedGpuWorldMesh mesh_;
     const ExplorationSessionState* session_{};
