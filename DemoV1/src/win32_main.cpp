@@ -1544,6 +1544,7 @@ int run_exploration(
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
+    std::uint32_t automap_background_seed=1U;
     std::optional<std::uint32_t> quit_random_seed;
     struct TraceHostDetach final {
         Host& host;
@@ -1751,6 +1752,7 @@ int run_exploration(
                     rloft::ExplorationWorldModel::party_cell(runtime.session()));
                 ui.open_automap();
                 automap.emplace(runtime.session());
+                automap_background_seed=code1_tick_count(exploration_epoch);
                 host.set_automap_mode(true);
                 input.clear();
             }
@@ -1847,6 +1849,7 @@ int run_exploration(
             rloft::ExplorationUiScreen::Automap) {
             if (!automap) {
                 automap.emplace(runtime.session());
+                automap_background_seed=code1_tick_count(exploration_epoch);
             }
 
             // Repeatable arrow/Shift+arrow navigation uses the SAME
@@ -1915,7 +1918,8 @@ int run_exploration(
                 runtime.session(),
                 runtime.renderer_tables(),
                 automap->state(),
-                automap->annotation_overlay_enabled());
+                automap->annotation_overlay_enabled(),
+                automap_background_seed);
             present_traced(presenter.framebuffer(),exploration_palette);
 
             next_frame +=
@@ -2546,6 +2550,8 @@ int run_exploration(
                                             runtime.session()));
                             automap.emplace(
                                 runtime.session());
+                            automap_background_seed=
+                                code1_tick_count(exploration_epoch);
                             host.set_automap_mode(true);
                         } else if (
                             ui.state().screen ==
@@ -3041,7 +3047,8 @@ int run_exploration(
                 runtime.session(),
                 runtime.renderer_tables(),
                 automap->state(),
-                automap->annotation_overlay_enabled());
+                automap->annotation_overlay_enabled(),
+                automap_background_seed);
             present_traced(presenter.framebuffer(),exploration_palette);
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
