@@ -69,6 +69,9 @@ struct Win32MidiPlayer::Impl {
     std::condition_variable cv;
     bool stop_requested{};
     bool sequence_active{};
+    // Latch success independently of whether a very short sequence has
+    // already ended by the time the volume-fade thread is scheduled.
+    bool sequence_started{};
     bool device_open_failed{};
     HMIDIOUT active_out{};
     int relative_volume{100};
@@ -125,7 +128,7 @@ struct Win32MidiPlayer::Impl {
 
         if (wait_for_sequence_start) {
             cv.wait(lock, [this] {
-                return stop_requested || sequence_active ||
+                return stop_requested || sequence_started ||
                        device_open_failed;
             });
             if (stop_requested || device_open_failed) return;
@@ -218,6 +221,7 @@ struct Win32MidiPlayer::Impl {
             std::lock_guard<std::mutex> lock(mutex);
             stop_requested = false;
             sequence_active = false;
+            sequence_started = false;
             device_open_failed = false;
             active_out = nullptr;
             expression.fill(127);
@@ -265,6 +269,7 @@ struct Win32MidiPlayer::Impl {
                     }
                     active_out = out;
                     sequence_active = true;
+                    sequence_started = true;
                     apply_relative_volume_locked();
                 }
                 cv.notify_all();
