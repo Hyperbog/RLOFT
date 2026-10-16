@@ -39,6 +39,12 @@ public:
     [[nodiscard]] static std::array<std::uint8_t,kSidebarFillTileCount>
     sidebar_filler_frames(std::uint32_t original_irq_seed) noexcept;
 
+    // CODE.2 01957..01A4E: 38 top/bottom pairs and 23 side
+    // triples, all authored RES0+35 frames 5..19.
+    static constexpr std::size_t kBorderFillTileCount=145U;
+    [[nodiscard]] static std::array<std::uint8_t,kBorderFillTileCount>
+    border_filler_frames(std::uint32_t original_irq_seed) noexcept;
+
     void draw(
         IndexedFramebuffer& framebuffer,
         const ExplorationSessionState& session,
