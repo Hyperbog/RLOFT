@@ -461,6 +461,7 @@ add_library(rloft_boot_flow
     src/combat_npc_death_followon.cpp
     src/combat_npc_respawn.cpp
     src/combat_xp_distribution.cpp
+    src/combat_xp_award_service.cpp
     src/combat_progression_thresholds.cpp
     src/combat_level_change_gate.cpp
     src/combat_level_change_sequence.cpp
@@ -772,6 +773,10 @@ add_test(NAME combat_npc_respawn_tests COMMAND combat_npc_respawn_tests)
 add_executable(combat_xp_distribution_tests tests/combat_xp_distribution_tests.cpp)
 target_link_libraries(combat_xp_distribution_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_xp_distribution_tests COMMAND combat_xp_distribution_tests)
+
+add_executable(combat_xp_award_service_tests tests/combat_xp_award_service_tests.cpp)
+target_link_libraries(combat_xp_award_service_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_xp_award_service_tests COMMAND combat_xp_award_service_tests)
 add_executable(combat_progression_thresholds_tests tests/combat_progression_thresholds_tests.cpp)
 target_link_libraries(combat_progression_thresholds_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_progression_thresholds_tests COMMAND combat_progression_thresholds_tests)
