@@ -28,6 +28,21 @@ bool AutomapScreenPresenter::legend_entry_visible(
     return index<13U && (index!=9U || mode==0xFFU);
 }
 
+std::array<std::uint8_t,AutomapScreenPresenter::kSidebarFillTileCount>
+AutomapScreenPresenter::sidebar_filler_frames(
+    std::uint32_t original_irq_seed) noexcept {
+    // Object1 01884..018E6 seeds 290D0 with IRQ word 30700
+    // and calls 30CA2 for each tile. E8 BD F3 02 00 is followed
+    // by LEA EAX,[EAX*4] / SHR EAX,0x0F: an exact 0..3 frame.
+    OriginalRandom random(original_irq_seed&0xFFFFU);
+    std::array<std::uint8_t,kSidebarFillTileCount> result{};
+    for(auto& frame:result) {
+        frame=static_cast<std::uint8_t>(
+            (static_cast<std::uint32_t>(random.next15())*4U)>>15U);
+    }
+    return result;
+}
+
 void AutomapScreenPresenter::draw_original_legend(
     IndexedFramebuffer& framebuffer,std::uint8_t mode) const {
     // Original 018E6..01950:
@@ -76,7 +91,8 @@ void AutomapScreenPresenter::draw(
     const ExplorationSessionState& session,
     const RendererTables& tables,
     const AutomapScreenState& state,
-    bool annotation_overlay_enabled) const {
+    bool annotation_overlay_enabled,
+    std::uint32_t original_irq_seed) const {
     // The native viewport retains its previous frame between modal
     // transitions. Clear it before assembling the automap so undrawn
     // areas cannot leak old trees, terrain, or UI pixels through
@@ -98,8 +114,21 @@ void AutomapScreenPresenter::draw(
             0xC8, column);
     }
 
-    // CODE.2 01834 fixed chrome. RNG-selected 35h edge fillers and T-text
-    // labels are intentionally separate rather than approximated.
+    // CODE.2 018A8..018E6 paints the COMPLETE right sidebar with
+    // authenticated RES0+35h frames 0..3. The prior omission left
+    // the KEY/legend background filled with the map's brown tiles,
+    // making the original glyphs illegible. Use the modal-open IRQ
+    // seed, never advance the actual combat/gameplay random stream.
+    const auto sidebar_frames=sidebar_filler_frames(original_irq_seed);
+    std::size_t tile=0U;
+    for(int x=0xF0;x<0x140;x+=0x08) {
+        for(int y=0;y<0x190;y+=0x10) {
+            draw_frame(framebuffer,0x35,sidebar_frames[tile++],y,x);
+        }
+    }
+
+    // CODE.2 01834 fixed original chrome, drawn AFTER the tiled
+    // sidebar so its original corners/controls remain visible.
     draw_frame(framebuffer, 0x35, 8,    0,     0);
     draw_frame(framebuffer, 0x35, 0x0B, 0,     0x138);
     draw_frame(framebuffer, 0x35, 4,    0x180, 0);
