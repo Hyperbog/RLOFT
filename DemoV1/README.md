@@ -3,6 +3,8 @@
 **Active development branch:** `demo-v1`  
 **Goal:** create a **complete enhanced native Windows PC port** of Ravenloft. Preserve all authored game content and established cinematics/audio/character creation, but use modern display/input/timing/audio and safe port-native saves. **Exact original DOS execution or DOSBox parity is no longer a release requirement.** [Active port charter](ENHANCED_PC_PORT_CHARTER.md) supersedes the former original-fidelity mandate. The [mod-forward profile](MOD_FORWARD_PROFILE.md) applies the [universal methodology](../MOD_FORWARD_METHODOLOGY.md) without claiming a shipped mod loader. The priority remains one working intro → creation → genuinely rendered playable Level 22 → entire campaign.
 
+**Original Assassin class XP on kill (October 16):** [Transactional DDA4 party/class XP writes, original CODE.2 progression thresholds, and native Save/Continue preservation](LEVEL22_ASSASSIN_CLASS_XP_20261016.md). Full original level-up callbacks remain pending and Windows acceptance is unverified.
+
 **Scene-safe combat targeting + native Sound control (October 16):** [One-shot source-frame attack, no pickup fallthrough, and separate MIDI/SFX mute](SAFE_COMBAT_AIM_AND_SFX_CONTROL_20261016.md). The original action clock remains unintegrated; source changes still need Windows compilation and playtesting.
 
 **Assassin rear-target rule + source NPC sounds (October 16):** [Original E5F0 mode-FF target suppression and authored RES6 hit/death VOC banks from INIT](LEVEL22_REAR_TARGET_AND_AUDIO_20261016.md). The original queue/cooldown is still pending and Windows acceptance remains open.
