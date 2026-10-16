@@ -2642,8 +2642,13 @@ int run_exploration(
                             input.clear();
                             const auto caption=
                                 outcome.injury && outcome.injury->died
-                                    ? L"Ravenloft - Assassin defeated | "
-                                      L"four original relics dropped"
+                                    ? outcome.experience &&
+                                        outcome.experience->
+                                            level_change_services_pending
+                                        ? L"Ravenloft - Assassin defeated | "
+                                          L"XP earned; level-up pending"
+                                        : L"Ravenloft - Assassin defeated | "
+                                          L"XP earned and four relics dropped"
                                     : outcome.strike.
                                           target_suppressed_by_rear_party_rule
                                       ? L"Ravenloft - Rear-party attack "
