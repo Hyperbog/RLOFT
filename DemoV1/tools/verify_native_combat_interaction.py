@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 
 def check(arming:str,host:str,tests:str,options:str,option_tests:str,
-          cmake:str,workflow:str)->None:
+          cmake:str,workflow:str,audio:str,audio_header:str)->None:
     for marker in (
         'world_revision==other.world_revision',
         'level_id==other.level_id',
@@ -83,6 +83,17 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
         if marker not in option_tests:
             raise ValueError('SFX hit-region test removed: '+marker)
     for marker in (
+        'bool effects_enabled{true};',
+        'if(!effects_enabled)return;',
+        'effects_enabled=enabled;',
+        'if(!enabled)stop_all();',
+        'impl_->set_enabled(enabled);',
+    ):
+        if marker not in audio:
+            raise ValueError('global Win32 sampled-audio mute bypassed: '+marker)
+    if 'void set_enabled(bool enabled);' not in audio_header:
+        raise ValueError('shared Windows audio mute API is unavailable')
+    for marker in (
         'add_executable(enhanced_combat_target_arming_tests',
         'add_test(NAME enhanced_combat_target_arming_tests',
         'NAME enhanced_native_combat_interaction_contract_tests',
@@ -107,6 +118,8 @@ def main()->None:
         'DemoV1/tests/enhanced_options_presenter_tests.cpp',
         'DemoV1/CMakeLists.txt',
         '.github/workflows/demo-v1-build.yml',
+        'DemoV1/src/win32_audio.cpp',
+        'DemoV1/include/rloft/win32_audio.hpp',
     )
     originals=[(ROOT/p).read_text(encoding='utf-8') for p in paths]
     check(*originals)
@@ -134,6 +147,14 @@ def main()->None:
            'add_executable(missing_combat_target_tests'),
         (6,'combat_live_hand_request_tests enhanced_combat_target_arming_tests',
            'combat_live_hand_request_tests'),
+        (7,'if(!effects_enabled)return;',
+           '/* mute skipped */'),
+        (7,'effects_enabled=enabled;',
+           'effects_enabled=true;'),
+        (7,'if(!enabled)stop_all();',
+           '/* left effects playing */'),
+        (8,'void set_enabled(bool enabled);',
+           'void unused_mute(bool enabled);'),
     )
     for index,old,new in mutations:
         if old not in originals[index]:
@@ -143,7 +164,7 @@ def main()->None:
         try:check(*altered)
         except ValueError:continue
         raise ValueError('combat/SFX regression escaped: '+old)
-    print('ENHANCED_NATIVE_COMBAT_INTERACTION_PASS (12 mutations rejected)')
+    print('ENHANCED_NATIVE_COMBAT_INTERACTION_PASS (16 mutations rejected)')
 
 if __name__=='__main__':
     main()
