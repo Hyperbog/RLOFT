@@ -1026,8 +1026,12 @@ private:
                 return 0;
 
             case WM_RBUTTONDOWN:
+                // Preserve original inventory/hand right-click action.
+                // Ctrl+right-click is an optional mouse-look shortcut;
+                // M alone also toggles capture without a mouse gesture.
                 if(exploration_input_ && !inventory_mode_ &&
-                   !automap_mode_) {
+                   !automap_mode_ &&
+                   (GetKeyState(VK_CONTROL)&0x8000)!=0) {
                     toggle_mouse_look();return 0;
                 }
                 if(session_trace_ && exploration_input_) {

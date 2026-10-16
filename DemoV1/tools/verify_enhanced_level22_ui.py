@@ -44,9 +44,12 @@ def check(host:str,auto:str,options:str,cmake:str,workflow:str)->None:
     ):
         if marker not in host:
             raise ValueError("automap leaks keyboard input into movement: "+marker)
-    if source.count('host.set_automap_mode(true);')!=1 or (
-            source.count('host.set_automap_mode(false);')!=2):
+    if source.count('host.set_automap_mode(true);')!=2 or (
+            source.count('host.set_automap_mode(false);')!=3):
         raise ValueError("automap input capture is not balanced at entry/exit")
+    if 'if(host.consume_map_toggle()) {' not in source or (
+            'ui.open_automap();' not in source):
+        raise ValueError("native Tab automap hotkey not integrated")
     if 'if (const auto action=host.consume_key_event()) {' not in source:
         raise ValueError("keyboard map navigation events are ignored")
     if source.count('automap->apply_action(')!=2:
