@@ -2502,112 +2502,97 @@ int run_exploration(
                     // CODE.2's held-item replacement/swap UI is still
                     // unimplemented. Never silently destroy a held item.
                     runtime.inventory().held.object_id == -1) {
+                    bool cinematic_input_detached=false;
                     try {
-                        const auto pickup =
-                            runtime.pickup_level22_loose_item_at(
+                        // Use ONE staged transaction for original 21704
+                        // pickup and 21F70 mist. A cancelled/failed
+                        // frame must NOT remove the fourth loose relic.
+                        const auto progress=
+                            runtime.pickup_and_advance_level22_at(
                                 *displayed_scene_frame,
-                                click->row,
-                                click->column,
+                                click->row,click->column,assets.source(),
+                                [&](std::size_t frame,
+                                    rloft::ExplorationRuntime& staged)
+                                    ->bool {
+                                    if(!cinematic_input_detached) {
+                                        // Original event BF30 locks input.
+                                        host.set_exploration_input(nullptr);
+                                        host.set_gpu_world_visible(false);
+                                        cinematic_input_detached=true;
+                                    }
+                                    const auto snapshot=staged.build_frame();
+                                    const auto rendered=presenter.present(
+                                        snapshot,staged.renderer_tables());
+                                    // Explicit native enhancement until
+                                    // original RES mist frame compositor
+                                    // 2E510/1CD48 is fully reconstructed.
+                                    const int fade=frame==21U?4:
+                                        std::max(0,8-
+                                            static_cast<int>(
+                                                frame*8U/20U));
+                                    const auto palette=
+                                        rloft::StartupPresenter::fade_factor(
+                                            rendered.palette,fade);
+                                    host.present(
+                                        presenter.framebuffer(),palette);
+                                    return host.pause_frame(
+                                        std::chrono::duration<double>(
+                                            1.0/30.0));
+                                },
                                 code1_tick_count(exploration_epoch));
-                        if (pickup.has_value()) {
+                        if(cinematic_input_detached)
+                            host.set_exploration_input(&input);
+                        if(progress.pickup) {
                             if(trace) {
-                                try {
-                                    trace->event("world.pickup",
-                                        pickup->object_id,
-                                        pickup->level22_mist_sequence?1:0);
-                                }catch(...) {}
+                                try{trace->event(
+                                    "world.pickup",
+                                    progress.pickup->object_id,
+                                    progress.entered_level23?1:0);}
+                                catch(...) {}
                             }
-                            // Family-C erase compacts source indices. The
-                            // old displayed frame is invalid immediately.
                             displayed_scene_frame.reset();
                             input.clear();
-                            if (pickup->level22_mist_sequence) {
-                                // The ORIGINAL quest runs 22 frames, enters
-                                // Level23 after frame20, and then removes
-                                // three relics. The original 2E510 effect
-                                // resource compositor is not yet lifted:
-                                // show an explicit native-PC palette fade
-                                // without inventing missing original art.
-                                // The event locks input in CODE.2 (BF30=1).
-                                // Detach live movement/click capture until
-                                // the staged event finishes or aborts.
-                                host.set_exploration_input(nullptr);
-                                try {
-                                    host.set_gpu_world_visible(false);
-                                    const bool completed=
-                                        runtime.complete_level22_relic_transition(
-                                            assets.source(),
-                                            [&](std::size_t frame,
-                                                rloft::ExplorationRuntime& staged)
-                                                ->bool {
-                                                const auto snapshot=
-                                                    staged.build_frame();
-                                                const auto rendered=
-                                                    presenter.present(
-                                                        snapshot,
-                                                        staged.renderer_tables());
-                                                // Source frame21 is on
-                                                // Level23; reveal its first
-                                                // picture at half brightness
-                                                // after the frame20 blackout.
-                                                const int fade=frame==21U?4:
-                                                    std::max(0,8-
-                                                        static_cast<int>(
-                                                            frame*8U/20U));
-                                                const auto palette=
-                                                    rloft::StartupPresenter::
-                                                        fade_factor(
-                                                            rendered.palette,fade);
-                                                host.present(
-                                                    presenter.framebuffer(),
-                                                    palette);
-                                                return host.pause_frame(
-                                                    std::chrono::duration<double>(
-                                                        1.0/30.0));
-                                            });
-                                    if(completed) {
-                                        refresh_world_palette();
-                                        world_music_state.invalidate();
-                                        start_authored_world_music();
-                                        displayed_scene_frame.reset();
-                                        input.clear();
-                                        SetWindowTextW(
-                                            host.hwnd(),
-                                            L"Ravenloft - Level 23 | "
-                                            L"Original quest transition completed");
-                                        if(trace) {
-                                            try{trace->event(
-                                                "level22.mist.enter23",23);}
-                                            catch(...) {}
-                                        }
-                                    }
-                                } catch(const std::exception& error) {
-                                    const auto detail=widen(error.what());
-                                    MessageBoxW(
-                                        host.hwnd(),detail.c_str(),
-                                        L"Ravenloft - Level22 transition",
-                                        MB_OK|MB_ICONWARNING);
-                                    // Frame handlers are staged, so a
-                                    // refused event leaves Level22 state
-                                    // intact except for the picked item.
-                                    // A later palette/music failure can
-                                    // happen AFTER the real Level23 commit:
-                                    // never claim that state rolled back.
-                                    if(runtime.session().level_id==23U) {
-                                        try {
-                                            refresh_world_palette();
-                                        }catch(...) {}
-                                    }
-                                    displayed_scene_frame.reset();
+                            if(progress.entered_level23) {
+                                refresh_world_palette();
+                                world_music_state.invalidate();
+                                start_authored_world_music();
+                                SetWindowTextW(host.hwnd(),
+                                    L"Ravenloft - Level 23 | "
+                                    L"Original quest transition completed");
+                                if(trace) {
+                                    try{trace->event(
+                                        "level22.mist.enter23",23);}
+                                    catch(...) {}
                                 }
-                                host.set_exploration_input(&input);
                             }
+                        } else if(progress.transition_cancelled) {
+                            // Neither fourth pickup nor new level nor
+                            // consumption was committed. A subsequent
+                            // pickup can retry the original event.
+                            displayed_scene_frame.reset();
+                            input.clear();
                         }
-                    } catch (const std::logic_error&) {
-                        // The stored picture was replaced by movement or a
-                        // world mutation. Discard this stale click rather
-                        // than retargeting to a new live family-C index.
+                    } catch(const std::logic_error&) {
+                        if(cinematic_input_detached)
+                            host.set_exploration_input(&input);
+                        // Stale source hit selection or invalid quest
+                        // preflight must not target a new live record.
                         displayed_scene_frame.reset();
+                    } catch(const std::exception& error) {
+                        if(cinematic_input_detached)
+                            host.set_exploration_input(&input);
+                        displayed_scene_frame.reset();
+                        // The world transaction rolls back before its
+                        // commit; post-commit music/palette errors cannot
+                        // be described as a rolled-back transition.
+                        if(runtime.session().level_id==23U) {
+                            try{refresh_world_palette();}
+                            catch(...) {}
+                        }
+                        const auto detail=widen(error.what());
+                        MessageBoxW(host.hwnd(),detail.c_str(),
+                            L"Ravenloft - Level22 transition",
+                            MB_OK|MB_ICONWARNING);
                     }
                 }
             }
