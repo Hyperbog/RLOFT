@@ -29,7 +29,7 @@ if ($sourceSha -cnotmatch '^[0-9a-fA-F]{40}$') {
 }
 $hashLine = (Get-Content -LiteralPath $hashFile -Raw).Trim()
 # Positive match always provides capture group 1 on Windows PowerShell.
-if ($hashLine -cmatch '^([0-9a-fA-F]{64})  ravenloft_demo_v1\.exe$') {
+if ($hashLine -cmatch '^([0-9a-fA-F]{64})  Ravenloft\.exe$') {
     $expected = $Matches[1]
 } else {
     Fail-ContinuousAlpha 'Executable hash manifest is malformed.'

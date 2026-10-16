@@ -60,6 +60,72 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
     for token, source in required:
         if token not in source:
             raise ValueError('missing continuous-game contract: '+token)
+    # The packaged EXE hash expression must match the real player-facing
+    # Ravenloft.exe rather than the retired internal target name.
+    if String.raw`Ravenloft\\.exe#!/usr/bin/env python3
+"""Public contract for one-click continuous original intro -> Level22 Alpha.
+
+Source-only; no proprietary media, Windows runtime, or success claim.
+Mutations ensure a later packaging edit cannot restore the chooser,
+developer warp, read-only showcase cut-off, or unsafe owned-media writes.
+"""
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def check(player: str, cmd: str, workflow: str, host: str) -> None:
+    required = (
+        ("$original = Join-Path $package 'Game'", player),
+        ("function Find-OwnedGameMedia", player),
+        ("function Test-CompleteLooseGame", player),
+        ("RLOFT_GAME_DIR", player),
+        ("SOFTWARE\\GOG.com\\Games\\1432905053", player),
+        ("CD_Extracted\\RLOFT", player),
+        ("Complete original movie/game resources were not found.", player),
+        ("$workspaceRoot = Join-Path $env:TEMP 'RLOFT-Continuous-Alpha'", player),
+        ("$runId = [Guid]::NewGuid().ToString('N')", player),
+        ("$scratch = Join-Path $workspaceRoot $runId", player),
+        ("Get-FileHash -LiteralPath $engine -Algorithm SHA256", player),
+        ("if ($hashLine -cmatch", player),
+        ("$expected = $Matches[1]", player),
+        ("$sourceSha = (Get-Content -LiteralPath $sourceFile -Raw).Trim()", player),
+        ("-Attributes ReparsePoint", player),
+        ("/E /XJ /R:1 /W:1", player),
+        ("$charsCandidates = @(", player),
+        ("Join-Path $scratch 'CHARS'", player),
+        ("Join-Path (Join-Path $scratch 'RLOFT') 'CHARS'", player),
+        ("Remove-Item -LiteralPath $candidate -Force", player),
+        ("$arguments = '--no-remember-install \"' + $launchMediaRoot + '\"'", player),
+        ("$launchMediaRoot = $scratch", player),
+        ("if (-not $hasRootMedia -and $hasNestedMedia) {", player),
+        ("$launchMediaRoot = Join-Path $scratch 'RLOFT'", player),
+        ("$hasGogRoot = Test-Path -LiteralPath (Join-Path $original 'game.gog')", player),
+        ("$hasGogNested = Test-Path -LiteralPath (Join-Path $nested 'game.gog')", player),
+        ("Start-Process -FilePath $engine -ArgumentList $arguments", player),
+        ('Play-Ravenloft.ps1', cmd),
+        ('powershell.exe -NoProfile -ExecutionPolicy Bypass', cmd),
+        ("name: Ravenloft-Enhanced-Game-Windows-x64", workflow),
+        ('build/demo-v1/Release/Play-Ravenloft.cmd', workflow),
+        ('build/demo-v1/Release/Play-Ravenloft.ps1', workflow),
+        ('build/demo-v1/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt', workflow),
+        ('build/demo-v1/Release/build-source-sha.txt', workflow),
+        ('build/demo-v1/Release/Ravenloft.exe.sha256', workflow),
+        ('if (character_flow.completed()) {', host),
+        ('assets.source().read_runtime("CHARS");', host),
+        ('return run_exploration(', host),
+        ('if (!options.dev_trace && !options.no_remember_install) {', host),
+        ('result.no_remember_install = true;', host),
+        ('*code2_chars,', host),
+    )
+    for token, source in required:
+        if token not in source:
+            raise ValueError('missing continuous-game contract: '+token)
+ not in player:
+        raise ValueError('canonical Ravenloft.exe hash verification missing')
     # Normal gameplay needs FULL cinematic media or an original GOG ISO.
     # Don't silently treat an incomplete RLOFT installation as playable.
     if "'CINE00.ANM','CINE12.ANM','RES10'" not in player:
@@ -105,7 +171,7 @@ def check(player: str, cmd: str, workflow: str, host: str) -> None:
             or '--choose-install' in cmd):
         raise ValueError('CMD reintroduced developer-only paths')
     if workflow.index('Stage continuous normal-game Alpha launch') > workflow.index(
-            'Publish continuous original intro-to-Level22 Alpha'):
+            'Publish enhanced continuous Windows game'):
         raise ValueError('CI publication must follow staging')
     # Preserve the authentic disk CHARS handoff, never in-memory synthetic party.
     at=host.index('if (character_flow.completed()) {')
