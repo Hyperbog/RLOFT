@@ -185,12 +185,15 @@ void ExplorationRuntime::initialize_gameplay_state(
     inventory_drop_c02f_center_fraction_=false;
     combat_strength_source_.reset();
     combat_burden_source_.reset();
+    combat_progression_source_.reset();
     if(source.contains("CODE.2")) {
         const auto code2=source.read("CODE.2");
         combat_strength_source_=
             CombatStrengthAttackModel::from_code2(code2);
         combat_burden_source_=
             InventoryEncumbranceModel::from_code2(code2);
+        combat_progression_source_=
+            CombatProgressionTables::from_code2(code2);
         if(const auto prefix=
             OriginalPickupRibbonTextModel::source_prefix_from_code2(code2))
             original_pickup_ribbon_prefix_=*prefix;
@@ -479,6 +482,23 @@ ExplorationRuntime::attack_level22_assassin_at(
                         staged.npc_catalog_,y,x,radius);
             });
         result.injury=injury;
+        if(injury.died) {
+            // E284:E53D invokes 1DDA4 with the definition's
+            // original award. DDA4 writes class XP DWORDs into
+            // the SAME staged party as the corpse and unique drops.
+            // Class-level callback services 50DC/3EA4/3DE4
+            // remain unimplemented; never fabricate a level.
+            if(!staged.combat_progression_source_)
+                throw std::logic_error(
+                    "Assassin XP needs exact original CODE.2 class tables");
+            auto awarded=CombatXpAwardService::apply(
+                staged.session_.party,injury.experience_award,
+                *staged.combat_progression_source_);
+            if(!awarded)
+                throw std::logic_error(
+                    "original DDA4 XP class lanes cannot be validated");
+            result.experience=*awarded;
+        }
     }
     // C80C misses still consume their d20 and E578 effect changes.
     // Preserve both in the native save's party and RNG snapshot.
