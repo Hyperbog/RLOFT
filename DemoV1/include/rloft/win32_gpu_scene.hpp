@@ -31,7 +31,8 @@ public:
     void bind(const ExplorationSessionState& session,
               const LevelWorldState& world,
               const std::vector<WorldSceneRecord>& records,
-              const std::vector<std::uint8_t>& environment_backdrop);
+              const std::vector<std::uint8_t>& environment_backdrop,
+              const Palette6& frame_palette);
     void paint(const RECT& dst,int client_width,int client_height,
                const std::vector<std::uint32_t>& bgra,
                bool draw_world,unsigned filter_mode,double pitch_radians,
