@@ -5,11 +5,10 @@
 
 namespace rloft {
 namespace {
-std::int16_t item_word(const std::uint8_t* bytes,std::size_t slot) {
+std::uint16_t item_word(const std::uint8_t* bytes,std::size_t slot) {
     const auto at=0x40U+2U*slot;
-    const auto raw=static_cast<std::uint16_t>(bytes[at]) |
+    return static_cast<std::uint16_t>(bytes[at]) |
         (static_cast<std::uint16_t>(bytes[at+1U])<<8U);
-    return static_cast<std::int16_t>(raw);
 }
 } // namespace
 
