@@ -1476,6 +1476,7 @@ int run_exploration(
     // world music at the actual CODE.1 -> CODE.2 gameplay boundary.
     rloft::EnhancedWorldMusicState world_music_state;
     bool gameplay_music_enabled=true;
+    bool gameplay_sound_enabled=true;
     const auto start_authored_world_music = [&]() {
         if (!gameplay_music_enabled) return;
         const auto level_id=runtime.session().level_id;
@@ -1785,9 +1786,15 @@ int run_exploration(
                     world_music_state.invalidate();
                     if(gameplay_music_enabled)start_authored_world_music();
                 }
+                if (choice==
+                    rloft::EnhancedOptionsSelection::ToggleSound) {
+                    gameplay_sound_enabled=!gameplay_sound_enabled;
+                    if(!gameplay_sound_enabled)audio_player.stop_all();
+                }
             }
             options_presenter.draw(
-                presenter.framebuffer(),gameplay_music_enabled);
+                presenter.framebuffer(),gameplay_music_enabled,
+                gameplay_sound_enabled);
             present_traced(presenter.framebuffer(),exploration_palette);
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
@@ -2521,8 +2528,9 @@ int run_exploration(
                                 } else {
                                     pending_level22_weapon_hand.cancel();
                                 }
-                                status=L"Weapon selected | "
-                                       L"click the visible Assassin";
+                                status=displayed_scene_frame
+                                    ? L"Weapon selected | click the visible Assassin"
+                                    : L"Source viewport not ready";
                             } else {
                                 pending_level22_weapon_hand.cancel();
                                 status=L"Original automatic combat "
@@ -2641,7 +2649,7 @@ int run_exploration(
                                         ? L"Ravenloft - Assassin struck"
                                         : L"Ravenloft - Attack missed";
                             SetWindowTextW(host.hwnd(),caption);
-                            if(outcome.injury) {
+                            if(outcome.injury && gameplay_sound_enabled) {
                                 // Original E284 survivor and corpse sounds
                                 // come from DIFFERENT INIT+14/+16 RES6
                                 // banks, never an NPC type hardcoded sound.
