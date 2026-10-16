@@ -221,7 +221,7 @@ void Win32GpuScene::draw_sprites(double heading) {
     }
     glDisable(GL_ALPHA_TEST);
 }
-void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode) {
+void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode,double aspect) {
     if(!mesh_initialized_ || !session_)return;
     const auto heading=static_cast<double>(session_->facing)*pi/180.0;
     const auto x=static_cast<double>(
@@ -230,7 +230,7 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode) {
         static_cast<std::int32_t>(session_->coordinate_b))/65536.0;
     const auto c=std::cos(pitch);
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
-    gluPerspective(75.0,1.0,0.025,160.0);
+    gluPerspective(75.0,aspect,0.025,160.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     // Game uses cardinal headings in degrees; the world basis remains
     // identical to the archived GPU world mesh, with no extra party state.
@@ -238,6 +238,10 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode) {
               y+std::sin(heading)*c,1.+std::sin(pitch),0.,0.,1.);
     glColor3f(1,1,1);glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
+    // Retain NativeEngine's batched source mesh draw (not one glBegin per
+    // triangle). The original live level is fingerprinted only on mutation.
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     for(const auto& item:mesh_.textured) {
         if(item.second.empty())continue;
         glBindTexture(GL_TEXTURE_2D,material(item.first));
@@ -246,25 +250,26 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode) {
             filter_mode==1U?GL_LINEAR:GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,
             filter_mode==0U?GL_NEAREST:GL_LINEAR);
-        glBegin(GL_TRIANGLES);
-        for(const auto& v:item.second) {
-            glTexCoord2f(v.u,v.v);glVertex3f(v.x,v.y,v.z);
-        }
-        glEnd();
+        const auto* p=item.second.data();
+        glVertexPointer(3,GL_FLOAT,sizeof(EnhancedGpuVertex),&p[0].x);
+        glTexCoordPointer(2,GL_FLOAT,sizeof(EnhancedGpuVertex),&p[0].u);
+        glDrawArrays(GL_TRIANGLES,0,static_cast<GLsizei>(item.second.size()));
     }
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisable(GL_TEXTURE_2D);
     const auto draw_fill=[&](const std::vector<EnhancedGpuVertex>& verts,
                               std::uint8_t index) {
+        if(verts.empty())return;
         const auto ci=static_cast<unsigned>(index)*3U;
         glColor3f(static_cast<float>(palette_.rgb[ci])/63.f,
                   static_cast<float>(palette_.rgb[ci+1U])/63.f,
                   static_cast<float>(palette_.rgb[ci+2U])/63.f);
-        glBegin(GL_TRIANGLES);
-        for(const auto& v:verts)glVertex3f(v.x,v.y,v.z);
-        glEnd();
+        glVertexPointer(3,GL_FLOAT,sizeof(EnhancedGpuVertex),&verts[0].x);
+        glDrawArrays(GL_TRIANGLES,0,static_cast<GLsizei>(verts.size()));
     };
     draw_fill(mesh_.floor,session_->level.header[0x299U]);
     draw_fill(mesh_.ceiling,session_->level.header[0x298U]);
+    glDisableClientState(GL_VERTEX_ARRAY);
     glEnable(GL_TEXTURE_2D);
     draw_sprites(heading);
     glDisable(GL_DEPTH_TEST);
@@ -320,7 +325,8 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         glScissor(left,ch-bottom,right-left,bottom-top);
         glViewport(left,ch-bottom,right-left,bottom-top);
         glClear(GL_DEPTH_BUFFER_BIT);
-        try{draw_mesh(pitch,filter_mode);}
+        try{draw_mesh(pitch,filter_mode,
+            static_cast<double>(right-left)/static_cast<double>(bottom-top));}
         catch(const std::exception& error) {
             OutputDebugStringA(error.what());
             // Leave original software scene enabled on subsequent frames:

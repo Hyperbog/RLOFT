@@ -57,7 +57,7 @@ private:
     void make_current() const;
     [[nodiscard]] GLuint material(unsigned id);
     [[nodiscard]] GLuint sprite(unsigned id);
-    void draw_mesh(double pitch,unsigned filter_mode);
+    void draw_mesh(double pitch,unsigned filter_mode,double aspect);
     void draw_sprites(double heading);
     void destroy_textures() noexcept;
 };

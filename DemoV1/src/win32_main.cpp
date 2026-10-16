@@ -1165,7 +1165,7 @@ private:
     std::unique_ptr<rloft::Win32GpuScene> gpu_scene_;
     bool gpu_world_enabled_{true};
     bool gpu_world_visible_{};
-    unsigned gpu_filter_mode_{};
+    unsigned gpu_filter_mode_{2U};
     double gpu_pitch_{};
     bool quit_{false};
     bool escape_pressed_{false};
