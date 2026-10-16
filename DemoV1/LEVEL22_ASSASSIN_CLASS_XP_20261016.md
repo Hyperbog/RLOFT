@@ -1,6 +1,6 @@
 # Original DDA4 class XP in the native Assassin encounter
 
-**Date:** October 16, 2026 · **Branch:** `demo-v1` · **Status:** implemented source/Windows CI test definitions; Windows executable build and gameplay acceptance unverified.
+**Date:** October 16, 2026 · **Branch:** `demo-v1` · **Status:** **Windows MSVC build and 65/65 CTest checks PASSED** on compiled source `4625ccb358171072fea4816cfbf3c1e9c92dcff8`; hands-on gameplay acceptance remains open.
 
 ## Real game change
 
@@ -32,6 +32,6 @@ The original actor image is already serialized verbatim by the game's own native
 
 New compiled `combat_xp_award_service_tests` covers authentic 2-actor and two-class splitting, correct rounded shares/XP writes, preserving all non-XP bytes, threshold-crossing pending services, invalid class rollback, all-blocked party rejection and DWORD wrap. The new `verify_live_assassin_xp.py` source contract guards exact class table loading, death/loot/XP atomicity, no fake level changes, native save XP continuity and the normal Windows build/test registration; it defines **13 negative mutation cases**.
 
-Previous combat hand, strike, NPC sound, source GPU and Level22 quest test targets remain included. The original CODE.2 progression tables were independently checked against the local supplied archive. The full new Windows C++ suite and a built `Ravenloft.exe` are **not** yet confirmed; source checks are not a substitute for MSVC compilation or a true Save/Continue playtest.
+Previous combat hand, strike, NPC sound, source GPU and Level22 quest test targets remain included. The original CODE.2 progression tables were independently checked against the local supplied archive. The actual Windows MSVC game and quick-test targets were **compiled successfully** by [GitHub Actions run 38955645652](https://github.com/Hyperbog/RLOFT/actions/runs/38955645652). CTest passed **65/65** checks, including the class-XP award, source-backed strike, native save, graphics and mist-transition suites. The run published a source-matched `Ravenloft-Enhanced-Game-Windows-x64` ZIP and committed the built EXE with an SHA-256 manifest (`af963ca899bcf4e11cca5d4ab54108232c960e73a94802eb0d73b418c60c8696`). Real Windows render/audio input and a player-driven Save→Continue playthrough still require manual acceptance.
 
 The project remains **Pre-Alpha**. Priorities: complete source-ordered level-up callbacks, original A7E4/24B48 hand clock/animation, DOS automatic target selection, original empty-hand heap behavior, other enemies and remaining campaign content.
