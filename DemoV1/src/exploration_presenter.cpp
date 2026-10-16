@@ -266,6 +266,11 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     // 32620 with the actual RES4 texture column and original SINTAB
     // generated code. Unsupported original memory geometry, unavailable
     // resources and invalid selectors remain explicitly PENDING.
+    // Take a source-only environment/ground snapshot before wall and
+    // RES3 composition. The GPU renderer must not recycle the software
+    // world's old sprites behind its independently projected 3D objects.
+    auto environment_backdrop=framebuffer_.capture(4,32,256,256);
+
     std::vector<SurfacePrepassRasterFailure> prepass_failures;
     for (const auto& failure : frame.prepass_plan_failures) {
         prepass_failures.push_back(SurfacePrepassRasterFailure{
@@ -579,6 +584,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         panels);
 
     ExplorationPresentedFrame out{};
+    out.environment_backdrop_indices=std::move(environment_backdrop.pixels);
     out.ground_textured_rasterized=ground_textured_rasterized;
     out.ground_indexed_writes=ground_indexed_writes;
     out.ground_shade_underflow_pixels=ground_shade_underflow_pixels;
