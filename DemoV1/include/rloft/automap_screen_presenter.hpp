@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include "rloft/indexed_font_presenter.hpp"
+#include "rloft/original_random.hpp"
 #include "rloft/automap_annotation_presenter.hpp"
 #include "rloft/automap_screen_state.hpp"
 #include "rloft/automap_viewport_presenter.hpp"
@@ -32,12 +33,19 @@ public:
     [[nodiscard]] static bool legend_entry_visible(
         std::size_t index,std::uint8_t party_mode_258a8) noexcept;
 
+    // CODE.2 01884..018E6: seeded 30CA2 selects one of four
+    // authentic RES0+35h tiles for each 8x16 sidebar block.
+    static constexpr std::size_t kSidebarFillTileCount=250U;
+    [[nodiscard]] static std::array<std::uint8_t,kSidebarFillTileCount>
+    sidebar_filler_frames(std::uint32_t original_irq_seed) noexcept;
+
     void draw(
         IndexedFramebuffer& framebuffer,
         const ExplorationSessionState& session,
         const RendererTables& tables,
         const AutomapScreenState& state,
-        bool annotation_overlay_enabled = false) const;
+        bool annotation_overlay_enabled = false,
+        std::uint32_t original_irq_seed = 1U) const;
 
 private:
     void draw_frame(
