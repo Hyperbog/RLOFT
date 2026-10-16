@@ -45,6 +45,7 @@
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_gameplay_cadence.hpp"
 #include "rloft/enhanced_world_music.hpp"
+#include "rloft/win32_gpu_scene.hpp"
 #include "rloft/exploration_presenter.hpp"
 #include "rloft/exploration_frame_capture.hpp"
 #include "rloft/exploration_preview.hpp"
@@ -104,6 +105,7 @@ std::wstring executable_source_revision() {
 class Host final {
 public:
     ~Host() {
+        gpu_scene_.reset();
         if (frame_timer_) {
             CloseHandle(frame_timer_);
         }
@@ -112,6 +114,8 @@ public:
     bool create(HINSTANCE instance) {
         WNDCLASSW wc{};
         wc.lpfnWndProc = &Host::window_proc;
+        // CS_OWNDC stabilizes the one genuine game's WGL context.
+        wc.style = CS_OWNDC;
         wc.hInstance = instance;
         // CODE.2/CODE.1 render their own RES0 cursor into the framebuffer.
         // Leave the client cursor unmanaged by the window class so the host
@@ -181,6 +185,40 @@ public:
 
         InvalidateRect(hwnd_, nullptr, FALSE);
         UpdateWindow(hwnd_);
+    }
+
+    void begin_gpu_scene(
+        const rloft::RavenloftBootAssets& assets,
+        const rloft::Palette6& palette) {
+        if(gpu_scene_)return;
+        try {
+            gpu_scene_=std::make_unique<rloft::Win32GpuScene>(
+                hwnd_,assets,palette);
+            gpu_world_enabled_=true;
+        }catch(const std::exception& error) {
+            OutputDebugStringA(error.what());
+            gpu_scene_.reset(); // original renderer remains usable
+        }
+    }
+
+    void bind_gpu_frame(const rloft::ExplorationSessionState& session,
+                        const rloft::LevelWorldState& world,
+                        const std::vector<rloft::WorldSceneRecord>& records) {
+        if(!gpu_scene_)return;
+        try {
+            gpu_scene_->bind(session,world,records);
+            gpu_world_visible_=gpu_world_enabled_;
+        }catch(const std::exception& error) {
+            OutputDebugStringA(error.what());
+            gpu_world_visible_=false;
+        }
+    }
+    void set_gpu_world_visible(bool enabled) noexcept {
+        gpu_world_visible_=enabled && gpu_world_enabled_;
+    }
+    void end_gpu_scene() noexcept {
+        gpu_world_visible_=false;
+        gpu_scene_.reset();
     }
 
     bool pump() {
@@ -459,6 +497,10 @@ public:
         POINT pos{};
         if(!GetCursorPos(&pos))return 0;
         const int delta=std::clamp(static_cast<int>(pos.x-center.x),-256,256);
+        const int vertical=std::clamp(static_cast<int>(pos.y-center.y),-256,256);
+        // Modern camera pitch is presentation-only. Original fixed-point
+        // CODE.2 facing and collision never receive this extra dimension.
+        gpu_pitch_=std::clamp(gpu_pitch_-vertical*0.0032,-1.35,1.35);
         if(pos.x!=center.x || pos.y!=center.y)
             SetCursorPos(center.x,center.y);
         yaw_fraction_+=static_cast<double>(delta)*0.18;
@@ -655,6 +697,19 @@ private:
         GetClientRect(hwnd_, &client);
         const int width = std::max<LONG>(1, client.right - client.left);
         const int height = std::max<LONG>(1, client.bottom - client.top);
+        if(gpu_scene_ && bgra_.size()==320U*400U) {
+            try {
+                gpu_scene_->paint(render_rect(),width,height,bgra_,
+                    gpu_world_visible_,gpu_filter_mode_,gpu_pitch_);
+                EndPaint(hwnd_,&ps);
+                return;
+            }catch(const std::exception& error) {
+                OutputDebugStringA(error.what());
+                // An unsupported GPU must not corrupt the live game state.
+                // Keep original 320x400 software/GDI playback available.
+                gpu_scene_.reset();
+            }
+        }
 
         // Render the complete client image off-screen and publish it with one
         // BitBlt. Direct FillRect + StretchDIBits to the window could expose
@@ -807,10 +862,18 @@ private:
                     (lparam&(1LL<<30U))==0) {
                     toggle_fullscreen();return 0;
                 }
+                if(exploration_input_ && !inventory_mode_ &&
+                   !automap_mode_ && wparam==VK_F2 &&
+                   (lparam&(1LL<<30U))==0) {
+                    gpu_world_enabled_=!gpu_world_enabled_;
+                    gpu_world_visible_=gpu_world_enabled_;
+                    InvalidateRect(hwnd_,nullptr,FALSE);return 0;
+                }
                 if (exploration_input_ && !inventory_mode_ &&
                     !automap_mode_ && wparam==VK_F3 &&
                     (lparam&(1LL<<30U))==0) {
-                    smooth_scaling_=!smooth_scaling_;
+                    gpu_filter_mode_=(gpu_filter_mode_+1U)%3U;
+                    smooth_scaling_=gpu_filter_mode_!=0U;
                     InvalidateRect(hwnd_,nullptr,FALSE);return 0;
                 }
                 if (exploration_input_ && !inventory_mode_ &&
@@ -1099,6 +1162,11 @@ private:
     rloft::Palette6 current_palette_{};
     std::vector<std::uint32_t> bgra_;
     std::optional<rloft::Type1Raster> game_cursor_;
+    std::unique_ptr<rloft::Win32GpuScene> gpu_scene_;
+    bool gpu_world_enabled_{true};
+    bool gpu_world_visible_{};
+    unsigned gpu_filter_mode_{};
+    double gpu_pitch_{};
     bool quit_{false};
     bool escape_pressed_{false};
     bool menu_mode_{false};
@@ -1349,6 +1417,10 @@ int run_exploration(
     host.set_character_mode(false);
     host.set_menu_mode(false);
     host.set_exploration_input(&input);
+    // The OpenGL renderer is a backend of the continuous CODE.2 game,
+    // not a second world or a separate Level22 viewer. Original UI
+    // remains in the same indexed framebuffer in all other modes.
+    if(!dev_trace)host.begin_gpu_scene(assets,exploration_palette);
     SetWindowTextW(
         host.hwnd(),
         exploration_preview
@@ -1466,6 +1538,7 @@ int run_exploration(
     };
 
     while (host.pump()) {
+        host.set_gpu_world_visible(false);
         if(host.consume_map_toggle()) {
             const auto current=ui.state().screen;
             if(current==rloft::ExplorationUiScreen::Automap) {
@@ -2578,6 +2651,11 @@ int run_exploration(
                 pressed_menu);
         }
 
+        // GPU scene coordinates and living sprites are obtained ONLY
+        // from this same source frame, mutable session and world.
+        if(hovered_menu<0 && !exploration_preview && !dev_trace)
+            host.bind_gpu_frame(runtime.session(),runtime.world(),
+                                frame.world_scene_records);
         present_traced(presenter.framebuffer(),presented.palette,
             hovered_menu>=0 ? "top_edge_menu" : "viewport");
         if (!first_scene_submitted) {
@@ -2696,6 +2774,7 @@ int run_exploration(
     }
 
     host.stop_mouse_look();
+    host.end_gpu_scene();
     host.set_exploration_input(nullptr);
     return 0;
 }
