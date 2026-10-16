@@ -355,6 +355,9 @@ bool ExplorationRuntime::complete_level22_relic_transition(
             AssassinRelicTransition::kStagingRow)<<16U) |
             AssassinRelicTransition::kStagingFraction;
     staged.session_.facing=AssassinRelicTransition::kStagingFacing;
+    // 21F78 resets pending input before the original pose staging.
+    // Do not carry a pre-event movement accumulator into Level23.
+    staged.motion_state_=ExplorationRuntimeMotionState{};
     staged.motion_state_.integrator.heading=staged.session_.facing;
 
     const bool completed=Level22QuestPlayback::execute(
