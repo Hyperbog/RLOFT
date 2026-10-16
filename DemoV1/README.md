@@ -3,6 +3,8 @@
 **Active development branch:** `demo-v1`  
 **Goal:** create a **complete enhanced native Windows PC port** of Ravenloft. Preserve all authored game content and established cinematics/audio/character creation, but use modern display/input/timing/audio and safe port-native saves. **Exact original DOS execution or DOSBox parity is no longer a release requirement.** [Active port charter](ENHANCED_PC_PORT_CHARTER.md) supersedes the former original-fidelity mandate. The [mod-forward profile](MOD_FORWARD_PROFILE.md) applies the [universal methodology](../MOD_FORWARD_METHODOLOGY.md) without claiming a shipped mod loader. The priority remains one working intro → creation → genuinely rendered playable Level 22 → entire campaign.
 
+**Assassin rear-target rule + source NPC sounds (October 16):** [Original E5F0 mode-FF target suppression and authored RES6 hit/death VOC banks from INIT](LEVEL22_REAR_TARGET_AND_AUDIO_20261016.md). The original queue/cooldown is still pending and Windows acceptance remains open.
+
 **Live source-backed Assassin weapon combat (October 16):** [Actual original d20/weapon RNG, E578 effects, C80C hit/C910 damage and E284 death/four drops](LIVE_ASSASSIN_WEAPON_COMBAT_20261016.md). Enhanced explicit two-click target; original cooldown, XP, audio and automatic DB94 targeting remain open.
 
 **Live hand actions and retriable quest pickup (October 16):** [Original two-weapon hand gates and single-transaction fourth-relic pickup/Level23 event](LIVE_HAND_ACTION_AND_ATOMIC_QUEST_PICKUP_20261016.md). Source-backed, committed, Windows acceptance remains open.
