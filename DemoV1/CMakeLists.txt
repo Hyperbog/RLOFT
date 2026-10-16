@@ -926,6 +926,10 @@ add_executable(enhanced_gpu_camera_tests tests/enhanced_gpu_camera_tests.cpp)
 target_link_libraries(enhanced_gpu_camera_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_gpu_camera_tests COMMAND enhanced_gpu_camera_tests)
 
+add_executable(enhanced_gpu_backdrop_tests tests/enhanced_gpu_backdrop_tests.cpp)
+target_link_libraries(enhanced_gpu_backdrop_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_gpu_backdrop_tests COMMAND enhanced_gpu_backdrop_tests)
+
 add_executable(enhanced_gpu_world_mesh_tests tests/enhanced_gpu_world_mesh_tests.cpp)
 target_link_libraries(enhanced_gpu_world_mesh_tests PRIVATE rloft_boot_flow)
 add_test(NAME enhanced_gpu_world_mesh_tests COMMAND enhanced_gpu_world_mesh_tests)
