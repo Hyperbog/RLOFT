@@ -65,6 +65,11 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME enhanced_level22_quest_transition_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_level22_transition.py")
+    # Enhanced native explicit-target input is scene-bound, consumed
+    # once, and cannot fall through to original floor-item pickup.
+    add_test(NAME enhanced_native_combat_interaction_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_native_combat_interaction.py")
     # E284 survivor/death sound bases 258C0/258BC loaded from INIT.
     add_test(NAME enhanced_npc_sound_source_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
