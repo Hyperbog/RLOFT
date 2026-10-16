@@ -47,6 +47,7 @@ def check(model:str,host:str,tests:str,cmake:str,workflow:str)->None:
         'plan.status==S::AttackCandidate',
         'plan.status==S::PairVetoed',
         'plan.status==S::MissingOriginalEmptyHandData',
+        'assert(!plan.pair_checked && !plan.may_enter_player_attack());',
         'plan.status==S::ActorBlocked',
         'plan.status==S::ActionBusy',
         'plan.status==S::CategoryEAction',
@@ -63,7 +64,7 @@ def check(model:str,host:str,tests:str,cmake:str,workflow:str)->None:
         if required not in cmake:
             raise ValueError('native player executable not gated: '+required)
     for required in (
-        'combat_live_hand_request_tests',
+        'combat_player_hit_inputs_tests combat_live_hand_request_tests',
         'python DemoV1/tools/verify_game_live_hand_dispatch.py',
         '|enhanced_live_hand_dispatch_contract_tests)$"',
     ):
@@ -90,12 +91,12 @@ def main()->None:
            '!opened_actor_panel &&'),
         (1,'CombatLiveHandRequestModel::inspect(',
            'CombatHandDispatchModel::inspect('),
-        (2,'plan.status==S::MissingOriginalEmptyHandData',
-           'plan.status==S::AttackCandidate'),
+        (2,'assert(!plan.pair_checked && !plan.may_enter_player_attack());',
+           'assert(plan.pair_checked && plan.may_enter_player_attack());'),
         (3,'src/combat_live_hand_request.cpp',
            'src/missing_live_hand_request.cpp'),
-        (4,'combat_live_hand_request_tests',
-           'combat_hand_dispatch_tests'),
+        (4,'combat_player_hit_inputs_tests combat_live_hand_request_tests',
+           'combat_player_hit_inputs_tests combat_hand_dispatch_tests'),
     )
     for index,old,new in mutations:
         if old not in src[index]:
