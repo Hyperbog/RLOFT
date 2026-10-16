@@ -43,6 +43,33 @@ AutomapScreenPresenter::sidebar_filler_frames(
     return result;
 }
 
+std::array<std::uint8_t,AutomapScreenPresenter::kBorderFillTileCount>
+AutomapScreenPresenter::border_filler_frames(
+    std::uint32_t original_irq_seed) noexcept {
+    // CODE.2 01957..01A4E reseeds 290D0 from its SECOND IRQ
+    // reading. 1978..19C9 chooses two frames per horizontal slot;
+    // 19D8..1A4C chooses three per vertical slot.
+    OriginalRandom random(original_irq_seed&0xFFFFU);
+    std::array<std::uint8_t,kBorderFillTileCount> result{};
+    std::size_t cursor=0U;
+    const auto two=[&random]() -> std::uint8_t {
+        return static_cast<std::uint8_t>(
+            (static_cast<std::uint32_t>(random.next15())*2U)>>15U);
+    };
+    for(int x=0x08;x<0x138;x+=0x08) {
+        (void)x;
+        result[cursor++]=static_cast<std::uint8_t>(9U+two());
+        result[cursor++]=static_cast<std::uint8_t>(5U+two());
+    }
+    for(int y=0x10;y<0x180;y+=0x10) {
+        (void)y;
+        result[cursor++]=static_cast<std::uint8_t>(12U+two());
+        result[cursor++]=static_cast<std::uint8_t>(18U+two());
+        result[cursor++]=static_cast<std::uint8_t>(14U+two());
+    }
+    return result;
+}
+
 void AutomapScreenPresenter::draw_original_legend(
     IndexedFramebuffer& framebuffer,std::uint8_t mode) const {
     // Original 018E6..01950:
@@ -127,8 +154,28 @@ void AutomapScreenPresenter::draw(
         }
     }
 
-    // CODE.2 01834 fixed original chrome, drawn AFTER the tiled
-    // sidebar so its original corners/controls remain visible.
+    // 018E6 original icons/text were drawn before frame 01957
+    // repaints only the narrow perimeter. Do not omit those
+    // source-authored, variant RES0+35 horizontal/vertical edge tiles.
+    draw_original_legend(framebuffer,session.level.header[0x290U]);
+
+    // CODE.2 01957..01A4E: 290D0 is seeded from a second IRQ
+    // sample. Keep it a stable per-modal visual stream; never consume
+    // combat's original RNG while repainting the map at 60Hz.
+    const auto edges=border_filler_frames(original_irq_seed);
+    std::size_t edge_index=0U;
+    for(int x=0x08;x<0x138;x+=0x08) {
+        draw_frame(framebuffer,0x35,edges[edge_index++],0,x);
+        draw_frame(framebuffer,0x35,edges[edge_index++],0x180,x);
+    }
+    for(int y=0x10;y<0x180;y+=0x10) {
+        draw_frame(framebuffer,0x35,edges[edge_index++],y,0);
+        draw_frame(framebuffer,0x35,edges[edge_index++],y,0xF0);
+        draw_frame(framebuffer,0x35,edges[edge_index++],y,0x138);
+    }
+
+    // CODE.2 01A4E fixed original chrome, drawn AFTER the
+    // randomized border tiles so corners remain fully visible.
     draw_frame(framebuffer, 0x35, 8,    0,     0);
     draw_frame(framebuffer, 0x35, 0x0B, 0,     0x138);
     draw_frame(framebuffer, 0x35, 4,    0x180, 0);
@@ -162,11 +209,6 @@ void AutomapScreenPresenter::draw(
     draw_frame(framebuffer, 0x3A, 0, 0xAE,  0x120);
     draw_frame(framebuffer, 0x3B, 0, 0xA8,  0xF8);
     draw_frame(framebuffer, 0x3F, 0, 0xF3,  0xF5);
-
-    // CODE.2 01834 paints thirteen genuine RES0 map symbols and
-    // matching 1C368 T labels in the right-hand KEY panel. The
-    // previously incomplete host omitted the entire original loop.
-    draw_original_legend(framebuffer,session.level.header[0x290U]);
 
     const AutomapViewportOrigin origin{
         state.column,
