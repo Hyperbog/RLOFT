@@ -33,6 +33,23 @@ int main(){
     s.inventory.containers[1].slot_count=2;
     s.inventory.containers[1].items={5,39};
     s.inventory.party_container_ui_contexts[0].raw={{1,2,3,4}};
+    // Verify an actual multi-level SAVE/Continue snapshot, not only the
+    // first active Level22. Previously visited worlds retain independent
+    // doors, NPC HP, dropped objects and direct-save precedence.
+    rloft::LevelContinuityEntry visited{};
+    visited.level.width=3;
+    visited.level.height=2;
+    visited.level.cell_words={0U,0x0080U,0U,1U,0U,0U};
+    visited.level.group2.push_back(door);
+    visited.level.group2[0].raw[6]=0U;
+    visited.level.event_scripts[13]=0xA5U;
+    visited.level.automap_annotations={9U,8U,7U};
+    visited.world.npcs.push_back(npc);
+    visited.world.npcs[0].current_hp=2;
+    visited.world.loose_items.push_back(obj);
+    visited.world.loose_items[0].object_type_id=0x74;
+    visited.from_direct_save=true;
+    s.visited_levels.emplace(7,std::move(visited));
     s.random_state=0xABCD4321;
     s.original_story_selector=2;
     auto b=rloft::EnhancedGameSaveCodec::encode(s);
@@ -52,6 +69,18 @@ int main(){
     assert(out.inventory.party_container_ui_contexts[0].raw[2]==3);
     assert(out.random_state==s.random_state);
     assert(out.original_story_selector==2);
+    assert(out.visited_levels.size()==1U);
+    const auto& old=out.visited_levels.at(7);
+    assert(old.from_direct_save);
+    assert(old.level.cell_words[1]==0x0080U);
+    assert(old.level.group2[0].raw[6]==0U);
+    assert(old.level.event_scripts[13]==0xA5U);
+    assert(old.level.automap_annotations[0]==9U);
+    assert(old.world.npcs[0].current_hp==2);
+    assert(old.world.loose_items[0].object_type_id==0x74U);
+    // Save files must be fully round-trippable, not merely decodable.
+    // Re-encoding an intact load preserves all persisted bytes.
+    assert(rloft::EnhancedGameSaveCodec::encode(out)==b);
     b[b.size()-2U]^=1U;
     bool bad=false;
     try{(void)rloft::EnhancedGameSaveCodec::decode(b);}
