@@ -1177,7 +1177,9 @@ private:
     bool gpu_world_enabled_{false};
     bool gpu_world_visible_{};
     bool gpu_menu_overlay_{};
-    unsigned gpu_filter_mode_{2U};
+    // Nearest preserves original indexed VGA presentation; F3 opts
+    // into smoothing/mipmapping without changing source data.
+    unsigned gpu_filter_mode_{0U};
     double gpu_pitch_{};
     bool quit_{false};
     bool escape_pressed_{false};

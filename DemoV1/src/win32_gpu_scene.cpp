@@ -3,6 +3,7 @@
 #include "rloft/win32_gpu_scene.hpp"
 #include "rloft/enhanced_gpu_camera.hpp"
 #include "rloft/level_display.hpp"
+#include "rloft/renderer_tables.hpp"
 #include <GL/glu.h>
 #include <algorithm>
 #include <cmath>
@@ -29,6 +30,12 @@ unsigned next_power_two(unsigned n) {
 Win32GpuScene::Win32GpuScene(HWND hwnd,const RavenloftBootAssets& assets,
                               const Palette6& palette)
     :hwnd_(hwnd),assets_(assets),res4_(assets.source()),palette_(palette) {
+    // Read the ORIGINAL SINTAB focal constant (C6CC) instead of
+    // guessing a modern 3D FOV. This is source-authored geometry.
+    original_projection_focal_=
+        RendererTables::parse_prefix(assets.source().read("SINTAB")).c6cc();
+    if(original_projection_focal_==0U)
+        throw std::runtime_error("original SINTAB focal is zero");
     dc_=GetDC(hwnd_);
     if(!dc_)throw std::runtime_error("cannot acquire original game GPU HDC");
     PIXELFORMATDESCRIPTOR pfd{};
@@ -251,7 +258,9 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode,double aspect) {
         static_cast<std::int32_t>(session_->coordinate_b))/65536.0;
     const auto c=std::cos(pitch);
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
-    gluPerspective(75.0,aspect,0.025,160.0);
+    const auto source_fov=EnhancedGpuCameraModel::vertical_fov_degrees(
+        original_projection_focal_,aspect);
+    gluPerspective(source_fov,aspect,0.025,160.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     // Game uses cardinal headings in degrees; the world basis remains
     // identical to the archived GPU world mesh, with no extra party state.

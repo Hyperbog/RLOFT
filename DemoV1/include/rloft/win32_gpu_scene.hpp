@@ -55,6 +55,7 @@ private:
     bool mesh_initialized_{};
     int current_level_{-1};
     bool world_failed_{};
+    unsigned original_projection_focal_{};
     [[nodiscard]] std::uint64_t fingerprint(const LevelState& level) const;
     void make_current() const;
     [[nodiscard]] GLuint material(unsigned id);

@@ -16,5 +16,17 @@ public:
         const auto f=forward(degrees);
         return {f.y,-f.x};
     }
+    // CODE.2 35834 scales lateral/depth by original SINTAB C6CC,
+    // with screen center C6D0=127 and 256 wide source viewport.
+    // GLU uses *vertical* FOV while source projection is horizontal.
+    [[nodiscard]] static double vertical_fov_degrees(
+        unsigned source_focal,double physical_aspect) {
+        if(source_focal==0U || !std::isfinite(physical_aspect) ||
+           physical_aspect<=0.0)
+            throw std::invalid_argument("invalid original 3D FOV");
+        constexpr double rad=180.0/3.14159265358979323846;
+        return 2.0*std::atan(
+            128.0/static_cast<double>(source_focal)/physical_aspect)*rad;
+    }
 };
 } // namespace rloft
