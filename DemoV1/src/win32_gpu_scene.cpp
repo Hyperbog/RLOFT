@@ -3,8 +3,7 @@
 #include "rloft/win32_gpu_scene.hpp"
 #include "rloft/enhanced_gpu_camera.hpp"
 #include "rloft/enhanced_gpu_backdrop.hpp"
-#include "rloft/level_display.hpp"
-#include "rloft/renderer_tables.hpp"
+ #include "rloft/renderer_tables.hpp"
 #include <GL/glu.h>
 #include <algorithm>
 #include <cmath>
@@ -115,15 +114,17 @@ void Win32GpuScene::set_palette(const Palette6& palette) {
 void Win32GpuScene::bind(const ExplorationSessionState& session,
                           const LevelWorldState& world,
                           const std::vector<WorldSceneRecord>& records,
-                          const std::vector<std::uint8_t>& environment_backdrop) {
+                          const std::vector<std::uint8_t>& environment_backdrop,
+                          const Palette6& frame_palette) {
     if(environment_backdrop.size()!=256U*256U)
         throw std::invalid_argument("live RES8/RES4 background is not 256x256");
     session_=&session;world_=&world;records_=records;
     environment_backdrop_=environment_backdrop;
     // Level-specific RES3/RES4 indexed images must never keep another
     // level's DAC colors after transitions or a loaded game.
-    set_palette(assets_.colors_palette(
-        LevelDisplayModel::palette_index(static_cast<int>(session.level_id))));
+    // Use the EXACT palette used to present this indexed game frame,
+    // not an independently selected static level palette.
+    set_palette(frame_palette);
     const auto hash=fingerprint(session.level);
     if(!mesh_initialized_ || current_level_!=static_cast<int>(session.level_id) ||
        world_fingerprint_!=hash) {
