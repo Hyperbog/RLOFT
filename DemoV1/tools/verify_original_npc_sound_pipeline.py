@@ -62,7 +62,7 @@ def check(resolver:str,host:str,tests:str,cmake:str,workflow:str)->None:
         'combat_level22_strike_tests original_npc_sound_tests combat_live_hand_request_tests',
         '|combat_level22_strike_tests|original_npc_sound_tests|combat_live_hand_request_tests|',
         'python DemoV1/tools/verify_original_npc_sound_pipeline.py',
-        '|enhanced_npc_sound_source_contract_tests)$"',
+        '|enhanced_npc_sound_source_contract_tests|',
     ):
         if marker not in workflow:
             raise ValueError('Windows quick build excludes NPC audio: '+marker)
