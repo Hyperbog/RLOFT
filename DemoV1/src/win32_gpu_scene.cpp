@@ -1,6 +1,7 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include "rloft/win32_gpu_scene.hpp"
+#include "rloft/enhanced_gpu_camera.hpp"
 #include <GL/glu.h>
 #include <algorithm>
 #include <cmath>
@@ -172,7 +173,8 @@ GLuint Win32GpuScene::sprite(unsigned id) {
 }
 void Win32GpuScene::draw_sprites(double heading) {
     if(!world_)return;
-    const double right_x=-std::sin(heading),right_y=std::cos(heading);
+    const auto right=EnhancedGpuCameraModel::right(heading*180.0/pi);
+    const double right_x=right.x,right_y=right.y;
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER,0.1f);
     glDisable(GL_BLEND);
@@ -234,8 +236,10 @@ void Win32GpuScene::draw_mesh(double pitch,unsigned filter_mode,double aspect) {
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     // Game uses cardinal headings in degrees; the world basis remains
     // identical to the archived GPU world mesh, with no extra party state.
-    gluLookAt(x,y,1.,x+std::cos(heading)*c,
-              y+std::sin(heading)*c,1.+std::sin(pitch),0.,0.,1.);
+    const auto forward=EnhancedGpuCameraModel::forward(
+        static_cast<double>(session_->facing));
+    gluLookAt(x,y,1.,x+forward.x*c,
+              y+forward.y*c,1.+std::sin(pitch),0.,0.,1.);
     glColor3f(1,1,1);glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     // Retain NativeEngine's batched source mesh draw (not one glBegin per
@@ -335,7 +339,15 @@ void Win32GpuScene::paint(const RECT& dst,int cw,int ch,
         glEnable(GL_SCISSOR_TEST);
         glScissor(left,ch-bottom,right-left,bottom-top);
         glViewport(left,ch-bottom,right-left,bottom-top);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        // Source software world and OpenGL project differently.
+        // Clear legacy software walls, floor and sprites INSIDE the
+        // world viewport before drawing the 3D world.
+        const unsigned ci=static_cast<unsigned>(
+            session_?session_->level.header[0x298U]:0U)*3U;
+        glClearColor(static_cast<float>(palette_.rgb[ci])/63.f,
+            static_cast<float>(palette_.rgb[ci+1U])/63.f,
+            static_cast<float>(palette_.rgb[ci+2U])/63.f,1.f);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         try{draw_mesh(pitch,filter_mode,
             static_cast<double>(right-left)/static_cast<double>(bottom-top));}
         catch(const std::exception& error) {
