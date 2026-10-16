@@ -216,6 +216,26 @@ void test_loose_and_env_discovery() {
                 *truncated==transfer)
                 throw std::runtime_error("CODE.2 CHARS truncation fixture failed");
         }
+
+        // Normal Ravenloft.exe must never overwrite the original CHARS
+        // when it hands an actual newly created party to CODE.2. Legacy
+        // runtime file lookup (e.g. SOUND.CFG / LEVnnn.DAT) still works.
+        {
+            const auto owned_chars=base/"CHARS";
+            const auto original_size=fs::file_size(owned_chars);
+            const auto overlay=base/"private-runtime";
+            fs::create_directories(overlay);
+            source.set_runtime_overlay(overlay);
+            const auto transfer=source.runtime_output_path("CHARS");
+            assert(transfer==overlay/"CHARS");
+            std::ofstream(transfer,std::ios::binary)<<"NATIVE_CODE1";
+            const auto loaded=source.read_runtime("CHARS");
+            assert(loaded.has_value());
+            assert(std::string(loaded->begin(),loaded->end())=="NATIVE_CODE1");
+            assert(fs::file_size(owned_chars)==original_size);
+            const auto legacy=source.read_runtime("SOUND.CFG");
+            assert(legacy.has_value() && legacy->size()==4U);
+        }
     }
 
     {
