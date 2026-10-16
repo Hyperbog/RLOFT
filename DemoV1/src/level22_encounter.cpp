@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 namespace {
@@ -111,11 +112,21 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
             "Level 22 Assassin index");
     }
 
-    auto& live = world.npcs[npc_index];
+    // Stage every HP/flag/death/drop mutation. A late original drop
+    // placement failure must never leave a corpse with only some relics.
+    // Vector move assignment commits the completed world in one step.
+    LevelWorldState staged=world;
+    auto& live = staged.npcs[npc_index];
     if (live.npc_type_id !=
         Level22Story::kAssassinNpcType) {
         throw std::logic_error(
             "Level 22 damage target is not the Assassin");
+    }
+    // CODE.2 combat selection excludes killed source actors. A stale
+    // attack must never replay the unique quest drops or XP award.
+    if(live.current_hp<=0) {
+        throw std::logic_error(
+            "Level 22 Assassin is already dead");
     }
 
     // Original level-header bytes +292/+294/+296 are the signed
@@ -189,6 +200,7 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
             NpcSoundKind::DamageReaction;
         result.sound_id =
             def.damage_sound_id;
+        world=std::move(staged);
         return result;
     }
 
@@ -215,7 +227,7 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
             original_drop.object_id
         };
         spawn_drop(
-            world,
+            staged,
             drop,
             live.x_position_16_16,
             live.y_position_16_16,
@@ -233,6 +245,7 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
     constexpr std::array<bool,3U> no_calls{{false,false,false}};
     live.runtime_flags=CombatNpcDeathFollowOnModel::death_runtime_flags(
         live.npc_type_id,live.runtime_flags,respawn_types,no_calls);
+    world=std::move(staged);
     return result;
 }
 
