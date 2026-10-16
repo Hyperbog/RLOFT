@@ -181,6 +181,39 @@ int main() {
     assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
     assert(world.npcs[0].runtime_flags == 0xD0000001U);
 
+    // Original quest drops must be one transaction: a late collision
+    // probe failure cannot leave a dead Assassin and a partial relic set.
+    const auto before_death=world;
+    auto aborted_world=world;
+    std::size_t drop_attempts=0U;
+    bool threw_late=false;
+    try {
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            aborted_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+            [&](std::uint32_t,std::uint32_t,std::uint32_t) {
+                if(++drop_attempts==3U)
+                    throw std::runtime_error("third drop cannot be placed");
+                return false;
+            });
+    }catch(const std::runtime_error&) {
+        threw_late=true;
+    }
+    assert(threw_late && drop_attempts==3U);
+    assert(aborted_world.npcs[0].current_hp==
+           before_death.npcs[0].current_hp);
+    assert(aborted_world.npcs[0].runtime_flags==
+           before_death.npcs[0].runtime_flags);
+    assert(aborted_world.npcs[0].packed_runtime_state==
+           before_death.npcs[0].packed_runtime_state);
+    assert(aborted_world.loose_items.size()==
+           before_death.loose_items.size());
+    // The same living NPC may safely be retried after rejected placement.
+    const auto retry=rloft::Level22EncounterModel::damage_assassin(
+        aborted_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){return false;});
+    assert(retry.died && retry.spawned_loose_items==4U);
+    assert(aborted_world.loose_items.size()==4U);
+
     // Lethal damage spawns all four story items; failed placement probes make
     // each fall back to the corpse coordinates.
     damage =
@@ -214,6 +247,19 @@ int main() {
     assert(world.loose_items[1].object_type_id == 0x87);
     assert(world.loose_items[2].object_type_id == 0xE9);
     assert(world.loose_items[3].object_type_id == 0x74);
+    // Repeated interaction with a corpse must neither award experience
+    // again nor create another set of unique Level22 quest artifacts.
+    const auto dead_hp=world.npcs[0].current_hp;
+    const auto dead_flags=world.npcs[0].runtime_flags;
+    bool corpse_rejected=false;
+    try{
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            world,level,0U,1U,0U,0U,npc_catalog(),tables,{});
+    }catch(const std::logic_error&){corpse_rejected=true;}
+    assert(corpse_rejected);
+    assert(world.npcs[0].current_hp==dead_hp);
+    assert(world.npcs[0].runtime_flags==dead_flags);
+    assert(world.loose_items.size()==4U);
     for (const auto& item : world.loose_items) {
         assert(item.x_position_16_16 == 0x000D8000U);
         assert(item.y_position_16_16 == 0x00078000U);
