@@ -1,10 +1,12 @@
 #include "rloft/game_source.hpp"
+#include "rloft/persistent_media_cache.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -323,6 +325,13 @@ const fs::path& Iso9660Image::path() const noexcept {
     return impl_->path;
 }
 
+std::vector<std::string> Iso9660Image::file_names() const {
+    std::vector<std::string> names;
+    for (const auto& pair : impl_->by_name)
+        if (!pair.second.directory) names.push_back(pair.first);
+    return names;
+}
+
 GameSource GameSource::open(const fs::path& input) {
     std::error_code ec;
     const auto absolute = fs::absolute(input, ec);
@@ -374,6 +383,12 @@ bool GameSource::has_full_game_media() const {
 }
 
 std::optional<GameSource> GameSource::auto_locate(bool full_game) {
+    if (full_game) {
+        try { if (auto cached = open_persistent_media_cache()) return cached; }
+        catch (const std::exception& e) {
+            std::cerr << "RLOFT media cache invalid: " << e.what() << "\n";
+        }
+    }
     std::set<fs::path> seen;
     for (const auto& candidate : discovery_candidates()) {
         std::error_code ec;
@@ -389,6 +404,14 @@ std::optional<GameSource> GameSource::auto_locate(bool full_game) {
                 source.contains("INIT") &&
                 source.contains("T") &&
                 (!full_game || source.has_full_game_media())) {
+                if (full_game) {
+                    try { return import_persistent_media_cache(std::move(source)); }
+                    catch (const std::exception& e) {
+                        std::cerr << "RLOFT media import failed: " << e.what()
+                                  << "; using original source\n";
+                        return open(normalized);
+                    }
+                }
                 return source;
             }
         } catch (...) {
@@ -396,6 +419,19 @@ std::optional<GameSource> GameSource::auto_locate(bool full_game) {
         }
     }
     return std::nullopt;
+}
+
+std::vector<std::string> GameSource::file_names() const {
+    if (located_.kind == GameSourceKind::GogCdImage)
+        return iso_->file_names();
+    std::vector<std::string> names;
+    std::error_code ec;
+    for (const auto& entry : fs::directory_iterator(located_.media_path, ec)) {
+        if (ec) break;
+        if (!entry.is_symlink(ec) && entry.is_regular_file(ec))
+            names.push_back(entry.path().filename().string());
+    }
+    return names;
 }
 
 bool GameSource::contains(std::string_view filename) const {
