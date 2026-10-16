@@ -596,6 +596,7 @@ add_library(rloft_boot_flow
     src/surface_sintab_prepass_executor.cpp
     src/surface_sintab_main_executor.cpp
     src/game_source.cpp
+    src/persistent_media_cache.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
     src/indexed_font_presenter.cpp
@@ -1479,6 +1480,17 @@ add_test(NAME original_f5f8_special_weight_tests COMMAND original_f5f8_special_w
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
+
+# Persistent source-media cache: checked hashes, one-time original extraction,
+# unchanged GameSource/ResArchive consumer interface.
+add_executable(persistent_media_cache_tests tests/persistent_media_cache_tests.cpp)
+target_link_libraries(persistent_media_cache_tests PRIVATE rloft_boot_flow)
+if(MSVC)
+    target_compile_options(persistent_media_cache_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(persistent_media_cache_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME persistent_media_cache_tests COMMAND persistent_media_cache_tests)
 
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)

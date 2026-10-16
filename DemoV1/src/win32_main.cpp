@@ -62,6 +62,7 @@
 #include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/enhanced_options_presenter.hpp"
 #include "rloft/game_source.hpp"
+#include "rloft/persistent_media_cache.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 #include "rloft/sound_config.hpp"
@@ -3611,8 +3612,15 @@ int run(HINSTANCE instance) {
 
         if (const auto saved = preferred_install()) {
             try {
-                source = rloft::GameSource::open(*saved);
-                resolved = source.has_full_game_media();
+                // The owned-game path remains the preference; a valid
+                // cached import avoids loading/indexing original media.
+                if (auto cached = rloft::open_persistent_media_cache()) {
+                    source = std::move(*cached);
+                    resolved = true;
+                } else {
+                    source = rloft::GameSource::open(*saved);
+                    resolved = source.has_full_game_media();
+                }
             } catch (...) {
                 // A moved/uninstalled copy is not fatal; continue discovery.
             }
@@ -3621,7 +3629,13 @@ int run(HINSTANCE instance) {
         if (!resolved) {
             if (auto found = rloft::GameSource::auto_locate(true)) {
                 source = std::move(*found);
-                save_preferred_install(source.location().install_root);
+                // GameSource discovery can return a persistent cache.
+                // Never replace the original installation preference with
+                // an internal cached-media directory.
+                if (source.location().media_path !=
+                    rloft::persistent_media_cache_directory() / "v3" / "media") {
+                    save_preferred_install(source.location().install_root);
+                }
                 resolved = true;
             }
         }
@@ -3638,6 +3652,29 @@ int run(HINSTANCE instance) {
             auto chosen = choose_valid_install(nullptr);
             if (!chosen) return 2;
             source = std::move(*chosen);
+        }
+    }
+
+    // Explicitly selected and remembered original installs must also reach
+    // the importer; auto_locate(true) already returns imported media.
+    // Keep the --no-remember-install diagnostic sandbox completely isolated.
+    if (!options.no_remember_install &&
+        source.location().media_path !=
+            rloft::persistent_media_cache_directory() / "v3" / "media") {
+        const auto original_media_path = source.location().media_path;
+        try {
+            if (auto cached =
+                    rloft::open_persistent_media_cache_for(original_media_path)) {
+                source = std::move(*cached);
+            } else {
+                source = rloft::import_persistent_media_cache(std::move(source));
+            }
+        } catch (const std::exception& e) {
+            const auto message =
+                widen(std::string("Ravenloft cache import failed; loading ") +
+                      "original files instead: " + e.what() + "\n");
+            OutputDebugStringW(message.c_str());
+            source = rloft::GameSource::open(original_media_path);
         }
     }
 
