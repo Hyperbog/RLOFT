@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <utility>
 
 namespace rloft {
 
@@ -48,6 +49,10 @@ public:
     [[nodiscard]] GameSourceKind kind() const noexcept { return located_.kind; }
     [[nodiscard]] const LocatedGame& location() const noexcept { return located_; }
 
+    // Native EXE writes CODE.1 -> CODE.2 CHARS outside original DOS media.
+    void set_runtime_overlay(std::filesystem::path root) {
+        runtime_overlay_=std::move(root);
+    }
     [[nodiscard]] bool contains(std::string_view filename) const;
     [[nodiscard]] std::vector<std::uint8_t> read(std::string_view filename) const;
     [[nodiscard]] std::optional<std::filesystem::path> runtime_file(
@@ -60,6 +65,7 @@ public:
 private:
     LocatedGame located_{};
     std::unique_ptr<Iso9660Image> iso_{};
+    std::optional<std::filesystem::path> runtime_overlay_;
 };
 
 [[nodiscard]] std::string_view to_string(GameSourceKind kind) noexcept;

@@ -405,6 +405,10 @@ std::vector<std::uint8_t> GameSource::read(
 
 std::optional<fs::path> GameSource::runtime_file(
     std::string_view filename) const {
+    if(runtime_overlay_) {
+        if(auto p=child_case_insensitive(*runtime_overlay_,filename);
+           p && fs::is_regular_file(*p))return p;
+    }
     for (const auto& root :
          {located_.install_root, located_.install_root / "RLOFT"}) {
         if (auto p = child_case_insensitive(root, filename);
@@ -450,6 +454,8 @@ std::optional<std::vector<std::uint8_t>> GameSource::read_runtime(
 
 fs::path GameSource::runtime_output_path(
     std::string_view filename) const {
+    if(runtime_overlay_)
+        return *runtime_overlay_/std::string(filename);
     if (const auto existing = runtime_file(filename)) {
         return *existing;
     }

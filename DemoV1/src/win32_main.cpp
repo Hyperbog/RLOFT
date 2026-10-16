@@ -199,7 +199,7 @@ public:
         try {
             gpu_scene_=std::make_unique<rloft::Win32GpuScene>(
                 hwnd_,assets,palette);
-            gpu_world_enabled_=true;
+            gpu_world_visible_=false;
         }catch(const std::exception& error) {
             OutputDebugStringA(error.what());
             gpu_scene_.reset(); // original renderer remains usable
@@ -1172,7 +1172,9 @@ private:
     std::vector<std::uint32_t> bgra_;
     std::optional<rloft::Type1Raster> game_cursor_;
     std::unique_ptr<rloft::Win32GpuScene> gpu_scene_;
-    bool gpu_world_enabled_{true};
+    // Faithful DOS-derived world is the default until the GPU passes
+    // live Level22 visual parity; F2 toggles the experimental OpenGL view.
+    bool gpu_world_enabled_{false};
     bool gpu_world_visible_{};
     bool gpu_menu_overlay_{};
     unsigned gpu_filter_mode_{2U};
@@ -3230,6 +3232,21 @@ int run(HINSTANCE instance) {
             auto chosen = choose_valid_install(nullptr);
             if (!chosen) return 2;
             source = std::move(*chosen);
+        }
+    }
+
+    // Direct EXE launches use a private writable overlay for CODE.1 -> CODE.2
+    // CHARS transfer and never mutate owned DOS files. The packaged
+    // --no-remember-install launcher already owns a disposable media copy.
+    if(!options.no_remember_install) {
+        std::array<wchar_t,32768> local{};
+        const auto count=GetEnvironmentVariableW(
+            L"LOCALAPPDATA",local.data(),static_cast<DWORD>(local.size()));
+        if(count>0U && count<local.size()) {
+            const auto root=std::filesystem::path(local.data())/
+                L"Hyperbog"/L"Ravenloft"/L"Runtime";
+            std::filesystem::create_directories(root);
+            source.set_runtime_overlay(root);
         }
     }
 
