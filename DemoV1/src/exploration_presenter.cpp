@@ -187,7 +187,7 @@ void ExplorationPresenter::draw_environment(
                 command.kind ==
                     EnvironmentDrawKind::
                         ProfilePlacement,
-                true,  // native indexed palette: no wrapped bright hues
+                false, // original CODE.2 2A478 does unsigned 8-bit SUB
                 command.width); // authored strip/placement width, not full RES8 image
         }
         return;
@@ -227,9 +227,10 @@ ExplorationPresentedFrame ExplorationPresenter::present(
             // source 15618[0]=0 (materializer-set 22220=0).
             // Other depths/modes must NOT be given a guessed span.
             ground.row_count=128U;
-            // Native palette policy matches the enhanced RES8 sky;
-            // the standalone original raster defaults to VGA wrap.
-            ground.shade_policy=GroundShadePolicy::ClampToBlack;
+            // CODE.2 34350 uses an 8-bit SUB, which wraps when the
+            // texel is below the shade. Never silently clamp original
+            // 8-bit palette indices to black in the live game.
+            ground.shade_policy=GroundShadePolicy::VgaWrap;
             const auto report=OriginalGroundTextureRaster::draw(
                 framebuffer_,frame.ground_raster_source,
                 ground_shades_,frame.ground_ff58,ground);
