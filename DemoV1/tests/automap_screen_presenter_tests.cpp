@@ -62,4 +62,27 @@ int main() {
     }
     assert(!rloft::AutomapScreenPresenter::legend_entry_visible(
         13U,0xFFU));
+
+    // Original CODE.2 object1 018A8..018E6: 10 columns x 25
+    // rows, one RES0+35h frame drawn every 8x16 VGA pixels.
+    const auto seed=0x12345U;
+    const auto frames=rloft::AutomapScreenPresenter::
+        sidebar_filler_frames(seed);
+    assert(frames.size()==250U);
+    rloft::OriginalRandom source(seed&0xFFFFU);
+    std::array<std::size_t,4> frequency{};
+    for(const auto frame:frames) {
+        const auto expected=static_cast<std::uint8_t>(
+            (static_cast<std::uint32_t>(source.next15())*4U)>>15U);
+        assert(frame==expected);
+        assert(frame<4U);
+        ++frequency[frame];
+    }
+    for(const auto count:frequency)assert(count>0U);
+    // The modal's wallpaper is stable on every redraw, while the
+    // original IRQ seed changes the pattern on a later map opening.
+    assert(frames==rloft::AutomapScreenPresenter::
+        sidebar_filler_frames(seed));
+    assert(frames!=rloft::AutomapScreenPresenter::
+        sidebar_filler_frames(seed+1U));
 }
