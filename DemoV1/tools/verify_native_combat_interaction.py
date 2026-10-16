@@ -22,6 +22,10 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
     ):
         if marker not in arming:
             raise ValueError('scene-locked combat interaction lost: '+marker)
+    take=arming[arming.index('EnhancedCombatTargetAttempt take('):]
+    if not(take.index('armed_.reset();') <
+           take.index('return {true,frame && previous.frame.matches(*frame),')):
+        raise ValueError('the armed action was not reset in take()')
     for marker in (
         '#include "rloft/enhanced_combat_target_arming.hpp"',
         'rloft::EnhancedCombatTargetArming pending_level22_weapon_hand;',
@@ -70,8 +74,13 @@ def check(arming:str,host:str,tests:str,options:str,option_tests:str,
     ):
         if marker not in options:
             raise ValueError('separate music/sound native button removed: '+marker)
-    if 'EnhancedOptionsSelection::ToggleSound' not in option_tests:
-        raise ValueError('SFX hit-region test removed')
+    for marker in (
+        'assert(EnhancedOptionsPresenter::action_at(211,52)==',
+        'assert(EnhancedOptionsPresenter::action_at(249,267)==',
+        'EnhancedOptionsSelection::ToggleSound',
+    ):
+        if marker not in option_tests:
+            raise ValueError('SFX hit-region test removed: '+marker)
     for marker in (
         'add_executable(enhanced_combat_target_arming_tests',
         'add_test(NAME enhanced_combat_target_arming_tests',
@@ -118,8 +127,8 @@ def main()->None:
            'assert(stale.valid);'),
         (3,'sound_enabled?"SOUND: ON":"SOUND: OFF"',
            'sound_enabled?"MUSIC: ON":"MUSIC: OFF"'),
-        (4,'EnhancedOptionsSelection::ToggleSound',
-           'EnhancedOptionsSelection::ToggleMusic'),
+        (4,'assert(EnhancedOptionsPresenter::action_at(211,52)==',
+           'assert(EnhancedOptionsPresenter::action_at(152,52)=='),
         (5,'add_executable(enhanced_combat_target_arming_tests',
            'add_executable(missing_combat_target_tests'),
         (6,'combat_live_hand_request_tests enhanced_combat_target_arming_tests',
