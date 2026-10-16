@@ -79,8 +79,9 @@ int main() {
     // actor's full record and original live actor condition/effects.
     const auto mutated=p;
     for(std::size_t i=0;i<p.bytes.size();++i) {
-        const auto lane0=0x26U, lane1=rloft::PartyImage::kActorSize+0x26U;
-        const auto lane2=rloft::PartyImage::kActorSize+0x2AU;
+        constexpr std::size_t lane0=0x26U;
+        constexpr std::size_t lane1=rloft::PartyImage::kActorSize+0x26U;
+        constexpr std::size_t lane2=rloft::PartyImage::kActorSize+0x2AU;
         if((i>=lane0 && i<lane0+4U) ||
            (i>=lane1 && i<lane1+4U) ||
            (i>=lane2 && i<lane2+4U))continue;
