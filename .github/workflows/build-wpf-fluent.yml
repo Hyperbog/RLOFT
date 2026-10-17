@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Workflow is registered on the default branch for manual dispatch,
+          # Workflow is available on the owning extractor branch for manual dispatch,
           # but builds the isolated replacement-UI branch.
-          ref: extractor-wpf-fluent
+          ref: Ravenloft-Asset-Extractor
 
       - name: Install .NET 10 SDK
         uses: actions/setup-dotnet@v4

@@ -3,7 +3,7 @@ name: Build Windows 11 Extractor
 on:
   push:
     branches:
-      - code1-decompilation
+      - Ravenloft-Asset-Extractor
     paths:
       - "Tools/**"
       - ".github/workflows/build-windows-extractor.yml"
@@ -116,8 +116,8 @@ jobs:
       - name: Sync publish branch before staging
         shell: pwsh
         run: |
-          git fetch origin code1-decompilation
-          git rebase origin/code1-decompilation
+          git fetch origin Ravenloft-Asset-Extractor
+          git rebase origin/Ravenloft-Asset-Extractor
 
       - name: Stage Windows distribution in repository
         shell: pwsh
@@ -152,7 +152,7 @@ jobs:
             Write-Host "Windows distribution is already current."
           } else {
             git commit -m "tools: publish Windows 11 executable [skip ci]"
-            git push origin HEAD:code1-decompilation
+            git push origin HEAD:Ravenloft-Asset-Extractor
           }
 
       - name: Upload Windows executable
