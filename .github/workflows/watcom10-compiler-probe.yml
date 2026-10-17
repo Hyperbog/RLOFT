@@ -2,7 +2,7 @@ name: Watcom 10.0a compiler fingerprint pilot (source-only)
 
 on:
   push:
-    branches: [code1-decompilation]
+    branches: [code1-decompilation, Decomp]
     paths:
       - '.github/workflows/watcom10-compiler-probe.yml'
       - 'Code2/tools/run_watcom10_windows_probe.py'

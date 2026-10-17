@@ -2,7 +2,7 @@ name: Build current Ravenloft Windows extractor (WPF Fluent)
 
 on:
   push:
-    branches: [code1-decompilation]
+    branches: [code1-decompilation, Decomp]
     paths:
       - "Tools/WpfExtractor/**"
       - "Tools/anm/*.py"
@@ -78,7 +78,7 @@ jobs:
           retention-days: 90
 
       - name: Publish current GitHub Release download
-        if: github.ref == 'refs/heads/code1-decompilation'
+        if: github.ref == 'refs/heads/code1-decompilation' || github.ref == 'refs/heads/Decomp'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

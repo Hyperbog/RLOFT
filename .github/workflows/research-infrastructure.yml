@@ -1,7 +1,7 @@
 name: Research Infrastructure source-only validation
 on:
   push:
-    branches: [code1-decompilation]
+    branches: [code1-decompilation, Decomp]
     paths:
       - 'ResearchInfra/**'
       - 'SharedDecomp/**'
