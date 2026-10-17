@@ -19,7 +19,7 @@ The default branch name is retained to avoid breaking existing links. On the dec
 
 ## Temporary CI branches pending retirement review
 
-Nine refs currently begin with `ci/native-` and date to 2026-10-13. They are **not** source-of-truth branches, but cannot safely be assumed redundant from their names. Review each head/unique diff, open PRs, and workflow provenance before retirement. No automatic branch deletions are implied by this document.
+Eight refs currently begin with `ci/native-` and date to 2026-10-13. They are **not** source-of-truth branches, but cannot safely be assumed redundant from their names. Review each head/unique diff, open PRs, and workflow provenance before retirement. No automatic branch deletions are implied by this document.
 
 ## Cleanup and future branch rules
 
