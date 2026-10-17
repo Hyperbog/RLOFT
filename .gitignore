@@ -8,3 +8,20 @@ RLOFT_Original_Disassembly_Reference.zip
 
 # Private REA analysis and derived original-code windows (never public artifacts)
 /.rloft-private/
+
+# Local decomp/recomp evidence exports (contain original instruction bytes; not redistributable)
+/CODE1.json
+/CODE2.json
+/CODE1.JSON
+/CODE2.JSON
+
+# Locally generated build outputs and IDE state
+/build/
+/cmake-build-*/
+/DemoV1/build/
+/DemoV1/build-*/
+/.vs/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/__pycache__/
+*.pyc
