@@ -1,3 +1,5 @@
+> **Decompilation workstream (default branch `code1-decompilation`).** New decompilation and original-machine analysis work lives here; see [Decomp/README.md](Decomp/README.md). **Recompilation development is separate:** [`recomp` branch → `Recomp/`](https://github.com/Hyperbog/RLOFT/tree/recomp/Recomp). This split retains shared original-source inputs while removing the old recompilation build subtree from the default branch. The playable enhanced game remains on [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1).
+
 # Ravenloft: Strahd's Possession — enhanced PC port and original-game preservation
 
 **Owner direction, October 13, 2026:** develop a **complete enhanced native PC port** of the game. Original files and all reverse-engineering/decompilation/recompilation work remain valuable research and compatibility resources, but exact DOS x86, VGA, IRQ, mixer, timing and memory/save ABI parity are **not release prerequisites**. Players seeking the unmodified game may use their original copy in DOSBox. The native port remains Pre-Alpha; the authored campaign must still be fully playable and preserve its recognizable content, story and mechanics.
@@ -11,7 +13,7 @@
 | Workstream | Owning project documents |
 | --- | --- |
 | Shared research infrastructure | [Deterministic source index and project ownership](ResearchInfra/README.md); [optional REA/Ghidra analysis for all projects](ResearchInfra/REA.md); [branch cleanup audit](docs/BRANCH_CLEANUP_AUDIT_20261011.md) |
-| Canonical recompilation | [Executable linker/startup and original LE-image integration](Recomp/README.md) |
+| Canonical recompilation | [Executable linker/startup and original LE-image integration](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/README.md) |
 | Reconstructed executable CODE.1 | [`Code1/README.md`](Code1/README.md) |
 | Reconstructed executable CODE.2 | [`Code2/README.md`](Code2/README.md) |
 | Native game engine (`demo-v1`) | [`DemoV1/README.md`](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md); **[active enhanced PC port charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ENHANCED_PC_PORT_CHARTER.md)**; [release milestones](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/RELEASE_MILESTONES_ALPHA_BETA_FINAL.md) |

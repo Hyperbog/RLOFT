@@ -5,16 +5,25 @@
     {
       "branch": "code1-decompilation",
       "owns": [
+        "Decomp/",
         "Code1/",
         "Code2/",
-        "Recomp/",
         "ResearchInfra/",
         "DatFiles/",
         "Resources/",
         "Runtime/",
         "docs/"
       ],
-      "role": "canonical reconstruction and research infrastructure"
+      "role": "canonical decompilation, original-source reconstruction and shared research infrastructure"
+    },
+    {
+      "branch": "recomp",
+      "owns": [
+        "Recomp/",
+        "Code1/",
+        "Code2/"
+      ],
+      "role": "separate static/source recompilation and Windows recompilation CI; CODE source copies are retained here as build dependencies"
     },
     {
       "branch": "demo-v1",
@@ -55,6 +64,7 @@
   ],
   "protected_patterns": [
     "DnD-Classics",
+    "recomp",
     "code1-decompilation",
     "demo-v1",
     "native-engine",
@@ -68,8 +78,8 @@
   },
   "review": [
     {
-      "branch": "disassembler-g2-build-20261010-54247e",
-      "status": "hold for source/test reconciliation; do not retire"
+      "pattern": "ci/native-*-20261013",
+      "status": "temporary Windows validation branches; preserve until SHA/unique-change audit and supported branch-retirement mechanism are available"
     }
   ],
   "shared_analysis_tools": {
@@ -88,7 +98,8 @@
         "native-engine",
         "disassembler-foundation",
         "extractor-wpf-fluent",
-        "DnD-Classics"
+        "DnD-Classics",
+        "recomp"
       ],
       "original_preservation_branch_read_only": true
     }

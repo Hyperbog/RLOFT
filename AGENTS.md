@@ -1,3 +1,5 @@
+> **Repository layout, 2026-10-17:** default branch `code1-decompilation` owns decompilation and shared research; `recomp` owns `Recomp/` compilation and tests. The original `Code1/` and `Code2/` paths remain stable inputs on both branches to avoid breaking source builds. Read [Decomp/README.md](Decomp/README.md) before modifications. Do not write recompilation code on the default branch.
+
 # Agent rules for Ravenloft reconstruction / native recompilation
 
 **Shared universal mod-forward standard:** Before changing runtime systems, mod-facing resources, menus, save files, gameplay data, importers or future editors, apply [MOD_FORWARD_METHODOLOGY.md](MOD_FORWARD_METHODOLOGY.md). The same standard applies to DOS, NES, SNES, SMS, Genesis and future ports. It does not supersede RLOFT branch ownership, DOS original-image evidence requirements, licensing restrictions or current implementation-status boundaries.
