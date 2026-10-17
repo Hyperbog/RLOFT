@@ -1,4 +1,4 @@
-name: Rename extractor branch once
+name: Rename disassembler branch once
 on:
   push:
     branches: [code1-decompilation]
@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
 jobs:
-  rename-extractor:
+  rename-disassembler:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v7
@@ -15,13 +15,13 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const oldName = 'extractor-wpf-fluent';
-            const newName = 'Ravenloft-Asset-Extractor';
+            const oldName = 'disassembler-foundation';
+            const newName = 'DosDis';
             const branch = await github.rest.repos.getBranch({owner, repo, branch: oldName});
-            if (branch.data.commit.sha !== '12b542176cacdeac2af61b2f44bac362578b005a') {
-              throw new Error('Extractor changed since review; refusing rename');
+            if (branch.data.commit.sha !== '0e01126646bc41671f00606fc9032b1e28ae7a71') {
+              throw new Error('Disassembler changed since review; refusing rename');
             }
             const result = await github.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
               owner, repo, branch: oldName, new_name: newName
             });
-            core.info('Renamed extractor to ' + result.data.name);
+            core.info('Renamed disassembler to ' + result.data.name);
