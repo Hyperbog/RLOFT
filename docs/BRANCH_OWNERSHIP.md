@@ -10,16 +10,17 @@
 | `recomp` | **Dedicated:** `Recomp/`, independent canonical source-link/tests and build workflow; retains `Code1/` and `Code2/` as build inputs | Recompilation changes only, separate CI |
 | `demo-v1` | `DemoV1/` native Windows player game | Active enhanced port; do not wholesale merge reconstruction branches |
 | `native-engine` | `NativeEngine/` standalone original-asset-backed GPU prototype | Independent experimental renderer/runtime |
-| `disassembler-foundation` | `Tools/Disassembler/` DOSDis | Active disassembler tooling |
-| `extractor-wpf-fluent` | `Tools/` extraction GUI/source | Active extractor tooling |
+| `DosDis` | `Tools/Disassembler/` DOSDis | Active disassembler tooling |
+| `Ravenloft-Asset-Extractor` | `Tools/` extraction GUI/source | Active extractor tooling |
 | `DnD-Classics` | Immutable original `MASTER/` game files | Do not rewrite, redistribute or clean |
-| `port/asset-cache` | Asset cache integration experiments | Review before any retirement; may contain unmerged changes |
 
-The default branch name is retained to avoid breaking existing links. On the decompilation branch, `Decomp/README.md` is the entry point; the original source paths remain unchanged to protect include paths and research tools. `Recomp/` now lives on the `recomp` branch. Original DOS source hashes, offsets and evidence remain unchanged.
+The owner requests that the default branch be renamed `Decomp`. The automated rename was denied with GitHub HTTP 403 on 2026-10-17; it remains `code1-decompilation` pending administrator action. It must remain the default until an authorized rename is completed, and workflows/registry will then need the same new name. On the decompilation branch, `Decomp/README.md` is the entry point; the original source paths remain unchanged to protect include paths and research tools. `Recomp/` now lives on the `recomp` branch. Original DOS source hashes, offsets and evidence remain unchanged.
 
-## Temporary CI branches pending retirement review
+## Retired temporary branches
 
-Eight refs currently begin with `ci/native-` and date to 2026-10-13. They are **not** source-of-truth branches, but cannot safely be assumed redundant from their names. Review each head/unique diff, open PRs, and workflow provenance before retirement. No automatic branch deletions are implied by this document.
+On 2026-10-17, the live GitHub branch list contained seven branches. The eight `ci/native-*` branches and `port/asset-cache` are no longer present as branch refs. Their older commit history and prior audit may still be used for research; do not assume recovery tags exist without checking.
+
+The former disassembler PR #4 was closed after the owner-requested rename and continued as [draft PR #27](https://github.com/Hyperbog/RLOFT/pull/27) with the existing summary carried forward.
 
 ## Cleanup and future branch rules
 

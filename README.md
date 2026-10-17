@@ -1,4 +1,4 @@
-> **Decompilation workstream (default branch `code1-decompilation`).** New decompilation and original-machine analysis work lives here; see [Decomp/README.md](Decomp/README.md). **Recompilation development is separate:** [`recomp` branch → `Recomp/`](https://github.com/Hyperbog/RLOFT/tree/recomp/Recomp). This split retains shared original-source inputs while removing the old recompilation build subtree from the default branch. The playable enhanced game remains on [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1).
+> **Decompilation workstream (currently `code1-decompilation`).** New decompilation and original-machine analysis work lives here; see [Decomp/README.md](Decomp/README.md). **Recompilation development is separate:** [`recomp` branch → `Recomp/`](https://github.com/Hyperbog/RLOFT/tree/recomp/Recomp). The requested `Decomp` branch rename requires a GitHub administrator action; the automated attempt was denied (403). This split retains shared original-source inputs while removing the old recompilation build subtree from the default branch. The playable enhanced game remains on [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1).
 
 # Ravenloft: Strahd's Possession — enhanced PC port and original-game preservation
 
@@ -18,8 +18,8 @@
 | Reconstructed executable CODE.2 | [`Code2/README.md`](Code2/README.md) |
 | Native game engine (`demo-v1`) | [`DemoV1/README.md`](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md); **[active enhanced PC port charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ENHANCED_PC_PORT_CHARTER.md)**; [release milestones](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/RELEASE_MILESTONES_ALPHA_BETA_FINAL.md) |
 | Standalone installed-game engine (`native-engine`) | [Engine product contract](https://github.com/Hyperbog/RLOFT/blob/native-engine/NativeEngine/README.md); [M-ENGINE-01 first native playtest](https://github.com/Hyperbog/RLOFT/issues/9) — separate executable, user installation assets, first playable-state assessment; **not built/accepted yet** |
-| DOSDis disassembler (`disassembler-foundation`) | [`Tools/Disassembler/README.md`](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/README.md) |
-| Asset extractor (`extractor-wpf-fluent`) | [`Tools/anm/README.md`](https://github.com/Hyperbog/RLOFT/blob/extractor-wpf-fluent/Tools/anm/README.md) and [`Tools/README.md`](Tools/README.md) |
+| DOSDis disassembler (`DosDis`) | [`Tools/Disassembler/README.md`](https://github.com/Hyperbog/RLOFT/blob/DosDis/Tools/Disassembler/README.md) |
+| Asset extractor (`Ravenloft-Asset-Extractor`) | [`Tools/anm/README.md`](https://github.com/Hyperbog/RLOFT/blob/Ravenloft-Asset-Extractor/Tools/anm/README.md) and [`Tools/README.md`](Tools/README.md) |
 | DAT, resource and runtime format research | [`DatFiles/`](DatFiles/README.md), [`Resources/`](Resources/README.md), [`Runtime/`](Runtime/README.md) |
 | Original-game files (`DnD-Classics`) | [Preserved `MASTER/` game folders](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER) |
 

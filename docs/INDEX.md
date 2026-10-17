@@ -25,8 +25,8 @@
 | Shared research infrastructure | `code1-decompilation:ResearchInfra/` | [Research index CLI, project registry and evidence rules](../ResearchInfra/README.md) |
 | Canonical source recompilation | `recomp:Recomp/` | [Executable reconstruction and original LE loader](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/README.md) |
 | Decompilation / CODE.1 & CODE.2 reconstruction | `code1-decompilation:Decomp/`, `Code1/`, `Code2/` | [CODE.1](../Code1/README.md), [CODE.2](../Code2/README.md), [CODE.2 continuity](../Code2/CODE2_CONTINUITY_ADDENDUM.md) |
-| Disassembler | `disassembler-foundation:Tools/Disassembler/` | [DOSDis README](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/README.md), [independent validation policy](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/docs/INDEPENDENT_VALIDATION_POLICY.md) |
-| Asset extractors | `extractor-wpf-fluent:Tools/`; shared extraction code also on default | [Extractor project](https://github.com/Hyperbog/RLOFT/blob/extractor-wpf-fluent/Tools/anm/README.md), [default tools entry](../Tools/README.md) |
+| Disassembler | `DosDis:Tools/Disassembler/` | [DOSDis README](https://github.com/Hyperbog/RLOFT/blob/DosDis/Tools/Disassembler/README.md), [independent validation policy](https://github.com/Hyperbog/RLOFT/blob/DosDis/Tools/Disassembler/docs/INDEPENDENT_VALIDATION_POLICY.md) |
+| Asset extractors | `Ravenloft-Asset-Extractor:Tools/`; shared extraction code also on default | [Extractor project](https://github.com/Hyperbog/RLOFT/blob/Ravenloft-Asset-Extractor/Tools/anm/README.md), [default tools entry](../Tools/README.md) |
 | Source media, immutable originals | `DnD-Classics:MASTER/` | [Preservation game tree](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER) |
 | Original DAT/RES research | Directory-specific `DatFiles/`, `Resources/`, `Runtime/` | [DAT](../DatFiles/README.md), [Resources](../Resources/README.md), [Runtime](../Runtime/README.md) |
 | Long-form preservation reports | Existing `PreservationArchive/` and historical records | [PreservationArchive directory](../PreservationArchive/) |

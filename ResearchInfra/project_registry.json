@@ -40,14 +40,14 @@
       "role": "independent install-backed original-assets application"
     },
     {
-      "branch": "disassembler-foundation",
+      "branch": "DosDis",
       "owns": [
         "Tools/Disassembler/"
       ],
       "role": "Windows desktop DOSDis and independent analysis core"
     },
     {
-      "branch": "extractor-wpf-fluent",
+      "branch": "Ravenloft-Asset-Extractor",
       "owns": [
         "Tools/"
       ],
@@ -68,20 +68,15 @@
     "code1-decompilation",
     "demo-v1",
     "native-engine",
-    "disassembler-foundation",
-    "extractor-wpf-fluent"
+    "DosDis",
+    "Ravenloft-Asset-Extractor"
   ],
   "snapshots": {
     "classification": "Preserve identifiable build/validation SHA and provenance until verified merged or archived; no sweeping merges, force pushes, or original-file rewrites.",
     "archived_tag_prefix": "archive/retired-20261011/",
     "retired_branch_count": 14
   },
-  "review": [
-    {
-      "pattern": "ci/native-*-20261013",
-      "status": "temporary Windows validation branches; preserve until SHA/unique-change audit and supported branch-retirement mechanism are available"
-    }
-  ],
+  "review": [],
   "shared_analysis_tools": {
     "rea": {
       "owner_branch": "code1-decompilation",
@@ -96,8 +91,8 @@
         "code1-decompilation",
         "demo-v1",
         "native-engine",
-        "disassembler-foundation",
-        "extractor-wpf-fluent",
+        "DosDis",
+        "Ravenloft-Asset-Extractor",
         "DnD-Classics",
         "recomp"
       ],
