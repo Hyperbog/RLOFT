@@ -18,7 +18,7 @@ jobs:
             const oldName = 'code1-decompilation';
             const newName = 'Decomp';
             const branch = await github.rest.repos.getBranch({owner, repo, branch: oldName});
-            if (branch.data.commit.sha !== '2f00572d5e6387be30ce9ca96c92eb65f209d3e3') {
+            if (branch.data.commit.sha !== context.sha) {
               throw new Error('Decompilation default changed since review; refusing rename');
             }
             const result = await github.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
