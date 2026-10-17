@@ -1,3 +1,5 @@
+> **Recompilation workstream — branch `recomp`.** This branch preserves the canonical original-code recompilation project in [`Recomp/`](Recomp/) with its dependent [CODE.1](Code1/) and [CODE.2](Code2/) source. New recompilation code and CI changes belong here. Decompilation work belongs on [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation); the playable enhanced game belongs on [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1). See [Recomp/BRANCH_GUIDE.md](Recomp/BRANCH_GUIDE.md).
+
 # Ravenloft: Strahd's Possession — enhanced PC port and original-game preservation
 
 **Owner direction, October 13, 2026:** develop a **complete enhanced native PC port** of the game. Original files and all reverse-engineering/decompilation/recompilation work remain valuable research and compatibility resources, but exact DOS x86, VGA, IRQ, mixer, timing and memory/save ABI parity are **not release prerequisites**. Players seeking the unmodified game may use their original copy in DOSBox. The native port remains Pre-Alpha; the authored campaign must still be fully playable and preserve its recognizable content, story and mechanics.
