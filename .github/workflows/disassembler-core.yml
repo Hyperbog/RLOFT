@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - disassembler-foundation
+      - DosDis
     paths:
       - '.github/workflows/disassembler-core.yml'
       - 'Tools/Disassembler/src/**'
@@ -15,7 +15,7 @@ on:
       - 'Tools/Disassembler/*.sln*'
   pull_request:
     branches:
-      - disassembler-foundation
+      - DosDis
     paths:
       - '.github/workflows/disassembler-core.yml'
       - 'Tools/Disassembler/src/**'
