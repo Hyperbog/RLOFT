@@ -23,10 +23,10 @@ struct Session {
     rloft_recomp::ReadOnlyDosFiles files;
     u32 heap_top=0x100000u;
     bool failed=false;
-    unsigned opens=0,closes=0,reads=0,rays=0;
+    unsigned opens=0,closes=0,reads=0,rays=0,materialized=0,code_patches=0;
     static Session* active;
     static Session& now() noexcept {return *active;}
-    explicit Session(const std::filesystem::path& root):files(root) {
+    explicit Session(const std::filesystem::path& root,bool authentic_camera=false):files(root) {
         VERIFY(active==nullptr);
         active=this;
         machine.data=guest.data();
@@ -36,6 +36,16 @@ struct Session {
         // attempt LEVnnn.DAT and fall back to the archive's index.
         code2::store_le32(guest.data()+0xC6C8u,0xFFFFFFFFu);
         code2::store_le32(guest.data()+0x258B4u,0u);
+        if(authentic_camera) {
+            // The original CODE.2 function_20608 defaults (without argv
+            // overrides) to level 0x16, tile (4,4), facing 0x10E (270).
+            // Replay only these precisely decoded entry assignments.
+            code2::store_le32(guest.data()+0x255D0u,0x00048000u);
+            code2::store_le32(guest.data()+0x255D4u,0x00048000u);
+            code2::store_le32(guest.data()+0xC658u,0x10Eu);
+            constexpr char sintab[]="SINTAB";
+            std::copy_n(sintab,sizeof(sintab),guest.data()+0x24u);
+        }
     }
     ~Session(){active=nullptr;}
     static u32 missing_standalone(u32) noexcept {return 0xFFFFFFFFu;}
@@ -106,8 +116,111 @@ struct Session {
     static u32 graphic_mode() noexcept {return 1u;}
     static u32 diagnostic_fixed_mul(u32,u32) noexcept {return 0u;}
     static void stop_before_rays() noexcept {++now().rays;}
+    static void read_void(u32 dst,u32 size,u32 handle) noexcept {
+        (void)read_guest(dst,size,handle);
+    }
+    static u32 open_sintab(u32 name) noexcept {
+        auto& s=now();
+        if(name!=0x24u || std::string(reinterpret_cast<char*>(
+                s.guest.data()+name))!="SINTAB") {
+            s.failed=true;return 0xFFFFFFFFu;
+        }
+        const auto r=s.files.open("SINTAB",0u);
+        if(r.carry){s.failed=true;return 0xFFFFFFFFu;}
+        ++s.opens;return r.ax;
+    }
+    static u32 word_read(u32 size,u32 handle) noexcept {
+        if(size!=2u){now().failed=true;return 0u;}
+        u8 data[2]{};
+        if(read_local(data,size,handle)!=size)return 0u;
+        return code2::load_le16(data);
+    }
+    void load_original_sintab() {
+        code2::Application06Boundary sin{};
+        sin.call_312a0=&open_sintab;
+        sin.call_3104c=&allocate;
+        sin.call_312ec=&read_void;
+        sin.call_312ec_local=&word_read;
+        sin.call_312dc=&close;
+        code2::function_03838(machine,sin);
+        VERIFY(!failed && files.open_handles()==0u);
+        VERIFY(code2::load_le32(guest.data()+0xC6D8u)==256u);
+        VERIFY(code2::load_le32(guest.data()+0xC738u)==127u);
+        VERIFY(code2::load_le32(guest.data()+0xC730u)==508u);
+        VERIFY(code2::load_le32(guest.data()+0x6090u)==324989u);
+        const u32 sine=code2::load_le32(guest.data()+0xC65Cu);
+        const u32 tangent=code2::load_le32(guest.data()+0xC660u);
+        VERIFY(code2::load_le32(guest.data()+sine+90u*4u)==0xFFFFu);
+        VERIFY(code2::load_le32(guest.data()+tangent+450u*4u)==0x10000u);
+        VERIFY(code2::load_le32(guest.data()+0xC73Cu)==359u);
+        VERIFY(code2::load_le32(guest.data()+0xC73Cu+128u*4u)==0u);
+        std::cout<<"CODE2_03838_AUTHENTIC_SINTAB_SOURCE_LOADER_PASS\\n";
+    }
+    static void patch_code(u32 addr,u8 op) noexcept {
+        auto& s=now();
+        if((addr!=0x32C1Au && addr!=0x32D04u) ||
+           (op!=0x8Du && op!=0x8Eu))s.failed=true;
+        ++s.code_patches;
+    }
+    static u32 depth() noexcept {return code2::function_35730(now().machine);}
+    static u32 optional_left(u32 index) noexcept {
+        code2::Application43Boundary b{};
+        return code2::function_1e9a0(now().machine,b,index);
+    }
+    static u32 optional_right(u32 index) noexcept {
+        code2::Application43Boundary b{};
+        return code2::function_1e930(now().machine,b,index);
+    }
+    static void blank_record() noexcept {
+        code2::function_32f4c(now().machine);
+    }
+    static code2::Application86Boundary walls() noexcept {
+        code2::Application86Boundary b{};
+        b.call_35730=&depth;
+        b.call_1e9a0=&optional_left;
+        return b;
+    }
+    static void left_wall() noexcept {
+        auto b=walls();
+        code2::function_32f8c(now().machine,b);
+        ++now().materialized;
+    }
+    static void right_wall() noexcept {
+        auto b=walls();
+        code2::function_33124(now().machine,b);
+        ++now().materialized;
+    }
+    static void left_companion() noexcept {
+        auto b=walls();
+        code2::function_332b4(now().machine,b);
+        ++now().materialized;
+    }
+    static void right_companion() noexcept {
+        auto b=walls();
+        code2::function_333bc(now().machine,b);
+        ++now().materialized;
+    }
+    static void original_ray_sweep() noexcept {
+        auto& s=now();
+        ++s.rays;
+        code2::Application84Boundary b{};
+        b.code_store8=&patch_code;
+        b.call_356d8=&code2::function_356d8;
+        b.call_32f4c=&blank_record;
+        b.call_32f8c=&left_wall;
+        b.call_33124=&right_wall;
+        b.call_332b4=&left_companion;
+        b.call_333bc=&right_companion;
+        b.call_1e930=&optional_right;
+        code2::function_32954(s.machine,b);
+    }
 
-    void run(const rloft::original_levels::LevelGrid& grid) {
+    void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false) {
+        if(raycast) {
+            VERIFY(grid.level==22u && grid.width==30u && grid.height==15u);
+            VERIFY((grid.cells[4u*grid.width+4u]&0x3Fu)==0u);
+            load_original_sintab();
+        }
         code2::Application32Boundary callbacks{};
         callbacks.call_312a0=&missing_standalone;
         callbacks.call_312a0_local=&open_archive;
@@ -122,7 +235,7 @@ struct Session {
         callbacks.call_29048=&graphic_mode;
         code2::function_181b4(machine,callbacks,static_cast<code2::s32>(grid.level));
         VERIFY(!failed);
-        VERIFY(opens==1u && closes==1u && reads>2u);
+        VERIFY(opens==(raycast?2u:1u) && closes==opens && reads>2u);
         VERIFY(files.open_handles()==0u);
         VERIFY(code2::load_le32(guest.data()+0xC6C8u)==grid.level);
         // The original 181B4 post-load tail normalizes the serialized
@@ -139,19 +252,33 @@ struct Session {
         VERIFY(grid.cells.size()==std::size_t(grid.width)*grid.height);
         for(std::size_t i=0;i<grid.cells.size();++i)
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==grid.cells[i]);
-        // Reuse the exact guest header and cells installed by source 181B4.
-        // View/trig remain synthetic; stop before source 32954 ray traversal.
-        code2::store_le32(guest.data()+0xC658u,0u);
-        code2::store_le32(guest.data()+0xC65Cu,0x40000u);
+        // Both paths consume the same source-loaded guest grid. The new
+        // path uses real 03838 SINTAB and the 20608 default camera.
         code2::Application90Boundary view{};
-        view.call_35680=&diagnostic_fixed_mul;
-        view.call_32954=&stop_before_rays;
+        if(raycast) {
+            view.call_35680=&code2::function_35680;
+            view.call_32954=&original_ray_sweep;
+        } else {
+            code2::store_le32(guest.data()+0xC658u,0u);
+            code2::store_le32(guest.data()+0xC65Cu,0x40000u);
+            view.call_35680=&diagnostic_fixed_mul;
+            view.call_32954=&stop_before_rays;
+        }
         code2::function_334c4(machine,view);
-        VERIFY(rays==1u);
+        VERIFY(!failed && rays==1u);
+        if(raycast) {
+            VERIFY(code_patches==512u);
+            VERIFY(code2::load_le32(guest.data()+0xC6FCu)==256u);
+            VERIFY(materialized>0u && materialized<=256u);
+            std::cout<<"CODE2_32954_AUTHENTIC_LEVEL22_SOURCE_RAYCAST_PASS"
+                     <<" rays=256 materialized="<<materialized<<"\\n";
+            std::cout<<"CODE2_FULL_FIRST_PERSON_RENDER_PARITY_ACCEPTED=NO\\n";
+        }
         VERIFY(code2::load_le32(guest.data()+0xFD0Cu)==grid.cells.size());
         for(std::size_t i=0;i<grid.cells.size();++i)
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==
                    (grid.cells[i]&static_cast<u16>(~0x0040u)));
+        if(raycast)std::cout<<"CODE2_181B4_TO_334C4_TO_32954_PASS\\n";
         std::cout<<"CODE2_181B4_TO_334C4_ORIGINAL_GUEST_GRID_PASS level="
                  <<grid.level<<"\n";
         std::cout<<"CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level="
@@ -164,17 +291,24 @@ Session* Session::active=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        if(argc!=2)throw std::invalid_argument(
-            "usage: rloft_original_code2_level_loader /owned/LEVELS.DAT");
-        const std::filesystem::path path(argv[1]);
+        const bool raycast=argc==4 && std::string(argv[1])=="--raycast";
+        if(argc!=2 && !raycast)throw std::invalid_argument(
+            "usage: rloft_original_code2_level_loader /owned/LEVELS.DAT"
+            " | --raycast /owned/LEVELS.DAT /owned/SINTAB");
+        const std::filesystem::path path(argv[raycast?2:1]);
+        if(raycast) {
+            const std::filesystem::path sintab(argv[3]);
+            VERIFY(sintab.filename()=="SINTAB");
+            VERIFY(sintab.parent_path()==path.parent_path());
+        }
         VERIFY(path.filename()=="LEVELS.DAT");
         const auto bytes=rloft::original_levels::read_archive(path.string());
-        for(u32 level=0;level<32u;++level) {
+        for(u32 level=raycast?22u:0u;level<(raycast?23u:32u);++level) {
             const auto grid=rloft::original_levels::decode_grid(bytes,level);
-            auto run=std::make_unique<Session>(path.parent_path());
-            run->run(grid);
+            auto run=std::make_unique<Session>(path.parent_path(),raycast);
+            run->run(grid,raycast);
         }
-        std::cout<<"CODE2_181B4_ORIGINAL_32_LEVEL_FILE_GATE_PASS\n"
+        if(!raycast)std::cout<<"CODE2_181B4_ORIGINAL_32_LEVEL_FILE_GATE_PASS\n"
                  <<"CODE2_COMPLETE_WORLD_STATE_AND_GAME_BOOT_ACCEPTED=NO\n";
         return 0;
     }catch(const std::exception& e) {
