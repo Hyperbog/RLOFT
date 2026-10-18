@@ -19,7 +19,7 @@ def test(executable,path,entry,height,shade,stem,success):
     if (p.returncode==0)!=success:
         raise AssertionError(f"{path.name}: expected success={success}; {p.stdout}\n{p.stderr}")
     if not success:return
-    if "COMPILED_CODE2_RES4_3395C_338C8_COLUMN_SAMPLER_PASS" not in p.stdout:
+    if "COMPILED_CODE2_RES4_2ECB4_TYPE6_3395C_338C8_COLUMN_SAMPLER_PASS" not in p.stdout:
         raise AssertionError("Original CODE.2 sampler not executed")
     data=stem.with_suffix(".idx").read_bytes()
     bmp=stem.with_suffix(".bmp").read_bytes()
