@@ -42,6 +42,7 @@ struct Session {
     unsigned startup_open_calls=0;
     unsigned file_seeks=0,file_reads=0,source_2fd9c_calls=0;
     unsigned bounded_lzss_callbacks=0;
+    unsigned source_type6_load_calls=0;
     bool stream_error=false;
     code2::Application70Boundary image_loader{};
     static void fail_stream() noexcept {state().stream_error=true;}
@@ -153,6 +154,28 @@ struct Session {
             fail_stream();
         return image;
     }
+    // The 2ECB4 type-6 branch dispatches to CODE.2 37590. Its exact
+    // reconstructed stream callback is still incomplete; retain the source
+    // cache+dispatch but use the verified read-only type-6 LZSS importer.
+    static u32 type6_loader(u32 hdr,u32 handle) noexcept {
+        auto& s=state();
+        ++s.source_type6_load_calls;
+        if(handle!=s.stream_handle || hdr!=0x2B670u ||
+           *code2::dg(s.machine,hdr+2u)!=6u) {fail_stream();return 0u;}
+        try {
+            const auto tex=rloft::original_res::decode_type6(
+                s.archive_bytes,s.resident_resource_id);
+            const u32 expected=code2::load_le16(
+                s.memory.data()+code2::load_le32(s.memory.data()+hdr+5u));
+            if(expected!=tex.decoded_bytes) {fail_stream();return 0u;}
+            const u32 guest=alloc_guest(tex.decoded_bytes+2u);
+            if(!guest)return 0u;
+            code2::store_le16(s.memory.data()+guest,tex.decoded_bytes);
+            std::copy(tex.column_major.begin(),tex.column_major.end(),
+                      s.memory.begin()+guest+2u);
+            return guest;
+        } catch(const std::exception&) {fail_stream();return 0u;}
+    }
     void open_readonly_resource(const std::string& filename,u32 item,u32 slot) {
         archive_bytes=rloft::original_res::read_only(filename);
         if(archive_bytes.size()<8u)throw std::runtime_error("RES file too short");
@@ -230,11 +253,12 @@ struct Session {
             throw std::invalid_argument("RES4 column height must be 8..256 and shade 0..63");
         // Source textures are column-major, 128 texels per column. The
         // original 33647..33664 selects +2*field_10 = 128*column bytes.
-        constexpr u32 pixels=0x320000u;
-        if(std::uint64_t(pixels)+tex.decoded_bytes>memory.size())
-            throw std::runtime_error("RES4 guest texture buffer overflow");
-        std::copy(tex.column_major.begin(),tex.column_major.end(),
-                  memory.begin()+pixels);
+        const u32 pointer=code2::function_2f29c(
+            machine,resources,tex.archive_entry,resident_slot);
+        if(pointer==0u || source_type6_load_calls!=1u ||
+           code2::load_le16(memory.data()+pointer)!=tex.decoded_bytes)
+            throw std::runtime_error("Original CODE.2 2ECB4 type-6 lookup failed");
+        const u32 pixels=pointer+2u;
         // Original 3395C writes map masks for successive VGA planes; original
         // 338C8 writes into the guest A0000 shadow. Replicate those writes
         // to the host VGA port aperture until CODE.2 guest memory is shared.
@@ -255,8 +279,8 @@ struct Session {
                     throw std::runtime_error("RES4 video transfer failed");
             }
         }
-        CHECK(!unsupported && !video.unsupported_read());
-        std::cout<<"COMPILED_CODE2_RES4_3395C_338C8_COLUMN_SAMPLER_PASS"
+        CHECK(!stream_error && !unsupported && !video.unsupported_read());
+        std::cout<<"COMPILED_CODE2_RES4_2ECB4_TYPE6_3395C_338C8_COLUMN_SAMPLER_PASS"
                  <<" columns="<<tex.columns<<" height="<<height<<"\n";
         std::cout<<"FULL_WORLD_FIRST_PERSON_SCENE_ACCEPTED=NO; projection/screen geometry not connected\n";
     }
@@ -329,6 +353,7 @@ struct Session {
         resource_loader.call_3104c=&alloc_guest;
         resource_loader.call_310b0=&free_guest;
         resource_loader.call_2fd9c=&source_image_loader;
+        resource_loader.call_37590=&type6_loader;
         image_loader.app69=&resources;
         image_loader.call_312ec=&read_file;
         image_loader.call_3131c=&position_file;
@@ -473,6 +498,7 @@ int main(int argc,char**argv) {
                     static_cast<unsigned>(std::stoul(argv[8])),
                     static_cast<unsigned>(std::stoul(argv[9])));
             } else session.indexed_palette();
+            session.open_readonly_resource(argv[2],entry,4u);
             session.render_res4_columns(image,height,shade);
             write_frame(argv[6],session.video);
             return 0;
