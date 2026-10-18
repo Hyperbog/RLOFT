@@ -23,6 +23,7 @@ struct Session {
     code2::Machine machine{};
     rloft_recomp::ReadOnlyDosFiles files;
     u32 heap_top=0x100000u;
+    u32 standalone_level=0xFFFFFFFFu;
     bool failed=false;
     unsigned opens=0,closes=0,reads=0,rays=0,materialized=0,code_patches=0;
     static Session* active;
@@ -49,10 +50,27 @@ struct Session {
         }
     }
     ~Session(){active=nullptr;}
-    static u32 missing_standalone(u32) noexcept {return 0xFFFFFFFFu;}
+    static u32 missing_standalone(u32 name) noexcept {
+        auto& s=now();
+        if(s.standalone_level==0xFFFFFFFFu)return 0xFFFFFFFFu;
+        if(name!=0x819Cu || s.standalone_level>=32u) {
+            s.failed=true;return 0xFFFFFFFFu;
+        }
+        const u32 level=s.standalone_level;
+        std::string filename="LEV";
+        filename.push_back(static_cast<char>('0'+(level/100u)));
+        filename.push_back(static_cast<char>('0'+((level/10u)%10u)));
+        filename.push_back(static_cast<char>('0'+(level%10u)));
+        filename+=".DAT";
+        const auto opened=s.files.open(filename,0u);
+        if(opened.carry){s.failed=true;return 0xFFFFFFFFu;}
+        ++s.opens;
+        return opened.ax;
+    }
     static u32 open_archive(const u8* name) noexcept {
         auto& s=now();
-        if(!name){s.failed=true;return 0xFFFFFFFFu;}
+        if(s.standalone_level!=0xFFFFFFFFu ||
+           !name){s.failed=true;return 0xFFFFFFFFu;}
         std::string filename;
         for(unsigned i=0u;i<12u && name[i];++i)
             filename.push_back(static_cast<char>(name[i]));
@@ -216,7 +234,12 @@ struct Session {
         code2::function_32954(s.machine,b);
     }
 
-    void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false) {
+    void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false,
+             const std::vector<u8>* standalone=nullptr) {
+        if(standalone) {
+            VERIFY(!raycast && grid.level<32u);
+            standalone_level=grid.level;
+        }
         if(raycast) {
             // Both cameras are literal original-source branch assignments:
             // 20608 defaults to level 22 (4,4), while 13C88 case 7 enters
@@ -259,6 +282,34 @@ struct Session {
         VERIFY(grid.cells.size()==std::size_t(grid.width)*grid.height);
         for(std::size_t i=0;i<grid.cells.size();++i)
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==grid.cells[i]);
+        if(standalone) {
+            // Verify independent serialized script, explored automap and
+            // annotation bytes against the actual original direct-file IO.
+            const auto script_end=rloft::original_levels::le32(
+                standalone->data()+1u+6u*4u);
+            VERIFY(script_end>=0x514u && script_end+4u<=standalone->size());
+            const u32 script=code2::load_le32(guest.data()+0xCF44u);
+            VERIFY(script!=0u && std::uint64_t(script)+0x514u<=guest.size());
+            VERIFY(std::equal(standalone->begin()+script_end-0x514u,
+                              standalone->begin()+script_end,
+                              guest.begin()+script));
+            const std::size_t automap=std::size_t(script_end)+4u;
+            const std::size_t cells=grid.cells.size();
+            VERIFY(automap+cells+4u<=standalone->size());
+            VERIFY(std::equal(standalone->begin()+automap,
+                              standalone->begin()+automap+cells,
+                              guest.begin()+0x1760u));
+            const u32 text_bytes=rloft::original_levels::le32(
+                standalone->data()+automap+cells);
+            VERIFY(text_bytes<0x7FFu);
+            VERIFY(automap+cells+4u+text_bytes==standalone->size());
+            VERIFY(std::equal(standalone->begin()+automap+cells+4u,
+                              standalone->end(),
+                              guest.begin()+0x5760u));
+            std::cout<<"CODE2_181B4_DIRECT_SAVE_MUTABLE_STATE_PASS level="
+                     <<grid.level<<" cells="<<cells
+                     <<" text_bytes="<<text_bytes<<"\\n";
+        }
         // Both paths consume the same source-loaded guest grid. The new
         // path uses real 03838 SINTAB and the 20608 default camera.
         code2::Application90Boundary view{};
@@ -332,7 +383,8 @@ struct Session {
         }
         std::cout<<"CODE2_181B4_TO_334C4_ORIGINAL_GUEST_GRID_PASS level="
                  <<grid.level<<"\n";
-        std::cout<<"CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level="
+        std::cout<<(standalone?"CODE2_181B4_REAL_DOS_STANDALONE_FILE_LOAD_PASS level=":
+                               "CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level=")
                  <<grid.level<<" rows="<<grid.height<<" columns="<<grid.width
                  <<" cells="<<grid.cells.size()<<" reads="<<reads<<"\n";
     }
@@ -342,6 +394,38 @@ Session* Session::active=nullptr;
 
 int main(int argc,char** argv) {
     try {
+        const bool saved=argc==3 && std::string(argv[1])=="--saved-levels";
+        if(saved) {
+            const std::filesystem::path directory(argv[2]);
+            VERIFY(std::filesystem::is_directory(directory));
+            unsigned validated=0u;
+            std::array<bool,32u> seen{};
+            for(const auto& entry:std::filesystem::directory_iterator(directory)) {
+                const auto name=entry.path().filename().string();
+                if(name.size()!=10u || name.substr(0,3)!="LEV" ||
+                   name.substr(6)!=".DAT")continue;
+                VERIFY(name[3]>='0' && name[3]<='9' &&
+                       name[4]>='0' && name[4]<='9' &&
+                       name[5]>='0' && name[5]<='9');
+                const u32 level=static_cast<u32>(name[3]-'0')*100u+
+                                static_cast<u32>(name[4]-'0')*10u+
+                                static_cast<u32>(name[5]-'0');
+                VERIFY(level<32u && !seen[level] &&
+                       entry.is_regular_file() && !entry.is_symlink());
+                seen[level]=true;
+                const auto bytes=rloft::original_levels::read_archive(
+                    entry.path().string());
+                const auto grid=rloft::original_levels::decode_saved_grid(bytes,level);
+                auto run=std::make_unique<Session>(directory);
+                run->run(grid,false,&bytes);
+                ++validated;
+            }
+            VERIFY(validated>0u);
+            std::cout<<"CODE2_181B4_SAVED_LEVELS_ORIGINAL_SOURCE_GATE_PASS count="
+                     <<validated<<"\\n"
+                     <<"CODE2_COMPLETE_SAVE_BOOT_AND_DOS_PIXEL_PARITY_ACCEPTED=NO\\n";
+            return 0;
+        }
         const bool raycast=argc==4 && std::string(argv[1])=="--raycast";
         if(argc!=2 && !raycast)throw std::invalid_argument(
             "usage: rloft_original_code2_level_loader /owned/LEVELS.DAT"
