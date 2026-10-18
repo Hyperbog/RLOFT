@@ -1,0 +1,58 @@
+name: Source-authentic CODE2 world RES4 Linux gate
+on:
+  workflow_dispatch:
+  push:
+    branches: [recomp]
+    paths:
+      - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/original_sintab_raster.hpp'
+      - 'Recomp/src/code2_original_level_loader.cpp'
+      - 'Recomp/src/code2_compiled_graphics_frame.cpp'
+      - 'Recomp/CMakeLists.txt'
+      - '.github/workflows/recomp-world-linux.yml'
+permissions:
+  contents: read
+concurrency:
+  group: recomp-world-source-linux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-world:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build only original world compositor executable
+        run: |
+          cmake -S Recomp -B build/world-native -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/world-native --target rloft_original_code2_world_frame --parallel 2
+      - name: Read-only original game media checkout
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/LEVELS.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Validate original hashes and genuine ray -> RES4 output
+        shell: bash
+        run: |
+          set -euo pipefail
+          media="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          printf '%s  %s\n' \
+            50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91 "$media/LEVELS.DAT" \
+            19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87 "$media/SINTAB" \
+            d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46 "$media/RES4" | sha256sum -c -
+          build/world-native/rloft_original_code2_world_frame --world \
+            "$media/LEVELS.DAT" "$media/SINTAB" "$media/RES4" "$media/COLORS" \
+            build/world-native/world-level22
+          test -s build/world-native/world-level22.idx
+          test -s build/world-native/world-level22.bmp
+          sha256sum build/world-native/world-level22.idx
+          rm -f build/world-native/world-level22.idx build/world-native/world-level22.bmp
+          echo 'Original art output removed before any build artifact publication.'
