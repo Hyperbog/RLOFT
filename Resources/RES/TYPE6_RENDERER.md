@@ -6,7 +6,7 @@ The immutable RES files and original CODE.2 bytes are controlling evidence.
 
 ## Load and column-selection path
 
-Type 6 is loaded by the shared `37590` LZSS wrapper. After decompression the runtime allocation begins with the preserved 16-bit decoded-size word, followed by the decoded body.
+Type 6 is loaded by the shared `37590` LZSS wrapper. **Original EH type-6 has header-size field 0**, then a separate 16-bit decoded-size word (4096 or 8192), then the compressed stream. After decompression the runtime allocation begins with the preserved 16-bit decoded-size word, followed by the decoded body. The new Recomp diagnostic executes original `2ECB4` cache dispatch and `338C8` column scaling with a bounded host-equivalent `37590` loader; this is not full game-camera geometry. See [source evidence](../../Code2/graphics/RES4_FIRST_PERSON_SOURCE.md).
 
 First-person renderer setup constructs a 0x1C-byte render record. At CODE.2 `32F93..32FA0` it derives the record field later stored at `+0x10` as:
 
