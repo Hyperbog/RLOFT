@@ -414,3 +414,14 @@ if(MSVC)
 else()
     target_compile_options(rloft_original_code2_world_frame PRIVATE -O0 -Wall -Wextra -Wpedantic)
 endif()
+
+# Genuine CODE.2 07938/06CAD SAVE.DAT deserializer and chained
+# original 181B4 direct LEVnnn loader; owner retail CODE.2 DGROUP only.
+add_executable(rloft_original_code2_save_game src/code2_original_save_game.cpp)
+set_target_properties(rloft_original_code2_save_game PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_save_game PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_save_game PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
