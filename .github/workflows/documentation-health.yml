@@ -8,6 +8,7 @@ on:
     paths:
       - 'docs/tools/update_live_status.py'
       - 'docs/tools/test_update_live_status.py'
+      - 'docs/tools/check_docs.py'
       - '.github/workflows/documentation-health.yml'
 permissions:
   contents: write
@@ -29,6 +30,8 @@ jobs:
           python-version: '3.12'
       - name: Test documentation generator without network
         run: python -m unittest discover -s docs/tools -p 'test_*.py' -v
+      - name: Validate maintained docs and local links
+        run: python docs/tools/check_docs.py
       - name: Refresh factual GitHub snapshot
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
