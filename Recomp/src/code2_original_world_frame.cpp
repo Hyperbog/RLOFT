@@ -480,7 +480,11 @@ struct WorldFrame {
     static u32 source_hud_resource(u32 id,u32 slot) noexcept {
         auto& s=self();
         const u32 count=static_cast<u32>(s.gfx.entry_offsets.size()-1u);
-        if(slot!=0u || id>=count) {s.failure=true;return 0u;}
+        if(slot!=0u || id>=count) {
+            std::cout<<"CODE2_HUD_LOOKUP_REJECT id="<<id
+                     <<" slot="<<slot<<" count="<<count<<"\\n";
+            s.failure=true;return 0u;
+        }
         const u32 ptr=code2::function_2f29c(s.gfx.machine,s.gfx.resources,id,slot);
         if(ptr==0u || ptr>=s.gfx.heap_cursor || s.gfx.stream_error) {
             s.failure=true;return 0u;
@@ -506,6 +510,18 @@ struct WorldFrame {
         hud.call_2f29c=&source_hud_resource;
         hud.call_2939c=&source_hud_image;
         code2::function_1ea04(gfx.machine,hud);
+        std::cout<<"CODE2_ORIGINAL_RES0_HUD_SOURCE_DIAGNOSTIC"
+                 <<" lookups="<<hud_res0_lookups
+                 <<" blits="<<hud_blits
+                 <<" failure="<<failure
+                 <<" unsupported="<<gfx.unsupported
+                 <<" stream_error="<<gfx.stream_error
+                 <<" source_loads="<<gfx.source_2fd9c_calls
+                 <<" draws="<<gfx.draw_calls
+                 <<" resource_base="<<code2::load_le32(gfx.memory.data()+0x258DCu)
+                 <<" hud_mode="<<code2::load_le32(gfx.memory.data()+0xC034u)
+                 <<" res0_entries="<<(gfx.entry_offsets.size()-1u)<<"\\n";
+        std::cout.flush();
         CHECK(!failure && !gfx.unsupported && !gfx.stream_error);
         CHECK(hud_res0_lookups==12u && hud_blits>=12u);
         CHECK(gfx.draw_calls-old_calls==hud_blits);
