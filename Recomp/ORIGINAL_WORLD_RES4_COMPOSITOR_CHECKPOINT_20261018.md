@@ -1,5 +1,7 @@
 # Real CODE.2 world-record -> RES4 compositor: multi-material integration checkpoint
 
+> **Historical blocked checkpoint (superseded):** The multi-material source cache, original SINTAB rendering, and indexed VGA output have since passed. See [current validated multi-material and independent DOS oracle checkpoint](ORIGINAL_WORLD_RES4_MULTI_MATERIAL_AND_DOS_ORACLE_20261018.md). DOS-captured-frame parity remains open.
+
 **Status:** implemented a separate **experimental** original-source world-frame executable, but **authentic-pixel acceptance is NOT achieved**. No completed world image or DOS-parity claim. Owners: `recomp`; canonical `Code2/Code2.cpp` remains unchanged. The prior original `181B4 → 03838 → 334C4 → 32954` Level 22 gate remains established.
 
 ## What was implemented
