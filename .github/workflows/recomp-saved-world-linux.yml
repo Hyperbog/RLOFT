@@ -57,6 +57,9 @@ jobs:
           cp "$source_save/SAVE.DAT" "$source_save/LEV005.DAT" "$scratch/"
           cp "$media/SINTAB" "$media/RES4" "$media/RES0" "$media/INIT" "$media/COLORS" "$media/CODE.2" "$media/NPCS.DAT" "$media/OBJECTS.DAT" "$media/RES3" "$scratch/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          echo "f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b  $scratch/NPCS.DAT" | sha256sum -c -
+          echo "f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0  $scratch/OBJECTS.DAT" | sha256sum -c -
+          echo "44955ebbed0a8ed8d874fae07b01710317044882ab3c7c95d9be54e883df9a36  $scratch/RES3" | sha256sum -c -
           echo "a7d486323c255e54ff29a032837b00f4376dfb19191f84575406d7748fbf9dc8  $scratch/LEV005.DAT" | sha256sum -c -
           echo "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87  $scratch/SINTAB" | sha256sum -c -
           echo "d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46  $scratch/RES4" | sha256sum -c -
@@ -66,13 +69,17 @@ jobs:
             | tee build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_SAVE5_ORIGINAL_181B4_1E8C8_SCENE_INDEX_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_SAVE5_SOURCE_34DE8_34BB0_33E6C_QUAD_GATE build/save5-world/save5-verification.log
+          grep -q CODE2_SOURCE_NPCS_RES3_ORIGINAL_EH7_37590_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_SAVE5_ORIGINAL_2C294_RES3_SCENE_PROJECTION_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_16810_168C8_1686C_16934_16990_SCENE_DEFINITIONS_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_INIT_RES4_BASED_SKY_GROUND sky_res4=634 ground_res4=635' build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS' build/save5-world/save5-verification.log
-          grep -q 'CODE2_LEVEL5_SOURCE_OUTDOOR_34A74_SKY_GROUND_RENDERED=YES RES3_SCENERY_AND_HUD_RENDERED=NO' build/save5-world/save5-verification.log
+          grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS RES3_SPRITE_RASTER_36CEC=UNIMPLEMENTED' build/save5-world/save5-verification.log
           test "$(wc -c < build/save5-world/save5.idx)" -eq 128000
           test "$(wc -c < build/save5-world/save5.pal)" -eq 768
           sha256sum build/save5-world/save5.idx build/save5-world/save5.pal
