@@ -29,6 +29,8 @@ using OriginalLevelGuest=WorldRaySource;
 #include <set>
 #include <iterator>
 #include <fstream>
+#include <numeric>
+#include <functional>
 
 namespace {
 struct WorldFrame {
