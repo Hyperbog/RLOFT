@@ -29,6 +29,8 @@ struct Session {
     code2::Application68Boundary resource_loader{};
     code2::Application69Boundary resources{};
     code2::Application57Boundary renderer{};
+    code2::Application83Boundary original_compositor{};
+    unsigned sweep_flushes=0;
     std::uint32_t resident_resource_id=0, resident_slot=0, resident_image=0;
     unsigned resolver_calls=0, draw_calls=0;
     bool unsupported=false;
@@ -280,6 +282,18 @@ struct Session {
         }
         return 1u;
     }
+    static u32 source_sweep_lookup(u32 item,u32 slot) noexcept {
+        auto& s=state();
+        if(slot!=4u){s.unsupported=true;return 0u;}
+        if(item==0x93u)return 0u; // empty first-pass synthetic sweep material
+        if(item!=s.resident_resource_id){s.unsupported=true;return 0u;}
+        return code2::function_2f29c(s.machine,s.resources,item,slot);
+    }
+    static void source_sweep_flush() noexcept {
+        auto& s=state();
+        ++s.sweep_flushes;
+        code2::function_3263c(s.machine,s.original_compositor);
+    }
     void render_res4_compositor(const rloft::original_res::Texture6& tex,
                                u32 height,u32 shade) {
         if(height<16u || height>256u || (height&7u)!=0u || shade>8u)
@@ -299,24 +313,32 @@ struct Session {
         code2::store_le32(memory.data()+0xC6E0u,screen_x>>2u);
         code2::store_le32(memory.data()+0xC6F4u,1u);
         memory[0xEF4Du]=0u;
-        code2::Application83Boundary compositor{};
-        compositor.out16=&out16;
-        compositor.call_338c8=&composed_338c8;
+        original_compositor.out16=&out16;
+        original_compositor.call_338c8=&composed_338c8;
+        // The records are synthetic, while the following two-pass traversal,
+        // texture pointer selection, plane masks and sample rendering are
+        // reconstructed original CODE.2 335DC -> 3263C -> 338C8.
         for(u32 column=0;column<tex.columns;++column) {
             const u32 record=0x15A18u+column*0x1Cu;
             code2::store_le32(memory.data()+record,height*2u);
-            code2::store_le32(memory.data()+0xC6F8u,column);
-            code2::store_le32(memory.data()+0xC700u,tex.archive_entry);
-            code2::store_le32(memory.data()+0x255E4u,image+2u+128u*column);
-            code2::store_le32(memory.data()+0xFCD0u,0u);
+            code2::store_le32(memory.data()+record+4u,0x93u);
+            code2::store_le32(memory.data()+record+8u,tex.archive_entry);
+            code2::store_le32(memory.data()+record+12u,1u);
+            code2::store_le32(memory.data()+record+16u,column*0x40u);
+            code2::store_le32(memory.data()+record+24u,0u);
             const u32 mask_index=1u+((column&3u)<<3u);
             memory[0xC668u+mask_index]=static_cast<u8>(1u<<((screen_x+column)&3u));
             memory[0xC688u+mask_index]=0u;
             memory[0xC6A8u+mask_index]=0u;
-            code2::function_3263c(machine,compositor);
         }
+        code2::store_le32(memory.data()+0xC6D8u,tex.columns);
+        code2::Application91Boundary sweep{};
+        sweep.call_2f29c=&source_sweep_lookup;
+        sweep.call_3263c=&source_sweep_flush;
+        code2::function_335dc(machine,sweep);
+        CHECK(sweep_flushes==tex.columns*2u);
         CHECK(!stream_error && !unsupported && !video.unsupported_read());
-        std::cout<<"CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS"
+        std::cout<<"CODE2_RES4_SOURCE_335DC_3263C_338C8_COMPOSITOR_PASS"
                  <<" columns="<<tex.columns<<"\\n";
         std::cout<<"AUTHENTIC_WORLD_CAMERA_AND_OCCLUSION=NOT_YET_EXECUTED\\n";
     }
