@@ -24,6 +24,7 @@ on:
       - 'Recomp/tools/test_compiled_res4.py'
       - 'Recomp/src/code2_original_res_startup.cpp'
       - 'Recomp/src/code2_original_level_view.cpp'
+      - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/test_original_37700_control.cpp'
       - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-milestone-windows.yml'
