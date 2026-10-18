@@ -13,7 +13,8 @@ int main() {
     static_assert(code2_planar_address(0,399).offset==31920);
     static_assert(code2_planar_address(319,399).offset==31999);
     static_assert(code2_planar_address(0,400,32768).offset==64768);
-    static_assert(code2_planar_address(0,420,32768).offset==66368);\n    static_assert(code2_planar_address(12,5,0xA0000).offset==0xA0193);
+    static_assert(code2_planar_address(0,420,32768).offset==66368);
+    static_assert(code2_planar_address(12,5,0xA0000).offset==0xA0193);
     static_assert(dac6_to_byte(0)==0 && dac6_to_byte(63)==255);
     OriginalVgaHost v;
     // Original 0x29AA4: sequencer 0x3C4 reg2 selects write plane.
