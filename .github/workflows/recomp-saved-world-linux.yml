@@ -1,0 +1,64 @@
+name: Authentic Saved Level 5 Wall Compositor Probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [recomp]
+    paths:
+      - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/code2_original_level_loader.cpp'
+      - 'Recomp/src/original_sintab_raster.hpp'
+      - 'Code2/graphics/original_levels_grid.hpp'
+      - '.github/workflows/recomp-saved-world-linux.yml'
+permissions:
+  contents: read
+concurrency:
+  group: recomp-save5-world-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  saved-world:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile authentic world frame
+        run: |
+          cmake -S Recomp -B build/save5-world -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/save5-world --target rloft_original_code2_world_frame --parallel 2
+      - name: Read-only original media
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10/LEV005.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS
+      - name: Execute source saved camera and original wall pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          media="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          source_save="original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"; rm -f build/save5-world/save5.*' EXIT
+          cp "$source_save/SAVE.DAT" "$source_save/LEV005.DAT" "$scratch/"
+          cp "$media/SINTAB" "$media/RES4" "$media/COLORS" "$scratch/"
+          echo "a7d486323c255e54ff29a032837b00f4376dfb19191f84575406d7748fbf9dc8  $scratch/LEV005.DAT" | sha256sum -c -
+          echo "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87  $scratch/SINTAB" | sha256sum -c -
+          echo "d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46  $scratch/RES4" | sha256sum -c -
+          build/save5-world/rloft_original_code2_world_frame --save-world \
+            "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
+            "$scratch/RES4" "$scratch/COLORS" build/save5-world/save5 \
+            | tee build/save5-world/save5-verification.log
+          grep -q CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_LEVEL5_SOURCE_OUTDOOR_SKY_GROUND_TREES_RENDERED=NO build/save5-world/save5-verification.log
+          test "$(wc -c < build/save5-world/save5.idx)" -eq 128000
+          test "$(wc -c < build/save5-world/save5.pal)" -eq 768
+          sha256sum build/save5-world/save5.idx build/save5-world/save5.pal
+          echo 'Original media/decoded world frames will not be published.'
