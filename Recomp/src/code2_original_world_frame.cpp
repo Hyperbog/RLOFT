@@ -309,11 +309,17 @@ struct WorldFrame {
         s.background_resources[id]=ptr;
         return ptr;
     }
+    static u32 source_page_29fec(u32 page) noexcept {
+        return code2::function_29fec(self().gfx.machine,page);
+    }
     static void source_select_draw_page(u32 page) noexcept {
         auto& s=self();
         code2::Application56Boundary b{};
+        b.call_29fec=&source_page_29fec;
         code2::function_291b0(s.gfx.machine,b,page);
-        if(page>1u || s.gfx.memory[0xEF4Du]!=page)s.failure=true;
+        if(page>1u || s.gfx.memory[0xEF4Du]!=page ||
+           code2::load_le32(s.gfx.memory.data()+0xF001u)!=
+           0xA0000u+page*0x8000u)s.failure=true;
     }
     static void texture_patch_word(u32 addr,u16) noexcept {
         auto& s=self();
@@ -562,6 +568,7 @@ struct WorldFrame {
         CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
         CHECK(gfx.memory[0xEF4Du]==1u);
+        CHECK(code2::load_le32(gfx.memory.data()+0xF001u)==0xA8000u);
         code2::function_2abf4(gfx.hardware,0x8000u);
         const auto before=gfx.video.scanout_indices();
         CHECK(before.size()==128000u);
@@ -593,6 +600,7 @@ struct WorldFrame {
                 std::plus<u32>{},[](u8 old_pixel,u8 new_pixel) {
                     return static_cast<u32>(old_pixel!=new_pixel);
                 }));
+        CHECK(changed>0u);
         std::cout<<"CODE2_SAVE5_HUD_INDEXED_OUTPUT_DIAGNOSTIC"
                  <<" changed_visible_pixels="<<changed
                  <<" positions_first=("
@@ -647,6 +655,7 @@ struct WorldFrame {
         if(saved_outdoor) {
             const u32 page=static_cast<u32>(gfx.memory[0xC050u]);
             CHECK(page==1u && gfx.memory[0xEF4Du]==1u);
+            CHECK(code2::load_le32(gfx.memory.data()+0xF001u)==0xA8000u);
             // Original CODE.2 2ABF4 programs CRTC start to expose the
             // completed draw page, after source outdoor + wall passes.
             code2::function_2abf4(gfx.hardware,page*0x8000u);
