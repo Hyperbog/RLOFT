@@ -26,7 +26,7 @@ class ReaBridgeTests(unittest.TestCase):
 
     def test_plan_binds_digest_project_and_exact_raw_address(self):
         plan = rea_bridge.make_plan(
-            self.target, "disassembler-foundation", "raw-binary",
+            self.target, "DosDis", "raw-binary",
             architecture="x86", entry_point=0x11234)
         self.assertEqual(plan["schema"], rea_bridge.SCHEMA)
         self.assertEqual(plan["source"]["sha256"], hashlib.sha256(self.target.read_bytes()).hexdigest())
