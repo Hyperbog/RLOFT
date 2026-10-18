@@ -39,6 +39,12 @@ class ReaBridgeTests(unittest.TestCase):
         self.assertFalse(plan["native_gameplay_parity"])
         self.assertEqual(plan["rea_version_pin"], "6.4.0")
 
+    def test_renamed_disassembler_uses_registered_project_identity(self):
+        self.assertIn("DosDis", rea_bridge.projects())
+        self.assertNotIn("disassembler-foundation", rea_bridge.projects())
+        plan = rea_bridge.make_plan(self.target, "DosDis", "auto")
+        self.assertEqual(plan["project"], "DosDis")
+
     def test_all_owner_workstreams_can_plan_without_owning_tool_source(self):
         for branch in sorted(rea_bridge.projects()) + ["external-owned-project"]:
             plan = rea_bridge.make_plan(self.target, branch, "auto")
