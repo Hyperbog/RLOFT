@@ -40,7 +40,7 @@ struct WorldFrame {
     u32 code_start=0,code_end=0;
     u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0,legacy_fallbacks=0;
     u32 original_sky_calls=0,original_ground_calls=0,original_background_bytes=0;
-    u32 textured_sky_dispatch=0,textured_ground_dispatch=0;
+    u32 textured_sky_dispatch=0,textured_ground_dispatch=0,unrendered_ui_requests=0;
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -273,6 +273,12 @@ struct WorldFrame {
     }
     static u32 source_background_texture(u32 id,u32 slot) noexcept {
         auto& s=self();
+        if(slot==0u) {
+            // 1F1C8's terminal 1EA04 HUD draw requests RES0. The
+            // background-only gate has no archive-0 table or UI renderer.
+            ++s.unrendered_ui_requests;
+            return 0u;
+        }
         if(slot!=4u || id>=s.gfx.entry_offsets.size()-1u) {
             s.failure=true;return 0u;
         }
@@ -340,6 +346,7 @@ struct WorldFrame {
         std::cout<<"CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS"
                  <<" sky=1 ground=1 source_RES4_items="
                  <<background_resources.size()
+                 <<" unrendered_ui_requests="<<unrendered_ui_requests
                  <<" texel_rasterizer_executed=NO\\n";
     }
     void render(bool saved_outdoor=false) {
