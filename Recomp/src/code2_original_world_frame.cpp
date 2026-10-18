@@ -58,6 +58,8 @@ struct WorldFrame {
         copy_guest(0x18FE0u,128u*4u);                // scale code pointers
         copy_guest(0xC65Cu,0xC73Cu+0x400u-0xC65Cu); // source trig and camera tables
         copy_guest(0x255D0u,0x258BCu-0x255D0u);    // source camera+level header
+        copy_guest(0xCF4Cu,4u);                    // original world 16.16 clock
+        copy_guest(0xF91Cu,8u);                   // saved light/shade scalars
         copy_guest(0x258C4u,4u);                    // authentic 509-word lookup
         copy_guest(0x15A18u,256u*0x1Cu);           // original 32954 ray records
         CHECK(code2::load_le32(gfx.memory.data()+0xC6D8u)==256u);
@@ -324,7 +326,29 @@ int main(int argc,char** argv) {
                         ray->guest.data()+0x22200u);
             std::copy_n(save.data()+0x77u,0x920u,
                         ray->guest.data()+0x218E0u);
+            // Original 06CAD save restoration reads these discontiguous
+            // guest globals before entering source 181B4. Preserve the
+            // 16.16 time and unmodified primary-effect fields.
+            code2::store_le16(ray->guest.data()+0xF03Cu,
+                              code2::load_le16(save.data()+0x62u));
+            code2::store_le16(ray->guest.data()+0xF03Eu,
+                              code2::load_le16(save.data()+0x64u));
+            code2::store_le32(ray->guest.data()+0xFD08u,
+                              code2::load_le32(save.data()+0x66u));
+            code2::store_le16(ray->guest.data()+0x6DAEu,
+                              code2::load_le16(save.data()+0x6Au));
+            code2::store_le32(ray->guest.data()+0xCF4Cu,
+                              code2::load_le32(save.data()+0x70u));
+            const std::size_t tail=save.size()-(8u+15u+0x16D0u+16u);
+            CHECK(tail>=0x997u && tail+8u<=save.size());
+            const u32 saved_shade=code2::load_le32(save.data()+tail);
+            const u32 saved_light=code2::load_le32(save.data()+tail+4u);
+            CHECK(saved_shade==10u && saved_light==3u);
+            code2::store_le32(ray->guest.data()+0xF920u,saved_shade);
+            code2::store_le32(ray->guest.data()+0xF91Cu,saved_light);
             ray->run(grid,true,&bytes);
+            CHECK(code2::load_le32(ray->guest.data()+0xCF4Cu)==
+                  code2::load_le32(save.data()+0x70u));
         } else {
             // Original 13C88 case-7 transition camera, tile (2,65), 270.
             code2::store_le32(ray->guest.data()+0x255D0u,0x00028000u);
