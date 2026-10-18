@@ -35,7 +35,7 @@ def run(exe: pathlib.Path, root: pathlib.Path, name: str, source: bytes,
     bitmap=stem.with_suffix(".bmp").read_bytes()
     if len(pixels)!=128000 or len(bitmap)!=129078:
         raise AssertionError(name+": invalid indexed/BMP frame sizes")
-    if "ORIGINAL_RES_TYPE1_COMPILED_2A20C_2F29C_2975C_2A380_PASS" not in p.stdout:
+    if "ORIGINAL_RES_TYPE1_2ECB4_2FD9C_2F29C_2975C_2A380_PASS" not in p.stdout:
         raise AssertionError(name+": real resource resolver/renderer route not run")
     x,y=156,196 # centered 8x8 into a 320x400 VGA plane surface
     if pixels[y*320+x]!=expected_first or pixels[y*320+x+1]!=2:
