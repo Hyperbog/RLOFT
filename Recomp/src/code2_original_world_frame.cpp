@@ -502,7 +502,7 @@ struct WorldFrame {
                  <<" rows_2plane_pairs="<<outdoor_2plane_rows
                  <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
-    static u32 source_scene_record(s32 x,s32 y) noexcept {
+    static u32 source_scene_record(code2::s32 x,code2::s32 y) noexcept {
         auto& s=self();
         if(x<0 || y<0 || x>=64 || y>=64){s.failure=true;return 0u;}
         const u32 addr=code2::function_1e8c8(s.gfx.machine,
@@ -518,8 +518,8 @@ struct WorldFrame {
         const u32 t=code2::load_le16(gfx.memory.data()+0x258A4u);
         const u32 n=code2::load_le16(gfx.memory.data()+0x258A6u);
         CHECK(p==90u && t==68u && n==163u);
-        for(s32 x=0;x<64;++x)
-            for(s32 y=0;y<64;++y){
+        for(code2::s32 x=0;x<64;++x)
+            for(code2::s32 y=0;y<64;++y){
                 const u32 rec=source_scene_record(x,y);
                 if(!rec)continue;
                 const u8 flags=gfx.memory[rec+1u];
