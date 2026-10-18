@@ -123,8 +123,17 @@ struct Session {
         VERIFY(opens==1u && closes==1u && reads>2u);
         VERIFY(files.open_handles()==0u);
         VERIFY(code2::load_le32(guest.data()+0xC6C8u)==grid.level);
-        VERIFY(std::equal(grid.header.begin(),grid.header.end(),
-                          guest.begin()+0x25618u));
+        // The original 181B4 post-load tail normalizes the serialized
+        // scale word at 258B2 to 1 if it was zero (header offset 0x29A).
+        // Check all other bytes exactly, and check that one source mutation.
+        for(std::size_t i=0;i<grid.header.size();++i) {
+            if(i==0x29Au || i==0x29Bu)continue;
+            VERIFY(guest[0x25618u+i]==grid.header[i]);
+        }
+        const u16 serialized_scale=rloft::original_levels::le16(
+            grid.header.data()+0x29Au);
+        VERIFY(code2::load_le16(guest.data()+0x258B2u)==
+               (serialized_scale ? serialized_scale : 1u));
         VERIFY(grid.cells.size()==std::size_t(grid.width)*grid.height);
         for(std::size_t i=0;i<grid.cells.size();++i)
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==grid.cells[i]);
