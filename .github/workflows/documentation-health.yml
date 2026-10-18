@@ -1,0 +1,51 @@
+name: Documentation health and live status
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 11 * * *'
+  push:
+    branches: [code1-decompilation, Decomp]
+    paths:
+      - 'docs/tools/update_live_status.py'
+      - 'docs/tools/test_update_live_status.py'
+      - '.github/workflows/documentation-health.yml'
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+concurrency:
+  group: rloft-documentation-health
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test documentation generator without network
+        run: python -m unittest discover -s docs/tools -p 'test_*.py' -v
+      - name: Refresh factual GitHub snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python docs/tools/update_live_status.py
+      - name: Publish only changed generated status
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add docs/LIVE_STATUS.md
+          if git diff --cached --quiet; then
+            echo "No status change"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: refresh live GitHub branch and CI status [skip ci]"
+          branch="${GITHUB_REF_NAME}"
+          git fetch origin "$branch"
+          git rebase "origin/$branch"
+          git push origin "HEAD:$branch"
