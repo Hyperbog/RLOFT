@@ -8,6 +8,8 @@ on:
       - 'Recomp/src/original_sintab_raster.hpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
+      - 'Recomp/tools/compare_dos_indexed_frames.py'
+      - 'Recomp/tools/test_compare_dos_indexed_frames.py'
       - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-world-linux.yml'
 permissions:
@@ -27,6 +29,8 @@ jobs:
         run: |
           cmake -S Recomp -B build/world-native -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
           cmake --build build/world-native --target rloft_original_code2_world_frame --parallel 2
+      - name: Verify independent frame-comparison contract without original game media
+        run: python3 -m unittest discover -s Recomp/tools -p test_compare_dos_indexed_frames.py -v
       - name: Read-only original game media checkout
         uses: actions/checkout@v4
         with:
@@ -50,9 +54,13 @@ jobs:
             d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46 "$media/RES4" | sha256sum -c -
           build/world-native/rloft_original_code2_world_frame --world \
             "$media/LEVELS.DAT" "$media/SINTAB" "$media/RES4" "$media/COLORS" \
-            build/world-native/world-level22
-          test -s build/world-native/world-level22.idx
-          test -s build/world-native/world-level22.bmp
-          sha256sum build/world-native/world-level22.idx
-          rm -f build/world-native/world-level22.idx build/world-native/world-level22.bmp
+            build/world-native/world-level11
+          test -s build/world-native/world-level11.idx
+          test -s build/world-native/world-level11.bmp
+          test -s build/world-native/world-level11.pal
+          test "$(wc -c < build/world-native/world-level11.idx)" -eq 128000
+          test "$(wc -c < build/world-native/world-level11.pal)" -eq 768
+          sha256sum build/world-native/world-level11.idx
+          sha256sum build/world-native/world-level11.pal
+          rm -f build/world-native/world-level11.idx build/world-native/world-level11.bmp build/world-native/world-level11.pal
           echo 'Original art output removed before any build artifact publication.'
