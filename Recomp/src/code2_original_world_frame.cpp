@@ -706,6 +706,39 @@ struct WorldFrame {
         CHECK(std::filesystem::path(filename).filename()=="RES3");
         gfx.open_readonly_resource(filename,0u,3u);
         CHECK(gfx.entry_offsets.size()==4235u);
+        // A stable source-derived EH7 sample exists even when the
+        // saved camera contains no currently visible actors. Use the
+        // first original saved NPC instance's authentic definition base.
+        const u32 first_npc_type=code2::load_le16(
+            gfx.memory.data()+0x14D80u+0x0Eu);
+        const u32 npc_defs=code2::load_le32(
+            gfx.memory.data()+0x22230u);
+        CHECK(first_npc_type<83u && npc_defs>=0x400000u);
+        const u32 descriptor=npc_defs+first_npc_type*0x45u;
+        CHECK(std::uint64_t(descriptor)+0x16u<gfx.heap_cursor);
+        const u32 source_shape=code2::load_le16(
+            gfx.memory.data()+descriptor+0x14u);
+        CHECK(source_shape<4234u);
+        const u32 compressed=gfx.entry_offsets[source_shape];
+        const u32 compressed_end=gfx.entry_offsets[source_shape+1u];
+        CHECK(compressed_end>compressed+5u &&
+              gfx.archive_bytes[compressed]=='E' &&
+              gfx.archive_bytes[compressed+1u]=='H' &&
+              gfx.archive_bytes[compressed+2u]==7u);
+        const u32 decoded=source_res3_lookup(source_shape,3u);
+        CHECK(decoded!=0u && !failure);
+        const u32 decoded_length=code2::load_le16(
+            gfx.memory.data()+decoded);
+        CHECK(decoded_length>=0x10u &&
+              std::uint64_t(decoded)+2u+decoded_length<=gfx.heap_cursor);
+        const unsigned reads=gfx.file_reads,loads=gfx.source_type6_load_calls;
+        CHECK(source_res3_lookup(source_shape,3u)==decoded);
+        CHECK(gfx.file_reads==reads && gfx.source_type6_load_calls==loads);
+        std::cout<<"CODE2_SOURCE_NPCS_RES3_ORIGINAL_EH7_37590_PASS"
+                 <<" npc_type="<<first_npc_type
+                 <<" shape_id="<<source_shape
+                 <<" decompressed_bytes="<<decoded_length
+                 <<" cached=YES\\n";
         code2::Application64Boundary projection{};
         projection.call_30ca2=&source_scene_rand;
         projection.call_30cc4=&source_scene_seed;
