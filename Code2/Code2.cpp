@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "graphics/original_37700_control.hpp"
 
 namespace code2 {
 
@@ -27499,6 +27500,7 @@ struct Runtime126Boundary {
     u32 (*invoke_saved_far)(u32,u32,u32,u32)=nullptr;
     u16 (*get_input)()=nullptr;
     void (*put_output)(u8)=nullptr;
+    bool (*bounded_read)(u8*)=nullptr; // fail closed on EOF/error
 };
 
 // 375FE..37641: preserve the extender-mode split used when installing the bridge.
@@ -27533,41 +27535,24 @@ static_assert(0x376E9u-0x37642u==167u);
 void function_376f0() noexcept {}
 static_assert(0x376F1u-0x376F0u==1u);
 
-// 37700..3780C: 4 KiB ring-dictionary decoder. 16-bit SI/BX/DI arithmetic and
-// 0FFFh wrapping are deliberate; the back-reference loop is inclusive.
-void function_37700(Runtime126Boundary& b,u8 stop_flag) noexcept {
-    u8 dict[4096];
-    for(u32 i=0;i<0xFEEu;++i)dict[i]=0xFEu;
-    u16 write_pos=0x0FEEu;
-    u16 flags=0u;
-    for(;;){
-        flags=static_cast<u16>(flags>>1);
-        if((flags&0x0100u)==0u){
-            if(stop_flag==1u)return;
-            const u16 v=b.get_input?b.get_input():0u;
-            flags=static_cast<u16>((v&0x00FFu)|0xFF00u);
-        }
-        if((flags&1u)!=0u){
-            if(stop_flag==1u)return;
-            const u8 c=static_cast<u8>(b.get_input?b.get_input():0u);
-            if(b.put_output)b.put_output(c);
-            dict[write_pos]=c;
-            write_pos=static_cast<u16>((write_pos+1u)&0x0FFFu);
-        } else {
-            if(stop_flag==1u)return;
-            const u16 lo=b.get_input?b.get_input():0u;
-            if(stop_flag==1u)return;
-            const u16 hi=b.get_input?b.get_input():0u;
-            const u16 source=static_cast<u16>((lo&0x00FFu)|((hi&0x00F0u)<<4));
-            const u16 last=static_cast<u16>((hi&0x000Fu)+2u);
-            for(u16 i=0u;i<=last;++i){
-                const u8 c=dict[static_cast<u16>((source+i)&0x0FFFu)];
-                if(b.put_output)b.put_output(c);
-                dict[write_pos]=c;
-                write_pos=static_cast<u16>((write_pos+1u)&0x0FFFu);
-            }
-        }
-    }
+// 37700..3780C: 4 KiB ring-dictionary decoder. Original source tests the
+// *live guest byte* [2B6C2] at 3772E,3774D,37785,37797; it does NOT use a
+// function-argument stop flag. Source 2FA30 sets this byte on completion.
+// The original callback's 16-bit input return has no way to signal EOF;
+// host adapters must supply bounded_read, while decoded output is capped.
+[[nodiscard]] u32 function_37700(Machine& m,Runtime126Boundary& b,u32 output_limit) noexcept {
+    const auto result=rloft::code2source::function_37700_stream(
+        [&](u8& value)->bool {
+            if(b.bounded_read)return b.bounded_read(&value);
+            if(!b.get_input)return false;
+            value=static_cast<u8>(b.get_input());
+            return true;
+        },
+        [&](u8 value){ if(b.put_output)b.put_output(value); },
+        [&](){return *dg(m,0x2B6C2u)==1u;},
+        static_cast<std::size_t>(output_limit)
+    );
+    return result.result==rloft::code2source::Decode37700::completed?1u:0u;
 }
 static_assert(0x3780Du-0x37700u==269u);
 
