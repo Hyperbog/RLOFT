@@ -308,6 +308,21 @@ int main(int argc,char** argv) {
             world.render();
         }
         write_frame(argv[6],gfx->video);
+        // Indexed pixels alone do not determine output colors. Export the
+        // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
+        // independently captured DOS palette can also be compared.
+        std::ofstream pal(std::string(argv[6])+".pal",
+                          std::ios::binary|std::ios::trunc);
+        CHECK(bool(pal));
+        for(u32 i=0u;i<256u;++i) {
+            const auto rgb=gfx->video.palette(static_cast<u8>(i));
+            pal.put(static_cast<char>(rgb.r));
+            pal.put(static_cast<char>(rgb.g));
+            pal.put(static_cast<char>(rgb.b));
+        }
+        CHECK(bool(pal));
+        std::cout<<"CODE2_SOURCE_FRAME_INDEX_AND_RGB6_PALETTE_WRITTEN=YES\\n";
+        std::cout<<"CODE2_INDEPENDENT_DOS_FRAME_PARITY=NOT_VERIFIED\\n";
         return 0;
     } catch(const std::exception& e) {
         std::cerr<<"CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL: "<<e.what()<<"\\n";
