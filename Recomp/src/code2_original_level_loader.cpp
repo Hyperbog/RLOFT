@@ -274,12 +274,14 @@ struct Session {
             unsigned side_a=0,side_b=0,empty_a=0,empty_b=0;
             u32 min_depth=0xFFFFFFFFu,max_depth=0u;
             std::map<u32,unsigned> scene_counts;
+            std::map<u32,unsigned> source_materials;
             for(u32 slot=0u;slot<256u;++slot) {
                 const u32 addr=0x15A18u+slot*0x1Cu;
                 const u32 extent=code2::load_le32(guest.data()+addr);
                 const u32 a=code2::load_le32(guest.data()+addr+4u);
                 const u32 b=code2::load_le32(guest.data()+addr+8u);
                 ++scene_counts[b];
+                ++source_materials[a];
                 if(a==0x93u)++empty_a; else ++side_a;
                 if(b==0x93u)++empty_b; else ++side_b;
                 min_depth=std::min(min_depth,extent);
@@ -292,6 +294,9 @@ struct Session {
                      <<" depth_min="<<min_depth<<" depth_max="<<max_depth
                      <<" unique_materials="<<scene_counts.size()<<" ids=";
             for(const auto& [key,count]:scene_counts)
+                std::cout<<key<<":"<<count<<",";
+            std::cout<<"\\nCODE2_32954_FIRST_PASS_MATERIALS=";
+            for(const auto& [key,count]:source_materials)
                 std::cout<<key<<":"<<count<<",";
             std::cout<<"\\n";
             std::cout<<"CODE2_32954_AUTHENTIC_LEVEL22_SOURCE_RAYCAST_PASS"
