@@ -1,0 +1,22 @@
+# Real CODE.2 world-record -> RES4 compositor: multi-material integration checkpoint
+
+**Status:** implemented a separate **experimental** original-source world-frame executable, but **authentic-pixel acceptance is NOT achieved**. No completed world image or DOS-parity claim. Owners: `recomp`; canonical `Code2/Code2.cpp` remains unchanged. The prior original `181B4 → 03838 → 334C4 → 32954` Level 22 gate remains established.
+
+## What was implemented
+
+- [`code2_original_world_frame.cpp`](src/code2_original_world_frame.cpp) combines the file-backed original level and SINTAB startup with compiled real `32954` ray records, original `335DC` pass selection, compiled `3263C` compositor, `2F29C/37590` unloaded RES4 resource cache, and the original VGA host.
+- [`original_sintab_raster.hpp`](src/original_sintab_raster.hpp) adds a bounded, fail-closed interpreter for the original SINTAB rasterizers' `8A 86`, `88 C4`, `29 C8`, `88 87`, `88 A7`, `EB`, and `C3` x86 instruction forms. The entire set of 127 supplied code blocks was examined for this opcode grammar, but end-to-end rendered-pixel parity has **not** been established. No unsafe machine-code execution is attempted.
+- An independent [Linux authentic-media gate](../.github/workflows/recomp-world-linux.yml) checks owner-preserved LEVELS.DAT, SINTAB, RES4 hashes, compiles the executable and runs it. It does not upload original image assets.
+- Existing Windows milestone and pre-ray/genuine-ray checks remain separate from this experimental failure. [Linux source compilation and 72/72 existing tests passed](https://github.com/Hyperbog/RLOFT/actions/runs/39101089021) before this trial.
+
+## Source findings, not inferred assets
+
+1. [First source-world Linux probe](https://github.com/Hyperbog/RLOFT/actions/runs/39101369787), Level 22 original `20608` default camera (4,4), 270 degrees: source `32954` generated 256 records, but all had `rec+0x0C=0`, while second-pass material was the original `0x93` sentinel. Consequently original `335DC` executed but did not invoke a first-pass scaler, and no world pixels could be certified. The printed failure was `CODE2 graphics: callback_calls>0u && pixel_writes>0u && patches>0u`; instrumentation confirmed `flags=0 first_nonempty=256 scale_calls=0 write_count=0 patches=0 flushes=255`.
+2. [Second source-world Linux probe](https://github.com/Hyperbog/RLOFT/actions/runs/39101655249), using the source-encoded `13C88` case-7 transition to level 11, tile (2,65), facing 270 degrees: genuine original level/world loading and raycast passed. 256 rays materialized; the record population included 18 distinct second-pass material IDs and 11 first-pass material IDs. **Eligible first-pass** (only `rec+0x0C==1`) had **three unique source material IDs: 48 (6 records), 53 (2 records), 59 (1 record)**. The original source compositor cannot be faithfully run with the graphics harness's existing single-resident-item restriction. It stopped deliberately at `CODE2 graphics: front_materials.size()==1u`. No original record IDs were silently rewritten or replaced with a synthetic material.
+3. `338C8` is **not** the normal Level 22 or Level 11 first-pass path. The original `3263C` uses `32620` and SINTAB-generated code for these short recorded extents; `338C8` belongs to the applicable long-extent second-pass fallback. Never force a genuine record into the wrong branch just to claim a requested routine ran.
+
+## Required next implementation
+
+Extend the **original `2F29C` per-archive resource cache** to handle all actual material IDs requested by `335DC` in the same frame, not only `resident_resource_id`. Preserve original 28-byte ray records and `0x93` sentinel. On each lookup, decode only owner-authenticated RES4 type-6 items via original `2ECB4 → 37590 → 37700`, tracking image allocation start/end for bounded SINTAB sampling. Bind `32620` to the restricted SINTAB interpreter, keep source `3263C` map masks and occlusion traversal, and compare produced indexed frames against independent DOS captures before accepting parity. Then verify whether the original `338C8` fallback is reached naturally for other verified scenes.
+
+The standalone `--world LEVELS.DAT SINTAB RES4 COLORS output-stem` mode currently **fails closed** on mixed materials. Dedicated Linux CI is red by design until implemented; it must not be conflated with the proven general Recomp tests. No original game art is bundled. R04 and full CODE.1→CODE.2 boot remain open.
