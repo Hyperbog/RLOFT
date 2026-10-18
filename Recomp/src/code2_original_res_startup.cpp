@@ -29,6 +29,7 @@ std::vector<u8> disk_read(const std::filesystem::path& p) {
 }
 struct Fixture {
     std::array<std::vector<u8>,13> data{};
+    std::string cd_prefix{};
     static constexpr std::array<u16,18> init_words={
         15,168,336,0,2169,3316,4158,600,49,49,69,166,192,266,32,103,48,414
     };
@@ -60,7 +61,11 @@ struct Fixture {
         REQUIRE(std::string(data[1].begin(),data[1].begin()+13)=="0000000001111");
         const auto n=code2::load_le16(data[1].data()+13);
         REQUIRE(data[1].size()==15u+n);
-        REQUIRE(n==2u && data[1][15]=='D' && data[1][16]==':');
+        REQUIRE(n>=2u && n<=60u);
+        cd_prefix.assign(data[1].begin()+15,data[1].end());
+        REQUIRE(cd_prefix.size()==n && cd_prefix.find('\0')==std::string::npos);
+        REQUIRE(cd_prefix.find("..")==std::string::npos);
+        REQUIRE(cd_prefix[1]==':'); // original DOS drive-qualified media path
         for(unsigned i=0;i<18;++i)
             REQUIRE(code2::load_le16(data[0].data()+i*2u)==init_words[i]);
         for(unsigned i=0;i<11;++i) {
@@ -128,9 +133,10 @@ struct Session {
         while(n<84 && name[n]!=0)++n;
         if(n==0 || n==84){std::cerr<<"OPEN_RES_INVALID_LENGTH="<<n<<'\n';t.error=true;return -1;}
         std::string path(reinterpret_cast<const char*>(name),n);
-        const auto slash=path.find_last_of("/\\");
-        const std::string base=(path.rfind("D:RES",0)==0)?path.substr(2):
-            (slash==std::string::npos?path:path.substr(slash+1));
+        const bool cd_path=path.rfind(t.fixture.cd_prefix,0)==0;
+        std::string base=cd_path?path.substr(t.fixture.cd_prefix.size()):path;
+        if(cd_path && !base.empty() && (base.front()=='/' || base.front()=='\\'))
+            base.erase(base.begin());
         if(base.size()<4||base.size()>5||base.substr(0,3)!="RES"){
             t.error=true;return -1;
         }
@@ -141,8 +147,8 @@ struct Session {
         }
         if(id>=11){t.error=true;return -1;}
         // Source INFO.DAT prefix flags: RES9/RES10 are CD path prefixed.
-        if(id>=9 && path.rfind("D:RES",0)!=0){t.error=true;return -1;}
-        if(id<9 && path!=base){t.error=true;return -1;}
+        if(id>=9 && !cd_path){t.error=true;return -1;}
+        if(id<9 && cd_path){t.error=true;return -1;}
         const u32 handle=0x100u+id;
         t.files[handle]={id+2u,0u};
         ++t.res_opens;
