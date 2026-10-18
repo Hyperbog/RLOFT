@@ -14,6 +14,10 @@ on:
     branches: [recomp]
     paths:
       - 'Recomp/ACCEPTANCE_GATES.json'
+      - 'Code2/graphics/**'
+      - 'Recomp/src/original_vga_host.hpp'
+      - 'Recomp/src/test_original_vga_host.cpp'
+      - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-milestone-windows.yml'
 permissions:
   contents: read
@@ -76,7 +80,7 @@ jobs:
           $source = "build/windows-milestone/Debug"
           $dir = "build/windows-milestone/package"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe")) {
+          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe, "rloft_original_vga_host_tests.exe")) {
             Copy-Item (Join-Path $source $exe) $dir -ErrorAction Stop
           }
           Copy-Item build/windows-milestone/milestone-report.json $dir
@@ -85,6 +89,7 @@ jobs:
             'RLOFT CODE.1/CODE.2 reconstructed-source milestone diagnostics'
             'NOT A PLAYABLE GAME; no original commercial game files included.'
             'No successful DOS/4GW runtime parity or game completion is implied.'
+            'The VGA host test executable covers synthetic planar, DAC6 and CRTC addressing only; no original game frames.'
             "Milestone probe: $env:MILESTONE"
             "Source commit: ${{ steps.source.outputs.sha }}"
             'Run from a Windows terminal. See milestone-report.json for accepted-vs-tested.'
