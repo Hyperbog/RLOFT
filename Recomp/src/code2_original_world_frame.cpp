@@ -44,6 +44,8 @@ struct WorldFrame {
     u32 outdoor_setup_calls=0,outdoor_patch_words=0,outdoor_patch_bytes=0;
     u32 outdoor_raster_bytes=0,outdoor_4plane_rows=0,outdoor_2plane_rows=0;
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
+    u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
+    std::set<u32> hud_resource_ids{};
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -76,6 +78,8 @@ struct WorldFrame {
         copy_guest(0x258F8u,4u);                  // original 1F1C8 resource base
         copy_guest(0xCF4Cu,4u);                    // original world 16.16 clock
         copy_guest(0xF91Cu,8u);                   // saved light/shade scalars
+        copy_guest(0xBF48u,0xA0u);               // original 1EA04 HUD placements
+        copy_guest(0xC034u,4u);                  // source HUD mode
         copy_guest(0xF9CCu,4u);                   // original 31F94 time phase
         copy_guest(0xFE14u,0x110u);               // 31EDC shade/FE94 lookup
         copy_guest(0xC026u,3u);                  // 1F1C8 outdoor state flags
@@ -473,7 +477,45 @@ struct WorldFrame {
                  <<" rows_2plane_pairs="<<outdoor_2plane_rows
                  <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
-    void render(bool saved_outdoor=false) {
+    static u32 source_hud_resource(u32 id,u32 slot) noexcept {
+        auto& s=self();
+        const u32 count=static_cast<u32>(s.gfx.entry_offsets.size()-1u);
+        if(slot!=0u || id>=count) {s.failure=true;return 0u;}
+        const u32 ptr=code2::function_2f29c(s.gfx.machine,s.gfx.resources,id,slot);
+        if(ptr==0u || ptr>=s.gfx.heap_cursor || s.gfx.stream_error) {
+            s.failure=true;return 0u;
+        }
+        ++s.hud_res0_lookups;s.hud_resource_ids.insert(id);
+        return ptr;
+    }
+    static void source_hud_image(u32 frame,u32 y,u32 x,u32 image) noexcept {
+        auto& s=self();
+        if(!image)return;
+        code2::Application56Boundary b{};
+        b.call_2a380=&WorldGraphicsSource::draw_image;
+        code2::function_2939c(b,frame,y,x,image);
+        ++s.hud_blits;
+    }
+    void render_saved_hud(const std::string& filename) {
+        CHECK(std::filesystem::path(filename).filename()=="RES0");
+        const u32 before=static_cast<u32>(gfx.video.scanout_indices().size());
+        CHECK(before==128000u);
+        gfx.open_readonly_resource(filename,0u,0u);
+        const u32 old_calls=gfx.draw_calls;
+        code2::Application43Boundary hud{};
+        hud.call_2f29c=&source_hud_resource;
+        hud.call_2939c=&source_hud_image;
+        code2::function_1ea04(gfx.machine,hud);
+        CHECK(!failure && !gfx.unsupported && !gfx.stream_error);
+        CHECK(hud_res0_lookups==12u && hud_blits>=12u);
+        CHECK(gfx.draw_calls-old_calls==hud_blits);
+        hud_distinct_res0=static_cast<u32>(hud_resource_ids.size());
+        std::cout<<"CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS"
+                 <<" lookups="<<hud_res0_lookups
+                 <<" distinct_resources="<<hud_distinct_res0
+                 <<" drawn_images="<<hud_blits<<"\\n";
+    }
+    void render(bool saved_outdoor=false,const std::string& hud_file="") {
         install_world();
         prepare_materials();
         if(saved_outdoor)render_saved_background();
@@ -508,6 +550,7 @@ struct WorldFrame {
         else CHECK((pixel_writes>0u || legacy_fallbacks>0u) &&
                    (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
+        if(saved_outdoor && !hud_file.empty())render_saved_hud(hud_file);
         if(saved_outdoor) {
             const u32 page=static_cast<u32>(gfx.memory[0xC050u]);
             CHECK(page==1u && gfx.memory[0xEF4Du]==1u);
@@ -550,12 +593,14 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        const bool saved_outdoor=argc==9 && std::string(argv[1])=="--save-world";
+        const bool saved_outdoor=(argc==9 || argc==10) &&
+                                 std::string(argv[1])=="--save-world";
+        const bool with_hud=saved_outdoor && argc==10;
         const bool original_world=argc==7 && std::string(argv[1])=="--world";
         if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
                 "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
-                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 output-stem");
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [RES0] output-stem");
         const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
         const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
                                     colors(argv[5+(saved_outdoor?1:0)]);
@@ -646,9 +691,9 @@ int main(int argc,char** argv) {
         gfx->open_readonly_resource(res4.string(),0u,4u);
         {
             WorldFrame world(*ray,*gfx);
-            world.render(saved_outdoor);
+            world.render(saved_outdoor,with_hud?std::string(argv[8]):"");
         }
-        const std::string output=argv[saved_outdoor?8:6];
+        const std::string output=argv[saved_outdoor?(with_hud?9:8):6];
         write_frame(output,gfx->video);
         // Indexed pixels alone do not determine output colors. Export the
         // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
