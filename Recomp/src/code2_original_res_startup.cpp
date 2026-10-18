@@ -125,7 +125,8 @@ struct Session {
         if(n==0 || n==84){std::cerr<<"OPEN_RES_INVALID_LENGTH="<<n<<'\n';t.error=true;return -1;}
         std::string path(reinterpret_cast<const char*>(name),n);
         const auto slash=path.find_last_of("/\\");
-        const std::string base=slash==std::string::npos?path:path.substr(slash+1);
+        const std::string base=(path.rfind("D:RES",0)==0)?path.substr(2):
+            (slash==std::string::npos?path:path.substr(slash+1));
         if(base.size()<4||base.size()>5||base.substr(0,3)!="RES"){
             t.error=true;return -1;
         }
