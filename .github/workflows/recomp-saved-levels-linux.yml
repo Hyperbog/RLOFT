@@ -5,6 +5,7 @@ on:
     branches: [recomp]
     paths:
       - 'Recomp/src/code2_original_level_loader.cpp'
+      - 'Recomp/src/code2_original_save_game.cpp'
       - 'Code2/graphics/original_levels_grid.hpp'
       - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-saved-levels-linux.yml'
@@ -24,7 +25,7 @@ jobs:
       - name: Build original CODE2 181B4 file-backed loader
         run: |
           cmake -S Recomp -B build/saved-levels -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
-          cmake --build build/saved-levels --target rloft_original_code2_level_loader --parallel 2
+          cmake --build build/saved-levels --target rloft_original_code2_level_loader rloft_original_code2_save_game --parallel 2
       - name: Sparse checkout preserved independent SAVE10 snapshot (read only)
         uses: actions/checkout@v4
         with:
@@ -33,6 +34,7 @@ jobs:
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Execute original 181B4 direct-save path for all 17 levels
@@ -53,4 +55,9 @@ jobs:
           build/saved-levels/rloft_original_code2_level_loader --saved-camera "$temp" | tee build/saved-levels/camera-verification.log
           grep -q 'CODE2_SOURCE_MAPPED_SAVE5_CAMERA_RAY_PASS level=5' build/saved-levels/camera-verification.log
           grep -q 'CODE2_COMPLETE_07938_SAVE_DESERIALIZER_EXECUTED=NO' build/saved-levels/camera-verification.log
+          code2="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2"
+          echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $code2" | sha256sum -c -
+          build/saved-levels/rloft_original_code2_save_game "$temp" "$code2" | tee build/saved-levels/source-save-game.log
+          grep -q 'CODE2_07938_ORIGINAL_SAVE5_LOAD_AND_181B4_DIRECT_LEVEL_PASS' build/saved-levels/source-save-game.log
+          grep -q 'CODE2_CONTINUOUS_CODE1_GAME_BOOT_ACCEPTED=NO' build/saved-levels/source-save-game.log
           echo 'No original saved-game media or serialized game state published.'
