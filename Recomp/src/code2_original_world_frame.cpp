@@ -39,6 +39,7 @@ struct WorldFrame {
     unsigned resource_cache_hits=0u,loaded_materials=0u;
     u32 code_start=0,code_end=0;
     u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0,legacy_fallbacks=0;
+    u32 original_sky_calls=0,original_ground_calls=0,original_background_bytes=0;
     bool failure=false;
     code2::Application82Boundary scaler{};
     static WorldFrame* current;
@@ -68,6 +69,9 @@ struct WorldFrame {
         copy_guest(0xCF4Cu,4u);                    // original world 16.16 clock
         copy_guest(0xF91Cu,8u);                   // saved light/shade scalars
         copy_guest(0xF9CCu,4u);                   // original 31F94 time phase
+        copy_guest(0xFE14u,0x110u);               // 31EDC shade/FE94 lookup
+        copy_guest(0xC026u,3u);                  // 1F1C8 outdoor state flags
+        copy_guest(0xC050u,1u);                  // original display page
         copy_guest(0x258C4u,4u);                    // authentic 509-word lookup
         copy_guest(0x15A18u,256u*0x1Cu);           // original 32954 ray records
         CHECK(code2::load_le32(gfx.memory.data()+0xC6D8u)==256u);
@@ -233,8 +237,61 @@ struct WorldFrame {
         s.pixel_writes+=result.pixels;
         return result.ok?1u:0u;
     }
+    static void fill_backdrop(u32 addr,u8 color,u32 count) noexcept {
+        auto& s=self();
+        if(count!=0x40u || addr<0xA0000u ||
+           std::uint64_t(addr)+count>0xB0000u) {
+            s.failure=true;return;
+        }
+        for(u32 k=0u;k<count;++k) {
+            s.gfx.memory[addr+k]=color;
+            if(!s.gfx.video.write_aperture(static_cast<u16>(addr+k),color))
+                s.failure=true;
+        }
+        s.original_background_bytes+=count;
+    }
+    static code2::Runtime102Boundary background_callbacks() noexcept {
+        code2::Runtime102Boundary b{};
+        b.out16=&WorldGraphicsSource::out16;
+        b.rep_stosb_es=&fill_backdrop;
+        return b;
+    }
+    static void source_sky(u32 shade) noexcept {
+        auto& s=self();
+        auto b=background_callbacks();
+        code2::function_33e28(s.gfx.machine,b,shade);
+        ++s.original_sky_calls;
+    }
+    static void source_ground(u32 shade) noexcept {
+        auto& s=self();
+        auto b=background_callbacks();
+        code2::function_33de0(s.gfx.machine,b,shade);
+        ++s.original_ground_calls;
+    }
+    static void unexpected_backdrop() noexcept {self().failure=true;}
+    static void unexpected_panorama(u32) noexcept {self().failure=true;}
+    void render_saved_background() {
+        CHECK(gfx.memory[0x258A8u]==0xFFu);
+        // This saved outdoor scene must take the source non-panorama path.
+        CHECK(gfx.memory[0xC026u]==0u && gfx.memory[0xC027u]==0u);
+        code2::Application44Boundary dispatch{};
+        dispatch.call_314b0=&unexpected_panorama;
+        dispatch.call_33e28=&source_sky;
+        dispatch.call_33de0=&source_ground;
+        dispatch.call_34a74=&unexpected_backdrop;
+        // The original 334C4/32954 rays have already run on the source
+        // save-loaded machine; do not duplicate geometry on gfx machine.
+        code2::function_1f1c8(gfx.machine,dispatch);
+        CHECK(!failure && !gfx.unsupported);
+        CHECK(original_sky_calls==1u && original_ground_calls==1u);
+        CHECK(original_background_bytes==2u*128u*64u);
+        std::cout<<"CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_33E28_33DE0_SKY_GROUND_PASS"
+                 <<" rows=256 sky_rows=128 ground_rows=128"
+                 <<" planar_bytes="<<original_background_bytes<<"\\n";
+    }
     void render(bool saved_outdoor=false) {
         install_world();
+        if(saved_outdoor)render_saved_background();
         prepare_materials();
         const u32 before=gfx.source_type6_load_calls;
         code2::Application91Boundary sweep{};
@@ -281,7 +338,8 @@ struct WorldFrame {
         if(!saved_outdoor)
             std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
         else
-            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_SKY_GROUND_TREES_RENDERED=NO\\n";
+            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_SKY_GROUND_RENDERED=YES"
+                     <<" TREES_AND_SCENE_OBJECTS_RENDERED=NO\\n";
         std::cout<<"CODE2_FULL_DOS_WORLD_PARITY_ACCEPTED=NO\\n";
     }
 };
