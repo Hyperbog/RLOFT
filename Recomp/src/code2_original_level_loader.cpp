@@ -62,6 +62,11 @@ struct Session {
         filename.push_back(static_cast<char>('0'+((level/10u)%10u)));
         filename.push_back(static_cast<char>('0'+(level%10u)));
         filename+=".DAT";
+        const std::string original_guest_name(
+            reinterpret_cast<const char*>(s.guest.data()+name));
+        if(original_guest_name!="WORK\\"+filename) {
+            s.failed=true;return 0xFFFFFFFFu;
+        }
         const auto opened=s.files.open(filename,0u);
         if(opened.carry){s.failed=true;return 0xFFFFFFFFu;}
         ++s.opens;
@@ -239,6 +244,13 @@ struct Session {
         if(standalone) {
             VERIFY(!raycast && grid.level<32u);
             standalone_level=grid.level;
+            // Original DATA contains WORK\\LEV000.DAT at 819C. Source 181B4
+            // mutates only the three filename digits at 81A4..81A6.
+            // Verify the original generated guest path before mapping it to
+            // our read-only, allowlisted host SAVE10 directory.
+            constexpr char direct_name[]="WORK\\LEV000.DAT";
+            std::copy_n(direct_name,sizeof(direct_name),
+                        guest.begin()+0x819Cu);
         }
         if(raycast) {
             // Both cameras are literal original-source branch assignments:
