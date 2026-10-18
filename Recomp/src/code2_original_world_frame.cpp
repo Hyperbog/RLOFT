@@ -397,6 +397,10 @@ struct WorldFrame {
         dispatch.call_33e28=&source_sky;
         dispatch.call_33de0=&source_ground;
         dispatch.call_34a74=&textured_backdrop_dispatch;
+        // In a continuous boot 34998 initializes FF58 when the angle changes.
+        // This isolated saved-game source diagnostic must seed that original
+        // coefficient table explicitly before 1F1C8's optional refresh.
+        source_texture_view_setup();
         // The original 334C4/32954 rays have already run on the source
         // save-loaded machine; do not duplicate geometry on gfx machine.
         code2::function_1f1c8(gfx.machine,dispatch);
