@@ -48,6 +48,7 @@ struct WorldFrame {
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
     u32 scene_candidates=0,scene_quad_eligible=0,scene_draw_requests=0;
+    u32 quad_scanline_calls=0,quad_guest_vga_changes=0,quad_source_pixel_writes=0;
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
     std::vector<u8> original_init_header{},original_npcs{},original_objects{};
@@ -536,6 +537,96 @@ struct WorldFrame {
                  <<" distinct_quad_res4="<<scene_quad_res4_ids.size()<<"\\n";
         CHECK(!failure && scene_candidates>0u);
     }
+    // 34DE8 is the original tiled world-quad renderer, not the RES3
+    // object/sprite renderer. Its 34BB0 calls use RES4 material slot 4.
+    static void source_quad_project(code2::Machine& m,u32 x,u32 y,
+                                    u32 out_y,u32 out_scale) noexcept {
+        code2::function_35798(m,x,y,out_y,out_scale);
+    }
+    static void source_quad_copy(u32 from,u32 to,u32 count) noexcept {
+        auto& s=self();
+        if(std::uint64_t(from)+std::uint64_t(count)*4u>s.gfx.memory.size()||
+           std::uint64_t(to)+std::uint64_t(count)*4u>s.gfx.memory.size()||
+           count!=8u){s.failure=true;return;}
+        std::copy_n(s.gfx.memory.data()+from,count*4u,
+                    s.gfx.memory.data()+to);
+    }
+    static void source_quad_edge(u32 vertex,u32 state) noexcept {
+        auto& s=self();
+        if(vertex>3u || (state!=0xFDC4u && state!=0xFDE8u)){
+            s.failure=true;return;
+        }
+        (void)code2::function_3402c(s.gfx.machine,vertex,state);
+    }
+    static bool source_quad_step() noexcept {
+        return code2::function_33fb4(self().gfx.machine);
+    }
+    static void source_quad_scanline() noexcept {
+        auto& s=self();
+        // Native 34110 writes directly to guest addresses corresponding
+        // to VGA's write aperture. Mirror only the bytes touched by the
+        // original scanline, with the exact original sequencer plane mask.
+        constexpr u32 begin=0xA0000u,bytes=0x10000u;
+        std::array<u8,bytes> before{};
+        std::copy_n(s.gfx.memory.data()+begin,bytes,before.data());
+        code2::Runtime104Boundary b{};
+        b.out16=&WorldGraphicsSource::out16;
+        code2::function_34110(s.gfx.machine,b);
+        ++s.quad_scanline_calls;
+        for(u32 i=0u;i<bytes;++i){
+            const u8 now=s.gfx.memory[begin+i];
+            if(now==before[i])continue;
+            ++s.quad_guest_vga_changes;
+            if(!s.gfx.video.write_aperture(static_cast<u16>(begin+i),now))
+                s.failure=true;
+        }
+    }
+    static void source_quad_draw(code2::Machine& m,
+                                 code2::Runtime103Boundary& b,
+                                 const u32* vertices) noexcept {
+        auto& s=self();
+        constexpr u32 scratch=0x2BA00u;
+        if(!vertices || scratch+32u>s.gfx.memory.size()){
+            s.failure=true;return;
+        }
+        for(u32 i=0u;i<8u;++i)
+            code2::store_le32(s.gfx.memory.data()+scratch+4u*i,vertices[i]);
+        ++s.scene_draw_requests;
+        code2::function_33e6c(m,b,scratch);
+    }
+    static u32 source_quad_res4(u32 id,u32 archive) noexcept {
+        auto& s=self();
+        if(archive!=4u || id>=s.gfx.entry_offsets.size()-1u) {
+            s.failure=true;return 0u;
+        }
+        // Canonical source 2F29C owns the per-item cache. Track the
+        // original ID and result, never synthesize a quad material.
+        const u32 ptr=code2::function_2f29c(
+            s.gfx.machine,s.gfx.resources,id,archive);
+        if(!ptr || ptr>=s.gfx.heap_cursor || s.gfx.stream_error)
+            s.failure=true;
+        return ptr;
+    }
+    void render_original_world_quads() {
+        code2::Runtime110Boundary scene{};
+        scene.call_1e8c8=&source_scene_record;
+        scene.call_35798=&source_quad_project;
+        code2::Runtime109Boundary quad{};
+        quad.call_2f29c=&source_quad_res4;
+        quad.call_33e6c_local_quad=&source_quad_draw;
+        code2::Runtime103Boundary raster{};
+        raster.rep_movsd_ds_es=&source_quad_copy;
+        raster.call_3402c=&source_quad_edge;
+        raster.call_34110=&source_quad_scanline;
+        raster.call_33fb4=&source_quad_step;
+        code2::function_34de8(gfx.machine,scene,quad,raster);
+        CHECK(!failure && !gfx.stream_error && !gfx.unsupported);
+        std::cout<<"CODE2_SAVE5_SOURCE_34DE8_34BB0_33E6C_QUAD_GATE"
+                 <<" eligible="<<scene_quad_eligible
+                 <<" projected_quad_requests="<<scene_draw_requests
+                 <<" scanlines="<<quad_scanline_calls
+                 <<" guest_vga_changes="<<quad_guest_vga_changes<<"\\n";
+    }
     static code2::s32 source_open_definition(u32 pointer) noexcept {
         auto& s=self();
         if(pointer==0x6F8u && !s.original_npcs.empty()) {
@@ -734,6 +825,7 @@ struct WorldFrame {
         prepare_materials();
         if(saved_outdoor && !npc_file.empty())verify_original_scene_index();
         if(saved_outdoor)render_saved_background();
+        if(saved_outdoor && !npc_file.empty())render_original_world_quads();
         const u32 before=gfx.source_type6_load_calls;
         code2::Application91Boundary sweep{};
         sweep.call_2f29c=&material_lookup;
