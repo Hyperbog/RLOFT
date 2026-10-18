@@ -40,4 +40,8 @@ This produces owner-local `portrait.idx` and `portrait.bmp` from authentic sourc
 
 ## Unloaded original CODE.2 resource-loader milestone
 
+**Latest validated Windows package (obsolete preloading removed):** [Milestone #39090358644](https://github.com/Hyperbog/RLOFT/actions/runs/39090358644) passed **68/68 CTests** and original RES0:15/RES1:336 read-only image validation. Both indexed SHA-256 outputs were unchanged after deleting the legacy cache-prepopulation function. [Engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39090358644/artifacts/12122332063) and [test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39090358644/artifacts/12122287353) expire December 17, 2026. **R04 remains unaccepted.** No proprietary image, RES archive or palette bytes are distributed.
+
+
+
 [Windows build #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) **passed 68/68 tests** and exercised real owner-preserved RES0/RES1 through original `2ECB4`/ `2FD9C` file-backed loading and original image-cache population. The authenticated frame hashes remain unchanged. [Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121853934) and [test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121759678), retained until December 17, 2026. Only the synthetic preview frame is packaged; original raster and palette bytes stay on the runner. The `37700` compressed-stream stop condition is not yet reconstructed and is supplied by a bounded host callback. R04 is **not accepted**.
