@@ -44,7 +44,7 @@ def main() -> int:
                 # Exception labels have no raw asset bytes.
                 raise RuntimeError(f"{archive}:{entry}: compiled CODE.2 render failed: "
                                    f"{result.stderr[-1500:]}")
-            if "ORIGINAL_RES_TYPE1_COMPILED_2A20C_2F29C_2975C_2A380_PASS" not in result.stdout:
+            if "ORIGINAL_RES_TYPE1_2ECB4_2FD9C_2F29C_2975C_2A380_PASS" not in result.stdout:
                 raise RuntimeError(f"{archive}:{entry}: missing actual CODE.2 resource draw acknowledgement")
             pixels=stem.with_suffix(".idx").read_bytes()
             bmp=stem.with_suffix(".bmp").read_bytes()
