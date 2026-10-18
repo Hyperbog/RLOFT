@@ -334,5 +334,11 @@ if(BUILD_TESTING)
                 "$<TARGET_FILE:rloft_original_code2_graphics_frame>")
         set_tests_properties(compiled_code2_original_colors_bank_indexed_bmp
             PROPERTIES TIMEOUT 35)
+        add_test(NAME compiled_code2_real_res_loader_cached_image_render
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compiled_original_res.py"
+                "$<TARGET_FILE:rloft_original_code2_graphics_frame>")
+        set_tests_properties(compiled_code2_real_res_loader_cached_image_render
+            PROPERTIES TIMEOUT 40)
     endif()
 endif()
