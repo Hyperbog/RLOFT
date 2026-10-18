@@ -94,10 +94,13 @@ inline LevelGrid decode_saved_grid(const std::vector<Byte>& bytes,
                      static_cast<std::uint32_t>(height);
     if(section[1]!=0x1Du+0x2A4u+cells*2u ||
        section[6]-section[5]!=0x514u ||
-       bytes.size()-section[6]<cells+4u)
+       bytes.size()-section[6]<cells+8u)
         throw std::runtime_error("Invalid standalone LEV grid/events/automap bounds");
-    const auto annotation=le32(bytes.data()+section[6]+cells);
-    if(annotation>=0x7FFu || bytes.size()-section[6]-cells-4u!=annotation)
+    // Source 181B4 seeks forward four bytes after the 0x514-byte
+    // script block, *then* reads the width*height-byte automap.
+    const std::uint32_t automap=section[6]+4u;
+    const auto annotation=le32(bytes.data()+automap+cells);
+    if(annotation>=0x7FFu || bytes.size()-automap-cells-4u!=annotation)
         throw std::runtime_error("Invalid standalone LEV annotation tail");
     LevelGrid grid{};
     grid.level=level;
