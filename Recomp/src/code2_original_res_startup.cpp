@@ -32,12 +32,16 @@ struct Fixture {
     static constexpr std::array<u16,18> init_words={
         15,168,336,0,2169,3316,4158,600,49,49,69,166,192,266,32,103,48,414
     };
-    explicit Fixture(const std::string& root) {
+    explicit Fixture(const std::string& root,const std::string& cd_root) {
         if(!root.empty()) {
             const auto dir=std::filesystem::path(root);
             data[0]=disk_read(dir/"INIT");
             data[1]=disk_read(dir/"INFO.DAT");
-            for(unsigned i=0;i<11;++i)data[i+2]=disk_read(dir/("RES"+std::to_string(i)));
+            for(unsigned i=0;i<11;++i) {
+                const auto& media=(i>=9 && !cd_root.empty()) ?
+                    std::filesystem::path(cd_root) : dir;
+                data[i+2]=disk_read(media/("RES"+std::to_string(i)));
+            }
         } else {
             data[0].resize(1879);
             for(unsigned i=0;i<18;++i)code2::store_le16(data[0].data()+2u*i,init_words[i]);
@@ -192,7 +196,7 @@ struct Session {
         t.memory[dst+number.size()]=0;
     }
     static void record_music(u32 v){state().music_base=v;}
-    Session(std::string root):fixture(root) {
+    Session(std::string root,std::string cd_root):fixture(root,cd_root) {
         REQUIRE(current==nullptr);current=this;m.data=memory.data();
         guest_string(0x718u,"INIT");
         guest_string(0x1384u,"INFO.DAT");
@@ -253,9 +257,11 @@ Session* Session::current=nullptr;
 }
 int main(int argc,char** argv) {
     try {
-        if(argc!=1 && (argc!=3 || std::string(argv[1])!="--root"))
-            throw std::invalid_argument("usage: rloft_original_code2_init_resources [--root OWNED_RLOFT_DIRECTORY]");
-        Session s(argc==1?"":argv[2]);s.boot();return 0;
+        if(argc!=1 && !(argc==3 && std::string(argv[1])=="--root") &&
+           !(argc==5 && std::string(argv[1])=="--root" && std::string(argv[3])=="--cd-root"))
+            throw std::invalid_argument("usage: rloft_original_code2_init_resources [--root INSTALL_DIR [--cd-root CD_RLOFT_DIR]]");
+        Session s(argc==1?"":argv[2],argc==5?argv[4]:"");
+        s.boot();return 0;
     }catch(const std::exception& e){
         std::cerr<<"SOURCE_RESOURCE_STARTUP_FAIL: "<<e.what()<<'\n';return 1;
     }
