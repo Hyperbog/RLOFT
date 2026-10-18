@@ -10,6 +10,10 @@ cmake --build build/recomp --config Debug --parallel 2
 ctest --test-dir build/recomp -C Debug --output-on-failure
 ```
 
+**Linux GCC/Clang:** run `bash dev/linux.sh test` from the repository root; [Linux-first workstream setup](../dev/README.md) covers dependencies. [Verified Linux C++ run #39082582548](https://github.com/Hyperbog/RLOFT/actions/runs/39082582548) passed **63/63 CTests** on its recorded revision.
+
+**Windows milestone builds:** [schedule, manual selection, artifact downloads and limits](WINDOWS_MILESTONE_BUILDS.md). [First R04 probe #39082555268](https://github.com/Hyperbog/RLOFT/actions/runs/39082555268) compiled and passed **63/63 MSVC CTests** while R04 remains unaccepted. Artifacts are engineering tests, not playable-game releases.
+
 The owning [.github/workflows/recomp-source-link-gate.yml](../.github/workflows/recomp-source-link-gate.yml) is scoped to `recomp` and packages **engineering executables, not a playable game**. The reconstructed `Code1/` and `Code2/` directories remain at their established paths because these are compile inputs. [Workstream/branch guide](BRANCH_GUIDE.md) documents ownership.
 
 ## Acceptance boundary
