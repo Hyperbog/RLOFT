@@ -9,6 +9,7 @@ import hashlib
 import pathlib
 import subprocess
 import sys
+import struct
 import tempfile
 
 KNOWN = {
@@ -28,6 +29,16 @@ def main() -> int:
         digest=hashlib.sha256(p.read_bytes()).hexdigest()
         if digest!=sha: raise RuntimeError(f"{filename}: original SHA-256 mismatch, abort")
         print(f"VERIFIED_ORIGINAL_FILE={filename} SHA256={digest}")
+    # Print structural metadata only, never original payload bytes.
+    res4=(root/"RES4").read_bytes()
+    entry_count=struct.unpack_from("<I",res4,0)[0]
+    for entry in (0,100,500):
+        if entry>=entry_count:raise RuntimeError("RES4 directory entry absent")
+        offset=struct.unpack_from("<I",res4,4+entry*4)[0]
+        type_value=res4[offset+2] if res4[offset:offset+2]==b"EH" else -1
+        hdr_size=struct.unpack_from("<H",res4,offset+3)[0] if type_value>=0 else -1
+        decoded=struct.unpack_from("<H",res4,offset+5)[0] if type_value>=0 else -1
+        print(f"RES4_METADATA entry={entry} type={type_value} header_size={hdr_size} decoded={decoded}")
     with tempfile.TemporaryDirectory(prefix="rloft-private-source-raster-") as tmp:
         for archive,(sha,entry,slot) in KNOWN.items():
             if entry is None or slot is None: continue
