@@ -56,10 +56,25 @@ int main() {
     CHECK(v.write_indexed_port(0x3D4,0x000D));
     CHECK(v.crtc_start()==256);
     CHECK(v.indexed_scanout(0,0)==0);
-    CHECK(!v.write_indexed_port(0x3D4,0x0009)); // unimplemented scan mode
+    CHECK(v.write_indexed_port(0x3D4,0x0009)); // CODE.2 400-row scan mode
     CHECK(!v.write_port8(0x3DA,8)); // no synthetic retrace
-    CHECK(v.write_port8(0x3CE,6)); // GC register index is valid
+    CHECK(v.write_port8(0x3CE,7)); // unsupported GC register index
     CHECK(!v.write_port8(0x3CF,0)); // GC miscellaneous register not yet emulated
+    // CODE.2 2AC10: CRTC 18 low eight compare bits, 07/09 high bits.
+    // The scanout below is 400 physical rows even in repeat-2 mode.
+    CHECK(v.write_indexed_port(0x3D4,0x0007));
+    CHECK(v.write_indexed_port(0x3D4,0x0109)); // repeat each source row twice
+    CHECK(v.repeat_scanlines()==2);
+    CHECK(v.write_indexed_port(0x3D4,0x0318)); // split after physical row 3
+    CHECK(v.line_compare()==3);
+    CHECK(v.indexed_scanout(0,0)==0); // CRTC starts at offset 256
+    CHECK(v.indexed_scanout(0,4)==10); // post split resets start to 0
+    CHECK(v.indexed_scanout(1,5)==11); // repeated source row
+    CHECK(v.read_port8(0x3D5)==3);
+    CHECK(v.read_port8(0x3DA)==0x08);
+    CHECK(v.read_port8(0x3DA)==0x00);
+    CHECK(v.retrace_reads()==2);
+    CHECK(!v.unsupported_read());
     const auto pixels=v.scanout_indices();
     CHECK(pixels.size()==320u*400u);
     // Mode 0 read-modify-write: original source draws read to load latches.
