@@ -487,6 +487,13 @@ struct WorldFrame {
         }
         const u32 ptr=code2::function_2f29c(s.gfx.machine,s.gfx.resources,id,slot);
         if(ptr==0u || ptr>=s.gfx.heap_cursor || s.gfx.stream_error) {
+            const u32 offset=s.gfx.entry_offsets[id];
+            std::cout<<"CODE2_SOURCE_HUD_RES0_LOADING_ERROR id="<<id
+                     <<" ptr="<<ptr<<" heap="<<s.gfx.heap_cursor
+                     <<" bad_stream="<<s.gfx.stream_error
+                     <<" header="<<unsigned(s.gfx.archive_bytes[offset+2u])
+                     <<" entry_bytes="<<(s.gfx.entry_offsets[id+1u]-offset)
+                     <<" calls="<<s.gfx.source_2fd9c_calls<<"\\n";
             s.failure=true;return 0u;
         }
         ++s.hud_res0_lookups;s.hud_resource_ids.insert(id);
