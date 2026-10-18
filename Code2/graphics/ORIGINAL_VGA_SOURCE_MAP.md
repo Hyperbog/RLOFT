@@ -1,6 +1,6 @@
-# CODE.2 original VGA graphics source map and first host test boundary
+# CODE.2 original VGA graphics source map and compiled graphics boundary
 
-**Date:** 2026-10-17. **Scope:** binary-verified graphics hardware protocol plus first reusable, synthetic-testable native interface. **Not:** a complete original game renderer, exact DOS frame reconstruction, native gameplay or pixel acceptance.
+**Date:** 2026-10-17/18. **Scope:** binary-verified graphics hardware protocol, source-compiled CODE.2 drawing callbacks, VGA host interface, actual synthetic-input indexed frame generation. **Not:** a complete game renderer using original RES resources, DOS runtime, or verified screenshot parity. See [compiled source execution and frame protocol](COMPILED_GRAPHICS_PATH.md).
 
 ## Primary original evidence
 
@@ -23,18 +23,29 @@ Owner-supplied original `CODE.2`: **558,689 bytes**, SHA-256 `853e0a4dfcabebcfee
 - **Recomp-only hardware test double:** [`Recomp/src/original_vga_host.hpp`](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/original_vga_host.hpp) implements four 64-KiB byte planes, sequencer register-2 plane map masks, graphics-controller set/reset/rotate/bit-mask/read-plane registers and latches, hardware write modes 0–3 (including AND/OR/XOR with prior latch contents), indexed VGA DAC `0x3C8/0x3C9`, and CRTC start address registers `0x0C/0x0D`. Output is **indexed** until palette lookup; raw palette bytes are preserved as **6-bit VGA values**.
 - **Portable regression:** [`Recomp/src/test_original_vga_host.cpp`](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/test_original_vga_host.cpp) checks address/plane boundaries and 32-bit original linear addresses plus 16-bit host aperture mapping, read/write plane isolation, read-before-write latches, all four VGA write modes, rotate, bit masks, logical XOR and set/reset, 6-bit DAC stream/auto-increment, synthetic 320×400 scanout, CRTC start page displacement, unimplemented-register rejection and graphics bounds. Added to `Recomp/CMakeLists.txt` as `original_code2_planar_vga_dac6_crtc_host_boundary`.
 
+## Compiled CODE.2 integration (verified)
+
+The original reconstructed `Code2/Code2.cpp` is **compiled and executed** by the separate [recomp graphics executable](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/code2_compiled_graphics_frame.cpp). This harness attaches real `Graphics2Boundary` and `Application61Boundary` callbacks for VGA port IN/OUT and A0000 memory access, then invokes the original reconstructed `29930`, `2AB98`, `2ABC4`, `2AB38`, `2A380`, `29AA4`/`29AF0`, `2AB6C`, `2ABF4`, `2AC10`, `29CA0` and `32150` functions.
+
+Covered hardware now includes four video planes, latches and VGA write modes 0–3, deterministic retrace, original 320×200/400 mode selection, host 400-physical-scanline output, CRTC display-page start and line-compare split control. The reconstructed `2A380` draws a synthetic image record; a real indexed host framebuffer (`128000` bytes) and 8-bit Windows BMP are saved in Windows milestone packages.
+
+Original `COLORS` banks (15 × 768-byte RGB6 records, one initial count byte) can be loaded **read-only** by the diagnostic from a user-provided file; the compiled CODE.2 `32150` brightness transform and `29CA0` DAC6 transfer produce the displayed colors. The original CODE.2 file-backed loader `325B0` is traced but not yet executed through the DOS file interface. [Recomp testing code](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/tools/test_compiled_graphics_artifact.py) independently validates the bank offset, original brightness arithmetic, BMP header/dimensions/index retention and invalid-data rejection.
+
+**Proven CI:** [Linux GCC #39086139521](https://github.com/Hyperbog/RLOFT/actions/runs/39086139521), [Windows MSVC #39086139502](https://github.com/Hyperbog/RLOFT/actions/runs/39086139502), and [Windows source-link #39086139589](https://github.com/Hyperbog/RLOFT/actions/runs/39086139589) each passed **67/67 CTests** at their recorded source revisions. The [first verified compiled-frame Windows artifact](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346/artifacts/12120363240) contains original-source-created synthetic input `.idx` and `.bmp` images.
+
 ## Explicitly missing and blocked
 
-The host test double now implements **VGA latches and write modes 0–3** for the supported planar CPU aperture, tested against general VGA register rules (see [OSDev VGA Hardware](https://wiki.osdev.org/VGA_Hardware) and [QEMU's VGA model](https://github.com/qemu/qemu/blob/master/hw/display/vga.c)). It does **not** yet implement VGA read mode 1, chained/odd-even addressing, attribute-controller registers, true CRTC scan/double-scan and line-compare semantics, hardware retrace/IRQ, original dynamic palette tables, RES1/RES3/RES4 typed sprite/display-list calls, SINTAB compositor, CODE.1 graphics equivalence, or routing actual compiled CODE.2 video calls into the adapter.
+- **Real game scene input:** no original RES1/RES3/RES4 sprites, textures or interface records are yet supplied to `2A380`, and the full scene and HUD compositor has not executed.
+- **Full DOS/VGA integration:** guest runtime/interrupts, VGA memory-map and chain modes beyond the tested unchained path, exact CRTC physical-timing and display scan, read mode 1, attribute-controller behavior and hardware vblank are incomplete. Host `03DAh` returns **deterministic simulated retrace**, not a real device signal.
+- **Source file loading:** optional user-owned COLORS uses the documented bank schema and original `32150`/`29CA0` processing, but the original `325B0` DOS file-open/seek/read/close chain is not yet wired to the host.
+- **Pixel parity:** no independent DOSBox/real DOS frame reference, matching original gameplay camera or full R04 runtime acceptance. Unit-test success is neither DOS equivalence nor a playable game.
 
-**Correctness hazard:** the host now models the four VGA write modes, bit-masks, latch reads and ALU operations, but is **not** a complete VGA adapter. Unsupported IO register combinations explicitly return `false`; do not route original graphics that depend on chain-4, read-mode-1, register-6 memory maps, CRTC split-screen or vblank IRQs without implementing those modes. The 320×400 test surface is raw indexed VRAM, not a verified physical output for all original 200/400-line configurations. No BIOS/port/memory traffic from running compiled CODE.2 has yet been connected to the adapter.
+The original x86 raster `29AA4` performs a latch read before writing `[EBX]`, and the host handles it through the reconstructed callback. The host deliberately reports unsupported port accesses; additional VGA modes must be evidence-backed rather than silently accepted.
 
-Original x86 raster `29AA4` explicitly reads `[ebx]` before writing the same byte, thus loading the four plane latches. The new regression exercises mode-0 direct, XOR, rotate and bit-mask writes; mode-1 latch copying; mode-2 CPU bit expansion; and mode-3 set/reset masking. The VGA hardware semantics are also checked against independently documented hardware behavior; the tests still use **synthetic contents**, not original frames.
+## Next graphics work
 
-## Next integration sequence
-
-1. Validate the new latches/modes 0–3 against the actual compiled `29AA4`, `29B4C`, `27412` and `338C8` instruction/port sequences. Add mode-specific hardware traces and independent original DOS reference inputs; test unsupported chain-4 and read-mode-1 paths fail closed.
-2. Emulate complete `29953` VGA mode initializers, page selection, CRTC compare/double-scan, and retrace state transitions. Test before removing any source fallback.
-3. Bridge the actual compiled CODE.2 `IN/OUT` operations and A0000 guest-memory accesses into that host, recording function/port traces without invented successful DOS responses.
-4. Feed original `COLORS`/RES4/RES3 and texture paths into the compiled renderer; produce indexed-frame SHA/PNG captures, compare with separately captured **real DOS reference frames** before declaring fidelity.
-5. Copy new original-byte-verified math/protocol findings to `code1-decompilation`; do not wholesale merge differing engine branches or rewrite original CODE.2 reconstruction based solely on a host simulation.
+1. Load an original resource image record from user-owned RES archives through the proven extraction pipeline; execute original `2A380`/related planar render code with **real** palette, pixels and record dimensions. Keep copyright media private and supply only source-independent test hashes publicly.
+2. Route the compiled CODE.2 resource manager and graphics callbacks from the actual runtime/main-loop path through the same host, rather than calling specific functions from a diagnostic harness.
+3. Integrate remaining original compositor/render paths, CRTC scan timing and attribute-controller semantics needed by authentic game scenes; add test traces for page/split transitions.
+4. Capture real DOS reference scenes for identical original resource files and compare indexed buffer, palette and final bitmap. Do not mark fidelity complete without those comparisons.
+5. Synchronize only original-byte-backed findings and portable geometry/protocol helpers into `code1-decompilation`. Keep the runnable recomp graphics host owned by `recomp`.
