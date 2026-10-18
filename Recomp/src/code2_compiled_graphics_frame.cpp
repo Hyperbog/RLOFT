@@ -4,6 +4,7 @@
 #include "../../Code2/Code2.cpp"
 #include "original_vga_host.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
+#include "../../Code2/graphics/original_37700_control.hpp"
 #include <array>
 #include <algorithm>
 #include <cstdint>
@@ -90,49 +91,30 @@ struct Session {
         }
         return code2::function_2f9e4(s.machine,s.image_loader);
     }
-    // The recovered 37700(Runtime126Boundary&,stop_flag) never reaches its
-    // stop condition when passed stop_flag=0. Until that control transfer is
-    // recovered, supply a finite, media-validated dictionary callback while
-    // keeping the original 2FB04 and 2FA30 layout/output functions active.
-    static u32 bounded_37700() noexcept {
+    // The binary 37700 tests the guest's 2B6C2 stop byte in four places.
+    // Original 2FA30 drives this flag when a frame payload completes.
+    // Call the instruction-derived control loop, not an output-count-only
+    // replacement; it emits through the actual compiled 2FA30 routine.
+    static u32 recovered_37700() noexcept {
         auto& s=state();
-        ++s.bounded_lzss_callbacks;
-        std::array<int,4096> dict{};
-        dict.fill(-1);
-        for(u32 i=0;i<0xFEEu;++i) dict[i]=0xFE;
-        unsigned wp=0xFEEu,flags=0u;
-        const u32 frames=code2::load_le16(s.memory.data()+code2::load_le32(s.memory.data()+0x2B6A4u));
+        ++s.bounded_lzss_callbacks; // historical counter label in diagnostics
+        const u32 desc=code2::load_le32(s.memory.data()+0x2B6A4u);
+        const u32 frames=code2::load_le16(s.memory.data()+desc);
         const u32 per=code2::load_le32(s.memory.data()+0x2B6B4u);
-        const u32 maximum=frames*per;
-        u32 produced=0;
-        while(produced<maximum && !s.stream_error) {
-            flags>>=1u;
-            if((flags&0x100u)==0u) {
-                if(logical_file_position()>=s.active_entry_end) {fail_stream();break;}
-                flags=unsigned(original_buffered_byte())|0xFF00u;
-            }
-            if(flags&1u) {
-                const u8 v=original_buffered_byte();
-                if(s.stream_error)break;
-                code2::function_2fa30(s.machine,s.image_loader,v);
-                dict[wp]=v; wp=(wp+1u)&4095u;
-                ++produced;
-            } else {
-                if(logical_file_position()+2u>s.active_entry_end) {fail_stream();break;}
-                const unsigned lo=original_buffered_byte(),hi=original_buffered_byte();
-                const unsigned off=lo|((hi&0xF0u)<<4u);
-                const unsigned count=(hi&15u)+3u;
-                for(unsigned j=0;j<count && produced<maximum && !s.stream_error;++j) {
-                    const int value=dict[(off+j)&4095u];
-                    if(value<0) {fail_stream();break;}
-                    code2::function_2fa30(s.machine,s.image_loader,static_cast<u8>(value));
-                    dict[wp]=value;wp=(wp+1u)&4095u;
-                    ++produced;
-                }
-            }
-        }
-        if(produced!=maximum || logical_file_position()!=s.active_entry_end ||
-           *code2::dg(s.machine,0x2B6C2u)!=1u)
+        const std::size_t limit=std::size_t(frames)*per+18u;
+        const auto decode=rloft::code2source::function_37700_stream(
+            [&](u8& value)->bool {
+                if(s.stream_error || logical_file_position()>=s.active_entry_end)
+                    return false;
+                value=code2::function_2f9e4(s.machine,s.image_loader);
+                return !s.stream_error;
+            },
+            [&](u8 value) {code2::function_2fa30(s.machine,s.image_loader,value);},
+            [&]() {return *code2::dg(s.machine,0x2B6C2u)==1u;},
+            limit
+        );
+        if(decode.result!=rloft::code2source::Decode37700::completed ||
+           logical_file_position()!=s.active_entry_end)
             fail_stream();
         return 0u;
     }
@@ -211,7 +193,7 @@ struct Session {
         CHECK(image_cached==code2::load_le32(memory.data()+itemrec+5u));
         CHECK(file_seeks==1u && source_2fd9c_calls==1u);
         std::cout<<"CODE2_UNLOADED_2ECB4_2FD9C_SOURCE_CACHE=PASS; read_only_seeks="
-                 <<file_seeks<<" reads="<<file_reads<<" bounded_lzss="<<bounded_lzss_callbacks<<"\n";
+                 <<file_seeks<<" reads="<<file_reads<<" source_37700="<<bounded_lzss_callbacks<<"\n";
     }
 
     static Session* live;
@@ -287,7 +269,7 @@ struct Session {
         image_loader.call_3131c=&position_file;
         image_loader.call_3104c=&alloc_guest;
         image_loader.call_310b0=&free_guest;
-        image_loader.call_37700=&bounded_37700;
+        image_loader.call_37700=&recovered_37700;
         image_loader.call_37810=&reorder_source_image;
     }
     ~Session() {live=nullptr;}
