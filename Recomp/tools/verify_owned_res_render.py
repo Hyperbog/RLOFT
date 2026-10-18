@@ -106,7 +106,7 @@ def main() -> int:
             if projection.returncode:
                 raise RuntimeError(f"RES4:{entry}: original 3263C wall compositor failed: "
                                    +projection.stderr[-1100:])
-            if "CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS" not in projection.stdout:
+            if "CODE2_RES4_SOURCE_335DC_3263C_338C8_COMPOSITOR_PASS" not in projection.stdout:
                 raise RuntimeError(f"RES4:{entry}: compiled source compositor not acknowledged")
             if composed.with_suffix(".idx").read_bytes()!=indices:
                 raise RuntimeError(f"RES4:{entry}: authentic source 3263C/338C8 indexed parity mismatch")
