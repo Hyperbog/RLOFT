@@ -23,7 +23,7 @@ struct Session {
     rloft_recomp::ReadOnlyDosFiles files;
     u32 heap_top=0x100000u;
     bool failed=false;
-    unsigned opens=0,closes=0,reads=0;
+    unsigned opens=0,closes=0,reads=0,rays=0;
     static Session* active;
     static Session& now() noexcept {return *active;}
     explicit Session(const std::filesystem::path& root):files(root) {
@@ -104,6 +104,8 @@ struct Session {
     static void release(u32) noexcept {}
     static u32 graphic_bank() noexcept {return 0u;}
     static u32 graphic_mode() noexcept {return 1u;}
+    static u32 diagnostic_fixed_mul(u32,u32) noexcept {return 0u;}
+    static void stop_before_rays() noexcept {++now().rays;}
 
     void run(const rloft::original_levels::LevelGrid& grid) {
         code2::Application32Boundary callbacks{};
@@ -137,6 +139,21 @@ struct Session {
         VERIFY(grid.cells.size()==std::size_t(grid.width)*grid.height);
         for(std::size_t i=0;i<grid.cells.size();++i)
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==grid.cells[i]);
+        // Reuse the exact guest header and cells installed by source 181B4.
+        // View/trig remain synthetic; stop before source 32954 ray traversal.
+        code2::store_le32(guest.data()+0xC658u,0u);
+        code2::store_le32(guest.data()+0xC65Cu,0x40000u);
+        code2::Application90Boundary view{};
+        view.call_35680=&diagnostic_fixed_mul;
+        view.call_32954=&stop_before_rays;
+        code2::function_334c4(machine,view);
+        VERIFY(rays==1u);
+        VERIFY(code2::load_le32(guest.data()+0xFD0Cu)==grid.cells.size());
+        for(std::size_t i=0;i<grid.cells.size();++i)
+            VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==
+                   (grid.cells[i]&static_cast<u16>(~0x0040u)));
+        std::cout<<"CODE2_181B4_TO_334C4_ORIGINAL_GUEST_GRID_PASS level="
+                 <<grid.level<<"\\n";
         std::cout<<"CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level="
                  <<grid.level<<" rows="<<grid.height<<" columns="<<grid.width
                  <<" cells="<<grid.cells.size()<<" reads="<<reads<<"\n";
