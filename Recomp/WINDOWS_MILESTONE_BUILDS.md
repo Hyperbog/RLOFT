@@ -64,3 +64,9 @@ Both expire December 17, 2026. Source-loaded original RES captures were generate
 ## Original 37700, 37590, INIT/INFO and RES4 compositor — latest verified Windows milestone
 
 [MSVC #39096508171](https://github.com/Hyperbog/RLOFT/actions/runs/39096508171) passed **71/71 CTests**, authentic INIT/INFO and all eleven archive source startup checks, and original RES4:0/100/500/600 sweep/compositor indexed parity with the direct sampler. Original RES0/RES1 image checks passed. This is an engineering test build using synthetic world records, **not** a playable game, full CODE.1 boot, camera-projected world scene, or R04 acceptance. Original media is not included. [Windows x64 engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39096508171/artifacts/12123819892) · [CTest/evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39096508171/artifacts/12125225228); both expire December 17, 2026.
+
+## Original LEVELS.DAT → CODE.2 334C4 view-preparation milestone
+
+[Windows/MSVC milestone #39097776940](https://github.com/Hyperbog/RLOFT/actions/runs/39097776940) passed **72/72 CTests**, plus read-only SHA-256 validation of authentic `LEVELS.DAT` and execution of **original CODE.2 `334C4`** over all 32 level headers and 115,584 packed cell words. It verifies source clears only current-view `0x0040` bit and stops at the original `32954` raycast callback; the original camera/rays/visibility/3D scene remain unexecuted.
+
+[Download Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39097776940/artifacts/12125820072) · [CTest/JUnit evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39097776940/artifacts/12124973924). Both expire December 17, 2026. The ZIP includes `rloft_original_code2_level_view.exe` and **no copyrighted original level media**. [Source evidence and boundary](../Code2/graphics/ORIGINAL_LEVEL_VIEW_PREP_20261018.md). **R04 remains unaccepted.**
