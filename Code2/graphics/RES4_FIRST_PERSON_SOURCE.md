@@ -55,6 +55,8 @@ The output is an owner-local 320×400 raw-index framebuffer (`.idx`) and paletti
 | `RES4:100` | 64 × 128 texture | `e8485ecae052f49ab511465bc7cdf7c6131121ebb1ac7b416ccac90a6c3d69bf` | 8,192 |
 | `RES4:500` | 64 × 128 texture | `5280d7919b6848dc56ce19aa0ce23220ea1f15b991c6335285b30628dd6370b6` | 8,192 |
 
+**Additional 32-column original resource verified:** [Windows/MSVC milestone #39092562187](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187) passed **70/70 CTests** and identified `RES4:600` as a real **32×128** image (decoded size 4096), rendering **4,096** nonzero indexed pixels. Its original-frame SHA-256 was `74cad7087f39fd4229c9a4f451529d3ba85c79d4ce2433694dfe09d1e1d68ed1`. This proves both the 32-column and 64-column shipped RES4 families reach the compiled `338C8` path; no original art was packaged. [Engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187/artifacts/12123004192) and [JUnit/evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187/artifacts/12123262884) expire December 17, 2026.
+
 The first authentic RES4 Windows run failed because the prototype incorrectly demanded EH typed-header size `2`; actual media uses `0`. The parser and synthetic fixture were corrected, and the subsequent real-media test passed.
 
 ## Remaining milestones
