@@ -2,6 +2,8 @@
 
 **Date:** 2026-10-17/18. **Scope:** binary-verified graphics hardware protocol, source-compiled CODE.2 drawing callbacks, VGA host interface, actual synthetic-input indexed frame generation. **Not:** a complete game renderer using original RES resources, DOS runtime, or verified screenshot parity. See [compiled source execution and frame protocol](COMPILED_GRAPHICS_PATH.md).
 
+The [original type-1 resource/cache/render audit](REAL_RES_TYPE1_SOURCE_RENDER.md) records six additional binary-authenticated CODE.2 function ranges and successful RES0/RES1 image rendering using the genuine game archive bytes. The [source-span verifier](verify_original_vga.py) now covers **15** original CODE.2 windows. This is not full DOS/game scene parity.
+
 ## Primary original evidence
 
 Owner-supplied original `CODE.2`: **558,689 bytes**, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. LE object 1 begins at physical file offset **`0x3AF24`**. Each listed span is **object-1-relative** and half-open; the SHA-256 is over original physical bytes at `0x3AF24 + [start,end)`, verified directly against owner-supplied `CODE.2`. Do not commit binary excerpts or full DosDis JSON to this repository.
