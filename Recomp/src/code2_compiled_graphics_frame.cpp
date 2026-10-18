@@ -29,6 +29,7 @@ struct Session {
     std::uint32_t resident_resource_id=0, resident_slot=0, resident_image=0;
     unsigned resolver_calls=0, draw_calls=0;
     bool unsupported=false;
+    bool trace_original_res=false;
     static Session* live;
     static Session& state() { if (!live) throw std::logic_error("No active graphics session"); return *live; }
     static bool vram(u32 a) { return a>=0xA0000u && a<0xB0000u; }
@@ -92,6 +93,9 @@ struct Session {
         code2::store_le16(memory.data()+descriptor+4u,image.rows);
         memory[descriptor+6u]=image.width_units;
         memory[descriptor+7u]=image.tag==0xFFu?0u:0x80u;
+        if(trace_original_res) std::cerr << "RES_STAGE=pack_begin frames=" << image.frames
+           << " rows=" << image.rows << " width_units=" << unsigned(image.width_units)
+           << " decoded_bytes=" << image.decoded.size() << " reorder=" << unsigned(image.reorder) << std::endl;
         for(u32 frame=0;frame<image.frames;++frame) {
             const u32 at=scratch+per_frame*frame;
             std::copy_n(image.decoded.begin()+per_frame*frame,per_frame,memory.begin()+at);
@@ -100,11 +104,14 @@ struct Session {
         if(image.reorder!=0u) {
             // Original CODE.2 loader 2FD9C finishes nonzero field_7
             // image descriptors via source-derived 37810 planar permutation.
-            std::vector<u16> scratch_words(4u*image.rows);
+            if(trace_original_res) std::cerr << "RES_STAGE=permutation_begin" << std::endl;
+            std::vector<u16> scratch_words(4u*std::max<unsigned>(image.frames,image.rows));
             code2::Runtime127Boundary order{};
             order.permutation_words=scratch_words.data();
             code2::function_37810(order,memory.data()+descriptor);
+            if(trace_original_res) std::cerr << "RES_STAGE=permutation_complete" << std::endl;
         }
+        if(trace_original_res) std::cerr << "RES_STAGE=pack_complete" << std::endl;
         constexpr u32 slot_base=0x30000u, table_base=0x31000u;
         const u32 record=slot_base+slot*16u;
         const u32 item_rec=table_base+item*9u;
@@ -127,7 +134,9 @@ struct Session {
         const u32 width=image.width_units*8u;
         const u32 x=(320u-width)/2u, y=(400u-image.rows)/2u;
         resolver_calls=0;draw_calls=0;
+        if(trace_original_res) std::cerr << "RES_STAGE=resource_cache_dispatch" << std::endl;
         (void)code2::function_2975c(renderer,frame,y,x,image.archive_entry,slot);
+        if(trace_original_res) std::cerr << "RES_STAGE=draw_complete" << std::endl;
         CHECK(resolver_calls==1u && draw_calls==1u);
         CHECK(!unsupported && !video.unsupported_read());
     }
@@ -275,8 +284,11 @@ int main(int argc,char**argv) {
             const u32 entry=static_cast<u32>(std::stoul(argv[3]));
             const u32 slot=static_cast<u32>(std::stoul(argv[4]));
             const u32 frame=static_cast<u32>(std::stoul(argv[5]));
+            std::cerr << "RES_STAGE=read_archive" << std::endl;
             const auto image=rloft::original_res::load_type1(argv[2],entry);
+            std::cerr << "RES_STAGE=decode_complete" << std::endl;
             Session session;
+            session.trace_original_res=true;
             session.mode(3u);
             if(argc==10)
                 session.owned_colors_palette(argv[7],
@@ -285,7 +297,9 @@ int main(int argc,char**argv) {
             else
                 session.indexed_palette(); // visualization only, NOT original palette
             session.render_cached(image,slot,frame);
+            std::cerr << "RES_STAGE=capture_begin" << std::endl;
             write_frame(argv[6],session.video);
+            std::cerr << "RES_STAGE=capture_complete" << std::endl;
             std::cout<<"ORIGINAL_RES_TYPE1_COMPILED_2A20C_2F29C_2975C_2A380_PASS"
                      <<" archive_entry="<<entry<<" frame="<<frame<<"\\n";
             std::cout<<"REAL_RES_INPUT="<<argv[2]
