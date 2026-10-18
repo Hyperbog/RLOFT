@@ -61,8 +61,8 @@ jobs:
             | tee build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS build/save5-world/save5-verification.log
-          grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_33E28_33DE0_SKY_GROUND_PASS build/save5-world/save5-verification.log
-          grep -q 'CODE2_LEVEL5_SOURCE_OUTDOOR_SKY_GROUND_RENDERED=YES TREES_AND_SCENE_OBJECTS_RENDERED=NO' build/save5-world/save5-verification.log
+          grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
+          grep -q 'CODE2_LEVEL5_SOURCE_OUTDOOR_34A74_DISPATCH=YES TEXTURED_SKY_GROUND_TREES_RENDERED=NO' build/save5-world/save5-verification.log
           test "$(wc -c < build/save5-world/save5.idx)" -eq 128000
           test "$(wc -c < build/save5-world/save5.pal)" -eq 768
           sha256sum build/save5-world/save5.idx build/save5-world/save5.pal
