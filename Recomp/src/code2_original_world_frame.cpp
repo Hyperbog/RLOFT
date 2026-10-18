@@ -18,26 +18,28 @@
 #include "original_sintab_raster.hpp"
 #include <array>
 #include <filesystem>
+#include <map>
+#include <set>
+#include <iterator>
+#include <fstream>
 
 namespace {
 struct WorldFrame {
     WorldRaySource& ray;
     WorldGraphicsSource& gfx;
-    u32 tex_start=0,tex_end=0,material_id=0;
+    struct TextureSpan { u32 first=0,last=0,image=0; };
+    std::map<u32,TextureSpan> materials{};
+    unsigned resource_cache_hits=0u,loaded_materials=0u;
     u32 code_start=0,code_end=0;
     u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0;
     bool failure=false;
     code2::Application82Boundary scaler{};
     static WorldFrame* current;
     static WorldFrame& self() noexcept {return *current;}
-    WorldFrame(WorldRaySource& source,WorldGraphicsSource& render,u32 image,u32 scene)
-        :ray(source),gfx(render),material_id(scene) {
+    WorldFrame(WorldRaySource& source,WorldGraphicsSource& render)
+        :ray(source),gfx(render) {
         CHECK(current==nullptr);
         current=this;
-        const u32 texlen=code2::load_le16(gfx.memory.data()+image);
-        CHECK(texlen==4096u || texlen==8192u);
-        tex_start=image+2u;
-        tex_end=tex_start+texlen;
         code_start=0x100000u;
         code_end=ray.heap_top;
         CHECK(code_end>code_start && code_end<0x400000u);
@@ -73,8 +75,9 @@ struct WorldFrame {
             const u32 addr=0x15A18u+slot*0x1Cu;
             const u32 front=code2::load_le32(gfx.memory.data()+addr+4u);
             const u32 back=code2::load_le32(gfx.memory.data()+addr+8u);
-            CHECK((front==material_id || front==0x93u) &&
-                  (back==material_id || back==0x93u));
+            const u32 count=static_cast<u32>(gfx.entry_offsets.size()-1u);
+            CHECK((front==0x93u || front<count) &&
+                  (back==0x93u || back<count));
             CHECK(code2::load_le32(gfx.memory.data()+addr)<=65535u);
         }
         gfx.original_compositor.app82=&scaler;
@@ -84,6 +87,76 @@ struct WorldFrame {
         gfx.original_compositor.code_store8=&patch8;
         gfx.original_compositor.call_337c8=&weighted_entry;
         gfx.original_compositor.call_338c8=&WorldGraphicsSource::composed_338c8;
+    }
+    // Original 2F29C already supports multiple resources. The former
+    // single-resident restriction was solely in the graphics test adapter.
+    // Keep its original 2ECB4/37590/37700 loader and nine-byte cache intact.
+    void prepare_materials() {
+        const auto item_count=static_cast<u32>(gfx.entry_offsets.size()-1u);
+        CHECK(item_count>0u && item_count<200000u);
+        std::set<u32> needed;
+        for(u32 slot=0u;slot<256u;++slot) {
+            const u32 addr=0x15A18u+slot*0x1Cu;
+            const u32 flag=code2::load_le32(gfx.memory.data()+addr+12u);
+            const u32 front=code2::load_le32(gfx.memory.data()+addr+4u);
+            const u32 back=code2::load_le32(gfx.memory.data()+addr+8u);
+            if(flag==1u && front!=0x93u)needed.insert(front);
+            if(back!=0x93u)needed.insert(back);
+        }
+        CHECK(!needed.empty() && needed.size()<128u);
+        for(const u32 id:needed) {
+            CHECK(id<item_count);
+            const u32 offset=gfx.entry_offsets[id];
+            const u32 end=gfx.entry_offsets[id+1u];
+            CHECK(end>offset && std::uint64_t(offset)+5u<=end);
+            // Type-six owner archive entries only; the canonical 2EC B4
+            // loader must decide their eventual decoded guest layout.
+            CHECK(gfx.archive_bytes[offset]=='E' &&
+                  gfx.archive_bytes[offset+1u]=='H' &&
+                  gfx.archive_bytes[offset+2u]==6u);
+            const unsigned loads=gfx.source_type6_load_calls;
+            const u32 before=gfx.heap_cursor;
+            const u32 image=code2::function_2f29c(
+                gfx.machine,gfx.resources,id,4u);
+            CHECK(!gfx.stream_error && image>=before && image<gfx.heap_cursor);
+            CHECK(gfx.source_type6_load_calls==loads+1u);
+            const u32 size=code2::load_le16(gfx.memory.data()+image);
+            CHECK(size==4096u || size==8192u);
+            CHECK(std::uint64_t(image)+2u+size<=gfx.heap_cursor);
+            CHECK(std::uint64_t(image)+2u+size<=gfx.memory.size());
+            const u32 slot_rec=code2::load_le32(gfx.memory.data()+0xF0B8u)+4u*16u;
+            const u32 table=code2::load_le32(gfx.memory.data()+slot_rec+12u);
+            const u32 record=table+9u*id;
+            CHECK(std::uint64_t(record)+9u<=gfx.memory.size());
+            CHECK(gfx.memory[record+2u]==1u);
+            CHECK(code2::load_le32(gfx.memory.data()+record+5u)==image);
+            const unsigned read_before=gfx.file_reads;
+            const unsigned seek_before=gfx.file_seeks;
+            CHECK(code2::function_2f29c(gfx.machine,gfx.resources,id,4u)==image);
+            CHECK(gfx.file_reads==read_before && gfx.file_seeks==seek_before);
+            materials.emplace(id,TextureSpan{image+2u,image+2u+size,image});
+            ++loaded_materials;
+        }
+        CHECK(loaded_materials==needed.size());
+        std::cout<<"CODE2_RES4_ORIGINAL_MULTI_ITEM_CACHE_PASS materials="
+                 <<loaded_materials<<" reads="<<gfx.file_reads
+                 <<" source_loads="<<gfx.source_type6_load_calls<<"\\n";
+    }
+    static u32 material_lookup(u32 id,u32 slot) noexcept {
+        auto& s=self();
+        if(id==0x93u)return 0u; // Original no-material sentinel.
+        const auto it=s.materials.find(id);
+        if(slot!=4u || it==s.materials.end()) {
+            s.failure=true;
+            return 0u;
+        }
+        const unsigned reads=s.gfx.file_reads;
+        const u32 ptr=code2::function_2f29c(
+            s.gfx.machine,s.gfx.resources,id,slot);
+        if(ptr!=it->second.image || reads!=s.gfx.file_reads ||
+           s.gfx.stream_error)s.failure=true;
+        ++s.resource_cache_hits;
+        return ptr;
     }
     static u8 code8(u32 address) noexcept {
         auto& s=self();
@@ -117,9 +190,17 @@ struct WorldFrame {
                                        u32 destination,u32 shade) noexcept {
         auto& s=self();
         ++s.callback_calls;
+        const TextureSpan* span=nullptr;
+        for(const auto& item:s.materials) {
+            if(source>=item.second.first && source<item.second.last) {
+                span=&item.second;
+                break;
+            }
+        }
+        if(!span){s.failure=true;return 0u;}
         const auto result=rloft_recomp::execute_sintab_scale(
             target,source,destination,shade,s.code_start,s.code_end,
-            s.tex_start,s.tex_end,
+            span->first,span->last,
             [&](u32 address)->u8 {
                 if(address>=s.gfx.memory.size()) {
                     s.failure=true;return 0u;
@@ -137,15 +218,18 @@ struct WorldFrame {
     }
     void render() {
         install_world();
+        prepare_materials();
         const u32 before=gfx.source_type6_load_calls;
         code2::Application91Boundary sweep{};
-        sweep.call_2f29c=&WorldGraphicsSource::source_sweep_lookup;
+        sweep.call_2f29c=&material_lookup;
         sweep.call_3263c=&WorldGraphicsSource::source_sweep_flush;
         code2::function_335dc(gfx.machine,sweep);
         shader_flushes=gfx.sweep_flushes;
         CHECK(!failure && !gfx.unsupported && !gfx.stream_error);
         CHECK(!gfx.video.unsupported_read());
-        CHECK(gfx.source_type6_load_calls==before); // one source cache item, no synthetic records
+        CHECK(gfx.source_type6_load_calls==before);
+        CHECK(resource_cache_hits>0u);
+        CHECK(materials.size()==loaded_materials);
         u32 flagged=0u,nonempty=0u;
         for(u32 slot=0u;slot<256u;++slot) {
             const u32 addr=0x15A18u+slot*0x1Cu;
@@ -157,7 +241,9 @@ struct WorldFrame {
                  <<" scale_calls="<<callback_calls
                  <<" write_count="<<pixel_writes
                  <<" patches="<<patches
-                 <<" flushes="<<shader_flushes<<"\\n";
+                 <<" flushes="<<shader_flushes
+                 <<" materials="<<loaded_materials
+                 <<" cache_hits="<<resource_cache_hits<<"\\n";
         std::cout.flush();
         CHECK(callback_calls>0u && pixel_writes>0u && patches>0u);
         CHECK(shader_flushes>0u);
@@ -209,16 +295,16 @@ int main(int argc,char** argv) {
         for(const auto& [id,n]:front_materials)
             std::cout<<id<<":"<<n<<",";
         std::cout<<"\\n";
-        CHECK(front_materials.size()==1u);
-        const u32 material=front_materials.begin()->first;
+        CHECK(front_materials.size()==3u);
+        CHECK(front_materials.count(48u)==1u &&
+              front_materials.count(53u)==1u &&
+              front_materials.count(59u)==1u);
         auto gfx=std::make_unique<WorldGraphicsSource>();
         gfx->mode(3u);
         gfx->owned_colors_palette(colors.string(),0u,0u);
-        gfx->open_readonly_resource(res4.string(),material,4u);
-        const u32 image=code2::function_2f29c(gfx->machine,gfx->resources,material,4u);
-        CHECK(image && gfx->source_type6_load_calls==1u);
+        gfx->open_readonly_resource(res4.string(),0u,4u);
         {
-            WorldFrame world(*ray,*gfx,image,material);
+            WorldFrame world(*ray,*gfx);
             world.render();
         }
         write_frame(argv[6],gfx->video);
