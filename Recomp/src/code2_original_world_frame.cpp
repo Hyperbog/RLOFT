@@ -23,6 +23,7 @@ using OriginalLevelGuest=WorldRaySource;
 #undef Session
 #undef RLOFT_CANONICAL_CODE2_INCLUDED
 #include "original_sintab_raster.hpp"
+#include "original_code2_36cec_columns.hpp"
 #include <array>
 #include <filesystem>
 #include <map>
@@ -50,6 +51,7 @@ struct WorldFrame {
     u32 scene_candidates=0,scene_quad_eligible=0,scene_draw_requests=0;
     u32 quad_scanline_calls=0,quad_guest_vga_changes=0,quad_source_pixel_writes=0;
     u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
+    u32 scene_source_columns_preflighted=0,scene_descriptors_preflighted=0;
     std::set<u32> source_res3_ids{},source_projected_res3_ids{};
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
@@ -694,17 +696,52 @@ struct WorldFrame {
         }
         std::fill_n(s.gfx.memory.data()+dest,bytes,static_cast<u8>(value));
     }
-    static void source_scene_sprite_emit(u32 frame,u32 y,u32 x,u32 scale,
-                                         u32 tint,u32 depth) noexcept {
+    // Original 2C4A3..2C4E6 pushes the arguments of 36CEC in reverse
+    // cdecl order. In particular, argument TWO is the absolute RES3 ID.
+    // This callback is a verified input/display-list bridge only; actual
+    // 369D8 / 36B14 indexed VGA writes remain a subsequent milestone.
+    static void source_scene_sprite_emit(
+            u32 screen_x,u32 res3_id,u32 projected_size,u32 lookup_bias,
+            u32 vertical_mode,u32 ray_depth) noexcept {
         auto& s=self();
-        if(frame>=4234u || x>0x10000u || y>0x10000u ||
-           scale>0xFFFFu || depth>0xFFFFu) {
-            s.failure=true;return;
-        }
         ++s.scene_sprite_emits;
-        // No surrogate billboards: original 36CEC pixel implementation
-        // has not yet been made executable.
-        (void)tint;
+        try {
+            if(res3_id>=s.gfx.entry_offsets.size()-1u)
+                throw std::out_of_range("36CEC original RES3 source ID");
+            // 36D07 returns immediately on projected_size>>3 == 0.
+            if((projected_size>>3u)==0u)return;
+            const u32 ptr=source_res3_lookup(res3_id,3u);
+            if(!ptr || s.failure ||
+               std::uint64_t(ptr)+2u>s.gfx.heap_cursor)
+                throw std::out_of_range("36CEC unloaded RES3 body");
+            const u32 length=code2::load_le16(s.gfx.memory.data()+ptr);
+            if(std::uint64_t(ptr)+2u+length>s.gfx.heap_cursor)
+                throw std::out_of_range("36CEC truncated decoded RES3 body");
+            // 36D7D reads the original 509-word runtime lookup array
+            // through the live guest pointer at 258C4, not a synthetic LUT.
+            const u32 lookup_base=code2::load_le32(
+                s.gfx.memory.data()+0x258C4u);
+            if(std::uint64_t(lookup_base)+509u*2u>s.gfx.memory.size())
+                throw std::out_of_range("36CEC SINTAB lookup pointer");
+            std::array<std::uint16_t,509u> lookup{};
+            for(std::size_t i=0;i<lookup.size();++i)
+                lookup[i]=code2::load_le16(
+                    s.gfx.memory.data()+lookup_base+2u*i);
+            const rloft_recomp::Original36cecCall call{
+                screen_x,res3_id,projected_size,lookup_bias,
+                vertical_mode,ray_depth};
+            const auto plan=rloft_recomp::prepare_original_36cec(
+                call,s.gfx.memory.data()+ptr+2u,length,
+                code2::load_le32(s.gfx.memory.data()+0xC738u),
+                lookup.data(),lookup.size(),
+                code2::load_le32(s.gfx.memory.data()+0xC730u));
+            if(plan.drawable) {
+                s.scene_source_columns_preflighted+=static_cast<u32>(
+                    plan.source_x_order.size());
+                s.scene_descriptors_preflighted+=static_cast<u32>(
+                    plan.descriptors.size());
+            }
+        } catch(const std::exception&) {s.failure=true;}
     }
     void project_original_scene_res3(const std::string& filename) {
         CHECK(std::filesystem::path(filename).filename()=="RES3");
@@ -779,6 +816,8 @@ struct WorldFrame {
                  <<" cache_hits="<<res3_shape_cache_hits
                  <<" projected_res3_ids="<<source_projected_res3_ids.size()
                  <<" emitted_calls="<<scene_sprite_emits
+                 <<" 36cec_preflight_columns="<<scene_source_columns_preflighted
+                 <<" 36cec_preflight_descriptors="<<scene_descriptors_preflighted
                  <<" res3_sprite_pixels_rendered=NO\\n";
     }
     static code2::s32 source_open_definition(u32 pointer) noexcept {

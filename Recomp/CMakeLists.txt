@@ -415,6 +415,17 @@ else()
     target_compile_options(rloft_original_code2_world_frame PRIVATE -O0 -Wall -Wextra -Wpedantic)
 endif()
 
+# Media-free 36CEC original source-call, EH7 shape and SINTAB plan proof.
+# This test certifies input/control flow only, NOT RES3 VGA pixels.
+add_executable(rloft_original_code2_36cec_plan_tests
+    src/test_original_code2_36cec_columns.cpp)
+set_target_properties(rloft_original_code2_36cec_plan_tests PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_36cec_source_res3_plan
+        COMMAND rloft_original_code2_36cec_plan_tests)
+endif()
+
 # Genuine CODE.2 07938/06CAD SAVE.DAT deserializer and chained
 # original 181B4 direct LEVnnn loader; owner retail CODE.2 DGROUP only.
 add_executable(rloft_original_code2_save_game src/code2_original_save_game.cpp)
