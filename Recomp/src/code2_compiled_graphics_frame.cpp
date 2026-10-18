@@ -30,6 +30,187 @@ struct Session {
     unsigned resolver_calls=0, draw_calls=0;
     bool unsupported=false;
     bool trace_original_res=false;
+    // Read-only RES stream, the CODE.2 guest file handle remains opaque.
+    std::vector<u8> archive_bytes{};
+    std::vector<u32> entry_offsets{};
+    u32 stream_cursor=0, active_entry_end=0, active_entry_start=0;
+    u32 heap_cursor=0x400000u;
+    u32 stream_handle=0x51u;
+    unsigned file_seeks=0,file_reads=0,source_2fd9c_calls=0;
+    unsigned bounded_lzss_callbacks=0;
+    bool stream_error=false;
+    code2::Application70Boundary image_loader{};
+    static void fail_stream() noexcept {state().stream_error=true;}
+    static u32 alloc_guest(u32 bytes) noexcept {
+        auto& s=state();
+        const auto aligned=(std::uint64_t(s.heap_cursor)+7u)&~std::uint64_t(7);
+        if(bytes==0 || aligned+bytes>s.memory.size()) {s.stream_error=true;return 0u;}
+        s.heap_cursor=static_cast<u32>(aligned+bytes);
+        return static_cast<u32>(aligned);
+    }
+    static void free_guest(u32) noexcept {} // bounded arena lives for session
+    static void seek_item(u32 index,u32 handle) noexcept {
+        auto& s=state();
+        if(handle!=s.stream_handle || index+1u>=s.entry_offsets.size()) {fail_stream();return;}
+        s.active_entry_start=s.entry_offsets[index];
+        s.active_entry_end=s.entry_offsets[index+1u];
+        s.stream_cursor=s.active_entry_start;
+        ++s.file_seeks;
+    }
+    static u32 read_file(u32 dst,u32 size,u32 handle) noexcept {
+        auto& s=state();
+        if(handle!=s.stream_handle || std::uint64_t(dst)+size>s.memory.size() ||
+           s.stream_cursor>s.archive_bytes.size()) {fail_stream();return 0u;}
+        const u32 count=std::min<u32>(size,
+           static_cast<u32>(s.archive_bytes.size()-s.stream_cursor));
+        if(count) std::copy_n(s.archive_bytes.data()+s.stream_cursor,count,
+                              s.memory.data()+dst);
+        s.stream_cursor+=count;
+        ++s.file_reads;
+        return count;
+    }
+    static u32 position_file(u32 handle,u32 origin,u32 delta) noexcept {
+        auto& s=state();
+        if(handle!=s.stream_handle || origin!=1u || delta!=0u) {fail_stream();return 0u;}
+        return s.stream_cursor;
+    }
+    static u32 logical_file_position() noexcept {
+        auto& s=state();
+        const u32 buffered=code2::load_le32(s.memory.data()+0xF4D8u);
+        if(buffered>s.stream_cursor) {fail_stream();return 0u;}
+        return s.stream_cursor-buffered;
+    }
+    static u8 original_buffered_byte() noexcept {
+        auto& s=state();
+        if(s.stream_error || logical_file_position()>=s.active_entry_end) {
+            fail_stream();return 0u;
+        }
+        return code2::function_2f9e4(s.machine,s.image_loader);
+    }
+    // The recovered 37700(Runtime126Boundary&,stop_flag) never reaches its
+    // stop condition when passed stop_flag=0. Until that control transfer is
+    // recovered, supply a finite, media-validated dictionary callback while
+    // keeping the original 2FB04 and 2FA30 layout/output functions active.
+    static u32 bounded_37700() noexcept {
+        auto& s=state();
+        ++s.bounded_lzss_callbacks;
+        std::array<int,4096> dict{};
+        dict.fill(-1);
+        for(u32 i=0;i<0xFEEu;++i) dict[i]=0xFE;
+        unsigned wp=0xFEEu,flags=0u;
+        const u32 frames=code2::load_le16(s.memory.data()+code2::load_le32(s.memory.data()+0x2B6A4u));
+        const u32 per=code2::load_le32(s.memory.data()+0x2B6B4u);
+        const u32 maximum=frames*per;
+        u32 produced=0;
+        while(produced<maximum && !s.stream_error) {
+            flags>>=1u;
+            if((flags&0x100u)==0u) {
+                if(logical_file_position()>=s.active_entry_end) {fail_stream();break;}
+                flags=unsigned(original_buffered_byte())|0xFF00u;
+            }
+            if(flags&1u) {
+                const u8 v=original_buffered_byte();
+                if(s.stream_error)break;
+                code2::function_2fa30(s.machine,s.image_loader,v);
+                dict[wp]=v; wp=(wp+1u)&4095u;
+                ++produced;
+            } else {
+                if(logical_file_position()+2u>s.active_entry_end) {fail_stream();break;}
+                const unsigned lo=original_buffered_byte(),hi=original_buffered_byte();
+                const unsigned off=lo|((hi&0xF0u)<<4u);
+                const unsigned count=(hi&15u)+3u;
+                for(unsigned j=0;j<count && produced<maximum && !s.stream_error;++j) {
+                    const int value=dict[(off+j)&4095u];
+                    if(value<0) {fail_stream();break;}
+                    code2::function_2fa30(s.machine,s.image_loader,static_cast<u8>(value));
+                    dict[wp]=value;wp=(wp+1u)&4095u;
+                    ++produced;
+                }
+            }
+        }
+        if(produced!=maximum || logical_file_position()!=s.active_entry_end ||
+           *code2::dg(s.machine,0x2B6C2u)!=1u)
+            fail_stream();
+        return 0u;
+    }
+    static void reorder_source_image(u32 desc) noexcept {
+        auto& s=state();
+        const u32 frames=code2::load_le16(s.memory.data()+desc+2u);
+        std::vector<u16> table(4u*frames);
+        code2::Runtime127Boundary boundary{};
+        boundary.permutation_words=table.data();
+        code2::function_37810(boundary,s.memory.data()+desc);
+    }
+    static u32 source_image_loader(u32 record,u32 handle) noexcept {
+        auto& s=state();
+        ++s.source_2fd9c_calls;
+        if(handle!=s.stream_handle) {fail_stream();return 0u;}
+        const u32 image=code2::function_2fd9c(s.machine,s.image_loader,record,handle);
+        if(s.stream_error || image==0u || logical_file_position()!=s.active_entry_end)
+            fail_stream();
+        return image;
+    }
+    void open_readonly_resource(const std::string& filename,u32 item,u32 slot) {
+        archive_bytes=rloft::original_res::read_only(filename);
+        if(archive_bytes.size()<8u)throw std::runtime_error("RES file too short");
+        const u32 count=rloft::original_res::le32(archive_bytes.data());
+        if(count==0u || count>200000u || std::uint64_t(4u)+4ull*count>archive_bytes.size() ||
+           item>=count || slot>12u)
+            throw std::runtime_error("Invalid original RES directory");
+        entry_offsets.clear();
+        for(u32 i=0;i<count;++i)
+            entry_offsets.push_back(rloft::original_res::le32(archive_bytes.data()+4u+4u*i));
+        entry_offsets.push_back(static_cast<u32>(archive_bytes.size()));
+        if(entry_offsets[0]!=4u+4u*count)
+            throw std::runtime_error("Invalid original RES first entry offset");
+        for(unsigned i=1;i<entry_offsets.size();++i)
+            if(entry_offsets[i]<entry_offsets[i-1] ||
+               entry_offsets[i]>archive_bytes.size())
+                throw std::runtime_error("Invalid RES offset ordering");
+        // In the real game 2E7F0 opens each archive then allocates the item
+        // table. The host supplies the read-only handle and directory only.
+        constexpr u32 slot_base=0x30000u,table_base=0x31000u;
+        const u32 record=slot_base+slot*16u;
+        if(std::uint64_t(table_base)+9ull*count>=0x300000u)
+            throw std::runtime_error("Guest resource item table too large");
+        code2::store_le32(memory.data()+0xF0B8u,slot_base);
+        code2::store_le32(memory.data()+0xF0B4u,slot+1u);
+        code2::store_le32(memory.data()+record,stream_handle);
+        code2::store_le32(memory.data()+record+8u,count);
+        code2::store_le32(memory.data()+record+12u,table_base);
+        const u32 entry=table_base+9u*item;
+        memory[entry]=15u;  // unloaded, original 2E7F0 initialized flag
+        memory[entry+2u]=0u;
+        code2::store_le32(memory.data()+entry+5u,0u);
+        resident_resource_id=item;resident_slot=slot;
+        stream_cursor=0;active_entry_end=0;
+        // Original 2ECB4 has to dispatch type 1 -> 2FD9C, never preloaded.
+    }
+    void render_unloaded(const rloft::original_res::Image& image,
+                         const std::string& path,u32 slot,u32 frame) {
+        CHECK(frame<image.frames);
+        open_readonly_resource(path,image.archive_entry,slot);
+        // The source path is opaque to the host renderer: look up the actual
+        // original unloaded resource on its first draw request.
+        resolver_calls=0;draw_calls=0;file_seeks=0;file_reads=0;
+        const u32 x=(320u-image.width_units*8u)/2u;
+        const u32 y=(400u-image.rows)/2u;
+        (void)code2::function_2975c(renderer,frame,y,x,image.archive_entry,slot);
+        CHECK(resolver_calls==1u && draw_calls==1u);
+        CHECK(source_2fd9c_calls==1u && file_seeks==1u && file_reads>0);
+        CHECK(!stream_error && !unsupported && !video.unsupported_read());
+        const u32 itemrec=0x31000u+9u*image.archive_entry;
+        CHECK(memory[itemrec+2u]==1u);
+        CHECK(code2::load_le32(memory.data()+itemrec+5u)!=0u);
+        // Loaded item must become a genuine source cache hit on the next
+        // request without another file seek or source image allocation.
+        const u32 image_cached=code2::function_2f29c(machine,resources,image.archive_entry,slot);
+        CHECK(image_cached==code2::load_le32(memory.data()+itemrec+5u));
+        CHECK(file_seeks==1u && source_2fd9c_calls==1u);
+        std::cout<<"CODE2_UNLOADED_2ECB4_2FD9C_SOURCE_CACHE=PASS; read_only_seeks="
+                 <<file_seeks<<" reads="<<file_reads<<" bounded_lzss="<<bounded_lzss_callbacks<<"\n";
+    }
+
     static Session* live;
     static Session& state() { if (!live) throw std::logic_error("No active graphics session"); return *live; }
     static bool vram(u32 a) { return a>=0xA0000u && a<0xB0000u; }
@@ -156,6 +337,18 @@ struct Session {
         resources.app68=&resource_loader;
         renderer.call_2f29c=&resolve_item;
         renderer.call_2a380=&draw_image;
+        resource_loader.call_31334=&seek_item;
+        resource_loader.call_312ec=&read_file;
+        resource_loader.call_3104c=&alloc_guest;
+        resource_loader.call_310b0=&free_guest;
+        resource_loader.call_2fd9c=&source_image_loader;
+        image_loader.app69=&resources;
+        image_loader.call_312ec=&read_file;
+        image_loader.call_3131c=&position_file;
+        image_loader.call_3104c=&alloc_guest;
+        image_loader.call_310b0=&free_guest;
+        image_loader.call_37700=&bounded_37700;
+        image_loader.call_37810=&reorder_source_image;
     }
     ~Session() {live=nullptr;}
     void mode(u32 mode) {
@@ -296,11 +489,11 @@ int main(int argc,char**argv) {
                     static_cast<unsigned>(std::stoul(argv[9])));
             else
                 session.indexed_palette(); // visualization only, NOT original palette
-            session.render_cached(image,slot,frame);
+            session.render_unloaded(image,argv[2],slot,frame);
             std::cerr << "RES_STAGE=capture_begin" << std::endl;
             write_frame(argv[6],session.video);
             std::cerr << "RES_STAGE=capture_complete" << std::endl;
-            std::cout<<"ORIGINAL_RES_TYPE1_COMPILED_2A20C_2F29C_2975C_2A380_PASS"
+            std::cout<<"ORIGINAL_RES_TYPE1_2ECB4_2FD9C_2F29C_2975C_2A380_PASS"
                      <<" archive_entry="<<entry<<" frame="<<frame<<"\\n";
             std::cout<<"REAL_RES_INPUT="<<argv[2]
                      <<"; SCENE_AND_ORIGINAL_DOS_PARITY_ACCEPTED=NO\\n";
