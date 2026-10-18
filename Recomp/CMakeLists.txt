@@ -402,3 +402,15 @@ if(MSVC)
 else()
     target_compile_options(rloft_original_code2_level_loader PRIVATE -O0 -Wall -Wextra -Wpedantic)
 endif()
+
+# Source 181B4/03838/32954 real world record -> original 335DC/3263C
+# with interpreted original SINTAB raster code and authentic RES4:0.
+# This source diagnostic is not a DOS-equivalent playable renderer.
+add_executable(rloft_original_code2_world_frame src/code2_original_world_frame.cpp)
+set_target_properties(rloft_original_code2_world_frame PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_world_frame PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_world_frame PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
