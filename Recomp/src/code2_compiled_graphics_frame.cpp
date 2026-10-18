@@ -3,7 +3,9 @@
 #include "../../Code2/Code2.cpp"
 #include "original_vga_host.hpp"
 #include <array>
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -87,6 +89,45 @@ struct Session {
         CHECK(video.palette(30).r==0 && video.palette(30).g==63);
         CHECK(video.palette(93).r==63 && video.palette(93).g==0);
     }
+    void verify_original_brightness_transform() {
+        // CODE.2 32150 is compiled and executed, not reimplemented.
+        // Byte 6C of the active game profile selects intensity 0..63.
+        constexpr u32 palette=0x1B000u,profile=0x1C000u;
+        code2::store_le32(memory.data()+0xF050u,profile);
+        memory[profile+0x6Cu]=31u;
+        for (unsigned i=0;i<256u;++i) {
+            memory[palette+i*3]=static_cast<u8>(i%64u);
+            memory[palette+i*3+1u]=static_cast<u8>(63u-i%64u);
+            memory[palette+i*3+2u]=static_cast<u8>((i%64u)/2u);
+        }
+        const u8 before=memory[palette+32u*3u];
+        code2::function_32150(machine,palette);
+        CHECK(memory[palette+32u*3u]>before);
+        CHECK(memory[palette+0u]==0u);
+        CHECK(memory[palette+1u]==63u);
+        memory[profile+0x6Cu]=0u;
+    }
+    void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength) {
+        // Read-only user-owned COLORS palette bank:
+        // byte 0 = 15; bank N is 768 RGB6 bytes at 1 + 768*N.
+        // CODE.2 325B0 uses that exact bank offset, applies 32150, and
+        // streams the bank to the indexed DAC through its graphics path.
+        CHECK(bank<15u && strength<=63u);
+        std::ifstream f(path,std::ios::binary);
+        if (!f) throw std::runtime_error("Cannot open owner-provided COLORS file");
+        const std::vector<u8> content{std::istreambuf_iterator<char>(f),
+                                      std::istreambuf_iterator<char>()};
+        if (content.size()!=11521u || content[0]!=15u)
+            throw std::runtime_error("Unsupported COLORS bank structure");
+        constexpr u32 destination=0x17000u,profile=0x1C000u;
+        const auto start=content.begin()+1+static_cast<std::ptrdiff_t>(bank*768u);
+        std::copy_n(start,768,memory.begin()+destination);
+        code2::store_le32(memory.data()+0xF050u,profile);
+        memory[profile+0x6Cu]=static_cast<u8>(strength);
+        code2::function_32150(machine,destination);
+        code2::function_29ca0(gfx,destination,0u,768u);
+        CHECK(!unsupported && !video.unsupported_read());
+    }
     void seed_image() {
         // Synthetic image in the original CODE.2 planar image wire layout.
         // Two frames, four planes, 20 rows and 2 bytes per row/plane.
@@ -148,12 +189,23 @@ void write_frame(const std::string& stem,const rloft::graphics::OriginalVgaHost&
 
 int main(int argc,char**argv) {
     try {
-        if (argc>2) throw std::invalid_argument("usage: rloft_original_code2_graphics_frame [output-stem]");
+        if (argc!=1 && argc!=2 && argc!=5)
+            throw std::invalid_argument(
+                "usage: rloft_original_code2_graphics_frame [output-stem [COLORS-file bank-index brightness]]");
+        unsigned owned_bank=0,brightness=0;
+        if (argc==5) {
+            owned_bank=static_cast<unsigned>(std::stoul(argv[3]));
+            brightness=static_cast<unsigned>(std::stoul(argv[4]));
+            if (owned_bank>=15u || brightness>63u)
+                throw std::invalid_argument("COLORS bank must be 0..14, brightness 0..63");
+        }
         Session s;
         s.mode(3u);
         CHECK(s.video.repeat_scanlines()==1u);
         CHECK(s.video.line_compare()>=400u);
         s.indexed_palette();
+        s.verify_original_brightness_transform();
+        if (argc==5) s.owned_colors_palette(argv[2],owned_bank,brightness);
         s.seed_image();
         // This is the actual compiled CODE.2 2A380 original planar image
         // source code, operating on a synthetic image record in DGROUP.
@@ -179,7 +231,7 @@ int main(int argc,char**argv) {
         CHECK(s.video.line_compare()==24u);
         CHECK(s.video.indexed_scanout(2u,25u)==70u); // lower split shows page 0
         CHECK(!s.unsupported && !s.video.unsupported_read());
-        if (argc==2) write_frame(argv[1],s.video);
+        if (argc==2 || argc==5) write_frame(argv[1],s.video);
         // Mode 2 is a 200-line logical framebuffer doubled to 400 scanlines.
         s.mode(2u);
         CHECK(s.video.repeat_scanlines()==2u);
