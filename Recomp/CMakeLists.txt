@@ -436,3 +436,18 @@ if(MSVC)
 else()
     target_compile_options(rloft_original_code2_save_game PRIVATE -O0 -Wall -Wextra -Wpedantic)
 endif()
+
+# Bounded original CODE.2 369D8/36B14 indexed VGA per-plane executor.
+add_executable(rloft_original_code2_369d8_raster_test
+    src/test_original_code2_369d8_raster.cpp)
+set_target_properties(rloft_original_code2_369d8_raster_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_369d8_raster_test PRIVATE /W3)
+else()
+    target_compile_options(rloft_original_code2_369d8_raster_test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_369d8_res3_vga_plane_raster
+        COMMAND rloft_original_code2_369d8_raster_test)
+endif()
