@@ -69,6 +69,9 @@ struct Session {
         ++s.file_reads;
         return count;
     }
+    static void read_resource_header(u32 dst,u32 size,u32 handle) noexcept {
+        (void)read_file(dst,size,handle);
+    }
     static u32 position_file(u32 handle,u32 origin,u32 delta) noexcept {
         auto& s=state();
         if(handle!=s.stream_handle || origin!=1u || delta!=0u) {fail_stream();return 0u;}
@@ -338,7 +341,7 @@ struct Session {
         renderer.call_2f29c=&resolve_item;
         renderer.call_2a380=&draw_image;
         resource_loader.call_31334=&seek_item;
-        resource_loader.call_312ec=&read_file;
+        resource_loader.call_312ec=&read_resource_header;
         resource_loader.call_3104c=&alloc_guest;
         resource_loader.call_310b0=&free_guest;
         resource_loader.call_2fd9c=&source_image_loader;
