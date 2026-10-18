@@ -92,7 +92,8 @@ struct WorldFrame {
             gfx.memory[0xC688u+slot]=0u;
             gfx.memory[0xC6A8u+slot]=0u;
         }
-        gfx.memory[0xEF4Du]=0u;
+        // Source 1F1C8 -> 291B0 selects the active draw page. Do not
+        // force wall writes to page 0 while the outdoor layer uses page 1.
         for(u32 slot=0u;slot<256u;++slot) {
             const u32 addr=0x15A18u+slot*0x1Cu;
             const u32 front=code2::load_le32(gfx.memory.data()+addr+4u);
@@ -300,6 +301,12 @@ struct WorldFrame {
         s.background_resources[id]=ptr;
         return ptr;
     }
+    static void source_select_draw_page(u32 page) noexcept {
+        auto& s=self();
+        code2::Application56Boundary b{};
+        code2::function_291b0(s.gfx.machine,b,page);
+        if(page>1u || s.gfx.memory[0xEF4Du]!=page)s.failure=true;
+    }
     static void texture_patch_word(u32 addr,u16) noexcept {
         auto& s=self();
         if(addr!=0x34A11u && addr!=0x34A27u &&
@@ -396,6 +403,7 @@ struct WorldFrame {
         lookup.call_2f29c=&source_background_texture;
         code2::Application44Boundary dispatch{};
         dispatch.app43=&lookup;
+        dispatch.call_291b0=&source_select_draw_page;
         dispatch.call_314b0=&unexpected_panorama;
         dispatch.call_34998=&source_texture_view_setup;
         dispatch.call_33e28=&source_sky;
@@ -500,10 +508,28 @@ struct WorldFrame {
         else CHECK((pixel_writes>0u || legacy_fallbacks>0u) &&
                    (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
+        if(saved_outdoor) {
+            const u32 page=static_cast<u32>(gfx.memory[0xC050u]);
+            CHECK(page==1u && gfx.memory[0xEF4Du]==1u);
+            // Original CODE.2 2ABF4 programs CRTC start to expose the
+            // completed draw page, after source outdoor + wall passes.
+            code2::function_2abf4(gfx.hardware,page*0x8000u);
+            CHECK(gfx.video.crtc_start()==0x8000u);
+            std::cout<<"CODE2_SAVE5_ORIGINAL_291B0_2ABF4_ACTIVE_PAGE_PASS"
+                     <<" draw_page="<<page<<" crtc_start=32768\\n";
+        }
         const auto pixels=gfx.video.scanout_indices();
         const auto nonzero=std::count_if(pixels.begin(),pixels.end(),
                                         [](u8 value){return value!=0u;});
         CHECK(nonzero>0);
+        if(saved_outdoor) {
+            // The owner save has an entire original textured background:
+            // require visible indexed pixels beyond the prior wall-only
+            // snapshot rather than accepting writes to a hidden page.
+            CHECK(nonzero>20407u);
+            std::cout<<"CODE2_SAVE5_VISIBLE_OUTDOOR_AND_WALL_PIXELS="
+                     <<nonzero<<"\\n";
+        }
         std::cout<<(saved_outdoor?
                  "CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS level=5":
                  "CODE2_AUTHENTIC_32954_335DC_3263C_SINTAB_RES4_VGA_PASS level=11")
