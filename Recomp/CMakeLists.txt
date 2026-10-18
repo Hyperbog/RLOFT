@@ -327,4 +327,12 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_graphics_frame)
     set_tests_properties(compiled_code2_original_graphics_indexed_frame
         PROPERTIES TIMEOUT 25)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME compiled_code2_original_colors_bank_indexed_bmp
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compiled_graphics_artifact.py"
+                "$<TARGET_FILE:rloft_original_code2_graphics_frame>")
+        set_tests_properties(compiled_code2_original_colors_bank_indexed_bmp
+            PROPERTIES TIMEOUT 35)
+    endif()
 endif()
