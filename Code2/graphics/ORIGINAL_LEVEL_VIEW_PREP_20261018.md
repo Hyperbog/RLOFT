@@ -6,7 +6,7 @@
 
 - Immutable `LEVELS.DAT`: 499,878 bytes, SHA-256 `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`. It contains 32 indexed level records, 115,584 total 16-bit packed cell words.
 - Original CODE.2 `181B4` copies **0x2A4 fixed level-header bytes** to guest `0x25618` and **width × height × 2 packed grid bytes** to guest `0x198E0`.
-- Original `334C4..335DB` (SHA-256 `66a8a82aeffae8ff115ae4e314d766582c159ec629d6dce222dd319d03a2586d`, covered by [the 32-span CODE.2 verifier](verify_original_vga.py)) clears bit `0x0040` in every loaded grid cell, preserving all other bits. It then initializes view-angle/position scratch state and calls `32954`.
+- Original `334C4..335DB` (SHA-256 `66a8a82aeffae8ff115ae4e314d766582c159ec629d6dce222dd319d03a2586d`, covered by [the 33-span CODE.2 verifier](verify_original_vga.py)) clears bit `0x0040` in every loaded grid cell, preserving all other bits. It then initializes view-angle/position scratch state and calls `32954`.
 - The original grid format: a 32-element absolute-offset table, 0x1D-byte level preamble with seven relative section boundaries, 0x2A4-byte header (width/height signed words at offsets +1/+3), then row-major cell words. See [original format classification](../../DatFiles/LEVELS.DAT/FORMAT.md) and [bit semantics](../../DatFiles/LEVELS.DAT/CELL_WORD.md).
 
 ## Implementation
