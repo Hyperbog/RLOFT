@@ -391,3 +391,14 @@ if(BUILD_TESTING)
     set_tests_properties(original_code2_334c4_all_32_level_grids_pre_ray
         PROPERTIES TIMEOUT 35)
 endif()
+
+# Original CODE.2 181B4 archive read through bounded DOS read-only callbacks.
+# This tool takes user-owned LEVELS.DAT and is not a player startup path.
+add_executable(rloft_original_code2_level_loader src/code2_original_level_loader.cpp)
+set_target_properties(rloft_original_code2_level_loader PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_level_loader PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_level_loader PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
