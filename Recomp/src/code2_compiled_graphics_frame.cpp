@@ -19,7 +19,7 @@ using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 #define CHECK(expr) do { if (!(expr)) throw std::runtime_error("CODE2 graphics: " #expr); } while(false)
 struct Session {
     rloft::graphics::OriginalVgaHost video{};
-    std::vector<u8> memory=std::vector<u8>(4u*1024u*1024u,0);
+    std::vector<u8> memory=std::vector<u8>(8u*1024u*1024u,0);
     code2::Machine machine{};
     code2::Graphics2Boundary gfx{};
     code2::Application61Boundary hardware{};
@@ -79,8 +79,8 @@ struct Session {
     }
     u32 cached_image(u32 slot,u32 item,const rloft::original_res::Image& image) {
         if(slot>12u || item>8191u) throw std::runtime_error("RES slot/index exceeds safe guest cache");
-        const u32 descriptor=0x180000u;
-        const u32 scratch=0x60000u;
+        const u32 descriptor=0x400000u;
+        const u32 scratch=0x80000u;
         const u32 per_frame=image.frame_size();
         const u32 stride=per_frame+(image.tag==0xFFu?0u:1u);
         const u32 total=stride*image.frames;
@@ -269,6 +269,29 @@ void write_frame(const std::string& stem,const rloft::graphics::OriginalVgaHost&
 
 int main(int argc,char**argv) {
     try {
+        if (argc>=2 && std::string(argv[1])=="--res") {
+            if(argc!=7 && argc!=10)
+                throw std::invalid_argument("usage: --res <original-RES-path> <entry-id> <slot-id> <frame-id> <out-stem> [COLORS bank brightness]");
+            const u32 entry=static_cast<u32>(std::stoul(argv[3]));
+            const u32 slot=static_cast<u32>(std::stoul(argv[4]));
+            const u32 frame=static_cast<u32>(std::stoul(argv[5]));
+            const auto image=rloft::original_res::load_type1(argv[2],entry);
+            Session session;
+            session.mode(3u);
+            if(argc==10)
+                session.owned_colors_palette(argv[7],
+                    static_cast<unsigned>(std::stoul(argv[8])),
+                    static_cast<unsigned>(std::stoul(argv[9])));
+            else
+                session.indexed_palette(); // visualization only, NOT original palette
+            session.render_cached(image,slot,frame);
+            write_frame(argv[6],session.video);
+            std::cout<<"ORIGINAL_RES_TYPE1_COMPILED_2A20C_2F29C_2975C_2A380_PASS"
+                     <<" archive_entry="<<entry<<" frame="<<frame<<"\\n";
+            std::cout<<"REAL_RES_INPUT="<<argv[2]
+                     <<"; SCENE_AND_ORIGINAL_DOS_PARITY_ACCEPTED=NO\\n";
+            return 0;
+        }
         if (argc!=1 && argc!=2 && argc!=5)
             throw std::invalid_argument(
                 "usage: rloft_original_code2_graphics_frame [output-stem [COLORS-file bank-index brightness]]");
