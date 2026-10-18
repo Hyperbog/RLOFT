@@ -39,6 +39,7 @@ WINDOWS = {
  "info_dat_archive_flags_2e768": (0x2E768,0x2E7F0,"7ab9c6d1ce7c170e33bd913d6a27cf85fe020fa13c969ad125f1ffa91ee8a5e0"),
  "world_column_compositor_3263c": (0x3263C,0x32952,"f13246466f26e83b31e3f6800a4a3a76a940ccc71d598ae11dfa3ce74d6782ee"),
  "world_camera_sweep_32954": (0x32954,0x32F4A,"c8f30081beebcd0bcc31d057d4a72f94abb5730a74a9d7d967720b816eb07416"),
+ "world_original_level_loader_181b4": (0x181B4,0x18D8B,"71a25a89b929e5eb8bdab2c416af6cc8ab9b395ebe1200f3ced13587656f4b93"),
  "world_prepare_334c4": (0x334C4,0x335DC,"66a8a82aeffae8ff115ae4e314d766582c159ec629d6dce222dd319d03a2586d"),
  "world_two_pass_wall_sweep_335dc": (0x335DC,0x337C7,"f43d0ef565a18eb347dabdf4ec30d2a35afaa02fcbfe5dbe2e7747922be07f59"),
 }
@@ -54,7 +55,7 @@ def self_test() -> None:
         if not (0<=start<stop<ORIGINAL_LENGTH-OBJECT1_OFFSET and len(sha)==64 and
                 all(c in "0123456789abcdef" for c in sha)):
             raise AssertionError("Invalid source span record: "+name)
-    if len(WINDOWS)!=32: raise AssertionError("Unexpected source manifest count")
+    if len(WINDOWS)!=33: raise AssertionError("Unexpected source manifest count")
     try: verify(b"bad")
     except ValueError: pass
     else: raise AssertionError("Invalid original accepted")
