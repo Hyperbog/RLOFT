@@ -338,6 +338,14 @@ struct WorldFrame {
         // The original 334C4/32954 rays have already run on the source
         // save-loaded machine; do not duplicate geometry on gfx machine.
         code2::function_1f1c8(gfx.machine,dispatch);
+        std::cout<<"CODE2_SOURCE_OUTDOOR_DISPATCH_COUNTS sky="<<textured_sky_dispatch
+                 <<" ground="<<textured_ground_dispatch
+                 <<" res4="<<background_resources.size()
+                 <<" ui_res0_requests="<<unrendered_ui_requests
+                 <<" unsupported="<<gfx.unsupported
+                 <<" stream_error="<<gfx.stream_error
+                 <<" callback_failure="<<failure<<"\\n";
+        std::cout.flush();
         CHECK(!failure && !gfx.unsupported);
         CHECK(textured_sky_dispatch==1u && textured_ground_dispatch==1u);
         CHECK(original_sky_calls==0u && original_ground_calls==0u &&
