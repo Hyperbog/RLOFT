@@ -35,6 +35,12 @@ WINDOWS = {
  "res4_column_select_33647": (0x33647,0x33665,"d1e0b75e4cf429c81f6a4294f6266c4ee508d609231b28355296438fe518d226"),
  "res4_fixed_point_sampler_338c8": (0x338C8,0x3395A,"80e61b5265ca7c9512332895079f07b02ab7e8dee610ffc6b000173cc76946d7"),
  "res4_vga_plane_selector_3395c": (0x3395C,0x339A2,"7bccc9fd1f104e0d2cbae0fb041c2df398e1f8708919aeab0159ad582576c6dd"),
+ "init_source_header_16d04": (0x16D04,0x17097,"41af04fcfe969f2dbccbcd830eded9c35ce6e758c4b203ac49379e34ea62fee7"),
+ "info_dat_archive_flags_2e768": (0x2E768,0x2E7F0,"7ab9c6d1ce7c170e33bd913d6a27cf85fe020fa13c969ad125f1ffa91ee8a5e0"),
+ "world_column_compositor_3263c": (0x3263C,0x32952,"f13246466f26e83b31e3f6800a4a3a76a940ccc71d598ae11dfa3ce74d6782ee"),
+ "world_camera_sweep_32954": (0x32954,0x32F4A,"c8f30081beebcd0bcc31d057d4a72f94abb5730a74a9d7d967720b816eb07416"),
+ "world_prepare_334c4": (0x334C4,0x335DC,"66a8a82aeffae8ff115ae4e314d766582c159ec629d6dce222dd319d03a2586d"),
+ "world_two_pass_wall_sweep_335dc": (0x335DC,0x337C7,"f43d0ef565a18eb347dabdf4ec30d2a35afaa02fcbfe5dbe2e7747922be07f59"),
 }
 
 def verify(data: bytes) -> dict[str,bool]:
@@ -48,7 +54,7 @@ def self_test() -> None:
         if not (0<=start<stop<ORIGINAL_LENGTH-OBJECT1_OFFSET and len(sha)==64 and
                 all(c in "0123456789abcdef" for c in sha)):
             raise AssertionError("Invalid source span record: "+name)
-    if len(WINDOWS)!=26: raise AssertionError("Unexpected source manifest count")
+    if len(WINDOWS)!=32: raise AssertionError("Unexpected source manifest count")
     try: verify(b"bad")
     except ValueError: pass
     else: raise AssertionError("Invalid original accepted")
