@@ -32,6 +32,7 @@ jobs:
           path: original-media
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Execute original 181B4 direct-save path for all 17 levels
@@ -44,4 +45,12 @@ jobs:
           build/saved-levels/rloft_original_code2_level_loader --saved-levels "$folder" | tee build/saved-levels/verification.log
           grep -q 'CODE2_181B4_SAVED_LEVELS_ORIGINAL_SOURCE_GATE_PASS count=17' build/saved-levels/verification.log
           grep -q 'CODE2_COMPLETE_SAVE_BOOT_AND_DOS_PIXEL_PARITY_ACCEPTED=NO' build/saved-levels/verification.log
+          temp=$(mktemp -d)
+          trap 'rm -rf "$temp"' EXIT
+          cp "$folder/SAVE.DAT" "$folder/LEV005.DAT" "$temp/"
+          cp "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB" "$temp/SINTAB"
+          printf '%s  %s\\n' 19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87 "$temp/SINTAB" | sha256sum -c -
+          build/saved-levels/rloft_original_code2_level_loader --saved-camera "$temp" | tee build/saved-levels/camera-verification.log
+          grep -q 'CODE2_SOURCE_MAPPED_SAVE5_CAMERA_RAY_PASS level=5' build/saved-levels/camera-verification.log
+          grep -q 'CODE2_COMPLETE_07938_SAVE_DESERIALIZER_EXECUTED=NO' build/saved-levels/camera-verification.log
           echo 'No original saved-game media or serialized game state published.'
