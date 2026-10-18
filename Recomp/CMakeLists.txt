@@ -310,3 +310,21 @@ if(BUILD_TESTING)
                 "${CMAKE_CURRENT_SOURCE_DIR}/../Code2/graphics/verify_original_vga.py" --self-test)
     endif()
 endif()
+
+# Actual compiled reconstructed CODE.2 graphics routines executing through a
+# host VGA port/aperture adapter. Input image/palette are synthetic only.
+add_executable(rloft_original_code2_graphics_frame
+    src/code2_compiled_graphics_frame.cpp)
+set_target_properties(rloft_original_code2_graphics_frame PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_graphics_frame PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_graphics_frame PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME compiled_code2_original_graphics_indexed_frame
+        COMMAND rloft_original_code2_graphics_frame)
+    set_tests_properties(compiled_code2_original_graphics_indexed_frame
+        PROPERTIES TIMEOUT 25)
+endif()
