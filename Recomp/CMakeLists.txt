@@ -303,4 +303,10 @@ endif()
 if(BUILD_TESTING)
     add_test(NAME original_code2_planar_vga_dac6_crtc_host_boundary
         COMMAND rloft_original_vga_host_tests)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME original_code2_vga_source_sha_manifest_self_test
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/../Code2/graphics/verify_original_vga.py" --self-test)
+    endif()
 endif()
