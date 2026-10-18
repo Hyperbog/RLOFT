@@ -630,6 +630,8 @@ struct WorldFrame {
         raster.call_33fb4=&source_quad_step;
         code2::function_34de8(gfx.machine,scene,quad,raster);
         CHECK(!failure && !gfx.stream_error && !gfx.unsupported);
+        CHECK(scene_quad_eligible>0u && scene_draw_requests>0u &&
+              quad_scanline_calls>0u && quad_guest_vga_changes>0u);
         std::cout<<"CODE2_SAVE5_SOURCE_34DE8_34BB0_33E6C_QUAD_GATE"
                  <<" eligible="<<scene_quad_eligible
                  <<" projected_quad_requests="<<scene_draw_requests
@@ -739,6 +741,22 @@ struct WorldFrame {
                  <<" shape_id="<<source_shape
                  <<" decompressed_bytes="<<decoded_length
                  <<" cached=YES\\n";
+        const u32 source_primary=code2::load_le16(
+            gfx.memory.data()+0x258A2u);
+        u32 source_visible_tiles=0u;
+        for(u32 i=0u;i<source_primary;++i) {
+            const u32 rec=0x14D80u+i*0x16u;
+            const u32 cell=code2::load_le16(
+                gfx.memory.data()+rec+0x0Cu);
+            if(cell>=4096u){failure=true;break;}
+            if((gfx.memory[0x198E0u+cell*2u]&0x40u)!=0u)
+                ++source_visible_tiles;
+        }
+        CHECK(!failure);
+        std::cout<<"CODE2_SAVE5_RES3_SCENE_SOURCE_RAY_VISIBILITY"
+                 <<" primary="<<source_primary
+                 <<" primary_cells_visible="<<source_visible_tiles
+                 <<"\\n";
         code2::Application64Boundary projection{};
         projection.call_30ca2=&source_scene_rand;
         projection.call_30cc4=&source_scene_seed;
@@ -753,6 +771,7 @@ struct WorldFrame {
         scene.call_36cec=&source_scene_sprite_emit;
         code2::function_2c294(gfx.machine,scene);
         CHECK(!failure && !gfx.stream_error && !gfx.unsupported);
+        CHECK(res3_shape_loads>=1u && source_res3_ids.count(source_shape)==1u);
         std::cout<<"CODE2_SAVE5_ORIGINAL_2C294_RES3_SCENE_PROJECTION_PASS"
                  <<" eh7_shapes="<<res3_shape_loads
                  <<" cache_hits="<<res3_shape_cache_hits
@@ -1029,8 +1048,8 @@ struct WorldFrame {
         if(!saved_outdoor)
             std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
         else
-            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_34A74_SKY_GROUND_RENDERED=YES"
-                     <<" RES3_SCENERY_AND_HUD_RENDERED=NO\\n";
+            std::cout<<"CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS"
+                     <<" RES3_SPRITE_RASTER_36CEC=UNIMPLEMENTED\\n";
         std::cout<<"CODE2_FULL_DOS_WORLD_PARITY_ACCEPTED=NO\\n";
     }
 };
