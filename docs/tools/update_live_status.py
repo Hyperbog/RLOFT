@@ -21,7 +21,7 @@ WORKSTREAMS = (
 )
 
 def api(path: str, token: str, repo: str = REPOSITORY) -> object:
-    url = f"https://api.github.com/repos/{repo}/{path}"
+    url = f"https://api.github.com/repos/{repo}" + ("/" + path if path else "")
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
