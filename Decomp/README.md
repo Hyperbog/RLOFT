@@ -26,3 +26,9 @@
 DosDis `CODE1.json` and `CODE2.json` provided privately on 2026-10-17 are **candidate-unverified analysis reports**, not a proven decompilation. Source hashes for the provided originals: CODE.1 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`; CODE.2 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Their instruction bytes/addresses can guide source research, but all inferred boundaries require original-byte checks. Do not commit full disassembly JSON (which embeds original instruction bytes); keep it in ignored local research storage.
 
 **Source split baseline:** `85327ed7f25eccbb6184f28360913402d1f5cb3d`. The old `Recomp/` contents are preserved in Git history and on the `recomp` branch, not deleted from the project.
+
+## Verified CODE.2 original VGA graphics bridge
+
+Source-verified [graphics hardware/source map](../Code2/graphics/ORIGINAL_VGA_SOURCE_MAP.md), [32-bit planar-address helper](../Code2/graphics/original_vga_math.hpp), and [read-only original-file span verifier](../Code2/graphics/verify_original_vga.py) are shared from the `recomp` branch as exact matching Git blobs. The original 2AB38 function returns a **32-bit guest address**, whereas a host VGA aperture separately maps its low 16 address bits to each of four planes. The source span verifier checks the owner's original CODE.2 SHA and six instruction-range SHA values without checking in original bytes.
+
+To validate with a legally owned original: `python3 Code2/graphics/verify_original_vga.py --code2 /path/to/CODE.2`. CI may run `--self-test` without original game files. A host VGA test double and a synthetic frame are not original game frame reproduction.
