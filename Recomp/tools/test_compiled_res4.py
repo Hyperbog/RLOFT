@@ -9,7 +9,7 @@ import tempfile
 def payload(columns=32):
     pixels=bytes((column+row)&255 for column in range(columns) for row in range(128))
     encoded=b"".join(b"\xff"+pixels[i:i+8] for i in range(0,len(pixels),8))
-    entry=b"EH"+bytes((6,))+struct.pack("<HH",2,len(pixels))+encoded
+    entry=b"EH"+bytes((6,))+struct.pack("<HH",0,len(pixels))+encoded
     return struct.pack("<III",2,12,12)+entry
 
 def test(executable,path,entry,height,shade,stem,success):
