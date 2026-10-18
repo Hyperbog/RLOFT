@@ -40,8 +40,8 @@ int main() {
     assert(out.lookup_after==0x0204 && out.last_plane_mask==7);
     assert(guest[code+0x210]==0x88); // instruction patch not retained
     // Check actual planes by making VGA page 1 the visible CRTC start.
-    assert(vga.write_indexed_port(0x3D4u,0x0C0Cu)); // high CRTC start
-    assert(vga.write_indexed_port(0x3D4u,0x800Du)); // low CRTC start
+    assert(vga.write_indexed_port(0x3D4u,0x800Cu)); // high CRTC start
+    assert(vga.write_indexed_port(0x3D4u,0x000Du)); // low CRTC start
     // Indexed source shade 42 - 2 = 40 at original planar x=2..6.
     // This host presents the 320x400 VGA surface via CRTC start 0x8000.
     for(unsigned x=2;x<7;++x)
