@@ -63,7 +63,7 @@ The first original-file test run #39087613509 timed out on the RES1 portrait bec
 ## Current limitations
 
 - **Not the complete DOS runtime**: `2ECB4` and `2FD9C` **execute** through original source callbacks, but the archive file is opened by a bounded read-only host service rather than the original DOS open/close API. Host preflight validates type-1 structure, dimensions and compression before source execution; it does **not** preload the guest image/cache. The full game main loop, archive-opening initializer, other asset types and scene/HUD compositor remain unconnected.
-- **Only type 1**: RES4's type-6 first-person column textures and RES3's other typed content need different original loaders and drawing routines; do not feed type-6 payloads into type-1 `2A380`.
+- **Other resource types**: RES4's type-6 column textures now have a separately verified read-only importer, original `2ECB4` dispatch and compiled `338C8` column sampler ([source audit](RES4_FIRST_PERSON_SOURCE.md)). The exact compiled `37590` body, RES3 type-7 display-list rendering, and world/HUD composition remain missing. Never feed type-6 into type-1 `2A380`.
 - **No original screenshot/scene parity**: Original frame composition, placement, state transitions, inventory/automap and DOS VRAM timing are unverified. Rendered source art in a single frame is not the same as the game's composed HUD/world.
 - **Graphics compatibility**: VGA adapter still has documented gaps in read-mode-1, attribute and certain sequencer/CRT timing modes.
 
