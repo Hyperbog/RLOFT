@@ -25,3 +25,9 @@ Historical research reached R01–R03 of 12 planned gates, with R04 DOS/DPMI mem
 The previous extensive milestone log remains in [README_HISTORY_20261017.md](README_HISTORY_20261017.md), in its original directory to preserve relative links to source-address audits. Original-file identity checks, DOS memory selectors and initializers must remain independently attributable to CODE.1/CODE.2, with no proprietary originals in build artifacts.
 
 [Current GitHub branch/CI observation](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/LIVE_STATUS.md) is automated, but does not establish recompilation semantic acceptance.
+
+## Graphics recompilation — original CODE.2 VGA
+
+[Graphics source map, binary SHA witnesses, and remaining integration boundaries](../Code2/graphics/ORIGINAL_VGA_SOURCE_MAP.md) document the original 0x29953 mode setup, 0x2AB38 planar pixel address, 0x29CA0 DAC6 stream and 0x2ABF4 CRTC page start. The separate [portable host component](src/original_vga_host.hpp) and [CTest](src/test_original_vga_host.cpp) implement and test four 64 KiB video planes, palette bytes, latches, GC read and write modes 0–3, bit-mask/rotate/AND/OR/XOR and synthetic indexed scanout. The original CODE.2 image was independently authenticated for the six cited instruction ranges, and the proof helper is shared exactly with `code1-decompilation`.
+
+**Important:** the source graphics calls are not yet hooked to the host adapter, original VGA timing/CRTC modes are incomplete and no real game frame has been produced by recompilation. This is a graphics *hardware-layer regression milestone*, not a playable graphics release.
