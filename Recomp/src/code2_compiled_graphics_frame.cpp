@@ -110,32 +110,34 @@ struct Session {
         }
         return code2::function_2f9e4(s.machine,s.image_loader);
     }
-    // The binary 37700 tests the guest's 2B6C2 stop byte in four places.
-    // Original 2FA30 drives this flag when a frame payload completes.
-    // Call the instruction-derived control loop, not an output-count-only
-    // replacement; it emits through the actual compiled 2FA30 routine.
+    // Invoke canonical CODE.2 37700; the recovered implementation reads the
+    // live guest 2B6C2 stop flag and bounds malformed/unfinished streams.
+    static bool input_37700(u8* output) noexcept {
+        auto& s=state();
+        if(s.stream_error || logical_file_position()>=s.active_entry_end)
+            return false;
+        *output=code2::function_2f9e4(s.machine,s.image_loader);
+        return !s.stream_error;
+    }
+    static void output_37700(u8 value) noexcept {
+        auto& s=state();
+        code2::function_2fa30(s.machine,s.image_loader,value);
+    }
     static u32 recovered_37700() noexcept {
         auto& s=state();
-        ++s.bounded_lzss_callbacks; // historical counter label in diagnostics
+        ++s.bounded_lzss_callbacks;
         const u32 desc=code2::load_le32(s.memory.data()+0x2B6A4u);
-        const u32 frames=code2::load_le16(s.memory.data()+desc);
+        const u32 count=desc?code2::load_le16(s.memory.data()+desc):1u;
         const u32 per=code2::load_le32(s.memory.data()+0x2B6B4u);
-        const std::size_t limit=std::size_t(frames)*per+18u;
-        const auto decode=rloft::code2source::function_37700_stream(
-            [&](u8& value)->bool {
-                if(s.stream_error || logical_file_position()>=s.active_entry_end)
-                    return false;
-                value=code2::function_2f9e4(s.machine,s.image_loader);
-                return !s.stream_error;
-            },
-            [&](u8 value) {code2::function_2fa30(s.machine,s.image_loader,value);},
-            [&]() {return *code2::dg(s.machine,0x2B6C2u)==1u;},
-            limit
-        );
-        if(decode.result!=rloft::code2source::Decode37700::completed ||
-           logical_file_position()!=s.active_entry_end)
+        code2::Runtime126Boundary boundary{};
+        boundary.bounded_read=&input_37700;
+        boundary.put_output=&output_37700;
+        const u32 completed=code2::function_37700(
+            s.machine,boundary,static_cast<u32>(std::min<std::uint64_t>(
+                std::uint64_t(count)*per+18u,4u*1024u*1024u)));
+        if(completed!=1u || logical_file_position()!=s.active_entry_end)
             fail_stream();
-        return 0u;
+        return completed;
     }
     static void reorder_source_image(u32 desc) noexcept {
         auto& s=state();
