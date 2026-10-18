@@ -1,6 +1,6 @@
 # Compiled original CODE.2 graphics → host VGA → indexed frame
 
-**Source evidence and scope:** This diagnostic executes C++ functions reconstructed from original CODE.2, not a recreation of their drawing logic in a test. The host VGA adapter interprets original source port callbacks and planar video-memory accesses. **It does not yet start the original game or render a scene using its original RES artwork.** All automated image inputs are synthetic and clearly labeled.
+**Source evidence and scope:** This diagnostic executes C++ functions reconstructed from original CODE.2, not a recreation of their drawing logic in a test. The host VGA adapter interprets original source port callbacks and planar video-memory accesses. **It does not start the original game or compose a complete scene.** The core CTests use synthetic source-formatted images, while an additional Windows validation renders authentic owner-preserved RES0 and RES1 graphics without exporting those images.
 
 ## Executed CODE.2 functions
 
@@ -40,9 +40,9 @@ Real game files now render through **compiled CODE.2 2975C → 2F29C → 2ECB4 �
 
 ## Remaining acceptance gaps
 
-1. **Original image and world content**: the diagnostic currently uses synthetic planar image records; actual decoded RES textures, sprites, scene/HUD assets, animation state and palette banks are not yet linked into full game runtime.
+1. **Original image and world content**: the read-only RES0/RES1 type-1 source path now renders actual game graphics, but RES4 textured first-person walls, full original sprites, the screen compositor, animation state and HUD are **not** connected to a complete running game.
 2. **Full hardware timing**: vblank `3DAh` is deterministic synthetic cycling. Exact CRTC timing, attribute-controller registers, VGA read mode 1 and alternate memory addressing remain incomplete.
-3. **Full CODE.2 execution**: the compiled graphics functions are invoked through a bounded explicit callback session, not yet by following the complete application's DOS startup, main loop, world renderer and resource/file services.
+3. **Full CODE.2 execution**: 2ECB4 and 2FD9C resource loading and 2975C/2A380 rendering now execute with read-only file callbacks, but the complete DOS startup, original archive-opening initializer, world renderer and main-loop orchestration do not.
 4. **Reference parity**: no independent original DOS captured screenshot or palette/frame SHA comparison. Visual fidelity and a playable recompilation remain unverified.
 
 This report is synced as a byte-identical technical reference between `recomp` and `code1-decompilation`. The compiled VGA host, build targets and Windows artifacts **remain on `recomp`**. Do not conflate a CTest passing with R04 accepted or a runnable enhanced game.
