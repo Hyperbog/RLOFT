@@ -90,13 +90,16 @@ jobs:
           path: original-media
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/RLOFT
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES9
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Execute original CODE.2 INIT and all eleven RES archive initializers
         shell: pwsh
         run: |
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
-          & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media" --cd-root "$cdMedia"
           if ($LASTEXITCODE -ne 0) { throw "Original INIT/INFO.DAT/RES0..RES10 resource startup failed" }
       - name: Verify real RES0/RES1 original image rendering without publishing pixels
         shell: pwsh
