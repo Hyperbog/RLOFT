@@ -39,6 +39,19 @@ def main() -> int:
         hdr_size=struct.unpack_from("<H",res4,offset+3)[0] if type_value>=0 else -1
         decoded=struct.unpack_from("<H",res4,offset+5)[0] if type_value>=0 else -1
         print(f"RES4_METADATA entry={entry} type={type_value} header_size={hdr_size} decoded={decoded}")
+    # Select one authentic 32-column texture (decoded 4,096 bytes) in
+    # addition to the explicit 64-column reference IDs.
+    small_type6=next((
+        entry for entry in range(entry_count)
+        if (lambda off: (
+            res4[off:off+2]==b"EH" and
+            res4[off+2]==6 and
+            struct.unpack_from("<H",res4,off+3)[0]==0 and
+            struct.unpack_from("<H",res4,off+5)[0]==4096
+        ))(struct.unpack_from("<I",res4,4+entry*4)[0])
+    ),None)
+    if small_type6 is None:raise RuntimeError("No 32-column original RES4 texture")
+    print(f"RES4_32_COLUMN_EXAMPLE entry={small_type6} decoded=4096")
     with tempfile.TemporaryDirectory(prefix="rloft-private-source-raster-") as tmp:
         for archive,(sha,entry,slot) in KNOWN.items():
             if entry is None or slot is None: continue
@@ -70,7 +83,7 @@ def main() -> int:
                   f"nonzero_pixels={nonzero} "
                   f"indexed_sha256={hashlib.sha256(pixels).hexdigest()} "
                   f"palettized_bmp_sha256={hashlib.sha256(bmp).hexdigest()}")
-        for entry in (0, 100, 500):
+        for entry in (0, 100, 500, small_type6):
             stem=pathlib.Path(tmp)/f"RES4-{entry}"
             cmd=[str(executable),"--res4",str(root/"RES4"),
                  str(entry),"128","0",str(stem),str(root/"COLORS"),"0","0"]
