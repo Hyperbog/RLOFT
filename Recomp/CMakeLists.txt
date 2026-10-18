@@ -374,3 +374,20 @@ if(BUILD_TESTING)
     set_tests_properties(original_code2_16d04_init_2e768_info_all_11_res_startup
         PROPERTIES TIMEOUT 25)
 endif()
+
+# Original LEVELS.DAT -> CODE.2 334C4 view preparation; stop before 32954 rays.
+# This is real input plumbing into original source, not a world frame.
+add_executable(rloft_original_code2_level_view src/code2_original_level_view.cpp)
+set_target_properties(rloft_original_code2_level_view PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_level_view PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_level_view PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_334c4_all_32_level_grids_pre_ray
+        COMMAND rloft_original_code2_level_view)
+    set_tests_properties(original_code2_334c4_all_32_level_grids_pre_ray
+        PROPERTIES TIMEOUT 35)
+endif()
