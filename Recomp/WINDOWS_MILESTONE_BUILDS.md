@@ -25,3 +25,15 @@ On successful MSVC Debug build and CTest, Actions produces **RLOFT-Recomp-Window
 ## Future milestone policy
 
 R01–R03 have separately recorded historical research acceptance. R04–R12 remain open until their evidence is certified in the source manifest. Passing the same 63 tests at a future milestone does **not** establish a new gate; genuinely deeper source behavior, host compatibility and independent original-machine comparisons must be added and tested. Do not distribute an engineering executable as a playable game or overwrite original retail saves.
+
+## Genuine original RES graphics smoke test
+
+[Windows milestone #39088036213](https://github.com/Hyperbog/RLOFT/actions/runs/39088036213) passed **68/68 CTests** plus an additional read-only source test on preserved original `RES0:15` and `RES1:336` (real palette `COLORS`, validated original SHA-256). It captured 90 and 2,992 nonzero indexed pixels respectively and logged only output hashes; no original art/captures are in artifacts. [Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39088036213/artifacts/12121950557) and [JUnit/evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39088036213/artifacts/12121069884) expire December 17, 2026.
+
+To inspect your own legally held original graphic, run the packaged diagnostic:
+
+```powershell
+.\rloft_original_code2_graphics_frame.exe --res "C:\Games\RLOFT\RES1" 336 1 0 "C:\Temp\portrait" "C:\Games\RLOFT\COLORS" 0 0
+```
+
+This produces owner-local `portrait.idx` and `portrait.bmp` from authentic source art. The ZIP contains only synthetic-frame examples. Original CODE.2 2FD9C unloaded resource/DOS IO is **not** wired, and R04 is unaccepted; [details](../Code2/graphics/REAL_RES_TYPE1_SOURCE_RENDER.md).
