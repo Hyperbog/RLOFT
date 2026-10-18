@@ -1,7 +1,8 @@
 #pragma once
 // Bounded host-side test adapter for original CODE.2 VGA interfaces.
-// Latch ROP/write modes, CRTC splits, retrace/IRQ and actual game callbacks
-// remain UNIMPLEMENTED: tests here are not original frame reproduction.
+// Implements bounded VGA latch/read-map, modes 0-3, palette and CRTC start.
+// CRTC splits, retrace/IRQ, chain-4 and original game callback integration
+// remain UNIMPLEMENTED: synthetic tests are not original DOS frames.
 #include "../../Code2/graphics/original_vga_math.hpp"
 #include <array>
 #include <cstddef>
@@ -23,7 +24,12 @@ public:
             return false;
         case 0x3CE: gc_index_=value; return true;
         case 0x3CF:
+            if (gc_index_==0) { set_reset_=value & 15u; return true; }
+            if (gc_index_==1) { enable_set_reset_=value & 15u; return true; }
+            if (gc_index_==3) { data_rotate_=value & 31u; return true; }
             if (gc_index_==4) { read_plane_=value & 3u; return true; }
+            if (gc_index_==5 && (value & 8u)==0) { write_mode_=value & 3u; return true; }
+            if (gc_index_==8) { bit_mask_=value; return true; }
             return false;
         case 0x3D4: crtc_index_=value; return true;
         case 0x3D5:
@@ -53,14 +59,40 @@ public:
         return write_port8(static_cast<std::uint16_t>(port+1),
                            static_cast<std::uint8_t>(ax>>8));
     }
-    // ONLY direct write-mode-0 byte transfer with full bit mask and no
-    // set/reset/rotate. Do not route unknown register modes here.
-    void write_aperture(std::uint16_t offset, std::uint8_t value) noexcept {
-        for (std::size_t plane=0; plane<4; ++plane)
-            if ((map_mask_ & (1u<<plane))!=0) planes_[plane][offset]=value;
+    // VGA hardware write modes 0..3, read-side four-plane latches and ALU.
+    // Read mode 1 and unchained/chain-4 address routing remain unsupported.
+    bool write_aperture(std::uint16_t offset, std::uint8_t value) noexcept {
+        const unsigned rotate = data_rotate_ & 7u;
+        const std::uint8_t rotated = static_cast<std::uint8_t>(
+            (value >> rotate) | (value << ((8u - rotate) & 7u)));
+        for (unsigned plane=0; plane<4; ++plane) {
+            if ((map_mask_ & (1u<<plane))==0) continue;
+            if (write_mode_==1) { planes_[plane][offset]=latches_[plane]; continue; }
+            std::uint8_t source=rotated;
+            std::uint8_t mask=bit_mask_;
+            if (write_mode_==0 && (enable_set_reset_ & (1u<<plane)))
+                source=(set_reset_ & (1u<<plane)) ? 0xffu : 0;
+            if (write_mode_==2)
+                source=(value & (1u<<plane)) ? 0xffu : 0;
+            if (write_mode_==3) {
+                source=(set_reset_ & (1u<<plane)) ? 0xffu : 0;
+                mask=static_cast<std::uint8_t>(bit_mask_ & rotated);
+            }
+            const std::uint8_t latch=latches_[plane];
+            switch ((data_rotate_ >> 3) & 3u) {
+            case 1: source=static_cast<std::uint8_t>(source & latch); break;
+            case 2: source=static_cast<std::uint8_t>(source | latch); break;
+            case 3: source=static_cast<std::uint8_t>(source ^ latch); break;
+            default: break;
+            }
+            planes_[plane][offset]=static_cast<std::uint8_t>(
+                (source & mask) | (latch & static_cast<std::uint8_t>(~mask)));
+        }
+        return true;
     }
-    std::uint8_t read_aperture(std::uint16_t offset) const noexcept {
-        return planes_[read_plane_][offset];
+    std::uint8_t read_aperture(std::uint16_t offset) noexcept {
+        for (unsigned plane=0;plane<4;++plane) latches_[plane]=planes_[plane][offset];
+        return latches_[read_plane_];
     }
     bool write_direct_pixel(std::uint32_t x,std::uint32_t y,std::uint8_t color) noexcept {
         if (x>=kWidth || y>=kHeight) return false;
@@ -94,6 +126,9 @@ private:
     std::array<Rgb6,256> palette_{};
     std::uint8_t seq_index_=0,gc_index_=0,crtc_index_=0;
     std::uint8_t map_mask_=15,read_plane_=0;
+    std::uint8_t set_reset_=0,enable_set_reset_=0,data_rotate_=0;
+    std::uint8_t write_mode_=0,bit_mask_=255;
+    std::array<std::uint8_t,4> latches_{};
     std::uint8_t dac_index_=0,dac_component_=0;
     std::uint16_t crtc_start_=0;
 };
