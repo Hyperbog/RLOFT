@@ -40,6 +40,7 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
             MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
             MASTER/Ravenloft - Strahd's Possession/RLOFT/RES0
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/INIT
             MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS
             MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
       - name: Execute source saved camera and original wall pass
@@ -51,17 +52,18 @@ jobs:
           scratch=$(mktemp -d)
           trap 'rm -rf "$scratch"; rm -f build/save5-world/save5.*' EXIT
           cp "$source_save/SAVE.DAT" "$source_save/LEV005.DAT" "$scratch/"
-          cp "$media/SINTAB" "$media/RES4" "$media/RES0" "$media/COLORS" "$media/CODE.2" "$scratch/"
+          cp "$media/SINTAB" "$media/RES4" "$media/RES0" "$media/INIT" "$media/COLORS" "$media/CODE.2" "$scratch/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
           echo "a7d486323c255e54ff29a032837b00f4376dfb19191f84575406d7748fbf9dc8  $scratch/LEV005.DAT" | sha256sum -c -
           echo "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87  $scratch/SINTAB" | sha256sum -c -
           echo "d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46  $scratch/RES4" | sha256sum -c -
           build/save5-world/rloft_original_code2_world_frame --save-world \
             "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
-            "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/RES0" build/save5-world/save5 \
+            "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" "$scratch/RES0" build/save5-world/save5 \
             | tee build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS' build/save5-world/save5-verification.log
