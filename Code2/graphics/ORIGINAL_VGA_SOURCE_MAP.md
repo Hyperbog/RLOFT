@@ -19,9 +19,9 @@ Owner-supplied original `CODE.2`: **558,689 bytes**, SHA-256 `853e0a4dfcabebcfee
 
 ## Implemented in this graphics pass
 
-- **Shared reconstructive math:** [`Code2/graphics/original_vga_math.hpp`](original_vga_math.hpp) models the exact original four-plane address and 16-bit guest aperture offset wrap, with native-only RGB6→RGB8 display conversion. This pure helper is copied with the same Git blob into both `recomp` and `code1-decompilation`; no original media is embedded.
+- **Shared reconstructive math:** [`Code2/graphics/original_vga_math.hpp`](original_vga_math.hpp) models the exact original four-plane address and full 32-bit guest linear addresses (host VRAM plane access maps to a 16-bit aperture), with native-only RGB6→RGB8 display conversion. This pure helper is copied with the same Git blob into both `recomp` and `code1-decompilation`; no original media is embedded.
 - **Recomp-only hardware test double:** [`Recomp/src/original_vga_host.hpp`](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/original_vga_host.hpp) implements four 64-KiB byte planes, sequencer register-2 plane map masks, GC register-4 read-plane selection, indexed VGA DAC `0x3C8/0x3C9`, and CRTC start address registers `0x0C/0x0D`. Output is **indexed** until palette lookup; raw palette bytes are preserved as **6-bit VGA values**.
-- **Portable regression:** [`Recomp/src/test_original_vga_host.cpp`](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/test_original_vga_host.cpp) checks address/plane boundaries and 16-bit wrap, read/write plane isolation, 6-bit DAC stream/auto-increment, synthetic 320×400 scanout, CRTC start page displacement, unimplemented-register rejection and graphics bounds. Added to `Recomp/CMakeLists.txt` as `original_code2_planar_vga_dac6_crtc_host_boundary`.
+- **Portable regression:** [`Recomp/src/test_original_vga_host.cpp`](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/test_original_vga_host.cpp) checks address/plane boundaries and 32-bit original linear addresses plus 16-bit host aperture mapping, read/write plane isolation, 6-bit DAC stream/auto-increment, synthetic 320×400 scanout, CRTC start page displacement, unimplemented-register rejection and graphics bounds. Added to `Recomp/CMakeLists.txt` as `original_code2_planar_vga_dac6_crtc_host_boundary`.
 
 ## Explicitly missing and blocked
 
