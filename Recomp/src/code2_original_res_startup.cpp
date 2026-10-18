@@ -126,7 +126,6 @@ struct Session {
         std::string path(reinterpret_cast<const char*>(name),n);
         const auto slash=path.find_last_of("/\\");
         const std::string base=slash==std::string::npos?path:path.substr(slash+1);
-        std::cerr<<"SOURCE_OPEN_RES_PATH="<<path<<"\n";
         if(base.size()<4||base.size()>5||base.substr(0,3)!="RES"){
             t.error=true;return -1;
         }
@@ -137,7 +136,7 @@ struct Session {
         }
         if(id>=11){t.error=true;return -1;}
         // Source INFO.DAT prefix flags: RES9/RES10 are CD path prefixed.
-        if(id>=9 && path.rfind("D:\\RES",0)!=0){t.error=true;return -1;}
+        if(id>=9 && path.rfind("D:RES",0)!=0){t.error=true;return -1;}
         if(id<9 && path!=base){t.error=true;return -1;}
         const u32 handle=0x100u+id;
         t.files[handle]={id+2u,0u};
@@ -223,9 +222,6 @@ struct Session {
         REQUIRE(code2::load_le32(memory.data()+0x258F8u)==600u);
         REQUIRE(code2::load_le16(memory.data()+0x7FCCu)==414u);
         code2::function_2e7f0(m,res_callbacks,0x26000u,11u);
-        std::cerr<<"STARTUP_STATUS error="<<error<<" info_opens="<<info_opens<<" res_opens="<<res_opens<<" heap="<<heap_cursor<<" flags=";
-        for(unsigned k=0;k<13;++k)std::cerr<<unsigned(memory[0xF054u+k])<<",";
-        std::cerr<<"\n";
         REQUIRE(!error && info_opens==1u && res_opens==11u);
         REQUIRE(code2::load_le32(memory.data()+0xF0B4u)==11u);
         const u32 base=code2::load_le32(memory.data()+0xF0B8u);
