@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-17/18. **Scope:** binary-verified graphics hardware protocol, source-compiled CODE.2 drawing callbacks, VGA host interface, actual synthetic-input indexed frame generation. **Not:** a complete game renderer using original RES resources, DOS runtime, or verified screenshot parity. See [compiled source execution and frame protocol](COMPILED_GRAPHICS_PATH.md).
 
-The [original type-1 resource/cache/render audit](REAL_RES_TYPE1_SOURCE_RENDER.md) records six additional binary-authenticated CODE.2 function ranges and successful RES0/RES1 image rendering using the genuine game archive bytes. The [source-span verifier](verify_original_vga.py) now covers **15** original CODE.2 windows. This is not full DOS/game scene parity.
+The [original type-1 resource/cache/render audit](REAL_RES_TYPE1_SOURCE_RENDER.md) records six additional binary-authenticated CODE.2 function ranges and successful RES0/RES1 image rendering using the genuine game archive bytes. The [source-span verifier](verify_original_vga.py) now covers **21** original CODE.2 windows. This is not full DOS/game scene parity.
 
 ## Primary original evidence
 
