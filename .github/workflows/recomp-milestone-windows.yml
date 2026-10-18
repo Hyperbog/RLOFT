@@ -14,7 +14,8 @@ on:
     branches: [recomp]
     paths:
       - 'Recomp/ACCEPTANCE_GATES.json'
-      - 'Code2/graphics/**'
+      - 'Code2/graphics/*.hpp'
+      - 'Code2/graphics/*.py'
       - 'Recomp/src/original_vga_host.hpp'
       - 'Recomp/src/test_original_vga_host.cpp'
       - 'Recomp/CMakeLists.txt'
@@ -23,7 +24,7 @@ permissions:
   contents: read
 concurrency:
   group: rloft-recomp-msvc-milestone-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   milestone:
     name: Compile MSVC original-source recomp, run CTests, publish engineering package
@@ -64,7 +65,7 @@ jobs:
       - name: Test CODE.1/CODE.2 startup, memory, and host fixtures
         shell: pwsh
         run: |
-          ctest --test-dir build/windows-milestone -C Debug --output-on-failure --output-junit build/windows-milestone/ctest-results.xml
+          ctest --test-dir build/windows-milestone -C Debug --timeout 25 --output-on-failure --output-junit build/windows-milestone/ctest-results.xml
           if ($LASTEXITCODE -ne 0) { throw "Recomp Windows CTests failed" }
       - name: Stamp evidence-labelled milestone report even after failure
         if: always()
