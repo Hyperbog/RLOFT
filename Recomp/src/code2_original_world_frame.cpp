@@ -273,6 +273,15 @@ struct WorldFrame {
     void render_saved_background() {
         CHECK(gfx.memory[0x258A8u]==0xFFu);
         // This saved outdoor scene must take the source non-panorama path.
+        std::cout<<"CODE2_ORIGINAL_OUTDOOR_DISPATCH_FLAGS"
+                 <<" c026="<<unsigned(gfx.memory[0xC026u])
+                 <<" c027="<<unsigned(gfx.memory[0xC027u])
+                 <<" c028="<<unsigned(gfx.memory[0xC028u])
+                 <<" sky_kind="<<unsigned(gfx.memory[0x258B0u])
+                 <<" ground_kind="<<unsigned(gfx.memory[0x258B1u])
+                 <<" FF50="<<code2::load_le32(gfx.memory.data()+0xFF50u)
+                 <<"\\n";
+        std::cout.flush();
         CHECK(gfx.memory[0xC026u]==0u && gfx.memory[0xC027u]==0u);
         code2::Application44Boundary dispatch{};
         dispatch.call_314b0=&unexpected_panorama;
