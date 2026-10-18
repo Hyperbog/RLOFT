@@ -357,3 +357,20 @@ if(BUILD_TESTING)
     add_test(NAME original_code2_37700_guest_flag_source_decompression
         COMMAND rloft_original_37700_control_tests)
 endif()
+
+# Real CODE.2 INIT/INFO.DAT/RES archive 0..10 source path:
+# separate, bounded subsystem startup (not a game executable).
+add_executable(rloft_original_code2_init_resources src/code2_original_res_startup.cpp)
+set_target_properties(rloft_original_code2_init_resources PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_init_resources PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_init_resources PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_16d04_init_2e768_info_all_11_res_startup
+        COMMAND rloft_original_code2_init_resources)
+    set_tests_properties(original_code2_16d04_init_2e768_info_all_11_res_startup
+        PROPERTIES TIMEOUT 25)
+endif()
