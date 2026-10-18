@@ -32,6 +32,19 @@ def test(executable,path,entry,height,shade,stem,success):
         raise AssertionError("Incorrect original 338C8 vertical bounds")
     if bmp[:2]!=b"BM" or struct.unpack_from("<H",bmp,28)[0]!=8:
         raise AssertionError("Not indexed BMP")
+    # A second path routes the same original type-6 texture through the
+    # reconstructed 3263C wall compositor (plane masks, depth selection,
+    # shading) before invoking the identical 338C8 source sampler.
+    composed=stem.with_name(stem.name+"-compositor")
+    c=subprocess.run([str(executable),"--res4-compositor",str(path),str(entry),
+                      str(height),str(shade),str(composed)],
+                     capture_output=True,text=True,timeout=20)
+    if c.returncode:
+        raise AssertionError(f"CODE.2 original wall compositor failed: {c.stderr}")
+    if "CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS" not in c.stdout:
+        raise AssertionError("Original 3263C source callback not acknowledged")
+    if composed.with_suffix(".idx").read_bytes()!=data:
+        raise AssertionError("CODE.2 3263C compositor and 338C8 direct sampler diverge on identical guest sweep setup")
 def main():
     if len(sys.argv)!=2:raise SystemExit("usage: test_compiled_res4.py <exe>")
     exe=pathlib.Path(sys.argv[1]).resolve()
