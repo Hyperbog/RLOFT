@@ -34,7 +34,12 @@ def main() -> int:
             command=[str(executable),"--res",str(root/archive),
                      str(entry),str(slot),"0",str(stem),
                      str(root/"COLORS"),"0","0"]
-            result=subprocess.run(command,capture_output=True,text=True,timeout=45)
+            try:
+                result=subprocess.run(command,capture_output=True,text=True,timeout=20)
+            except subprocess.TimeoutExpired as error:
+                trace=(error.stderr or b"").decode("utf-8","replace") if isinstance(error.stderr,bytes) else str(error.stderr)
+                raise RuntimeError(f"{archive}:{entry}: timed out during original RES source path. "
+                                   f"Last authenticated stage: {trace[-1200:]}")
             if result.returncode:
                 # Exception labels have no raw asset bytes.
                 raise RuntimeError(f"{archive}:{entry}: compiled CODE.2 render failed: "
