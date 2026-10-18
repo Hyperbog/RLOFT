@@ -844,6 +844,24 @@ int main(int argc,char** argv) {
             ray->run(grid,true);
         }
         if(saved_outdoor) {
+            const u32 primary=code2::load_le16(ray->guest.data()+0x258A2u);
+            const u32 placed=code2::load_le16(ray->guest.data()+0x258A4u);
+            const u32 secondary=code2::load_le16(ray->guest.data()+0x258A6u);
+            u32 nonzero_primary_columns=0,nonzero_secondary_columns=0;
+            for(u32 col=0;col<64u;++col) {
+                if(code2::load_le32(ray->guest.data()+0xCB3Cu+col*4u))
+                    ++nonzero_primary_columns;
+                if(code2::load_le32(ray->guest.data()+0xCD3Cu+col*4u))
+                    ++nonzero_secondary_columns;
+            }
+            std::cout<<"CODE2_SAVE5_SCENE_INDEX_PROBE primary="<<primary
+                     <<" placed="<<placed<<" secondary="<<secondary
+                     <<" primary_columns="<<nonzero_primary_columns
+                     <<" secondary_columns="<<nonzero_secondary_columns
+                     <<" probe_at_6_6="<<code2::function_1e8c8(
+                         ray->machine,6u,6u)
+                     <<" first_primary_flag="<<unsigned(ray->guest[0x14D81u])
+                     <<"\\n";
             std::cout<<"CODE2_SAVE5_SOURCE_SCENE_INPUTS"
                      <<" primary="<<code2::load_le16(ray->guest.data()+0x258A2u)
                      <<" transient="<<code2::load_le16(ray->guest.data()+0x258A4u)
