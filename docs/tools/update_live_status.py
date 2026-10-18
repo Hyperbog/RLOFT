@@ -69,7 +69,7 @@ def render(data: dict, generated_at: str) -> str:
         "# RLOFT — live GitHub workstream status",
         "",
         f"**Observed:** {generated_at} UTC. **Repository default:** "
-        f"\`{markdown(data['default_branch'])}\`.",
+        f"`{markdown(data['default_branch'])}`.",
         "",
         "> **Automatically generated.** These are GitHub branch heads and the most "
         "recent *completed* Actions run associated with each branch, not proof of "
@@ -87,21 +87,21 @@ def render(data: dict, generated_at: str) -> str:
             outcome = markdown(run.get("conclusion") or "unknown")
             rsha = str(run.get("head_sha") or "")
             target = f"[#{run['id']}]({run['html_url']})"
-            run_text = f"{target}: {outcome} (source \`{rsha[:10]}\`)"
+            run_text = f"{target}: {outcome} (source `{rsha[:10]}`)"
         branch_url = f"https://github.com/{REPOSITORY}/tree/{quote(branch, safe='')}"
         commit_url = f"https://github.com/{REPOSITORY}/commit/{sha}"
-        lines.append(f"| {markdown(item['label'])} | [\`{branch}\`]({branch_url}) "
-                     f"| [\`{sha[:10]}\`]({commit_url}) | {run_text} |")
+        lines.append(f"| {markdown(item['label'])} | [`{branch}`]({branch_url}) "
+                     f"| [`{sha[:10]}`]({commit_url}) | {run_text} |")
     lines.extend(["", "## Open pull requests", ""])
     if data["prs"]:
         for pr in data["prs"]:
             lines.append(f"- [#{pr['number']}]({pr['url']}) "
                          f"{markdown(pr['title'])} "
-                         f"(\`{markdown(pr['head'])}\` → \`{markdown(pr['base'])}\`)")
+                         f"(`{markdown(pr['head'])}` → `{markdown(pr['base'])}`)")
     else:
         lines.append("No open pull requests at observation time.")
     lines.extend(["", "## Additional branches", ""])
-    lines.append(", ".join(f"\`{markdown(x)}\`" for x in data["additional"])
+    lines.append(", ".join(f"`{markdown(x)}`" for x in data["additional"])
                  if data["additional"] else "None.")
     lines.extend([
         "", "## Provenance and limitations", "",
