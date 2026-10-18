@@ -188,8 +188,9 @@ struct Session {
     static u32 type6_loader(u32 header,u32 handle) noexcept {
         auto& s=state();
         ++s.source_type6_load_calls;
+        const u8 kind=*code2::dg(s.machine,header+2u);
         if(handle!=s.stream_handle || header!=0x2B670u ||
-           *code2::dg(s.machine,header+2u)!=6u){fail_stream();return 0u;}
+           (kind!=6u && kind!=7u)){fail_stream();return 0u;}
         const u32 allocated=code2::function_37590(s.type6_source,header,handle);
         if(!allocated || s.stream_error || logical_file_position()!=s.active_entry_end)
             fail_stream();
