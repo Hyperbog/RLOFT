@@ -8,6 +8,13 @@
 #include "code2_original_level_loader.cpp"
 #undef main
 #undef Session
+// Reuse original 07938/06CAD and 181B4 with the same guest machine.
+using OriginalLevelGuest=WorldRaySource;
+#define RLOFT_EMBEDDED_SAVE_LEVEL_GUEST
+#define main rloft_original_save_fixture_main
+#include "code2_original_save_game.cpp"
+#undef main
+#undef RLOFT_EMBEDDED_SAVE_LEVEL_GUEST
 #define RLOFT_CANONICAL_CODE2_INCLUDED
 #define Session WorldGraphicsSource
 #define main rloft_graphics_fixture_main
@@ -283,12 +290,12 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        const bool saved_outdoor=argc==8 && std::string(argv[1])=="--save-world";
+        const bool saved_outdoor=argc==9 && std::string(argv[1])=="--save-world";
         const bool original_world=argc==7 && std::string(argv[1])=="--world";
         if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
                 "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
-                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS output-stem");
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 output-stem");
         const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
         const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
                                     colors(argv[5+(saved_outdoor?1:0)]);
@@ -314,49 +321,41 @@ int main(int argc,char** argv) {
         auto ray=std::make_unique<WorldRaySource>(levels.parent_path(),true);
         if(saved_outdoor) {
             const auto save=rloft::original_levels::read_archive(levels.string());
-            CHECK(save.size()>=0x997u &&
-                  code2::load_le32(save.data()+0x52u)==5u);
-            const u32 pos_x=code2::load_le32(save.data()+0x56u);
-            const u32 pos_y=code2::load_le32(save.data()+0x5Au);
-            const u32 heading=code2::load_le32(save.data()+0x5Eu);
-            CHECK(pos_x==0x65960u && pos_y==0x6EB68u && heading==252u);
-            code2::store_le32(ray->guest.data()+0x255D0u,pos_x);
-            code2::store_le32(ray->guest.data()+0x255D4u,pos_y);
-            code2::store_le32(ray->guest.data()+0xC658u,heading);
-            std::copy_n(save.data()+0x32u,0x20u,
-                        ray->guest.data()+0x22200u);
-            std::copy_n(save.data()+0x77u,0x920u,
-                        ray->guest.data()+0x218E0u);
-            // Original 06CAD save restoration reads these discontiguous
-            // guest globals before entering source 181B4. Preserve the
-            // 16.16 time and unmodified primary-effect fields.
-            code2::store_le16(ray->guest.data()+0xF03Cu,
-                              code2::load_le16(save.data()+0x62u));
-            code2::store_le16(ray->guest.data()+0xF03Eu,
-                              code2::load_le16(save.data()+0x64u));
-            code2::store_le32(ray->guest.data()+0xFD08u,
-                              code2::load_le32(save.data()+0x66u));
-            code2::store_le16(ray->guest.data()+0x6DAEu,
-                              code2::load_le16(save.data()+0x6Au));
-            code2::store_le32(ray->guest.data()+0xCF4Cu,
-                              code2::load_le32(save.data()+0x70u));
-            const std::size_t tail=save.size()-(8u+15u+0x16D0u+16u);
-            CHECK(tail>=0x997u && tail+8u<=save.size());
-            const u32 saved_shade=code2::load_le32(save.data()+tail);
-            const u32 saved_light=code2::load_le32(save.data()+tail+4u);
-            CHECK(saved_shade==10u && saved_light==3u);
-            code2::store_le32(ray->guest.data()+0xF920u,saved_shade);
-            code2::store_le32(ray->guest.data()+0xF91Cu,saved_light);
-            ray->run(grid,true,&bytes);
-            CHECK(ray->guest[0x258A8u]==0xFFu); // the source alternate backdrop branch
-            code2::function_31f94(ray->machine);
-            CHECK(code2::load_le32(ray->guest.data()+0xF9CCu)==15u);
+            const std::filesystem::path codefile(argv[7]);
+            CHECK(codefile.filename()=="CODE.2");
+            const auto image=rloft::original_levels::read_archive(codefile.string());
+            constexpr std::size_t data_image=0x75F24u;
+            CHECK(image.size()==558689u &&
+                  image.size()>data_image+0x7330u+620u);
+            // Actual CODE.2 data object-2 initialization, including the
+            // 62 original 10-byte container descriptors for 07938.
+            std::fill(ray->guest.begin(),ray->guest.end(),0u);
+            std::copy(image.begin()+data_image,image.end(),
+                      ray->guest.begin());
+            CHECK(ray->guest[0x7330u]==4u &&
+                  code2::load_le32(ray->guest.data()+0x7335u)==0x6FC4u);
+            constexpr char name[]="SINTAB";
+            std::copy_n(name,sizeof(name),ray->guest.begin()+0x24u);
+            ray->load_original_sintab();
+            {
+                SavedGame original_save(*ray);
+                original_save.execute(save,grid);
+            }
+            // The exact guest buffers from original 07938 -> 181B4 now
+            // feed compiled original source view/rays, without reloading
+            // or reserializing the saved header/grid.
+            code2::Application90Boundary view{};
+            view.call_35680=&code2::function_35680;
+            view.call_32954=&WorldRaySource::original_ray_sweep;
+            code2::function_334c4(ray->machine,view);
+            CHECK(!ray->failed && ray->rays==1u &&
+                  code2::load_le32(ray->guest.data()+0xFD0Cu)==grid.cells.size());
+            CHECK(code2::load_le32(ray->guest.data()+0xC658u)==252u);
             CHECK(code2::load_le32(ray->guest.data()+0xF920u)==10u);
             CHECK(code2::load_le32(ray->guest.data()+0xF91Cu)==3u);
-            std::cout<<"CODE2_SAVE5_ORIGINAL_31F94_TIME_PHASE_PASS"
-                     <<" hour=15 environment_profile=255 shade=10 light=3\\n";
-            CHECK(code2::load_le32(ray->guest.data()+0xCF4Cu)==
-                  code2::load_le32(save.data()+0x70u));
+            CHECK(ray->guest[0x258A8u]==0xFFu);
+            std::cout<<"CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS"
+                     <<" level=5 rays=256 profile=255\\n";
         } else {
             // Original 13C88 case-7 transition camera, tile (2,65), 270.
             code2::store_le32(ray->guest.data()+0x255D0u,0x00028000u);
@@ -389,7 +388,7 @@ int main(int argc,char** argv) {
             WorldFrame world(*ray,*gfx);
             world.render(saved_outdoor);
         }
-        const std::string output=argv[saved_outdoor?7:6];
+        const std::string output=argv[saved_outdoor?8:6];
         write_frame(output,gfx->video);
         // Indexed pixels alone do not determine output colors. Export the
         // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
