@@ -3,11 +3,13 @@
 // Owner CODE.2 supplies the original initialized object-2 DGROUP, including
 // the 62 serialized inventory-container descriptors at 7330.
 // This is NOT a continuous DOS boot or an original DOS VGA reference.
+#ifndef RLOFT_EMBEDDED_SAVE_LEVEL_GUEST
 #define Session OriginalLevelGuest
 #define main original_level_loader_main
 #include "code2_original_level_loader.cpp"
 #undef main
 #undef Session
+#endif
 #include <array>
 #include <fstream>
 
