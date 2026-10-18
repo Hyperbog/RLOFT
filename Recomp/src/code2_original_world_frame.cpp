@@ -47,6 +47,8 @@ struct WorldFrame {
     u32 outdoor_raster_bytes=0,outdoor_4plane_rows=0,outdoor_2plane_rows=0;
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
+    u32 scene_candidates=0,scene_quad_eligible=0,scene_draw_requests=0;
+    std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
     std::vector<u8> original_init_header{},original_npcs{},original_objects{};
     u32 init_stream_cursor=0,init_opens=0,init_reads=0,init_closes=0;
@@ -91,6 +93,11 @@ struct WorldFrame {
         copy_guest(0xC050u,1u);                  // original display page
         copy_guest(0x258C4u,4u);                    // authentic 509-word lookup
         copy_guest(0x15A18u,256u*0x1Cu);           // original 32954 ray records
+        // The original 181B4 standalone loader constructed per-column
+        // scene index arrays and the mutable per-level scene records.
+        // Source 1E8C8/34DE8 must see *these* original guest bytes.
+        copy_guest(0xCB3Cu,0x400u);                // source object column indices
+        copy_guest(0x14D80u,0x7C00u);             // first-party, transient, secondary level records
         CHECK(code2::load_le32(gfx.memory.data()+0xC6D8u)==256u);
         CHECK(code2::load_le32(gfx.memory.data()+0xC730u)==508u);
         // These map-mask defaults correspond to the four interleaved VGA
@@ -495,6 +502,40 @@ struct WorldFrame {
                  <<" rows_2plane_pairs="<<outdoor_2plane_rows
                  <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
+    static u32 source_scene_record(s32 x,s32 y) noexcept {
+        auto& s=self();
+        if(x<0 || y<0 || x>=64 || y>=64){s.failure=true;return 0u;}
+        const u32 addr=code2::function_1e8c8(s.gfx.machine,
+                                             static_cast<u32>(x),
+                                             static_cast<u32>(y));
+        if(addr && (std::uint64_t(addr)+10u>s.gfx.memory.size()))
+            s.failure=true;
+        if(addr)++s.scene_candidates;
+        return addr;
+    }
+    void verify_original_scene_index() {
+        const u32 p=code2::load_le16(gfx.memory.data()+0x258A2u);
+        const u32 t=code2::load_le16(gfx.memory.data()+0x258A4u);
+        const u32 n=code2::load_le16(gfx.memory.data()+0x258A6u);
+        CHECK(p==90u && t==68u && n==163u);
+        for(s32 x=0;x<64;++x)
+            for(s32 y=0;y<64;++y){
+                const u32 rec=source_scene_record(x,y);
+                if(!rec)continue;
+                const u8 flags=gfx.memory[rec+1u];
+                if((flags&0x10u)==0u)continue;
+                if(gfx.memory[rec]==3u && (flags&0x08u)==0u)continue;
+                ++scene_quad_eligible;
+                const u32 id=code2::load_le32(gfx.memory.data()+0x258F8u)+gfx.memory[rec+9u];
+                ++scene_quad_res4_ids[id];
+            }
+        std::cout<<"CODE2_SAVE5_ORIGINAL_181B4_1E8C8_SCENE_INDEX_PASS"
+                 <<" primary="<<p<<" transient="<<t<<" secondary="<<n
+                 <<" lookup_hits="<<scene_candidates
+                 <<" source_quad_candidates="<<scene_quad_eligible
+                 <<" distinct_quad_res4="<<scene_quad_res4_ids.size()<<"\\n";
+        CHECK(!failure && scene_candidates>0u);
+    }
     static code2::s32 source_open_definition(u32 pointer) noexcept {
         auto& s=self();
         if(pointer==0x6F8u && !s.original_npcs.empty()) {
@@ -691,6 +732,7 @@ struct WorldFrame {
         if(saved_outdoor && !init_file.empty())
             initialize_original_hud_assets(init_file,npc_file,object_file);
         prepare_materials();
+        if(saved_outdoor && !npc_file.empty())verify_original_scene_index();
         if(saved_outdoor)render_saved_background();
         const u32 before=gfx.source_type6_load_calls;
         code2::Application91Boundary sweep{};
