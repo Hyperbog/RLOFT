@@ -39,3 +39,17 @@ The previous extensive milestone log remains in [README_HISTORY_20261017.md](REA
 ## Unloaded original CODE.2 resource-loader milestone
 
 [Original RES loader source and evidence](../Code2/graphics/REAL_RES_TYPE1_SOURCE_RENDER.md): the original reconstructed `2975C` drawing request now invokes **`2F29C` → `2ECB4` → `2EB60` → `2FD9C`** through read-only archive seek/read/position callbacks. Unlike the previous diagnostic, no already-loaded guest image is installed; CODE.2 populates its own image cache, and repeated lookups do not re-read the archive. The raw type-1 raster loader follows the original decoded byte-stream path; compressed type-1 method 3 invokes original `2FB04`/`2FA30` but currently requires a bounded substitute for `37700`'s unrecovered completion signal. [Linux #39089790975](https://github.com/Hyperbog/RLOFT/actions/runs/39089790975), [Windows #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) passed **68/68 CTests**. On preserved authentic RES0:15 and RES1:336, indexed SHA outputs matched the preloaded path. This does **not** certify DOS startup, complete world rendering or acceptance gate R04.
+
+## CODE.2 37700, source resource initialization and RES4 milestone
+
+[Original source and authentic RES4 report](../Code2/graphics/RES4_FIRST_PERSON_SOURCE.md): recovered instruction-derived `37700` live guest `2B6C2` termination is used in the compiled CODE.2 compressed-data pipeline with original `2F9E4` byte reads and `2FA30` output. The source `2E7F0` archive initializer now allocates unloaded guest records through read-only DOS-open callbacks (isolated graphics-subsystem startup only, **not** game entry-point boot). RES4 type-6 resources now use source `2ECB4` dispatch and **compiled `3395C` + `338C8`** to render 128-texel texture columns with shade subtraction into indexed VGA frames. The type-6 `37590` decompressor remains host-backed.
+
+[Linux GCC #39091993852](https://github.com/Hyperbog/RLOFT/actions/runs/39091993852) and [Windows/MSVC #39092086421](https://github.com/Hyperbog/RLOFT/actions/runs/39092086421) passed **70/70 CTests**. Windows additionally authenticated real RES4 entries 0, 100 and 500 (each 8,192 visible source-index pixels) and preserved previous RES0/RES1 frame hashes; no original art was shipped. Test output is **a flat first-person texture-column diagnostic**, not a real level view, 3D camera, full interface or playable game. R04 remains open.
+
+Usage on owner-supplied originals:
+
+```powershell
+.\rloft_original_code2_graphics_frame.exe --res4 "C:\Games\RLOFT\RES4" 100 128 0 "C:\Temp\RES4-preview" "C:\Games\RLOFT\COLORS" 0 0
+```
+
+Creates owner-local `.idx` and `.bmp` graphics; do not redistribute extracted original media.
