@@ -9,6 +9,8 @@ on:
       - 'docs/tools/update_live_status.py'
       - 'docs/tools/test_update_live_status.py'
       - 'docs/tools/check_docs.py'
+      - 'Code2/graphics/**'
+      - 'dev/linux.sh'
       - '.github/workflows/documentation-health.yml'
 permissions:
   contents: write
