@@ -143,6 +143,19 @@ struct WorldFrame {
         CHECK(!failure && !gfx.unsupported && !gfx.stream_error);
         CHECK(!gfx.video.unsupported_read());
         CHECK(gfx.source_type6_load_calls==before);
+        u32 flagged=0u,nonempty=0u;
+        for(u32 slot=0u;slot<256u;++slot) {
+            const u32 addr=0x15A18u+slot*0x1Cu;
+            if(code2::load_le32(gfx.memory.data()+addr+0x0Cu)==1u)++flagged;
+            if(code2::load_le32(gfx.memory.data()+addr+0x04u)!=0x93u)++nonempty;
+        }
+        std::cout<<"CODE2_WORLD_DISPATCH_DIAGNOSTIC flags="<<flagged
+                 <<" first_nonempty="<<nonempty
+                 <<" scale_calls="<<callback_calls
+                 <<" write_count="<<pixel_writes
+                 <<" patches="<<patches
+                 <<" flushes="<<shader_flushes<<"\\n";
+        std::cout.flush();
         CHECK(callback_calls>0u && pixel_writes>0u && patches>0u);
         CHECK(shader_flushes>0u);
         const auto pixels=gfx.video.scanout_indices();
