@@ -919,7 +919,8 @@ struct WorldFrame {
     void render(bool saved_outdoor=false,const std::string& hud_file="",
                 const std::string& init_file="",
                 const std::string& npc_file="",
-                const std::string& object_file="") {
+                const std::string& object_file="",
+                const std::string& res3_file="") {
         install_world();
         if(saved_outdoor && !init_file.empty())
             initialize_original_hud_assets(init_file,npc_file,object_file);
