@@ -271,14 +271,30 @@ struct Session {
             VERIFY(code2::load_le32(guest.data()+0xC6FCu)==256u);
             VERIFY(materialized>0u && materialized<=256u);
             std::cout<<"CODE2_32954_AUTHENTIC_LEVEL22_SOURCE_RAYCAST_PASS"
-                     <<" rays=256 materialized="<<materialized<<"\\n";
+                     <<" rays=256 materialized="<<materialized<<"\n";
             std::cout<<"CODE2_FULL_FIRST_PERSON_RENDER_PARITY_ACCEPTED=NO\\n";
         }
         VERIFY(code2::load_le32(guest.data()+0xFD0Cu)==grid.cells.size());
-        for(std::size_t i=0;i<grid.cells.size();++i)
-            VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==
-                   (grid.cells[i]&static_cast<u16>(~0x0040u)));
-        if(raycast)std::cout<<"CODE2_181B4_TO_334C4_TO_32954_PASS\\n";
+        unsigned source_visited=0;
+        for(std::size_t i=0;i<grid.cells.size();++i) {
+            const u16 original=grid.cells[i];
+            const u16 baseline=static_cast<u16>(original&~0x0040u);
+            const u16 after=code2::load_le16(guest.data()+0x198E0u+i*2u);
+            if(raycast) {
+                // 334C4 clears transient 0040. Original 32954 then
+                // sets 0440 for traversed cells, and must not touch any
+                // other authored wall/material/state bits.
+                VERIFY(after==baseline ||
+                       after==static_cast<u16>(baseline|0x0440u));
+                if(after!=baseline)++source_visited;
+            } else VERIFY(after==baseline);
+        }
+        if(raycast) {
+            VERIFY(source_visited>0u);
+            std::cout<<"CODE2_32954_ORIGINAL_WORLD_VISIBILITY_PASS cells="
+                     <<source_visited<<"\n";
+            std::cout<<"CODE2_181B4_TO_334C4_TO_32954_PASS\\n";
+        }
         std::cout<<"CODE2_181B4_TO_334C4_ORIGINAL_GUEST_GRID_PASS level="
                  <<grid.level<<"\n";
         std::cout<<"CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level="
