@@ -153,7 +153,7 @@ struct Session {
             VERIFY(code2::load_le16(guest.data()+0x198E0u+i*2u)==
                    (grid.cells[i]&static_cast<u16>(~0x0040u)));
         std::cout<<"CODE2_181B4_TO_334C4_ORIGINAL_GUEST_GRID_PASS level="
-                 <<grid.level<<"\\n";
+                 <<grid.level<<"\n";
         std::cout<<"CODE2_181B4_REAL_DOS_ARCHIVE_FILE_LOAD_PASS level="
                  <<grid.level<<" rows="<<grid.height<<" columns="<<grid.width
                  <<" cells="<<grid.cells.size()<<" reads="<<reads<<"\n";
