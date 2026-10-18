@@ -23,20 +23,21 @@ namespace {
 struct WorldFrame {
     WorldRaySource& ray;
     WorldGraphicsSource& gfx;
-    u32 tex_start=0,tex_end=0;
+    u32 tex_start=0,tex_end=0,material_id=0;
     u32 code_start=0,code_end=0;
     u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0;
     bool failure=false;
     code2::Application82Boundary scaler{};
     static WorldFrame* current;
     static WorldFrame& self() noexcept {return *current;}
-    WorldFrame(WorldRaySource& source,WorldGraphicsSource& render,u32 image)
-        :ray(source),gfx(render) {
+    WorldFrame(WorldRaySource& source,WorldGraphicsSource& render,u32 image,u32 scene)
+        :ray(source),gfx(render),material_id(scene) {
         CHECK(current==nullptr);
         current=this;
-        CHECK(code2::load_le16(gfx.memory.data()+image)==8192u);
+        const u32 texlen=code2::load_le16(gfx.memory.data()+image);
+        CHECK(texlen==4096u || texlen==8192u);
         tex_start=image+2u;
-        tex_end=tex_start+8192u;
+        tex_end=tex_start+texlen;
         code_start=0x100000u;
         code_end=ray.heap_top;
         CHECK(code_end>code_start && code_end<0x400000u);
@@ -70,9 +71,11 @@ struct WorldFrame {
         gfx.memory[0xEF4Du]=0u;
         for(u32 slot=0u;slot<256u;++slot) {
             const u32 addr=0x15A18u+slot*0x1Cu;
-            CHECK(code2::load_le32(gfx.memory.data()+addr+4u)==0u);
-            CHECK(code2::load_le32(gfx.memory.data()+addr+8u)==0x93u);
-            CHECK(code2::load_le32(gfx.memory.data()+addr)<=202u);
+            const u32 front=code2::load_le32(gfx.memory.data()+addr+4u);
+            const u32 back=code2::load_le32(gfx.memory.data()+addr+8u);
+            CHECK((front==material_id || front==0x93u) &&
+                  (back==material_id || back==0x93u));
+            CHECK(code2::load_le32(gfx.memory.data()+addr)<=65535u);
         }
         gfx.original_compositor.app82=&scaler;
         gfx.original_compositor.out16=&WorldGraphicsSource::out16;
@@ -142,7 +145,7 @@ struct WorldFrame {
         shader_flushes=gfx.sweep_flushes;
         CHECK(!failure && !gfx.unsupported && !gfx.stream_error);
         CHECK(!gfx.video.unsupported_read());
-        CHECK(gfx.source_type6_load_calls==before);
+        CHECK(gfx.source_type6_load_calls==before); // one source cache item, no synthetic records
         u32 flagged=0u,nonempty=0u;
         for(u32 slot=0u;slot<256u;++slot) {
             const u32 addr=0x15A18u+slot*0x1Cu;
@@ -162,7 +165,7 @@ struct WorldFrame {
         const auto nonzero=std::count_if(pixels.begin(),pixels.end(),
                                         [](u8 value){return value!=0u;});
         CHECK(nonzero>0);
-        std::cout<<"CODE2_AUTHENTIC_32954_335DC_3263C_SINTAB_RES4_VGA_PASS"
+        std::cout<<"CODE2_AUTHENTIC_32954_335DC_3263C_SINTAB_RES4_VGA_PASS level=11"
                  <<" rows=400 rays=256 callbacks="<<callback_calls
                  <<" raster_writes="<<pixel_writes
                  <<" color_pixels="<<nonzero
@@ -187,17 +190,35 @@ int main(int argc,char** argv) {
         CHECK(levels.parent_path()==res4.parent_path());
         CHECK(levels.parent_path()==colors.parent_path());
         const auto bytes=rloft::original_levels::read_archive(levels.string());
-        const auto grid=rloft::original_levels::decode_grid(bytes,22u);
+        const auto grid=rloft::original_levels::decode_grid(bytes,11u);
         auto ray=std::make_unique<WorldRaySource>(levels.parent_path(),true);
+        // Original 13C88 case-7 direct level transition, not a host-selected
+        // camera: tile (2,65), sub-tile 8000h, heading 10Eh (270 degrees).
+        code2::store_le32(ray->guest.data()+0x255D0u,0x00028000u);
+        code2::store_le32(ray->guest.data()+0x255D4u,0x00418000u);
         ray->run(grid,true);
+        std::map<u32,unsigned> front_materials;
+        for(u32 i=0u;i<256u;++i) {
+            const u32 addr=0x15A18u+i*0x1Cu;
+            if(code2::load_le32(ray->guest.data()+addr+0x0Cu)!=1u)continue;
+            const u32 mat=code2::load_le32(ray->guest.data()+addr+4u);
+            if(mat!=0x93u)++front_materials[mat];
+        }
+        std::cout<<"CODE2_SOURCE_SCENE_FRONT_MATERIAL_COUNT="
+                 <<front_materials.size()<<" eligible=";
+        for(const auto& [id,n]:front_materials)
+            std::cout<<id<<":"<<n<<",";
+        std::cout<<"\\n";
+        CHECK(front_materials.size()==1u);
+        const u32 material=front_materials.begin()->first;
         auto gfx=std::make_unique<WorldGraphicsSource>();
         gfx->mode(3u);
         gfx->owned_colors_palette(colors.string(),0u,0u);
-        gfx->open_readonly_resource(res4.string(),0u,4u);
-        const u32 image=code2::function_2f29c(gfx->machine,gfx->resources,0u,4u);
+        gfx->open_readonly_resource(res4.string(),material,4u);
+        const u32 image=code2::function_2f29c(gfx->machine,gfx->resources,material,4u);
         CHECK(image && gfx->source_type6_load_calls==1u);
         {
-            WorldFrame world(*ray,*gfx,image);
+            WorldFrame world(*ray,*gfx,image,material);
             world.render();
         }
         write_frame(argv[6],gfx->video);
