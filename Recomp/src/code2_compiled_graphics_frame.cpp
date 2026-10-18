@@ -12,6 +12,7 @@
 #include <iterator>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -569,16 +570,16 @@ int main(int argc,char**argv) {
             const u32 height=static_cast<u32>(std::stoul(argv[4]));
             const u32 shade=static_cast<u32>(std::stoul(argv[5]));
             const auto tex=rloft::original_res::load_type6(argv[2],entry);
-            Session session;
-            session.mode(3u);
+            auto session=std::make_unique<Session>();
+            session->mode(3u);
             if(argc==10)
-                session.owned_colors_palette(argv[7],
+                session->owned_colors_palette(argv[7],
                     static_cast<unsigned>(std::stoul(argv[8])),
                     static_cast<unsigned>(std::stoul(argv[9])));
-            else session.indexed_palette();
-            session.open_readonly_resource(argv[2],entry,4u);
-            session.render_res4_compositor(tex,height,shade);
-            write_frame(argv[6],session.video);
+            else session->indexed_palette();
+            session->open_readonly_resource(argv[2],entry,4u);
+            session->render_res4_compositor(tex,height,shade);
+            write_frame(argv[6],session->video);
             return 0;
         }
         if(argc>=2 && std::string(argv[1])=="--res4") {
@@ -589,16 +590,16 @@ int main(int argc,char**argv) {
             const u32 height=static_cast<u32>(std::stoul(argv[4]));
             const u32 shade=static_cast<u32>(std::stoul(argv[5]));
             const auto image=rloft::original_res::load_type6(argv[2],entry);
-            Session session;
-            session.mode(3u);
+            auto session=std::make_unique<Session>();
+            session->mode(3u);
             if(argc==10) {
-                session.owned_colors_palette(argv[7],
+                session->owned_colors_palette(argv[7],
                     static_cast<unsigned>(std::stoul(argv[8])),
                     static_cast<unsigned>(std::stoul(argv[9])));
-            } else session.indexed_palette();
-            session.open_readonly_resource(argv[2],entry,4u);
-            session.render_res4_columns(image,height,shade);
-            write_frame(argv[6],session.video);
+            } else session->indexed_palette();
+            session->open_readonly_resource(argv[2],entry,4u);
+            session->render_res4_columns(image,height,shade);
+            write_frame(argv[6],session->video);
             return 0;
         }
         if (argc>=2 && std::string(argv[1])=="--res") {
@@ -610,18 +611,18 @@ int main(int argc,char**argv) {
             std::cerr << "RES_STAGE=read_archive" << std::endl;
             const auto image=rloft::original_res::load_type1(argv[2],entry);
             std::cerr << "RES_STAGE=decode_complete" << std::endl;
-            Session session;
-            session.trace_original_res=true;
-            session.mode(3u);
+            auto session=std::make_unique<Session>();
+            session->trace_original_res=true;
+            session->mode(3u);
             if(argc==10)
-                session.owned_colors_palette(argv[7],
+                session->owned_colors_palette(argv[7],
                     static_cast<unsigned>(std::stoul(argv[8])),
                     static_cast<unsigned>(std::stoul(argv[9])));
             else
-                session.indexed_palette(); // visualization only, NOT original palette
-            session.render_unloaded(image,argv[2],slot,frame);
+                session->indexed_palette(); // visualization only, NOT original palette
+            session->render_unloaded(image,argv[2],slot,frame);
             std::cerr << "RES_STAGE=capture_begin" << std::endl;
-            write_frame(argv[6],session.video);
+            write_frame(argv[6],session->video);
             std::cerr << "RES_STAGE=capture_complete" << std::endl;
             std::cout<<"ORIGINAL_RES_TYPE1_2ECB4_2FD9C_2F29C_2975C_2A380_PASS"
                      <<" archive_entry="<<entry<<" frame="<<frame<<"\\n";
@@ -639,46 +640,46 @@ int main(int argc,char**argv) {
             if (owned_bank>=15u || brightness>63u)
                 throw std::invalid_argument("COLORS bank must be 0..14, brightness 0..63");
         }
-        Session s;
-        s.mode(3u);
-        CHECK(s.video.repeat_scanlines()==1u);
-        CHECK(s.video.line_compare()>=400u);
-        s.indexed_palette();
-        s.verify_original_brightness_transform();
-        if (argc==5) s.owned_colors_palette(argv[2],owned_bank,brightness);
-        s.seed_image();
+        auto s=std::make_unique<Session>();
+        s->mode(3u);
+        CHECK(s->video.repeat_scanlines()==1u);
+        CHECK(s->video.line_compare()>=400u);
+        s->indexed_palette();
+        s->verify_original_brightness_transform();
+        if (argc==5) s->owned_colors_palette(argv[2],owned_bank,brightness);
+        s->seed_image();
         // This is the actual compiled CODE.2 2A380 original planar image
         // source code, operating on a synthetic image record in DGROUP.
-        code2::function_2a380(s.machine,s.gfx,0u,10u,24u,0x18000u);
-        const auto first=s.video.scanout_indices();
+        code2::function_2a380(s->machine,s->gfx,0u,10u,24u,0x18000u);
+        const auto first=s->video.scanout_indices();
         CHECK(first[10u*320u+24u]==30u);
         CHECK(first[10u*320u+25u]==35u);
         CHECK(first[10u*320u+28u]==31u);
         CHECK(first[11u*320u+24u]==31u);
         // Original 29AA4 pixel path: indexed VGA plane write, read-back 29AF0.
-        code2::function_29aa4(s.machine,s.gfx,11u,32u,70u);
-        CHECK(code2::function_29af0(s.gfx,11u,32u)==70u);
-        code2::function_29aa4(s.machine,s.gfx,0u,2u,70u);
+        code2::function_29aa4(s->machine,s->gfx,11u,32u,70u);
+        CHECK(code2::function_29af0(s->gfx,11u,32u)==70u);
+        code2::function_29aa4(s->machine,s->gfx,0u,2u,70u);
         // Real CODE.2 2AB6C changes drawing base; 2ABF4 changes visible page.
-        code2::function_2ab6c(s.machine,1u);
-        CHECK(code2::load_le32(s.memory.data()+0xF001u)==0xA8000u);
-        code2::function_2a380(s.machine,s.gfx,1u,10u,24u,0x18000u);
-        CHECK(s.video.indexed_scanout(24u,10u)==30u);
-        code2::function_2abf4(s.hardware,0x8000u);
-        CHECK(s.video.indexed_scanout(24u,10u)==50u);
+        code2::function_2ab6c(s->machine,1u);
+        CHECK(code2::load_le32(s->memory.data()+0xF001u)==0xA8000u);
+        code2::function_2a380(s->machine,s->gfx,1u,10u,24u,0x18000u);
+        CHECK(s->video.indexed_scanout(24u,10u)==30u);
+        code2::function_2abf4(s->hardware,0x8000u);
+        CHECK(s->video.indexed_scanout(24u,10u)==50u);
         // Original 2AC10 programs CRTC 18/07/09 line compare for split.
-        code2::function_2ac10(s.machine,s.hardware,12u);
-        CHECK(s.video.line_compare()==24u);
-        CHECK(s.video.indexed_scanout(2u,25u)==70u); // lower split shows page 0
-        CHECK(!s.unsupported && !s.video.unsupported_read());
-        if (argc==2 || argc==5) write_frame(argv[1],s.video);
+        code2::function_2ac10(s->machine,s->hardware,12u);
+        CHECK(s->video.line_compare()==24u);
+        CHECK(s->video.indexed_scanout(2u,25u)==70u); // lower split shows page 0
+        CHECK(!s->unsupported && !s->video.unsupported_read());
+        if (argc==2 || argc==5) write_frame(argv[1],s->video);
         // Mode 2 is a 200-line logical framebuffer doubled to 400 scanlines.
-        s.mode(2u);
-        CHECK(s.video.repeat_scanlines()==2u);
-        code2::function_29aa4(s.machine,s.gfx,5u,24u,70u);
-        CHECK(s.video.indexed_scanout(24u,10u)==70u);
-        CHECK(s.video.indexed_scanout(24u,11u)==70u);
-        CHECK(!s.unsupported && !s.video.unsupported_read());
+        s->mode(2u);
+        CHECK(s->video.repeat_scanlines()==2u);
+        code2::function_29aa4(s->machine,s->gfx,5u,24u,70u);
+        CHECK(s->video.indexed_scanout(24u,10u)==70u);
+        CHECK(s->video.indexed_scanout(24u,11u)==70u);
+        CHECK(!s->unsupported && !s->video.unsupported_read());
         std::cout<<"COMPILED_CODE2_29930_29CA0_2A380_29AA4_2AB6C_2ABF4_2AC10_INDEXED_FRAME_PASS\n";
         std::cout<<"SOURCE_GAME_FRAME_ACCEPTED=NO; input textures are synthetic\n";
         return 0;
