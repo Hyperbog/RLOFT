@@ -40,7 +40,7 @@ Real game files now render through **compiled CODE.2 2975C → 2F29C → 2ECB4 �
 
 ## Remaining acceptance gaps
 
-1. **Original image and world content**: the read-only RES0/RES1 type-1 source path now renders actual game graphics, but RES4 textured first-person walls, full original sprites, the screen compositor, animation state and HUD are **not** connected to a complete running game.
+1. **Original image and world content**: owner-preserved RES0/RES1 type-1 rasters and RES4 type-6 column textures now produce real indexed frames using compiled source functions (respectively `2A380` and `338C8`). However original ray/wall placement, full original sprites, scene composition, animation and HUD are **not** connected to a complete running game. [RES4/37700/startup evidence](RES4_FIRST_PERSON_SOURCE.md).
 2. **Full hardware timing**: vblank `3DAh` is deterministic synthetic cycling. Exact CRTC timing, attribute-controller registers, VGA read mode 1 and alternate memory addressing remain incomplete.
 3. **Full CODE.2 execution**: 2ECB4 and 2FD9C resource loading and 2975C/2A380 rendering now execute with read-only file callbacks, but the complete DOS startup, original archive-opening initializer, world renderer and main-loop orchestration do not.
 4. **Reference parity**: no independent original DOS captured screenshot or palette/frame SHA comparison. Visual fidelity and a playable recompilation remain unverified.
