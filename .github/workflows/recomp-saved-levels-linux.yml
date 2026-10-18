@@ -1,0 +1,47 @@
+name: Original 181B4 Saved-Level Direct-Load Gate
+on:
+  workflow_dispatch:
+  push:
+    branches: [recomp]
+    paths:
+      - 'Recomp/src/code2_original_level_loader.cpp'
+      - 'Code2/graphics/original_levels_grid.hpp'
+      - 'Recomp/CMakeLists.txt'
+      - '.github/workflows/recomp-saved-levels-linux.yml'
+permissions:
+  contents: read
+concurrency:
+  group: recomp-saved-levels-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-saved-levels:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build original CODE2 181B4 file-backed loader
+        run: |
+          cmake -S Recomp -B build/saved-levels -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/saved-levels --target rloft_original_code2_level_loader --parallel 2
+      - name: Sparse checkout preserved independent SAVE10 snapshot (read only)
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Execute original 181B4 direct-save path for all 17 levels
+        shell: bash
+        run: |
+          set -euo pipefail
+          folder="original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10"
+          test -f "$folder/SAVE.DAT"
+          test "$(find "$folder" -maxdepth 1 -name 'LEV[0-9][0-9][0-9].DAT' | wc -l)" -eq 17
+          build/saved-levels/rloft_original_code2_level_loader --saved-levels "$folder" | tee build/saved-levels/verification.log
+          grep -q 'CODE2_181B4_SAVED_LEVELS_ORIGINAL_SOURCE_GATE_PASS count=17' build/saved-levels/verification.log
+          grep -q 'CODE2_COMPLETE_SAVE_BOOT_AND_DOS_PIXEL_PARITY_ACCEPTED=NO' build/saved-levels/verification.log
+          echo 'No original saved-game media or serialized game state published.'
