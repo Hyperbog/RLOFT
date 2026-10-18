@@ -1,7 +1,9 @@
 // Run actual compiled, reconstructed CODE.2 graphics code against a bounded VGA
-// port/aperture host. The image and palette inputs are synthetic, not game data.
+// port/aperture host. Optional owner-provided RES images run through the
+// original compiled resource lookup and image layout/draw routines.
 #include "../../Code2/Code2.cpp"
 #include "original_vga_host.hpp"
+#include "original_res_image_archive.hpp"
 #include <array>
 #include <algorithm>
 #include <cstdint>
@@ -17,10 +19,15 @@ using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 #define CHECK(expr) do { if (!(expr)) throw std::runtime_error("CODE2 graphics: " #expr); } while(false)
 struct Session {
     rloft::graphics::OriginalVgaHost video{};
-    std::vector<u8> memory=std::vector<u8>(code2::kObject2VirtualSize,0);
+    std::vector<u8> memory=std::vector<u8>(4u*1024u*1024u,0);
     code2::Machine machine{};
     code2::Graphics2Boundary gfx{};
     code2::Application61Boundary hardware{};
+    code2::Application68Boundary resource_loader{};
+    code2::Application69Boundary resources{};
+    code2::Application57Boundary renderer{};
+    std::uint32_t resident_resource_id=0, resident_slot=0, resident_image=0;
+    unsigned resolver_calls=0, draw_calls=0;
     bool unsupported=false;
     static Session* live;
     static Session& state() { if (!live) throw std::logic_error("No active graphics session"); return *live; }
@@ -54,6 +61,76 @@ struct Session {
     static void sync_retrace(u32) {code2::function_2abc4(state().hardware);}
     static void set_page(u32 page) {code2::function_2abf4(state().hardware,page);}
     static void set_split(u32 row) {code2::function_2ac10(state().machine,state().hardware,row);}
+    // The real source 2975C issues 2F29C(set/key), which checks the
+    // original 9-byte item-cache record via 2ECB4. We prepopulate the
+    // already-loaded cache state after obtaining the user's RES image through
+    // a read-only host file adapter. The original DOS file loader is separate.
+    static u32 resolve_item(u32 item,u32 slot) {
+        auto& s=state();
+        ++s.resolver_calls;
+        if(item!=s.resident_resource_id||slot!=s.resident_slot)
+            throw std::runtime_error("Requested unbound original RES entry");
+        return code2::function_2f29c(s.machine,s.resources,item,slot);
+    }
+    static u32 draw_image(u32 frame,u32 y,u32 x,u32 image) {
+        ++state().draw_calls;
+        code2::function_2a380(state().machine,state().gfx,frame,y,x,image);
+        return 1u;
+    }
+    u32 cached_image(u32 slot,u32 item,const rloft::original_res::Image& image) {
+        if(slot>12u || item>8191u) throw std::runtime_error("RES slot/index exceeds safe guest cache");
+        const u32 descriptor=0x180000u;
+        const u32 scratch=0x60000u;
+        const u32 per_frame=image.frame_size();
+        const u32 stride=per_frame+(image.tag==0xFFu?0u:1u);
+        const u32 total=stride*image.frames;
+        if(std::uint64_t(descriptor)+8u+total>memory.size() ||
+           std::uint64_t(scratch)+image.decoded.size()>descriptor)
+            throw std::runtime_error("Original image exceeds bounded guest arena");
+        code2::store_le16(memory.data()+descriptor,static_cast<u16>(stride));
+        code2::store_le16(memory.data()+descriptor+2u,image.frames);
+        code2::store_le16(memory.data()+descriptor+4u,image.rows);
+        memory[descriptor+6u]=image.width_units;
+        memory[descriptor+7u]=image.tag==0xFFu?0u:0x80u;
+        for(u32 frame=0;frame<image.frames;++frame) {
+            const u32 at=scratch+per_frame*frame;
+            std::copy_n(image.decoded.begin()+per_frame*frame,per_frame,memory.begin()+at);
+            code2::function_2a20c(gfx,frame,per_frame,at,descriptor,image.tag);
+        }
+        if(image.reorder!=0u) {
+            // Original CODE.2 loader 2FD9C finishes nonzero field_7
+            // image descriptors via source-derived 37810 planar permutation.
+            std::vector<u16> scratch_words(4u*image.rows);
+            code2::Runtime127Boundary order{};
+            order.permutation_words=scratch_words.data();
+            code2::function_37810(order,memory.data()+descriptor);
+        }
+        constexpr u32 slot_base=0x30000u, table_base=0x31000u;
+        const u32 record=slot_base+slot*16u;
+        const u32 item_rec=table_base+item*9u;
+        CHECK(item_rec+9u<scratch);
+        code2::store_le32(memory.data()+0xF0B8u,slot_base);
+        code2::store_le32(memory.data()+0xF0B4u,slot+1u);
+        code2::store_le32(memory.data()+record+8u,item+1u);
+        code2::store_le32(memory.data()+record+12u,table_base);
+        memory[item_rec]=1u;
+        memory[item_rec+2u]=1u;  // cache: loaded, CODE.2 2ECB4 skips file open
+        code2::store_le32(memory.data()+item_rec+5u,descriptor);
+        resident_resource_id=item;
+        resident_slot=slot;
+        resident_image=descriptor;
+        return descriptor;
+    }
+    void render_cached(const rloft::original_res::Image& image,u32 slot,u32 frame) {
+        CHECK(frame<image.frames);
+        cached_image(slot,image.archive_entry,image);
+        const u32 width=image.width_units*8u;
+        const u32 x=(320u-width)/2u, y=(400u-image.rows)/2u;
+        resolver_calls=0;draw_calls=0;
+        (void)code2::function_2975c(renderer,frame,y,x,image.archive_entry,slot);
+        CHECK(resolver_calls==1u && draw_calls==1u);
+        CHECK(!unsupported && !video.unsupported_read());
+    }
     Session() {
         if (live) throw std::logic_error("Graphics adapter supports one active CODE.2 session");
         live=this;
@@ -67,6 +144,9 @@ struct Session {
         gfx.call_2abf4=&set_page;gfx.call_2ac10=&set_split;
         gfx.bios_get_mode=&bios_get_mode;gfx.bios_set_mode=&bios_set_mode;
         gfx.translate_2ab38=&translate;
+        resources.app68=&resource_loader;
+        renderer.call_2f29c=&resolve_item;
+        renderer.call_2a380=&draw_image;
     }
     ~Session() {live=nullptr;}
     void mode(u32 mode) {
