@@ -218,8 +218,14 @@ struct Session {
 
     void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false) {
         if(raycast) {
-            VERIFY(grid.level==22u && grid.width==30u && grid.height==15u);
-            VERIFY((grid.cells[4u*grid.width+4u]&0x3Fu)==0u);
+            // Both cameras are literal original-source branch assignments:
+            // 20608 defaults to level 22 (4,4), while 13C88 case 7 enters
+            // level 11 at (2,65). No generated/spawn-guess coordinates.
+            VERIFY((grid.level==22u && grid.width==30u &&
+                    grid.height==15u && (grid.cells[4u*grid.width+4u]&0x3Fu)==0u) ||
+                   (grid.level==11u && grid.width==128u &&
+                    grid.height==128u &&
+                    (grid.cells[65u*grid.width+2u]&0x3Fu)==0u));
             load_original_sintab();
         }
         code2::Application32Boundary callbacks{};
@@ -299,7 +305,7 @@ struct Session {
             for(const auto& [key,count]:source_materials)
                 std::cout<<key<<":"<<count<<",";
             std::cout<<"\\n";
-            std::cout<<"CODE2_32954_AUTHENTIC_LEVEL22_SOURCE_RAYCAST_PASS"
+            std::cout<<"CODE2_32954_AUTHENTIC_SOURCE_RAYCAST_PASS level="<<grid.level
                      <<" rays=256 materialized="<<materialized<<"\n";
             std::cout<<"CODE2_FULL_FIRST_PERSON_RENDER_PARITY_ACCEPTED=NO\\n";
         }
