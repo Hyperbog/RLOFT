@@ -31,7 +31,7 @@ struct WorldFrame {
     std::map<u32,TextureSpan> materials{};
     unsigned resource_cache_hits=0u,loaded_materials=0u;
     u32 code_start=0,code_end=0;
-    u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0;
+    u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0,legacy_fallbacks=0;
     bool failure=false;
     code2::Application82Boundary scaler{};
     static WorldFrame* current;
@@ -86,7 +86,7 @@ struct WorldFrame {
         gfx.original_compositor.code_load16=&code16;
         gfx.original_compositor.code_store8=&patch8;
         gfx.original_compositor.call_337c8=&weighted_entry;
-        gfx.original_compositor.call_338c8=&WorldGraphicsSource::composed_338c8;
+        gfx.original_compositor.call_338c8=&legacy_raster_fallback;
     }
     // Original 2F29C already supports multiple resources. The former
     // single-resident restriction was solely in the graphics test adapter.
@@ -183,6 +183,10 @@ struct WorldFrame {
         s.gfx.memory[address]=value;
         ++s.patches;
     }
+    static u32 legacy_raster_fallback(u32 shade,u32 scale,u32 src,u32 dst) noexcept {
+        ++self().legacy_fallbacks;
+        return WorldGraphicsSource::composed_338c8(shade,scale,src,dst);
+    }
     static u32 weighted_entry(u32 table,u32 offset) noexcept {
         return code2::function_337c8(self().gfx.machine,table,offset);
     }
@@ -219,7 +223,7 @@ struct WorldFrame {
         s.pixel_writes+=result.pixels;
         return result.ok?1u:0u;
     }
-    void render() {
+    void render(bool saved_outdoor=false) {
         install_world();
         prepare_materials();
         const u32 before=gfx.source_type6_load_calls;
@@ -246,20 +250,28 @@ struct WorldFrame {
                  <<" patches="<<patches
                  <<" flushes="<<shader_flushes
                  <<" materials="<<loaded_materials
-                 <<" cache_hits="<<resource_cache_hits<<"\\n";
+                 <<" cache_hits="<<resource_cache_hits
+                 <<" fallback_338c8="<<legacy_fallbacks<<"\\n";
         std::cout.flush();
-        CHECK(callback_calls>0u && pixel_writes>0u && patches>0u);
+        if(!saved_outdoor)CHECK(callback_calls>0u && pixel_writes>0u && patches>0u);
+        else CHECK((pixel_writes>0u || legacy_fallbacks>0u) &&
+                   (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
         const auto pixels=gfx.video.scanout_indices();
         const auto nonzero=std::count_if(pixels.begin(),pixels.end(),
                                         [](u8 value){return value!=0u;});
         CHECK(nonzero>0);
-        std::cout<<"CODE2_AUTHENTIC_32954_335DC_3263C_SINTAB_RES4_VGA_PASS level=11"
+        std::cout<<(saved_outdoor?
+                 "CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS level=5":
+                 "CODE2_AUTHENTIC_32954_335DC_3263C_SINTAB_RES4_VGA_PASS level=11")
                  <<" rows=400 rays=256 callbacks="<<callback_calls
                  <<" raster_writes="<<pixel_writes
                  <<" color_pixels="<<nonzero
                  <<" flushes="<<shader_flushes<<"\\n";
-        std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
+        if(!saved_outdoor)
+            std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
+        else
+            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_SKY_GROUND_TREES_RENDERED=NO\\n";
         std::cout<<"CODE2_FULL_DOS_WORLD_PARITY_ACCEPTED=NO\\n";
     }
 };
@@ -268,24 +280,57 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        if(argc!=7 || std::string(argv[1])!="--world")
+        const bool saved_outdoor=argc==8 && std::string(argv[1])=="--save-world";
+        const bool original_world=argc==7 && std::string(argv[1])=="--world";
+        if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
-                "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem");
-        const std::filesystem::path levels(argv[2]),sintab(argv[3]);
-        const std::filesystem::path res4(argv[4]),colors(argv[5]);
-        CHECK(levels.filename()=="LEVELS.DAT" && sintab.filename()=="SINTAB");
+                "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS output-stem");
+        const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
+        const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
+                                    colors(argv[5+(saved_outdoor?1:0)]);
+        if(saved_outdoor)CHECK(levels.filename()=="SAVE.DAT");
+        else CHECK(levels.filename()=="LEVELS.DAT");
+        CHECK(sintab.filename()=="SINTAB");
         CHECK(res4.filename()=="RES4" && colors.filename()=="COLORS");
         CHECK(levels.parent_path()==sintab.parent_path());
         CHECK(levels.parent_path()==res4.parent_path());
         CHECK(levels.parent_path()==colors.parent_path());
-        const auto bytes=rloft::original_levels::read_archive(levels.string());
-        const auto grid=rloft::original_levels::decode_grid(bytes,11u);
+        std::vector<u8> bytes;
+        rloft::original_levels::LevelGrid grid{};
+        if(saved_outdoor) {
+            const std::filesystem::path lev(argv[3]);
+            CHECK(lev.filename()=="LEV005.DAT" &&
+                  lev.parent_path()==levels.parent_path());
+            bytes=rloft::original_levels::read_archive(lev.string());
+            grid=rloft::original_levels::decode_saved_grid(bytes,5u);
+        } else {
+            bytes=rloft::original_levels::read_archive(levels.string());
+            grid=rloft::original_levels::decode_grid(bytes,11u);
+        }
         auto ray=std::make_unique<WorldRaySource>(levels.parent_path(),true);
-        // Original 13C88 case-7 direct level transition, not a host-selected
-        // camera: tile (2,65), sub-tile 8000h, heading 10Eh (270 degrees).
-        code2::store_le32(ray->guest.data()+0x255D0u,0x00028000u);
-        code2::store_le32(ray->guest.data()+0x255D4u,0x00418000u);
-        ray->run(grid,true);
+        if(saved_outdoor) {
+            const auto save=rloft::original_levels::read_archive(levels.string());
+            CHECK(save.size()>=0x997u &&
+                  code2::load_le32(save.data()+0x52u)==5u);
+            const u32 pos_x=code2::load_le32(save.data()+0x56u);
+            const u32 pos_y=code2::load_le32(save.data()+0x5Au);
+            const u32 heading=code2::load_le32(save.data()+0x5Eu);
+            CHECK(pos_x==0x65960u && pos_y==0x6EB68u && heading==252u);
+            code2::store_le32(ray->guest.data()+0x255D0u,pos_x);
+            code2::store_le32(ray->guest.data()+0x255D4u,pos_y);
+            code2::store_le32(ray->guest.data()+0xC658u,heading);
+            std::copy_n(save.data()+0x32u,0x20u,
+                        ray->guest.data()+0x22200u);
+            std::copy_n(save.data()+0x77u,0x920u,
+                        ray->guest.data()+0x218E0u);
+            ray->run(grid,true,&bytes);
+        } else {
+            // Original 13C88 case-7 transition camera, tile (2,65), 270.
+            code2::store_le32(ray->guest.data()+0x255D0u,0x00028000u);
+            code2::store_le32(ray->guest.data()+0x255D4u,0x00418000u);
+            ray->run(grid,true);
+        }
         std::map<u32,unsigned> front_materials;
         for(u32 i=0u;i<256u;++i) {
             const u32 addr=0x15A18u+i*0x1Cu;
@@ -298,23 +343,26 @@ int main(int argc,char** argv) {
         for(const auto& [id,n]:front_materials)
             std::cout<<id<<":"<<n<<",";
         std::cout<<"\\n";
-        CHECK(front_materials.size()==3u);
-        CHECK(front_materials.count(48u)==1u &&
-              front_materials.count(53u)==1u &&
-              front_materials.count(59u)==1u);
+        if(!saved_outdoor) {
+            CHECK(front_materials.size()==3u);
+            CHECK(front_materials.count(48u)==1u &&
+                  front_materials.count(53u)==1u &&
+                  front_materials.count(59u)==1u);
+        }
         auto gfx=std::make_unique<WorldGraphicsSource>();
         gfx->mode(3u);
         gfx->owned_colors_palette(colors.string(),0u,0u);
         gfx->open_readonly_resource(res4.string(),0u,4u);
         {
             WorldFrame world(*ray,*gfx);
-            world.render();
+            world.render(saved_outdoor);
         }
-        write_frame(argv[6],gfx->video);
+        const std::string output=argv[saved_outdoor?7:6];
+        write_frame(output,gfx->video);
         // Indexed pixels alone do not determine output colors. Export the
         // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
         // independently captured DOS palette can also be compared.
-        std::ofstream pal(std::string(argv[6])+".pal",
+        std::ofstream pal(output+".pal",
                           std::ios::binary|std::ios::trunc);
         CHECK(bool(pal));
         for(u32 i=0u;i<256u;++i) {
