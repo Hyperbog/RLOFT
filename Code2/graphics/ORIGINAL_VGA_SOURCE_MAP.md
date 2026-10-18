@@ -38,6 +38,10 @@ Original `COLORS` banks (15 × 768-byte RGB6 records, one initial count byte) ca
 
 **Proven CI:** [Linux GCC #39086139521](https://github.com/Hyperbog/RLOFT/actions/runs/39086139521), [Windows MSVC #39086139502](https://github.com/Hyperbog/RLOFT/actions/runs/39086139502), and [Windows source-link #39086139589](https://github.com/Hyperbog/RLOFT/actions/runs/39086139589) each passed **67/67 CTests** at their recorded source revisions. The [first verified compiled-frame Windows artifact](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346/artifacts/12120363240) contains original-source-created synthetic input `.idx` and `.bmp` images.
 
+## Original unloaded RES image loading, now verified
+
+The [real RES image/source report](REAL_RES_TYPE1_SOURCE_RENDER.md) now establishes actual execution of `2975C` → `2F29C` → `2ECB4` → `2EB60` → `2FD9C` → `2A380`. A bounded read-only host stream implements the original `31334` seek, `312EC` guest buffer read and `3131C` cursor query calls. Source CODE.2 allocates and populates the original nine-byte cache, then uses a cache hit without a second file seek. Windows [milestone #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) passed **68/68 tests** and rendered original `RES0:15` and `RES1:336` with exactly the previously verified indexed-frame hashes. **Original `37700` termination is still approximated with a bounded host LZSS callback**; no complete DOS startup/main-loop or 3D scene is claimed.
+
 ## Explicitly missing and blocked
 
 - **Real game scene input:** no original RES1/RES3/RES4 sprites, textures or interface records are yet supplied to `2A380`, and the full scene and HUD compositor has not executed.
