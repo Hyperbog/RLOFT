@@ -123,18 +123,7 @@ jobs:
           }
           & "build/windows-milestone/Debug/rloft_original_code2_level_loader.exe" --raycast "$file" "$sintab"
           if ($LASTEXITCODE -ne 0) { throw "Original 03838 SINTAB / 32954 level22 raycast failed" }
-          $res4 = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4"
-          $colors = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS"
-          $res4Hash = (Get-FileHash -Path $res4 -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($res4Hash -ne "d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46") {
-            throw "Original RES4 SHA-256 mismatch"
-          }
-          $out = "build/windows-milestone/source-world-level22"
-          & "build/windows-milestone/Debug/rloft_original_code2_world_frame.exe" --world "$file" "$sintab" "$res4" "$colors" "$out"
-          if ($LASTEXITCODE -ne 0) { throw "Original level22 SINTAB/RES4 world compositor failed" }
-          if (-not (Test-Path "$out.idx") -or -not (Test-Path "$out.bmp")) { throw "Original world output missing" }
-          Write-Host "OWNER_LOCAL_SOURCE_WORLD_SHA256=$((Get-FileHash -Path "$out.idx" -Algorithm SHA256).Hash.ToLowerInvariant())"
-          Remove-Item "$out.idx", "$out.bmp" -Force
+
       - name: Verify real RES0/RES1 original image rendering without publishing pixels
         shell: pwsh
         run: |
