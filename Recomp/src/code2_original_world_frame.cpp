@@ -49,6 +49,8 @@ struct WorldFrame {
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
     u32 scene_candidates=0,scene_quad_eligible=0,scene_draw_requests=0;
     u32 quad_scanline_calls=0,quad_guest_vga_changes=0,quad_source_pixel_writes=0;
+    u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
+    std::set<u32> source_res3_ids{},source_projected_res3_ids{};
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
     std::vector<u8> original_init_header{},original_npcs{},original_objects{};
@@ -634,6 +636,97 @@ struct WorldFrame {
                  <<" scanlines="<<quad_scanline_calls
                  <<" guest_vga_changes="<<quad_guest_vga_changes<<"\\n";
     }
+    // Compiled original 2C294 sprite geometry and EH7 RES3 resource
+    // decoding. The later 36CEC pixel renderer remains a separate gate.
+    static u32 source_res3_lookup(u32 id,u32 slot) noexcept {
+        auto& s=self();
+        if(slot!=3u || id>=s.gfx.entry_offsets.size()-1u) {
+            s.failure=true;return 0u;
+        }
+        const u32 before=s.gfx.source_type6_load_calls;
+        const u32 ptr=code2::function_2f29c(
+            s.gfx.machine,s.gfx.resources,id,slot);
+        if(!ptr || std::uint64_t(ptr)+0x12u>s.gfx.heap_cursor ||
+           s.gfx.stream_error) {s.failure=true;return 0u;}
+        if(s.source_res3_ids.insert(id).second) {
+            if(s.gfx.source_type6_load_calls!=before+1u)s.failure=true;
+            ++s.res3_shape_loads;
+        } else {
+            if(s.gfx.source_type6_load_calls!=before)s.failure=true;
+            ++s.res3_shape_cache_hits;
+        }
+        return ptr;
+    }
+    static void source_res3_extent(u32 target,u32 threshold) noexcept {
+        auto& s=self();
+        code2::Application48Boundary b{};
+        b.call_2f29c=&source_res3_lookup;
+        s.source_projected_res3_ids.insert(
+            code2::load_le16(s.gfx.memory.data()+target+4u));
+        (void)code2::function_21bf0(
+            s.gfx.machine,b,target,static_cast<code2::s32>(threshold));
+    }
+    static void source_scene_point(u32 x,u32 y,u32 target,u32 scale) noexcept {
+        auto& s=self();
+        if(std::uint64_t(target)+4u>s.gfx.memory.size() ||
+           std::uint64_t(scale)+2u>s.gfx.memory.size()){
+            s.failure=true;return;
+        }
+        code2::function_35798(s.gfx.machine,x,y,target,scale);
+    }
+    static u32 source_scene_rand() noexcept {
+        return code2::function_30ca2(self().gfx.machine);
+    }
+    static void source_scene_seed(u32 value) noexcept {
+        code2::function_30cc4(self().gfx.machine,value);
+    }
+    static u32 source_scene_tick() noexcept {
+        return code2::function_30700(self().gfx.machine);
+    }
+    static void source_scene_clear(u32 dest,u32 value,u32 bytes) noexcept {
+        auto& s=self();
+        if(bytes!=0x1130u || std::uint64_t(dest)+bytes>s.gfx.memory.size()){
+            s.failure=true;return;
+        }
+        std::fill_n(s.gfx.memory.data()+dest,bytes,static_cast<u8>(value));
+    }
+    static void source_scene_sprite_emit(u32 frame,u32 y,u32 x,u32 scale,
+                                         u32 tint,u32 depth) noexcept {
+        auto& s=self();
+        if(frame>=4234u || x>0x10000u || y>0x10000u ||
+           scale>0xFFFFu || depth>0xFFFFu) {
+            s.failure=true;return;
+        }
+        ++s.scene_sprite_emits;
+        // No surrogate billboards: original 36CEC pixel implementation
+        // has not yet been made executable.
+        (void)tint;
+    }
+    void project_original_scene_res3(const std::string& filename) {
+        CHECK(std::filesystem::path(filename).filename()=="RES3");
+        gfx.open_readonly_resource(filename,0u,3u);
+        CHECK(gfx.entry_offsets.size()==4235u);
+        code2::Application64Boundary projection{};
+        projection.call_30ca2=&source_scene_rand;
+        projection.call_30cc4=&source_scene_seed;
+        projection.call_30700=&source_scene_tick;
+        projection.call_35798=&source_scene_point;
+        projection.call_21bf0=&source_res3_extent;
+        code2::Application65Boundary scene{};
+        scene.app64=&projection;
+        scene.call_30d30=&source_scene_clear;
+        // 335DC was executed earlier in this frame. Avoid drawing
+        // the original wall pass twice.
+        scene.call_36cec=&source_scene_sprite_emit;
+        code2::function_2c294(gfx.machine,scene);
+        CHECK(!failure && !gfx.stream_error && !gfx.unsupported);
+        std::cout<<"CODE2_SAVE5_ORIGINAL_2C294_RES3_SCENE_PROJECTION_PASS"
+                 <<" eh7_shapes="<<res3_shape_loads
+                 <<" cache_hits="<<res3_shape_cache_hits
+                 <<" projected_res3_ids="<<source_projected_res3_ids.size()
+                 <<" emitted_calls="<<scene_sprite_emits
+                 <<" res3_sprite_pixels_rendered=NO\\n";
+    }
     static code2::s32 source_open_definition(u32 pointer) noexcept {
         auto& s=self();
         if(pointer==0x6F8u && !s.original_npcs.empty()) {
@@ -687,7 +780,8 @@ struct WorldFrame {
     }
     void initialize_original_hud_assets(const std::string& filename,
                                          const std::string& npc_file="",
-                                         const std::string& object_file="") {
+                                         const std::string& object_file="",
+                const std::string& res3_file="") {
         CHECK(std::filesystem::path(filename).filename()=="INIT");
         const bool with_scene=!npc_file.empty() && !object_file.empty();
         if(with_scene) {
@@ -864,6 +958,8 @@ struct WorldFrame {
         else CHECK((pixel_writes>0u || legacy_fallbacks>0u) &&
                    (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
+        if(saved_outdoor && !res3_file.empty())
+            project_original_scene_res3(res3_file);
         if(saved_outdoor && !hud_file.empty())
             render_saved_hud(hud_file);
         if(saved_outdoor) {
@@ -1043,7 +1139,8 @@ int main(int argc,char** argv) {
             world.render(saved_outdoor,with_hud?std::string(argv[9]):"",
                          with_hud?std::string(argv[8]):"",
                          with_scene?std::string(argv[10]):"",
-                         with_scene?std::string(argv[11]):"");
+                         with_scene?std::string(argv[11]):"",
+                         with_scene?std::string(argv[12]):"");
         }
         const std::string output=argv[saved_outdoor?(with_scene?13:(with_hud?10:8)):6];
         write_frame(output,gfx->video);
