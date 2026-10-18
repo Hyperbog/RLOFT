@@ -165,9 +165,15 @@ struct Session {
         try {
             const auto tex=rloft::original_res::decode_type6(
                 s.archive_bytes,s.resident_resource_id);
-            const u32 expected=code2::load_le16(
-                s.memory.data()+code2::load_le32(s.memory.data()+hdr+5u));
+            // EH type-6 has a zero-length typed header. The decoded-size
+            // word is the first two bytes of the stream AFTER the EH header,
+            // consumed by source 37590 rather than by source 2EB60.
+            constexpr u32 guest_len=0x2B680u;
+            if(s.active_entry_end<s.stream_cursor+2u ||
+               read_file(guest_len,2u,handle)!=2u) {fail_stream();return 0u;}
+            const u32 expected=code2::load_le16(s.memory.data()+guest_len);
             if(expected!=tex.decoded_bytes) {fail_stream();return 0u;}
+            s.stream_cursor=s.active_entry_end; // bounded host decoding consumed stream
             const u32 guest=alloc_guest(tex.decoded_bytes+2u);
             if(!guest)return 0u;
             code2::store_le16(s.memory.data()+guest,tex.decoded_bytes);
