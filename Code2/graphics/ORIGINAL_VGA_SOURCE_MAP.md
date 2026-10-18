@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-17/18. **Scope:** binary-verified graphics hardware protocol, source-compiled CODE.2 drawing callbacks, VGA host interface, actual synthetic-input indexed frame generation. **Not:** a complete game renderer using original RES resources, DOS runtime, or verified screenshot parity. See [compiled source execution and frame protocol](COMPILED_GRAPHICS_PATH.md).
 
-The [original type-1 resource/cache/render audit](REAL_RES_TYPE1_SOURCE_RENDER.md) records six additional binary-authenticated CODE.2 function ranges and successful RES0/RES1 image rendering using the genuine game archive bytes. The [source-span verifier](verify_original_vga.py) now covers **15** original CODE.2 windows. This is not full DOS/game scene parity.
+The [original type-1 resource/cache/render audit](REAL_RES_TYPE1_SOURCE_RENDER.md) records six additional binary-authenticated CODE.2 function ranges and successful RES0/RES1 image rendering using the genuine game archive bytes. The [source-span verifier](verify_original_vga.py) now covers **21** original CODE.2 windows. This is not full DOS/game scene parity.
 
 ## Primary original evidence
 
@@ -37,6 +37,10 @@ Covered hardware now includes four video planes, latches and VGA write modes 0�
 Original `COLORS` banks (15 × 768-byte RGB6 records, one initial count byte) can be loaded **read-only** by the diagnostic from a user-provided file; the compiled CODE.2 `32150` brightness transform and `29CA0` DAC6 transfer produce the displayed colors. The original CODE.2 file-backed loader `325B0` is traced but not yet executed through the DOS file interface. [Recomp testing code](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/tools/test_compiled_graphics_artifact.py) independently validates the bank offset, original brightness arithmetic, BMP header/dimensions/index retention and invalid-data rejection.
 
 **Proven CI:** [Linux GCC #39086139521](https://github.com/Hyperbog/RLOFT/actions/runs/39086139521), [Windows MSVC #39086139502](https://github.com/Hyperbog/RLOFT/actions/runs/39086139502), and [Windows source-link #39086139589](https://github.com/Hyperbog/RLOFT/actions/runs/39086139589) each passed **67/67 CTests** at their recorded source revisions. The [first verified compiled-frame Windows artifact](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346/artifacts/12120363240) contains original-source-created synthetic input `.idx` and `.bmp` images.
+
+## Original unloaded RES image loading, now verified
+
+The [real RES image/source report](REAL_RES_TYPE1_SOURCE_RENDER.md) now establishes actual execution of `2975C` → `2F29C` → `2ECB4` → `2EB60` → `2FD9C` → `2A380`. A bounded read-only host stream implements the original `31334` seek, `312EC` guest buffer read and `3131C` cursor query calls. Source CODE.2 allocates and populates the original nine-byte cache, then uses a cache hit without a second file seek. Windows [milestone #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) passed **68/68 tests** and rendered original `RES0:15` and `RES1:336` with exactly the previously verified indexed-frame hashes. **Original `37700` termination is still approximated with a bounded host LZSS callback**; no complete DOS startup/main-loop or 3D scene is claimed.
 
 ## Explicitly missing and blocked
 

@@ -36,7 +36,7 @@ The `COLORS` resource format is 11,521 bytes: one count byte (15), followed by f
 
 ## Authenticated original RES raster path
 
-Real game files are now supported in a separate read-only source bridge: original RES0:15 and RES1:336 rendered through **compiled CODE.2 2A20C → 2F29C → 2975C → 2A380** on the Windows milestone runner. Their verified nonzero pixel counts are 90 and 2,992 respectively, and no original artwork is uploaded. The bridge uses a bounded host decoder to prepopulate the real cache record; it **does not** execute original CODE.2 2FD9C's DOS file stream. See [original RES source execution/SHAs and limits](REAL_RES_TYPE1_SOURCE_RENDER.md). The earlier synthetic-frame samples remain separate diagnostic fixtures.
+Real game files now render through **compiled CODE.2 2975C → 2F29C → 2ECB4 → 2EB60 → 2FD9C → 2A20C/37810 → 2A380** on the Windows milestone runner using bounded read-only archive callbacks. The unloaded item is loaded by source CODE.2, and a second lookup confirms the newly populated original cache. The verified original RES0:15 and RES1:336 frames contain 90 and 2,992 nonzero indexed pixels; their hashes are unchanged from the prior diagnostic. The RES image bytes and graphics are **not** uploaded. Method 3 uses a bounded compatible host callback at 37700; the original 37700 stop interface is still not recovered. See [original RES source execution/SHAs and limits](REAL_RES_TYPE1_SOURCE_RENDER.md). The earlier synthetic-frame samples remain separate diagnostic fixtures.
 
 ## Remaining acceptance gaps
 

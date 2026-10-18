@@ -1,15 +1,21 @@
 # Actual Ravenloft RES raster → original CODE.2 cache → VGA frame
 
-**Source evidence and test date:** 2026-10-17/18. **Status:** real source-backed image records `RES0:15` and `RES1:336` successfully rendered into indexed host frames on a Windows runner. Not an authored scene, complete resource/file manager, DOS screenshot parity, or playable game.
+**Source evidence and test date:** 2026-10-17/18. **Status:** original `RES0:15` and `RES1:336` render through the **unloaded CODE.2 resource path** (`2ECB4` → `2FD9C` → `2975C` → `2A380`) with bounded read-only host file services. Not a complete DOS file manager, world renderer, DOS screenshot parity, or playable game.
 
 ## Original function lineage
 
-Original owner-supplied `CODE.2`: 558,689 bytes; SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Its LE object-1 bytes are at physical file offset `0x3AF24`, and the [15-range SHA-256 verifier](verify_original_vga.py) authenticates these spans:
+Original owner-supplied `CODE.2`: 558,689 bytes; SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Its LE object-1 bytes are at physical file offset `0x3AF24`, and the [21-range SHA-256 verifier](verify_original_vga.py) authenticates these spans:
 
 | Original object-1 span | Binary SHA-256 | Compiled implementation role |
 | --- | --- | --- |
+| `2EB60..2EC73` | `5c98f9e862c7cda25a0a050947ba9ef1dd486c461665aaaec170529892fe4ec5` | Original typed resource header seek/read into guest buffer, then size field and type-header allocation |
+| `2ECB4..2EFB3` | `787b20bda33e47803ed2f13cb90e203835e9f55fdcd0416e428a87745ba17e9b` | Original unloaded resource dispatcher, allocates payload and populates nine-byte item cache |
+| `2F96C..2F9AE` | `4b40b4aa87a161b4a568e12206f9f23eca59211f1663d50b6d9a26e41f525eb8` | Original buffered stream initialization and 1,024-byte aligned refill |
+| `2F9E4..2FA2F` | `6b63596dc23c7949dc6c201c6025bb92fac290dd50b43a0524b71b1277d75586` | Original individual buffered-byte decode input |
+| `2FB04..2FB66` | `8685f1bcf40a6f3adf36a45cf60f76dc768ed1a7bf25e6dcd64b52323e83c7dc` | Original LZSS decoder dispatch and layout context setup |
+| `2FA30..2FB01` | `d7746363c0a980d7c84cc27ffd57febdae1b4b41b973f2b32689bb7ba75abf76` | Original output-byte collector and per-frame planar packing |
 | `2A20C..2A256` | `3c469e26818f3c532e07ef15f5edf6f9895812a6c0df951392f19484357c1539` | Convert decoded interleaved image bytes into the original four-plane guest image layout |
-| `2FD9C..30040` | `bd24fd53a88d3fd58bb34d2bcaf8c68f650d87f2099e8dc0d046bebf7a5297a2` | DOS-stream-backed image loader; **not yet called** by the new read-only host file adapter |
+| `2FD9C..30040` | `bd24fd53a88d3fd58bb34d2bcaf8c68f650d87f2099e8dc0d046bebf7a5297a2` | Original DOS-stream-backed image loader: **now compiled and invoked** through the unloaded-cache resource dispatch |
 | `2F29C..2F2E0` | `2662ebb816f7d7e2ce1b541b7b416835a297c067662840bcb6843c70ec32547e` | Retrieve resource from original nine-byte item cache through `2ECB4` |
 | `2975C..2978A` | `57133ad4a6f17943d795e39c4fbefe47e8d2f8260ddd5d42099c2dfba74e6c7d` | Dispatch image request through `2F29C`, then call `2A380` |
 | `2A380..2A478` | `f5d3f72361f32920058ab1527607be381717c93abeac8b0d2e1ee72d0c0fea91` | Render original guest image record through planar VGA sequencer and memory callbacks |
@@ -22,7 +28,7 @@ The outer RES archive is an entry count and **nondecreasing** absolute offset ta
 
 Read-only, bounds-checked [shared type-1 decoder](original_res_image_archive.hpp) reads the owner's **existing** RES archive, validates every offset and descriptor, and decodes method 0/3 bytes. It does not embed proprietary media, and rejects zero-length/sentinel/unsupported entries and undefined LZSS dictionary reads.
 
-The recomp diagnostic [code2_compiled_graphics_frame.cpp](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/code2_compiled_graphics_frame.cpp) copies decoded bytes to bounded guest memory, calls **compiled original `2A20C`** to build the guest image, optionally calls **compiled `37810`** to permute planes, writes an original-format *already-loaded* nine-byte cache item, then enters **compiled `2975C` → `2F29C` → `2A380`**, with actual VGA port/memory callbacks. This is the original resource *lookup and rendering* path, not the full original DOS resource open/seek/read path.
+The recomp diagnostic [code2_compiled_graphics_frame.cpp](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/src/code2_compiled_graphics_frame.cpp) now creates an **unloaded** original nine-byte resource cache item. Compiled CODE.2 `2975C` calls `2F29C` which dispatches `2ECB4` → `2EB60` (source seek/read header) → `2FD9C` (source image allocation/decoding/layout) → `2A380` (source VGA draw). Source `2A20C` performs image planar packing, with `37810` permutation where needed. Host services supply read-only archive seek, read, position and a bounded guest heap. A second `2F29C` lookup confirms the original cache returns the loaded pointer without reopening the resource. `2FD9C` is no longer bypassed for the `--res` CLI.
 
 Example, on a Windows PC with legitimately owned originals and the Windows milestone engineering executable:
 
@@ -31,6 +37,14 @@ Example, on a Windows PC with legitimately owned originals and the Windows miles
 ```
 
 `RES0 15 0 0` is another certified source-backed fixture. The output stem produces a **raw 320×400 indexed framebuffer** (`.idx`) and a palettized 8-bit Windows BMP (`.bmp`). The output contains actual copyrighted source art: keep these local, do not commit the pictures or distribute them. Without the optional `COLORS` file the visualizer uses a synthetic diagnostic palette, not the game's authentic one.
+
+## Executed loader and file-service proof
+
+The compiled original CODE.2 `2EB60` reads the typed `EH` header using `31334` seek and `312EC` read callbacks. `2FD9C` obtains the type-1 descriptor and payload from the original `2F96C` buffered stream. Read-only callbacks serve bytes from the authenticated archive and expose cursor queries through `3131C`, preserving the source's 1,024-byte refill windows; the callback prevents guest heap overflow and retains original file bytes. Source `2ECB4` updates cache entry state and timestamps and a subsequent source lookup confirms a cache hit with **zero additional archive seeks**.
+
+Raw method 0 executes the source byte-stream and image packing path. For method 3, original `2FD9C` still dispatches `2FB04` and output packing via `2FA30`; a **bounded compatible host LZSS callback** stands in for reconstructed `37700` because the reconstructed stop-flag interface currently cannot terminate normally. The host callback validates source cursor and uninitialized 4-KiB dictionary reads and stops at the original declared image size. This is **not** complete native execution of original `37700`. Host preflight performs strict RES envelope and size validation; it does **not** install an already-loaded guest cache record.
+
+**Post-integration validation:** [Linux GCC #39089790975](https://github.com/Hyperbog/RLOFT/actions/runs/39089790975) and [Windows MSVC #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) passed **68/68 CTests**. The Windows milestone additionally passed the real-media validation using original RES0, RES1 and COLORS. Both original source indexed image SHA-256 values and nonzero-pixel counts matched the previously verified preloaded-cache implementation exactly. The Windows milestone reports R04 **unaccepted**.
 
 ## Verified original-media run
 
@@ -48,9 +62,9 @@ The first original-file test run #39087613509 timed out on the RES1 portrait bec
 
 ## Current limitations
 
-- **No complete runtime graph**: Source `2FD9C` and the original `2ECB4` *unloaded* resource dispatch, DOS file IO, global game asset tables and runtime world/HUD loops are not yet executed. The host file decoder preloads the cache and the actual CODE.2 draw wrapper dispatches the indexed resource.
+- **Not the complete DOS runtime**: `2ECB4` and `2FD9C` **execute** through original source callbacks, but the archive file is opened by a bounded read-only host service rather than the original DOS open/close API. Host preflight validates type-1 structure, dimensions and compression before source execution; it does **not** preload the guest image/cache. The full game main loop, archive-opening initializer, other asset types and scene/HUD compositor remain unconnected.
 - **Only type 1**: RES4's type-6 first-person column textures and RES3's other typed content need different original loaders and drawing routines; do not feed type-6 payloads into type-1 `2A380`.
 - **No original screenshot/scene parity**: Original frame composition, placement, state transitions, inventory/automap and DOS VRAM timing are unverified. Rendered source art in a single frame is not the same as the game's composed HUD/world.
 - **Graphics compatibility**: VGA adapter still has documented gaps in read-mode-1, attribute and certain sequencer/CRT timing modes.
 
-Next source milestone: wire the original unloaded resource-loader branch (`2ECB4` → `2FD9C`) to a bounded read-only host DOS file interface, then connect RES4 type-6 textured 3D column rendering and game-composed screen state. Treat all results as source-specific tests until compared with original DOS captures.
+Next source milestone: recover the precise 37700 decompressor termination/control transfer (currently a bounded host callback), then connect original archive opening from startup, RES4 type-6 textured world rendering and the composed HUD/screen state. Treat all results as source-specific until compared with original DOS captures.
