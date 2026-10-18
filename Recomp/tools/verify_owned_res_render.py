@@ -91,7 +91,7 @@ def main() -> int:
             if p.returncode:
                 raise RuntimeError(f"RES4:{entry}: authentic 338C8 source rendering failed: "
                                    +p.stderr[-1200:])
-            if "COMPILED_CODE2_RES4_2ECB4_TYPE6_3395C_338C8_COLUMN_SAMPLER_PASS" not in p.stdout:
+            if "COMPILED_CODE2_RES4_2ECB4_37590_37700_3395C_338C8_PASS" not in p.stdout:
                 raise RuntimeError(f"RES4:{entry}: missing original column sampler acknowledgement")
             indices=stem.with_suffix(".idx").read_bytes()
             bitmap=stem.with_suffix(".bmp").read_bytes()
