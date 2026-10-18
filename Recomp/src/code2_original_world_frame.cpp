@@ -769,6 +769,20 @@ int main(int argc,char** argv) {
             code2::store_le32(ray->guest.data()+0x255D4u,0x00418000u);
             ray->run(grid,true);
         }
+        if(saved_outdoor) {
+            std::cout<<"CODE2_SAVE5_SOURCE_SCENE_INPUTS"
+                     <<" primary="<<code2::load_le16(ray->guest.data()+0x258A2u)
+                     <<" transient="<<code2::load_le16(ray->guest.data()+0x258A4u)
+                     <<" secondary="<<code2::load_le16(ray->guest.data()+0x258A6u)
+                     <<" placed="<<code2::load_le32(ray->guest.data()+0xC038u)
+                     <<" npc_descriptors="<<code2::load_le32(ray->guest.data()+0x22230u)
+                     <<" secondary_descriptors="<<code2::load_le32(ray->guest.data()+0x255DCu)
+                     <<" placed_descriptors="<<code2::load_le32(ray->guest.data()+0x22234u)
+                     <<" first_scene_type="<<code2::load_le16(ray->guest.data()+0x14D8Eu)
+                     <<" first_scene_flags="<<unsigned(ray->guest[0x14D8Bu])
+                     <<"\\n";
+            std::cout.flush();
+        }
         std::map<u32,unsigned> front_materials;
         for(u32 i=0u;i<256u;++i) {
             const u32 addr=0x15A18u+i*0x1Cu;
