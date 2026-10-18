@@ -60,6 +60,7 @@ struct WorldFrame {
         copy_guest(0x255D0u,0x258BCu-0x255D0u);    // source camera+level header
         copy_guest(0xCF4Cu,4u);                    // original world 16.16 clock
         copy_guest(0xF91Cu,8u);                   // saved light/shade scalars
+        copy_guest(0xF9CCu,4u);                   // original 31F94 time phase
         copy_guest(0x258C4u,4u);                    // authentic 509-word lookup
         copy_guest(0x15A18u,256u*0x1Cu);           // original 32954 ray records
         CHECK(code2::load_le32(gfx.memory.data()+0xC6D8u)==256u);
@@ -347,6 +348,13 @@ int main(int argc,char** argv) {
             code2::store_le32(ray->guest.data()+0xF920u,saved_shade);
             code2::store_le32(ray->guest.data()+0xF91Cu,saved_light);
             ray->run(grid,true,&bytes);
+            CHECK(ray->guest[0x258A8u]==0xFFu); // the source alternate backdrop branch
+            code2::function_31f94(ray->machine);
+            CHECK(code2::load_le32(ray->guest.data()+0xF9CCu)==15u);
+            CHECK(code2::load_le32(ray->guest.data()+0xF920u)==10u);
+            CHECK(code2::load_le32(ray->guest.data()+0xF91Cu)==3u);
+            std::cout<<"CODE2_SAVE5_ORIGINAL_31F94_TIME_PHASE_PASS"
+                     <<" hour=15 environment_profile=255 shade=10 light=3\\n";
             CHECK(code2::load_le32(ray->guest.data()+0xCF4Cu)==
                   code2::load_le32(save.data()+0x70u));
         } else {
