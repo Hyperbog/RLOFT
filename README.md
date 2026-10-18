@@ -25,3 +25,7 @@
 - [Historical original/source register](docs/SHARED_SOURCE_REGISTER.md) and [preservation archive](PreservationArchive/) — retain address, SHA and source evidence.
 
 Builds may run automatically on their owning branches. Do not commit or redistribute copyrighted original game files or private instruction-byte disassembly reports. Never infer DOS compatibility or player acceptance from a successful CI run.
+
+## Linux development and Windows milestone testing
+
+Start with [Linux-first development](dev/README.md) and `bash dev/linux.sh doctor`, then `bash dev/linux.sh test` from the owning branch. The isolated [recompilation branch](https://github.com/Hyperbog/RLOFT/tree/recomp) builds the original-source C++17 gates on Linux. Scheduled/manual [Windows MSVC milestone checks](.github/workflows/recomp-milestone-windows.yml) validate R01–R12 with SHA-stamped engineering ZIPs. A passed test does not imply a playable game.
