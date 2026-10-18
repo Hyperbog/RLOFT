@@ -342,3 +342,12 @@ if(BUILD_TESTING)
             PROPERTIES TIMEOUT 40)
     endif()
 endif()
+
+# Verified original 37700 loop control: guest 2B6C2 stop checks and ring dictionary.
+add_executable(rloft_original_37700_control_tests test_original_37700_control.cpp)
+set_target_properties(rloft_original_37700_control_tests PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_37700_guest_flag_source_decompression
+        COMMAND rloft_original_37700_control_tests)
+endif()
