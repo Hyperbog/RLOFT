@@ -64,6 +64,7 @@ jobs:
           grep -q CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_WALL_FRAME_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS build/save5-world/save5-verification.log
+          grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_INIT_RES4_BASED_SKY_GROUND sky_res4=634 ground_res4=635' build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS' build/save5-world/save5-verification.log
