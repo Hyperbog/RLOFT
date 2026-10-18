@@ -261,6 +261,64 @@ struct Session {
                  <<" source_37700="<<bounded_lzss_callbacks<<"\n";
     }
 
+    static u32 composed_338c8(u32 shading,u32 scale,u32 source,u32 destination) noexcept {
+        auto& session=state();
+        code2::Application94Boundary sample(0u);
+        code2::function_338c8(session.machine,sample,shading,scale,source,destination);
+        // The canonical reconstruction currently targets guest A0000 shadow
+        // rather than the external VGA aperture, so mirror this selected
+        // column's 256 scanlines using the map mask from source 3263C.
+        if(destination<0xA0000u || std::uint64_t(destination)+255u*80u>=0xB0000u){
+            session.unsupported=true;return 0u;
+        }
+        for(u32 row=0;row<256u;++row) {
+            const u32 p=destination+row*80u;
+            if(!session.video.write_aperture(static_cast<u16>(p),
+                                            session.memory[p]))
+                session.unsupported=true;
+        }
+        return 1u;
+    }
+    void render_res4_compositor(const rloft::original_res::Texture6& tex,
+                               u32 height,u32 shade) {
+        if(height<16u || height>256u || (height&7u)!=0u || shade>8u)
+            throw std::invalid_argument("Original compositor preview height must be 16..256 step 8, shade 0..8");
+        const u32 image=code2::function_2f29c(machine,resources,
+                                               tex.archive_entry,resident_slot);
+        if(!image || source_type6_load_calls!=1u ||
+           code2::load_le16(memory.data()+image)!=tex.decoded_bytes)
+            throw std::runtime_error("CODE2 compositor: source 37590 RES4 cache not populated");
+        const u32 screen_x=(320u-tex.columns)/2u;
+        const u32 shade_pair=shade|(shade<<8u);
+        code2::store_le32(memory.data()+0x258C4u,0x1F000u);
+        code2::store_le16(memory.data()+0x1F000u,0u);
+        code2::store_le16(memory.data()+0xFCFAu,
+                           static_cast<u16>(shade_pair));
+        code2::store_le32(memory.data()+0xC730u,0u);  // sampler branch
+        code2::store_le32(memory.data()+0xC6E0u,screen_x>>2u);
+        code2::store_le32(memory.data()+0xC6F4u,1u);
+        memory[0xEF4Du]=0u;
+        code2::Application83Boundary compositor{};
+        compositor.out16=&out16;
+        compositor.call_338c8=&composed_338c8;
+        for(u32 column=0;column<tex.columns;++column) {
+            const u32 record=0x15A18u+column*0x1Cu;
+            code2::store_le32(memory.data()+record,height*2u);
+            code2::store_le32(memory.data()+0xC6F8u,column);
+            code2::store_le32(memory.data()+0xC700u,tex.archive_entry);
+            code2::store_le32(memory.data()+0x255E4u,image+2u+128u*column);
+            code2::store_le32(memory.data()+0xFCD0u,0u);
+            const u32 mask_index=1u+((column&3u)<<3u);
+            memory[0xC668u+mask_index]=static_cast<u8>(1u<<((screen_x+column)&3u));
+            memory[0xC688u+mask_index]=0u;
+            memory[0xC6A8u+mask_index]=0u;
+            code2::function_3263c(machine,compositor);
+        }
+        CHECK(!stream_error && !unsupported && !video.unsupported_read());
+        std::cout<<"CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS"
+                 <<" columns="<<tex.columns<<"\\n";
+        std::cout<<"AUTHENTIC_WORLD_CAMERA_AND_OCCLUSION=NOT_YET_EXECUTED\\n";
+    }
     void render_res4_columns(const rloft::original_res::Texture6& tex,
                              u32 height,u32 shade) {
         if(height<8u || height>256u || shade>63u)
@@ -504,6 +562,25 @@ void write_frame(const std::string& stem,const rloft::graphics::OriginalVgaHost&
 
 int main(int argc,char**argv) {
     try {
+        if(argc>=2 && std::string(argv[1])=="--res4-compositor") {
+            if(argc!=7 && argc!=10)
+                throw std::invalid_argument("usage: --res4-compositor <owner-RES4-path> <entry-id> <height> <shade> <out-stem> [COLORS bank brightness]");
+            const u32 entry=static_cast<u32>(std::stoul(argv[3]));
+            const u32 height=static_cast<u32>(std::stoul(argv[4]));
+            const u32 shade=static_cast<u32>(std::stoul(argv[5]));
+            const auto tex=rloft::original_res::load_type6(argv[2],entry);
+            Session session;
+            session.mode(3u);
+            if(argc==10)
+                session.owned_colors_palette(argv[7],
+                    static_cast<unsigned>(std::stoul(argv[8])),
+                    static_cast<unsigned>(std::stoul(argv[9])));
+            else session.indexed_palette();
+            session.open_readonly_resource(argv[2],entry,4u);
+            session.render_res4_compositor(tex,height,shade);
+            write_frame(argv[6],session.video);
+            return 0;
+        }
         if(argc>=2 && std::string(argv[1])=="--res4") {
             if(argc!=7 && argc!=10)
                 throw std::invalid_argument(
