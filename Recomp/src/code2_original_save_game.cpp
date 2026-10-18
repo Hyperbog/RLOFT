@@ -76,6 +76,9 @@ struct SavedGame {
         code2::function_1a344(t.s.machine,b,
                                static_cast<u32>(item),known);
     }
+    static void update_daypart() noexcept {
+        code2::function_31f94(live().s.machine);
+    }
     static void set_environment(u32 raw) noexcept {
         code2::function_31edc(live().s.machine,
                                static_cast<code2::s32>(raw));
@@ -90,7 +93,7 @@ struct SavedGame {
         if(level!=5u){t.error=true;return;}
         code2::Application32Boundary b{};
         b.call_312a0=&open_level;
-        b.call_312a0_local=&SaveLevel::archive_open;
+        b.call_312a0_local=&SaveLevel::open_archive;
         b.call_3131c=&SaveLevel::seek;
         b.call_312ec=&SaveLevel::read_guest;
         b.call_312ec_local=&SaveLevel::read_local;
@@ -102,10 +105,10 @@ struct SavedGame {
         b.call_29048=&SaveLevel::graphic_mode;
         b.call_31edc=&set_environment;
         b.call_31f38=&set_light;
-        b.call_31f94=&code2::function_31f94;
+        b.call_31f94=&update_daypart;
         code2::function_181b4(t.s.machine,b,static_cast<code2::s32>(level));
     }
-    static u32 no_object_at(u32,u32) noexcept {return 0u;}
+    static u32 no_object_at(code2::s32,code2::s32) noexcept {return 0u;}
     void execute(const std::vector<u8>& save,
                  const rloft::original_levels::LevelGrid& grid) {
         VERIFY(save.size()==9288u && grid.level==5u);
