@@ -41,7 +41,7 @@ def test(executable,path,entry,height,shade,stem,success):
                      capture_output=True,text=True,timeout=20)
     if c.returncode:
         raise AssertionError(f"CODE.2 original wall compositor failed: {c.stderr}")
-    if "CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS" not in c.stdout:
+    if "CODE2_RES4_SOURCE_335DC_3263C_338C8_COMPOSITOR_PASS" not in c.stdout:
         raise AssertionError("Original 3263C source callback not acknowledged")
     if composed.with_suffix(".idx").read_bytes()!=data:
         raise AssertionError("CODE.2 3263C compositor and 338C8 direct sampler diverge on identical guest sweep setup")
