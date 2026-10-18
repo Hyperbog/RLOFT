@@ -36,6 +36,14 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE03/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE03/LEV005.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE04/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE04/LEV005.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE08/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE08/LEV005.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE09/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE09/LEV005.DAT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10/SAVE.DAT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10/LEV005.DAT
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
@@ -85,3 +93,41 @@ jobs:
           test "$(wc -c < build/save5-world/save5.pal)" -eq 768
           sha256sum build/save5-world/save5.idx build/save5-world/save5.pal
           echo 'Original media/decoded world frames will not be published.'
+
+      - name: Genuine saved-camera actor-visibility census (source-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT"
+          media="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          for name in SINTAB RES4 COLORS CODE.2 INIT RES0 NPCS.DAT OBJECTS.DAT RES3; do
+            cp "$media/$name" "$scratch/"
+          done
+          echo "ORIGINAL_SAVED_CAMERA_CENSUS_BEGIN"
+          for id in 03 04 08 09; do
+            cp "$base/SAVE$id/SAVE.DAT" "$scratch/SAVE.DAT"
+            cp "$base/SAVE$id/LEV005.DAT" "$scratch/LEV005.DAT"
+            python3 - "$scratch/SAVE.DAT" "$id" <<'PY'
+          import struct,sys
+          data=open(sys.argv[1],"rb").read()
+          level,x,y,heading=struct.unpack_from("<IIII",data,0x52)
+          print(f"SOURCE_CAMERA save={sys.argv[2]} level={level} x=0x{x:08x} y=0x{y:08x} heading={heading}")
+          PY
+            status=0
+            timeout 120s build/save5-world/rloft_original_code2_world_frame --save-world \
+              "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
+              "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
+              "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
+              "$scratch/RES3" "$scratch/output" > "$scratch/probe.log" 2>&1 || status=$?
+            visibility=$(grep -oE 'primary_cells_visible=[0-9]+' "$scratch/probe.log" | tail -1 || true)
+            emissions=$(grep -oE 'emitted_calls=[0-9]+' "$scratch/probe.log" | tail -1 || true)
+            echo "SOURCE_CAMERA_RESULT save=$id status=$status ${visibility:-visibility_unresolved} ${emissions:-emissions_unresolved}"
+            if test "$status" -ne 0; then
+              echo "SOURCE_CAMERA_NOT_VALIDATED save=$id; inspect source-only failure separately"
+            fi
+            rm -f "$scratch/output.idx" "$scratch/output.bmp" "$scratch/output.pal" "$scratch/probe.log"
+          done
+          echo "ORIGINAL_SAVED_CAMERA_CENSUS_END"
+          echo "No original save files, RES bytes, indexed frames or palettes uploaded."
