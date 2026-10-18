@@ -190,14 +190,17 @@ struct WorldFrame {
                                        u32 destination,u32 shade) noexcept {
         auto& s=self();
         ++s.callback_calls;
-        const TextureSpan* span=nullptr;
-        for(const auto& item:s.materials) {
-            if(source>=item.second.first && source<item.second.last) {
-                span=&item.second;
-                break;
-            }
+        // Strictly bind every generated SINTAB read to the material
+        // currently selected by original 335DC (guest C700), not merely
+        // to any still-live guest image allocation.
+        const u32 selected=code2::load_le32(s.gfx.memory.data()+0xC700u);
+        const auto found=s.materials.find(selected);
+        if(found==s.materials.end() ||
+           source<found->second.first || source>=found->second.last) {
+            s.failure=true;
+            return 0u;
         }
-        if(!span){s.failure=true;return 0u;}
+        const TextureSpan* span=&found->second;
         const auto result=rloft_recomp::execute_sintab_scale(
             target,source,destination,shade,s.code_start,s.code_end,
             span->first,span->last,
