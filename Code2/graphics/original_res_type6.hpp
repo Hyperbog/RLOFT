@@ -1,5 +1,6 @@
 #pragma once
-// Ravenloft RES type-6: EH envelope (2-byte decoded length), LZSS column
+// Ravenloft RES type-6: EH envelope with type_header_size=0, followed by
+// a separate 2-byte decoded length and LZSS column
 // texture payload, 128 bytes per vertical source column. Read-only importer.
 //
 // Exact format evidence: Resources/RES/TYPE6_RENDERER.md; source CODE.2
@@ -36,8 +37,8 @@ inline Texture6 decode_type6(const std::vector<Byte>& file,std::uint32_t entry_i
         static_cast<std::uint32_t>(file.size());
     if(end-begin<8u)throw std::runtime_error("short RES6 entry");
     const Byte* e=file.data()+begin;
-    if(e[0]!='E' || e[1]!='H' || e[2]!=6u || le16(e+3)!=2u)
-        throw std::runtime_error("not an EH type-6 2-byte-header record");
+    if(e[0]!='E' || e[1]!='H' || e[2]!=6u || le16(e+3)!=0u)
+        throw std::runtime_error("not an EH type-6 zero-size typed-header record");
     const auto decoded=le16(e+5);
     if(decoded!=4096u && decoded!=8192u)
         throw std::runtime_error("unsupported RES6 source texture dimensions");
