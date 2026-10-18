@@ -1,0 +1,45 @@
+name: RLOFT Linux portable recompilation C++ regression
+on:
+  push:
+    branches: [recomp]
+    paths:
+      - 'dev/linux.sh'
+      - 'Recomp/src/**'
+      - 'Recomp/CMakeLists.txt'
+      - 'Recomp/tools/**'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
+      - '.github/workflows/recomp-linux-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rloft-recomp-linux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  portable-recomp:
+    name: Build actual reconstructed C++ and run CTest on Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install portable C++17 tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ninja-build cmake g++ python3
+      - name: Validate milestone evidence generator
+        run: python3 -m unittest discover -s Recomp/tools -p test_milestone_report.py -v
+      - name: Compile and test portable C++ through the same developer script
+        run: bash dev/linux.sh test
+      - name: Archive failure evidence for diagnosis
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-Recomp-Linux-Diagnostics-${{ github.run_number }}
+          path: |
+            build/linux/recomp/Testing/Temporary/LastTest.log
+            build/linux/recomp/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: warn
+          retention-days: 14
