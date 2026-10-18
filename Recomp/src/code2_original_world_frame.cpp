@@ -1162,10 +1162,35 @@ int main(int argc,char** argv) {
             code2::function_334c4(ray->machine,view);
             CHECK(!ray->failed && ray->rays==1u &&
                   code2::load_le32(ray->guest.data()+0xFD0Cu)==grid.cells.size());
-            CHECK(code2::load_le32(ray->guest.data()+0xC658u)==252u);
-            CHECK(code2::load_le32(ray->guest.data()+0xF920u)==10u);
-            CHECK(code2::load_le32(ray->guest.data()+0xF91Cu)==3u);
+            // Verify each original save's own camera, not the previous
+            // SAVE10-only pose/light constants. Never synthesize visibility.
+            CHECK(save.size()>0x61u);
+            CHECK(code2::load_le32(ray->guest.data()+0x255D0u)==
+                  code2::load_le32(save.data()+0x56u));
+            CHECK(code2::load_le32(ray->guest.data()+0x255D4u)==
+                  code2::load_le32(save.data()+0x5Au));
+            CHECK(code2::load_le32(ray->guest.data()+0xC658u)==
+                  code2::load_le32(save.data()+0x5Eu));
+            CHECK(code2::load_le32(ray->guest.data()+0xC658u)<360u);
             CHECK(ray->guest[0x258A8u]==0xFFu);
+            // SOURCE-only ray visibility: no depth marks or actors modified.
+            const u32 actor_count=code2::load_le16(
+                ray->guest.data()+0x258A2u);
+            CHECK(actor_count<=4096u);
+            u32 marked=0u;
+            for(u32 i=0;i<actor_count;++i) {
+                const u32 rec=0x14D80u+i*0x16u;
+                CHECK(std::uint64_t(rec)+0x0Eu<=ray->guest.size());
+                const u32 cell=code2::load_le16(ray->guest.data()+rec+0x0Cu);
+                CHECK(cell<grid.cells.size());
+                marked+=(ray->guest[0x198E0u+cell*2u]&0x40u)!=0u;
+            }
+            std::cout<<"CODE2_SOURCE_SAVED_CAMERA_ACTOR_RAY_VISIBILITY"
+                     <<" actors="<<actor_count
+                     <<" primary_cells_visible="<<marked
+                     <<" heading="<<code2::load_le32(
+                         ray->guest.data()+0xC658u)
+                     <<"\\n";
             std::cout<<"CODE2_SAVED_LEVEL5_07938_TO_181B4_TO_32954_PASS"
                      <<" level=5 rays=256 profile=255\\n";
         } else {
