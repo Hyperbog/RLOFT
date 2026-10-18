@@ -54,3 +54,9 @@ This produces owner-local `portrait.idx` and `portrait.bmp` from authentic sourc
 - [CTest and milestone evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39092086421/artifacts/12122889028) — Windows diagnostics, no retail graphics
 
 Both expire December 17, 2026. Source-loaded original RES captures were generated only in temporary CI directories, not uploaded. **R04 remains unaccepted**. Technical evidence: [RES4 and 37700 source audit](../Code2/graphics/RES4_FIRST_PERSON_SOURCE.md).
+
+### Final RES4 32/64-column validation
+
+[Windows milestone #39092562187](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187) passed **70/70 CTests** and authenticated four shipped RES4 type-6 records: 0, 100, 500 (64×128) and 600 (32×128). Entry 600 generated 4,096 nonzero indexed pixels and a stable output SHA-256. The original 37700 recovered stop-control, source 2E7F0 initialization and the actual compiled 338C8 column scaler remained in the tested build. No original-image bytes or original texture BMPs were published. R04 remains **unaccepted**.
+
+[Download engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187/artifacts/12123004192) · [Download test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39092562187/artifacts/12123262884). Both expire December 17, 2026.
