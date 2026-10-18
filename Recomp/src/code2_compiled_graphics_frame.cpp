@@ -37,6 +37,8 @@ struct Session {
     u32 stream_cursor=0, active_entry_end=0, active_entry_start=0;
     u32 heap_cursor=0x400000u;
     u32 stream_handle=0x51u;
+    std::string expected_archive_basename{};
+    unsigned startup_open_calls=0;
     unsigned file_seeks=0,file_reads=0,source_2fd9c_calls=0;
     unsigned bounded_lzss_callbacks=0;
     bool stream_error=false;
@@ -50,6 +52,21 @@ struct Session {
         return static_cast<u32>(aligned);
     }
     static void free_guest(u32) noexcept {} // bounded arena lives for session
+    static code2::s32 open_archive(const u8* filename) noexcept {
+        auto& s=state();
+        std::size_t count=0;
+        while(count<0x54u && filename[count]!=0u) ++count;
+        if(count==0u || count>=0x54u ||
+            std::string(reinterpret_cast<const char*>(filename),count)!=
+            s.expected_archive_basename) {
+            fail_stream();return -1;
+        }
+        // The owner-provided archive has already been opened read-only by
+        // the host. This maps source DOS-open to its bounded virtual handle.
+        ++s.startup_open_calls;
+        s.stream_cursor=0u;
+        return static_cast<code2::s32>(s.stream_handle);
+    }
     static void seek_item(u32 index,u32 handle) noexcept {
         auto& s=state();
         if(handle!=s.stream_handle || index+1u>=s.entry_offsets.size()) {fail_stream();return;}
@@ -152,24 +169,31 @@ struct Session {
             if(entry_offsets[i]<entry_offsets[i-1] ||
                entry_offsets[i]>archive_bytes.size())
                 throw std::runtime_error("Invalid RES offset ordering");
-        // In the real game 2E7F0 opens each archive then allocates the item
-        // table. The host supplies the read-only handle and directory only.
-        constexpr u32 slot_base=0x30000u,table_base=0x31000u;
-        const u32 record=slot_base+slot*16u;
-        if(std::uint64_t(table_base)+9ull*count>=0x300000u)
-            throw std::runtime_error("Guest resource item table too large");
-        code2::store_le32(memory.data()+0xF0B8u,slot_base);
-        code2::store_le32(memory.data()+0xF0B4u,slot+1u);
-        code2::store_le32(memory.data()+record,stream_handle);
-        code2::store_le32(memory.data()+record+8u,count);
-        code2::store_le32(memory.data()+record+12u,table_base);
-        const u32 entry=table_base+9u*item;
-        memory[entry]=15u;  // unloaded, original 2E7F0 initialized flag
-        memory[entry+2u]=0u;
-        code2::store_le32(memory.data()+entry+5u,0u);
+        // Use source CODE.2 2E7F0 archive initialization instead of manually
+        // inserting the 16-byte slot and nine-byte unloaded entry.
+        // The host simulates all slots before the requested one with the
+        // same owner-supplied archive. Complete multi-file game archive
+        // discovery is not yet wired; this verifies the original initializer.
+        const auto name_at=filename.find_last_of("/\\");
+        expected_archive_basename=filename.substr(name_at==std::string::npos?0:name_at+1);
+        if(expected_archive_basename.empty()||expected_archive_basename.size()>=0x54u)
+            throw std::runtime_error("Invalid original RES basename");
+        constexpr u32 guest_basename=0x25000u;
+        std::copy(expected_archive_basename.begin(),expected_archive_basename.end(),
+                  memory.begin()+guest_basename);
+        memory[guest_basename+expected_archive_basename.size()]=0u;
+        file_reads=0u;startup_open_calls=0u;stream_cursor=0u;stream_error=false;
+        code2::function_2e7f0(machine,resource_loader,guest_basename,slot+1u);
+        const u32 base=code2::load_le32(memory.data()+0xF0B8u);
+        const u32 record=base+slot*16u;
+        const u32 item_table=code2::load_le32(memory.data()+record+12u);
+        if(stream_error || startup_open_calls!=slot+1u ||
+           code2::load_le32(memory.data()+record+8u)!=count ||
+           code2::load_le32(memory.data()+record)!=stream_handle ||
+           item_table==0u || memory[item_table+9u*item+2u]!=0u)
+            throw std::runtime_error("Source 2E7F0 failed archive startup");
         resident_resource_id=item;resident_slot=slot;
-        stream_cursor=0;active_entry_end=0;
-        // Original 2ECB4 has to dispatch type 1 -> 2FD9C, never preloaded.
+        stream_cursor=0u;active_entry_end=0u;
     }
     void render_unloaded(const rloft::original_res::Image& image,
                          const std::string& path,u32 slot,u32 frame) {
@@ -183,8 +207,10 @@ struct Session {
         (void)code2::function_2975c(renderer,frame,y,x,image.archive_entry,slot);
         CHECK(resolver_calls==1u && draw_calls==1u);
         CHECK(source_2fd9c_calls==1u && file_seeks==1u && file_reads>0);
+        CHECK(startup_open_calls==slot+1u);
         CHECK(!stream_error && !unsupported && !video.unsupported_read());
-        const u32 itemrec=0x31000u+9u*image.archive_entry;
+        const u32 slotrec=code2::load_le32(memory.data()+0xF0B8u)+slot*16u;
+        const u32 itemrec=code2::load_le32(memory.data()+slotrec+12u)+9u*image.archive_entry;
         CHECK(memory[itemrec+2u]==1u);
         CHECK(code2::load_le32(memory.data()+itemrec+5u)!=0u);
         // Loaded item must become a genuine source cache hit on the next
@@ -193,7 +219,8 @@ struct Session {
         CHECK(image_cached==code2::load_le32(memory.data()+itemrec+5u));
         CHECK(file_seeks==1u && source_2fd9c_calls==1u);
         std::cout<<"CODE2_UNLOADED_2ECB4_2FD9C_SOURCE_CACHE=PASS; read_only_seeks="
-                 <<file_seeks<<" reads="<<file_reads<<" source_37700="<<bounded_lzss_callbacks<<"\n";
+                 <<file_seeks<<" reads="<<file_reads<<" source_startup_opens="<<startup_open_calls
+                 <<" source_37700="<<bounded_lzss_callbacks<<"\n";
     }
 
     static Session* live;
@@ -259,6 +286,7 @@ struct Session {
         resources.app68=&resource_loader;
         renderer.call_2f29c=&resolve_item;
         renderer.call_2a380=&draw_image;
+        resource_loader.call_312a0_stack=&open_archive;
         resource_loader.call_31334=&seek_item;
         resource_loader.call_312ec=&read_resource_header;
         resource_loader.call_3104c=&alloc_guest;
