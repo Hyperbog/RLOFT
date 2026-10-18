@@ -48,8 +48,9 @@ struct WorldFrame {
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
     std::set<u32> hud_resource_ids{};
-    std::vector<u8> original_init_header{};
+    std::vector<u8> original_init_header{},original_npcs{},original_objects{};
     u32 init_stream_cursor=0,init_opens=0,init_reads=0,init_closes=0;
+    u32 npc_cursor=0,object_cursor=0,metadata_reads=0;
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -494,6 +495,35 @@ struct WorldFrame {
                  <<" rows_2plane_pairs="<<outdoor_2plane_rows
                  <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
+    static code2::s32 source_open_definition(u32 pointer) noexcept {
+        auto& s=self();
+        if(pointer==0x6F8u && !s.original_npcs.empty()) {
+            s.npc_cursor=0;return 0x4Au;
+        }
+        if(pointer==0x704u && !s.original_objects.empty()) {
+            s.object_cursor=0;return 0x4Bu;
+        }
+        s.failure=true;return -1;
+    }
+    static void source_close_definition(u32 handle) noexcept {
+        if(handle!=0x4Au && handle!=0x4Bu)self().failure=true;
+    }
+    static void source_read_definition(u32 target,u32 length,u32 handle) noexcept {
+        auto& s=self();
+        const std::vector<u8>* input=nullptr;
+        u32* offset=nullptr;
+        if(handle==0x49u){input=&s.original_init_header;offset=&s.init_stream_cursor;}
+        else if(handle==0x4Au){input=&s.original_npcs;offset=&s.npc_cursor;}
+        else if(handle==0x4Bu){input=&s.original_objects;offset=&s.object_cursor;}
+        if(!input || !offset ||
+           std::uint64_t(*offset)+length>input->size() ||
+           std::uint64_t(target)+length>s.gfx.memory.size()) {
+            s.failure=true;return;
+        }
+        std::copy_n(input->data()+*offset,length,s.gfx.memory.data()+target);
+        *offset+=length;
+        ++s.metadata_reads;
+    }
     static u32 hud_open_init(u32 pointer) noexcept {
         auto& s=self();
         if(pointer!=0x718u || s.original_init_header.size()!=1879u ||
@@ -516,19 +546,60 @@ struct WorldFrame {
         if(handle!=0x49u)s.failure=true;
         ++s.init_closes;
     }
-    void initialize_original_hud_assets(const std::string& filename) {
+    void initialize_original_hud_assets(const std::string& filename,
+                                         const std::string& npc_file="",
+                                         const std::string& object_file="") {
         CHECK(std::filesystem::path(filename).filename()=="INIT");
+        const bool with_scene=!npc_file.empty() && !object_file.empty();
+        if(with_scene) {
+            CHECK(std::filesystem::path(npc_file).filename()=="NPCS.DAT");
+            CHECK(std::filesystem::path(object_file).filename()=="OBJECTS.DAT");
+            original_npcs=rloft::original_res::read_only(npc_file);
+            original_objects=rloft::original_res::read_only(object_file);
+            CHECK(original_npcs.size()==5731u &&
+                  original_objects.size()==21844u);
+            CHECK(code2::load_le32(original_npcs.data())==83u &&
+                  code2::load_le32(original_objects.data())==336u);
+        }
         original_init_header=rloft::original_res::read_only(filename);
         CHECK(original_init_header.size()==1879u);
         constexpr char label[]="INIT";
         std::copy_n(label,sizeof(label),gfx.memory.begin()+0x718u);
         code2::Application30Boundary init{};
+        code2::Application25Boundary definitions{};
+        code2::Application26Boundary files{};
+        code2::Application28Boundary context{};
+        code2::Application29Boundary source{};
+        if(with_scene) {
+            definitions.call_312ec=&source_read_definition;
+            files.call_312a0=&source_open_definition;
+            files.call_312dc=&source_close_definition;
+            files.call_3104c=&WorldGraphicsSource::alloc_guest;
+            context.app25=&definitions;
+            context.app26=&files;
+            source.app28=&context;
+            source.call_312ec_local=&hud_read_init;
+            init.app29=&source;
+        }
         init.call_312a0=&hud_open_init;
         init.call_312ec_local=&hud_read_init;
         init.call_312dc=&hud_close_init;
         code2::function_16d04(gfx.machine,init);
-        CHECK(!failure && init_stream_cursor==36u);
-        CHECK(init_opens==1u && init_reads==18u && init_closes==1u);
+        CHECK(!failure && init_stream_cursor==(with_scene?1879u:36u));
+        CHECK(init_opens==1u && init_reads>=18u && init_closes==1u);
+        if(with_scene) {
+            CHECK(npc_cursor==original_npcs.size() &&
+                  object_cursor==original_objects.size());
+            CHECK(code2::load_le32(gfx.memory.data()+0x258F4u)==83u);
+            CHECK(code2::load_le32(gfx.memory.data()+0x258E8u)==336u);
+            CHECK(code2::load_le32(gfx.memory.data()+0x258E0u)==175u);
+            CHECK(code2::load_le32(gfx.memory.data()+0x258F0u)==12u);
+            for(u32 field: {0x22230u,0x255D8u,0x255DCu,0x22234u,0x2B764u})
+                CHECK(code2::load_le32(gfx.memory.data()+field)>=0x400000u);
+            std::cout<<"CODE2_SAVE5_ORIGINAL_16810_168C8_1686C_16934_16990_SCENE_DEFINITIONS_PASS"
+                     <<" npc=83 objects=336 class1=175 class3=12 pano_profiles=2"
+                     <<" source_reads="<<metadata_reads<<"\\n";
+        }
         CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
         CHECK(code2::load_le32(gfx.memory.data()+0x258F8u)==600u);
         std::cout<<"CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS"
@@ -613,10 +684,12 @@ struct WorldFrame {
                  <<" drawn_images="<<hud_blits<<"\\n";
     }
     void render(bool saved_outdoor=false,const std::string& hud_file="",
-                const std::string& init_file="") {
+                const std::string& init_file="",
+                const std::string& npc_file="",
+                const std::string& object_file="") {
         install_world();
         if(saved_outdoor && !init_file.empty())
-            initialize_original_hud_assets(init_file);
+            initialize_original_hud_assets(init_file,npc_file,object_file);
         prepare_materials();
         if(saved_outdoor)render_saved_background();
         const u32 before=gfx.source_type6_load_calls;
@@ -695,14 +768,15 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        const bool saved_outdoor=(argc==9 || argc==11) &&
+        const bool saved_outdoor=(argc==9 || argc==11 || argc==14) &&
                                  std::string(argv[1])=="--save-world";
-        const bool with_hud=saved_outdoor && argc==11;
+        const bool with_hud=saved_outdoor && argc>=11;
+        const bool with_scene=saved_outdoor && argc==14;
         const bool original_world=argc==7 && std::string(argv[1])=="--world";
         if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
                 "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
-                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [INIT RES0] output-stem");
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [INIT RES0 [NPCS.DAT OBJECTS.DAT RES3]] output-stem");
         const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
         const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
                                     colors(argv[5+(saved_outdoor?1:0)]);
@@ -808,9 +882,11 @@ int main(int argc,char** argv) {
         {
             WorldFrame world(*ray,*gfx);
             world.render(saved_outdoor,with_hud?std::string(argv[9]):"",
-                         with_hud?std::string(argv[8]):"");
+                         with_hud?std::string(argv[8]):"",
+                         with_scene?std::string(argv[10]):"",
+                         with_scene?std::string(argv[11]):"");
         }
-        const std::string output=argv[saved_outdoor?(with_hud?10:8):6];
+        const std::string output=argv[saved_outdoor?(with_scene?13:(with_hud?10:8)):6];
         write_frame(output,gfx->video);
         // Indexed pixels alone do not determine output colors. Export the
         // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
