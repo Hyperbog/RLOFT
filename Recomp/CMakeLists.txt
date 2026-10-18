@@ -289,3 +289,18 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_startup_mouse_reset_unseeded_host_dpmi_heap
         COMMAND rloft_code2_startup_gate --to-mouse-reset-host-dpmi-heap)
 endif()
+
+# Source-derived, asset-free VGA planar/DAC6 host boundary. This is NOT
+# original CODE.2 graphics execution or a gameplay visual acceptance gate.
+add_executable(rloft_original_vga_host_tests src/test_original_vga_host.cpp)
+set_target_properties(rloft_original_vga_host_tests PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_vga_host_tests PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_original_vga_host_tests PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_planar_vga_dac6_crtc_host_boundary
+        COMMAND rloft_original_vga_host_tests)
+endif()
