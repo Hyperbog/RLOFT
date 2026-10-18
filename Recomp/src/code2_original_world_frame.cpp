@@ -46,6 +46,8 @@ struct WorldFrame {
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
     std::set<u32> hud_resource_ids{};
+    std::vector<u8> original_init_header{};
+    u32 init_stream_cursor=0,init_opens=0,init_reads=0,init_closes=0;
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -477,6 +479,46 @@ struct WorldFrame {
                  <<" rows_2plane_pairs="<<outdoor_2plane_rows
                  <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
+    static u32 hud_open_init(u32 pointer) noexcept {
+        auto& s=self();
+        if(pointer!=0x718u || s.original_init_header.size()!=1879u ||
+           s.gfx.memory[0x718u]!='I') {
+            s.failure=true;return 0xFFFFFFFFu;
+        }
+        ++s.init_opens;s.init_stream_cursor=0u;return 0x49u;
+    }
+    static u32 hud_read_init(u8* dest,u32 size,u32 handle) noexcept {
+        auto& s=self();
+        if(handle!=0x49u || !dest ||
+           std::uint64_t(s.init_stream_cursor)+size>s.original_init_header.size()) {
+            s.failure=true;return 0u;
+        }
+        std::copy_n(s.original_init_header.data()+s.init_stream_cursor,size,dest);
+        s.init_stream_cursor+=size;++s.init_reads;return size;
+    }
+    static void hud_close_init(u32 handle) noexcept {
+        auto& s=self();
+        if(handle!=0x49u)s.failure=true;
+        ++s.init_closes;
+    }
+    void initialize_original_hud_assets(const std::string& filename) {
+        CHECK(std::filesystem::path(filename).filename()=="INIT");
+        original_init_header=rloft::original_res::read_only(filename);
+        CHECK(original_init_header.size()==1879u);
+        constexpr char label[]="INIT";
+        std::copy_n(label,sizeof(label),gfx.memory.begin()+0x718u);
+        code2::Application30Boundary init{};
+        init.call_312a0=&hud_open_init;
+        init.call_312ec_local=&hud_read_init;
+        init.call_312dc=&hud_close_init;
+        code2::function_16d04(gfx.machine,init);
+        CHECK(!failure && init_stream_cursor==36u);
+        CHECK(init_opens==1u && init_reads==18u && init_closes==1u);
+        CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
+        CHECK(code2::load_le32(gfx.memory.data()+0x258F8u)==600u);
+        std::cout<<"CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS"
+                 <<" res0_base=15 source_reads=18\\n";
+    }
     static u32 source_hud_resource(u32 id,u32 slot) noexcept {
         auto& s=self();
         const u32 count=static_cast<u32>(s.gfx.entry_offsets.size()-1u);
@@ -507,7 +549,9 @@ struct WorldFrame {
         code2::function_2939c(b,frame,y,x,image);
         ++s.hud_blits;
     }
-    void render_saved_hud(const std::string& filename) {
+    void render_saved_hud(const std::string& filename,
+                           const std::string& init_file) {
+        initialize_original_hud_assets(init_file);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
         const u32 before=static_cast<u32>(gfx.video.scanout_indices().size());
         CHECK(before==128000u);
@@ -538,7 +582,8 @@ struct WorldFrame {
                  <<" distinct_resources="<<hud_distinct_res0
                  <<" drawn_images="<<hud_blits<<"\\n";
     }
-    void render(bool saved_outdoor=false,const std::string& hud_file="") {
+    void render(bool saved_outdoor=false,const std::string& hud_file="",
+                const std::string& init_file="") {
         install_world();
         prepare_materials();
         if(saved_outdoor)render_saved_background();
@@ -573,7 +618,8 @@ struct WorldFrame {
         else CHECK((pixel_writes>0u || legacy_fallbacks>0u) &&
                    (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
-        if(saved_outdoor && !hud_file.empty())render_saved_hud(hud_file);
+        if(saved_outdoor && !hud_file.empty())
+            render_saved_hud(hud_file,init_file);
         if(saved_outdoor) {
             const u32 page=static_cast<u32>(gfx.memory[0xC050u]);
             CHECK(page==1u && gfx.memory[0xEF4Du]==1u);
@@ -616,14 +662,14 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        const bool saved_outdoor=(argc==9 || argc==10) &&
+        const bool saved_outdoor=(argc==9 || argc==11) &&
                                  std::string(argv[1])=="--save-world";
-        const bool with_hud=saved_outdoor && argc==10;
+        const bool with_hud=saved_outdoor && argc==11;
         const bool original_world=argc==7 && std::string(argv[1])=="--world";
         if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
                 "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
-                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [RES0] output-stem");
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [INIT RES0] output-stem");
         const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
         const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
                                     colors(argv[5+(saved_outdoor?1:0)]);
@@ -714,9 +760,10 @@ int main(int argc,char** argv) {
         gfx->open_readonly_resource(res4.string(),0u,4u);
         {
             WorldFrame world(*ray,*gfx);
-            world.render(saved_outdoor,with_hud?std::string(argv[8]):"");
+            world.render(saved_outdoor,with_hud?std::string(argv[9]):"",
+                         with_hud?std::string(argv[8]):"");
         }
-        const std::string output=argv[saved_outdoor?(with_hud?9:8):6];
+        const std::string output=argv[saved_outdoor?(with_hud?10:8):6];
         write_frame(output,gfx->video);
         // Indexed pixels alone do not determine output colors. Export the
         // guest DAC RGB6 values exactly (no 6-to-8-bit rounding) so an
