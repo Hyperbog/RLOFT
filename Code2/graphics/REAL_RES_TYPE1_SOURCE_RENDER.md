@@ -4,10 +4,16 @@
 
 ## Original function lineage
 
-Original owner-supplied `CODE.2`: 558,689 bytes; SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Its LE object-1 bytes are at physical file offset `0x3AF24`, and the [15-range SHA-256 verifier](verify_original_vga.py) authenticates these spans:
+Original owner-supplied `CODE.2`: 558,689 bytes; SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Its LE object-1 bytes are at physical file offset `0x3AF24`, and the [21-range SHA-256 verifier](verify_original_vga.py) authenticates these spans:
 
 | Original object-1 span | Binary SHA-256 | Compiled implementation role |
 | --- | --- | --- |
+| `2EB60..2EC73` | `5c98f9e862c7cda25a0a050947ba9ef1dd486c461665aaaec170529892fe4ec5` | Original typed resource header seek/read into guest buffer, then size field and type-header allocation |
+| `2ECB4..2EFB3` | `787b20bda33e47803ed2f13cb90e203835e9f55fdcd0416e428a87745ba17e9b` | Original unloaded resource dispatcher, allocates payload and populates nine-byte item cache |
+| `2F96C..2F9AE` | `4b40b4aa87a161b4a568e12206f9f23eca59211f1663d50b6d9a26e41f525eb8` | Original buffered stream initialization and 1,024-byte aligned refill |
+| `2F9E4..2FA2F` | `6b63596dc23c7949dc6c201c6025bb92fac290dd50b43a0524b71b1277d75586` | Original individual buffered-byte decode input |
+| `2FB04..2FB66` | `8685f1bcf40a6f3adf36a45cf60f76dc768ed1a7bf25e6dcd64b52323e83c7dc` | Original LZSS decoder dispatch and layout context setup |
+| `2FA30..2FB01` | `d7746363c0a980d7c84cc27ffd57febdae1b4b41b973f2b32689bb7ba75abf76` | Original output-byte collector and per-frame planar packing |
 | `2A20C..2A256` | `3c469e26818f3c532e07ef15f5edf6f9895812a6c0df951392f19484357c1539` | Convert decoded interleaved image bytes into the original four-plane guest image layout |
 | `2FD9C..30040` | `bd24fd53a88d3fd58bb34d2bcaf8c68f650d87f2099e8dc0d046bebf7a5297a2` | Original DOS-stream-backed image loader: **now compiled and invoked** through the unloaded-cache resource dispatch |
 | `2F29C..2F2E0` | `2662ebb816f7d7e2ce1b541b7b416835a297c067662840bcb6843c70ec32547e` | Retrieve resource from original nine-byte item cache through `2ECB4` |
