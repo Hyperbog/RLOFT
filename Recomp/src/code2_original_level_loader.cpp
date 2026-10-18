@@ -242,7 +242,7 @@ struct Session {
     void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false,
              const std::vector<u8>* standalone=nullptr) {
         if(standalone) {
-            VERIFY(!raycast && grid.level<32u);
+            VERIFY(grid.level<32u);
             standalone_level=grid.level;
             // Original DATA contains WORK\\LEV000.DAT at 819C. Source 181B4
             // mutates only the three filename digits at 81A4..81A6.
@@ -256,7 +256,10 @@ struct Session {
             // Both cameras are literal original-source branch assignments:
             // 20608 defaults to level 22 (4,4), while 13C88 case 7 enters
             // level 11 at (2,65). No generated/spawn-guess coordinates.
-            VERIFY((grid.level==22u && grid.width==30u &&
+            VERIFY((grid.level==5u && grid.width==64u &&
+                    grid.height==64u &&
+                    (grid.cells[6u*grid.width+6u]&0x3Fu)==0u) ||
+                   (grid.level==22u && grid.width==30u &&
                     grid.height==15u && (grid.cells[4u*grid.width+4u]&0x3Fu)==0u) ||
                    (grid.level==11u && grid.width==128u &&
                     grid.height==128u &&
@@ -406,6 +409,59 @@ Session* Session::active=nullptr;
 
 int main(int argc,char** argv) {
     try {
+        // Source 06CAD/07938 camera fields are restored here as a
+        // deliberately bounded first-stage read-only SAVE.DAT experiment.
+        // Full 07938 deserialization and object table initialization remain
+        // separate; only source-authenticated prefix ranges are copied.
+        const bool saved_camera=argc==3 &&
+                                 std::string(argv[1])=="--saved-camera";
+        if(saved_camera) {
+            const std::filesystem::path dir(argv[2]);
+            VERIFY(std::filesystem::is_directory(dir));
+            const auto save=rloft::original_levels::read_archive(
+                (dir/"SAVE.DAT").string());
+            VERIFY(save.size()>=0x997u);
+            const u32 level=code2::load_le32(save.data()+0x52u);
+            const u32 pos_x=code2::load_le32(save.data()+0x56u);
+            const u32 pos_y=code2::load_le32(save.data()+0x5Au);
+            const u32 heading=code2::load_le32(save.data()+0x5Eu);
+            VERIFY(level==5u && pos_x==0x00065960u &&
+                   pos_y==0x0006EB68u && heading==0xFCu);
+            const auto packed=rloft::original_levels::read_archive(
+                (dir/"LEV005.DAT").string());
+            const auto grid=rloft::original_levels::decode_saved_grid(packed,level);
+            auto run=std::make_unique<Session>(dir,true);
+            // 07938 begins reading after the 50-byte label; its original
+            // 06CAD tail uses these exact SAVE offsets and guest addresses.
+            std::copy_n(save.data()+0x32u,0x20u,run->guest.data()+0x22200u);
+            code2::store_le32(run->guest.data()+0x255D0u,pos_x);
+            code2::store_le32(run->guest.data()+0x255D4u,pos_y);
+            code2::store_le32(run->guest.data()+0xC658u,heading);
+            code2::store_le16(run->guest.data()+0xF03Cu,
+                              code2::load_le16(save.data()+0x62u));
+            code2::store_le16(run->guest.data()+0xF03Eu,
+                              code2::load_le16(save.data()+0x64u));
+            code2::store_le32(run->guest.data()+0xFD08u,
+                              code2::load_le32(save.data()+0x66u));
+            code2::store_le16(run->guest.data()+0x6DAEu,
+                              code2::load_le16(save.data()+0x6Au));
+            code2::store_le32(run->guest.data()+0xCF4Cu,
+                              code2::load_le32(save.data()+0x70u));
+            std::copy_n(save.data()+0x77u,0x920u,
+                        run->guest.data()+0x218E0u);
+            run->run(grid,true,&packed);
+            VERIFY(code2::load_le32(run->guest.data()+0x255D0u)==pos_x);
+            VERIFY(code2::load_le32(run->guest.data()+0x255D4u)==pos_y);
+            VERIFY(code2::load_le32(run->guest.data()+0xC658u)==heading);
+            VERIFY(std::equal(save.begin()+0x77u,save.begin()+0x997u,
+                              run->guest.begin()+0x218E0u));
+            std::cout<<"CODE2_SOURCE_MAPPED_SAVE5_CAMERA_RAY_PASS level="
+                     <<level<<" x16="<<pos_x<<" y16="<<pos_y
+                     <<" facing="<<heading<<"\\n";
+            std::cout<<"CODE2_COMPLETE_07938_SAVE_DESERIALIZER_EXECUTED=NO\\n";
+            std::cout<<"CODE2_OUTDOOR_RENDERER_DOS_PARITY_ACCEPTED=NO\\n";
+            return 0;
+        }
         const bool saved=argc==3 && std::string(argv[1])=="--saved-levels";
         if(saved) {
             const std::filesystem::path directory(argv[2]);
