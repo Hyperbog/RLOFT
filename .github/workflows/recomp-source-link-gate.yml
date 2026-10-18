@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/recomp-source-link-gate.yml'
       - 'Recomp/**'
+      - 'Code2/graphics/**'
       - 'Code1/Code1.cpp'
       - 'Code2/Code2.cpp'
   workflow_dispatch:
@@ -67,6 +68,7 @@ jobs:
             build/recomp/Debug/rloft_code1_startup_gate.exe
             build/recomp/Debug/rloft_code2_startup_gate.exe
             build/recomp/Debug/rloft_original_image_gate.exe
+            build/recomp/Debug/rloft_original_vga_host_tests.exe
             build/recomp/Debug/build-source-sha.txt
             build/recomp/Debug/recomp-progress.txt
             build/recomp/Debug/README-RECOMP.txt
