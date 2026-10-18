@@ -79,6 +79,7 @@ tests() {
     decomp)
       python3 -m unittest discover -s docs/tools -p 'test_*.py' -v
       python3 docs/tools/check_docs.py
+      python3 Code2/graphics/verify_original_vga.py --self-test
       ;;
     demo-v1)
       python3 DemoV1/tools/verify_enhanced_port_build_pipeline.py
