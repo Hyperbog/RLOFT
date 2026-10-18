@@ -1,7 +1,9 @@
 // Run actual compiled, reconstructed CODE.2 graphics code against a bounded VGA
 // port/aperture host. Optional owner-provided RES images run through the
 // original compiled resource lookup and image layout/draw routines.
+#ifndef RLOFT_CANONICAL_CODE2_INCLUDED
 #include "../../Code2/Code2.cpp"
+#endif
 #include "original_vga_host.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "../../Code2/graphics/original_37700_control.hpp"
