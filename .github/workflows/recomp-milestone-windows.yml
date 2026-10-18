@@ -114,6 +114,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Source 334C4 original 32-level view preparation failed" }
           & "build/windows-milestone/Debug/rloft_original_code2_level_loader.exe" "$file"
           if ($LASTEXITCODE -ne 0) { throw "Original 181B4 DOS archive file load failed" }
+          $sintab = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB"
+          $sinHash = (Get-FileHash -Path $sintab -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sinHash -ne "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87") {
+            throw "Original SINTAB SHA-256 mismatch"
+          }
+          & "build/windows-milestone/Debug/rloft_original_code2_level_loader.exe" --raycast "$file" "$sintab"
+          if ($LASTEXITCODE -ne 0) { throw "Original 03838 SINTAB / 32954 level22 raycast failed" }
       - name: Verify real RES0/RES1 original image rendering without publishing pixels
         shell: pwsh
         run: |
