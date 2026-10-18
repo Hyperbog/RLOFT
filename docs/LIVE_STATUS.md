@@ -1,13 +1,13 @@
 # RLOFT — live GitHub workstream status
 
-**Observed:** 2026-10-18 04:25:36 UTC. **Repository default:** `code1-decompilation`.
+**Observed:** 2026-10-18 04:42:33 UTC. **Repository default:** `code1-decompilation`.
 
 > **Automatically generated.** These are GitHub branch heads and the most recent *completed* Actions run associated with each branch, not proof of gameplay, original DOS parity, sound, visuals, or user acceptance. A run may be a documentation or tools job rather than a game build. For verified engineering boundaries, use [CURRENT_STATUS.md](CURRENT_STATUS.md).
 
 | Workstream | Branch | Current HEAD | Most recent completed Actions run |
 | --- | --- | --- | --- |
-| Decompilation | [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation) | [`e07ce0a066`](https://github.com/Hyperbog/RLOFT/commit/e07ce0a0660e6e12c2bc808e49acdeda150392a5) | [#39092536715](https://github.com/Hyperbog/RLOFT/actions/runs/39092536715): success (source `0e4f6e0512`) |
-| Recompilation | [`recomp`](https://github.com/Hyperbog/RLOFT/tree/recomp) | [`eb0835916d`](https://github.com/Hyperbog/RLOFT/commit/eb0835916d1d4fbb05f2b4f01afea832adb971d5) | [#39096628837](https://github.com/Hyperbog/RLOFT/actions/runs/39096628837): success (source `7ad1a29e19`) |
+| Decompilation | [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation) | [`02ad3193ad`](https://github.com/Hyperbog/RLOFT/commit/02ad3193ad91af28b6135c5632b0bfe48a951c3f) | [#39097235263](https://github.com/Hyperbog/RLOFT/actions/runs/39097235263): success (source `7bb310dbcf`) |
+| Recompilation | [`recomp`](https://github.com/Hyperbog/RLOFT/tree/recomp) | [`0eae667ab1`](https://github.com/Hyperbog/RLOFT/commit/0eae667ab1f899da7a9b6072f2b1289eb3ca101a) | [#39097935274](https://github.com/Hyperbog/RLOFT/actions/runs/39097935274): success (source `cfcb43ea5e`) |
 | Playable enhanced game | [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1) | [`b67f8d3946`](https://github.com/Hyperbog/RLOFT/commit/b67f8d39467128e9b230546ca52f8113b3f3a98b) | [#39082856011](https://github.com/Hyperbog/RLOFT/actions/runs/39082856011): success (source `39f165c865`) |
 | Experimental native engine | [`native-engine`](https://github.com/Hyperbog/RLOFT/tree/native-engine) | [`aa94a09d94`](https://github.com/Hyperbog/RLOFT/commit/aa94a09d9470724fe65fea49555b28ecaac4d738) | [#39082843934](https://github.com/Hyperbog/RLOFT/actions/runs/39082843934): success (source `c79c4d892e`) |
 | DosDis | [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | [`0d87028215`](https://github.com/Hyperbog/RLOFT/commit/0d87028215174260e43000cb0cfc10f1e44d87d4) | [#39082824692](https://github.com/Hyperbog/RLOFT/actions/runs/39082824692): success (source `d413142d44`) |
