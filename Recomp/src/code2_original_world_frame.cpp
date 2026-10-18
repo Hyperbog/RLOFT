@@ -41,6 +41,8 @@ struct WorldFrame {
     u32 callback_calls=0,pixel_writes=0,patches=0,shader_flushes=0,legacy_fallbacks=0;
     u32 original_sky_calls=0,original_ground_calls=0,original_background_bytes=0;
     u32 textured_sky_dispatch=0,textured_ground_dispatch=0,unrendered_ui_requests=0;
+    u32 outdoor_setup_calls=0,outdoor_patch_words=0,outdoor_patch_bytes=0;
+    u32 outdoor_raster_bytes=0,outdoor_4plane_rows=0,outdoor_2plane_rows=0;
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -65,6 +67,8 @@ struct WorldFrame {
         // Do not overwrite the active 2E7F0/2F29C RES4 cache descriptors.
         copy_guest(0x100000u,ray.heap_top-0x100000u); // 03838 SINTAB arena
         copy_guest(0x15618u,128u*4u);                // scale code sizes
+        copy_guest(0x193E0u,0x100u);                // original 34998 row coefficients
+        copy_guest(0x19660u,0x100u);                // original 34998 row coefficients
         copy_guest(0x18FE0u,128u*4u);                // scale code pointers
         copy_guest(0xC65Cu,0xC73Cu+0x400u-0xC65Cu); // source trig and camera tables
         copy_guest(0x255D0u,0x258BCu-0x255D0u);    // source camera+level header
@@ -295,6 +299,43 @@ struct WorldFrame {
         s.background_resources[id]=ptr;
         return ptr;
     }
+    static void texture_patch_word(u32 addr,u16) noexcept {
+        auto& s=self();
+        if(addr!=0x34A11u && addr!=0x34A27u &&
+           addr!=0x34A3Du && addr!=0x34A54u) {
+            s.failure=true;return;
+        }
+        ++s.outdoor_patch_words;
+        // Original 34998 patched code immediates are represented by the
+        // compiled source's returned guest FF58 entries, not writable x86.
+    }
+    static void texture_patch_byte(u32 addr,u8) noexcept {
+        auto& s=self();
+        switch(addr) {
+            case 0x34AF9u: case 0x34B69u: case 0x34AF6u:
+            case 0x34B66u: case 0x34B07u: case 0x34B77u: break;
+            default:s.failure=true;return;
+        }
+        ++s.outdoor_patch_bytes;
+    }
+    static void source_texture_view_setup() noexcept {
+        auto& s=self();
+        code2::Runtime107Boundary b{};
+        b.patch_code16=&texture_patch_word;
+        code2::function_34998(s.gfx.machine,b);
+        ++s.outdoor_setup_calls;
+    }
+    static void texture_es_write(u32 addr,u8 pixel) noexcept {
+        auto& s=self();
+        if(addr<0xA0000u || addr>=0xB0000u ||
+           addr>=s.gfx.memory.size()) {
+            s.failure=true;return;
+        }
+        s.gfx.memory[addr]=pixel;
+        if(!s.gfx.video.write_aperture(static_cast<u16>(addr),pixel))
+            s.failure=true;
+        ++s.outdoor_raster_bytes;
+    }
     static void textured_backdrop_dispatch() noexcept {
         auto& s=self();
         const u32 dir=code2::load_le32(s.gfx.memory.data()+0xFF4Cu);
@@ -307,10 +348,30 @@ struct WorldFrame {
         }
         if(dir==1u)++s.textured_sky_dispatch;
         else if(dir==0xFFFFFFFFu)++s.textured_ground_dispatch;
-        else s.failure=true;
-        // 34A74/342E4 original textured panorama still needs a
-        // bounded raster interpreter. This callback proves dispatch and
-        // source 2F29C resolution ONLY; does not draw synthetic scenery.
+        else {s.failure=true;return;}
+        const u32 rows=code2::load_le32(s.gfx.memory.data()+0xFF50u);
+        const u32 texture=active+2u;
+        const auto image=std::find_if(s.background_resources.begin(),
+            s.background_resources.end(),[&](const auto& item){
+                return item.second==active;
+            });
+        if(image==s.background_resources.end() || rows==0u || rows>128u ||
+           std::uint64_t(texture)+4096u>s.gfx.heap_cursor) {
+            s.failure=true;return;
+        }
+        code2::Runtime108Boundary driver{};
+        driver.patch_code8=&texture_patch_byte;
+        code2::Runtime106Boundary raster{};
+        raster.out16=&WorldGraphicsSource::out16;
+        raster.store_es8=&texture_es_write;
+        const u32 before=s.outdoor_raster_bytes;
+        code2::function_34a74(s.gfx.machine,driver,raster);
+        const u32 first=std::min(rows,0x50u);
+        const u32 second=rows>0x50u?rows-0x50u:0u;
+        const u32 expected=first*4u*64u+second*2u*64u;
+        if(s.outdoor_raster_bytes-before!=expected)s.failure=true;
+        s.outdoor_4plane_rows+=first;
+        s.outdoor_2plane_rows+=second;
     }
     static void unexpected_panorama(u32) noexcept {self().failure=true;}
     void render_saved_background() {
@@ -332,6 +393,7 @@ struct WorldFrame {
         code2::Application44Boundary dispatch{};
         dispatch.app43=&lookup;
         dispatch.call_314b0=&unexpected_panorama;
+        dispatch.call_34998=&source_texture_view_setup;
         dispatch.call_33e28=&source_sky;
         dispatch.call_33de0=&source_ground;
         dispatch.call_34a74=&textured_backdrop_dispatch;
@@ -350,12 +412,21 @@ struct WorldFrame {
         CHECK(textured_sky_dispatch==1u && textured_ground_dispatch==1u);
         CHECK(original_sky_calls==0u && original_ground_calls==0u &&
               original_background_bytes==0u);
-        CHECK(background_resources.size()>=1u);
+        CHECK(background_resources.size()==2u);
+        CHECK(outdoor_setup_calls>=1u && outdoor_patch_words>=4u);
+        CHECK(outdoor_patch_bytes>=12u);
+        CHECK(outdoor_4plane_rows>0u && outdoor_2plane_rows>0u);
+        CHECK(outdoor_raster_bytes>=16384u);
         std::cout<<"CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS"
                  <<" sky=1 ground=1 source_RES4_items="
                  <<background_resources.size()
                  <<" unrendered_ui_requests="<<unrendered_ui_requests
-                 <<" texel_rasterizer_executed=NO\\n";
+                 <<" texel_rasterizer_executed=YES\\n";
+        std::cout<<"CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS"
+                 <<" source_outdoor_raster_bytes="<<outdoor_raster_bytes
+                 <<" rows_4planes="<<outdoor_4plane_rows
+                 <<" rows_2plane_pairs="<<outdoor_2plane_rows
+                 <<" setup_calls="<<outdoor_setup_calls<<"\\n";
     }
     void render(bool saved_outdoor=false) {
         install_world();
@@ -406,8 +477,8 @@ struct WorldFrame {
         if(!saved_outdoor)
             std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
         else
-            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_34A74_DISPATCH=YES"
-                     <<" TEXTURED_SKY_GROUND_TREES_RENDERED=NO\\n";
+            std::cout<<"CODE2_LEVEL5_SOURCE_OUTDOOR_34A74_SKY_GROUND_RENDERED=YES"
+                     <<" RES3_SCENERY_AND_HUD_RENDERED=NO\\n";
         std::cout<<"CODE2_FULL_DOS_WORLD_PARITY_ACCEPTED=NO\\n";
     }
 };
