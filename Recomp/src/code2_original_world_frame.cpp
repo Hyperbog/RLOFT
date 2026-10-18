@@ -43,6 +43,7 @@ struct WorldFrame {
     u32 textured_sky_dispatch=0,textured_ground_dispatch=0,unrendered_ui_requests=0;
     u32 outdoor_setup_calls=0,outdoor_patch_words=0,outdoor_patch_bytes=0;
     u32 outdoor_raster_bytes=0,outdoor_4plane_rows=0,outdoor_2plane_rows=0;
+    u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     std::map<u32,u32> background_resources{};
     bool failure=false;
     code2::Application82Boundary scaler{};
@@ -331,6 +332,9 @@ struct WorldFrame {
            addr>=s.gfx.memory.size()) {
             s.failure=true;return;
         }
+        if(pixel)++s.outdoor_nonzero_stores;
+        if(addr<0xA8000u)++s.outdoor_page0_stores;
+        else ++s.outdoor_page1_stores;
         s.gfx.memory[addr]=pixel;
         if(!s.gfx.video.write_aperture(static_cast<u16>(addr),pixel))
             s.failure=true;
@@ -437,7 +441,13 @@ struct WorldFrame {
                 [](u8 p){return p!=0u;}));
         std::cout<<"CODE2_ORIGINAL_OUTDOOR_POST_RASTER"
                  <<" nonzero_scanout="<<background_nonzero
-                 <<" pixels_written="<<outdoor_raster_bytes<<"\\n";
+                 <<" pixels_written="<<outdoor_raster_bytes
+                 <<" nonzero_writes="<<outdoor_nonzero_stores
+                 <<" page0_writes="<<outdoor_page0_stores
+                 <<" page1_writes="<<outdoor_page1_stores
+                 <<" guest_C050="<<unsigned(gfx.memory[0xC050u])
+                 <<" guest_FDBC="<<code2::load_le32(gfx.memory.data()+0xFDBCu)
+                 <<"\\n";
         std::cout.flush();
         CHECK(background_resources.size()==2u);
         CHECK(outdoor_setup_calls>=1u && outdoor_patch_words>=4u);
