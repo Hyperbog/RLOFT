@@ -66,14 +66,14 @@ public:
         if (x>=kWidth || y>=kHeight) return false;
         const PlanarAddress addr=code2_planar_address(x,y);
         map_mask_=static_cast<std::uint8_t>(1u<<addr.plane);
-        write_aperture(addr.offset,color);
+        write_aperture(static_cast<std::uint16_t>(addr.offset),color);
         return true;
     }
     // Raw planar scanout indexed bytes. Unmodeled CRTC modes and line
     // compare must not be mistaken for exact physical VGA frames.
     std::uint8_t indexed_scanout(std::uint32_t x,std::uint32_t y) const noexcept {
         const PlanarAddress addr=code2_planar_address(x,y,crtc_start_);
-        return planes_[addr.plane][addr.offset];
+        return planes_[addr.plane][static_cast<std::uint16_t>(addr.offset)];
     }
     std::vector<std::uint8_t> scanout_indices() const {
         std::vector<std::uint8_t> frame(kWidth*kHeight);
