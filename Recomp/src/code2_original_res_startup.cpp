@@ -122,10 +122,11 @@ struct Session {
         auto& t=state();
         std::size_t n=0;
         while(n<84 && name[n]!=0)++n;
-        if(n==0 || n==84){t.error=true;return -1;}
+        if(n==0 || n==84){std::cerr<<"OPEN_RES_INVALID_LENGTH="<<n<<'\n';t.error=true;return -1;}
         std::string path(reinterpret_cast<const char*>(name),n);
         const auto slash=path.find_last_of("/\\");
         const std::string base=slash==std::string::npos?path:path.substr(slash+1);
+        std::cerr<<"SOURCE_OPEN_RES_PATH="<<path<<"\n";
         if(base.size()<4||base.size()>5||base.substr(0,3)!="RES"){
             t.error=true;return -1;
         }
@@ -222,6 +223,9 @@ struct Session {
         REQUIRE(code2::load_le32(memory.data()+0x258F8u)==600u);
         REQUIRE(code2::load_le16(memory.data()+0x7FCCu)==414u);
         code2::function_2e7f0(m,res_callbacks,0x26000u,11u);
+        std::cerr<<"STARTUP_STATUS error="<<error<<" info_opens="<<info_opens<<" res_opens="<<res_opens<<" heap="<<heap_cursor<<" flags=";
+        for(unsigned k=0;k<13;++k)std::cerr<<unsigned(memory[0xF054u+k])<<",";
+        std::cerr<<"\n";
         REQUIRE(!error && info_opens==1u && res_opens==11u);
         REQUIRE(code2::load_le32(memory.data()+0xF0B4u)==11u);
         const u32 base=code2::load_le32(memory.data()+0xF0B8u);
