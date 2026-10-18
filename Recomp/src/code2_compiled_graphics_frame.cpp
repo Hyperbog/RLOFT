@@ -45,6 +45,7 @@ struct Session {
     unsigned source_type6_load_calls=0;
     bool stream_error=false;
     code2::Application70Boundary image_loader{};
+    code2::Runtime125Boundary type6_source{};
     static void fail_stream() noexcept {state().stream_error=true;}
     static u32 alloc_guest(u32 bytes) noexcept {
         auto& s=state();
@@ -156,33 +157,38 @@ struct Session {
             fail_stream();
         return image;
     }
-    // The 2ECB4 type-6 branch dispatches to CODE.2 37590. Its exact
-    // reconstructed stream callback is still incomplete; retain the source
-    // cache+dispatch but use the verified read-only type-6 LZSS importer.
-    static u32 type6_loader(u32 hdr,u32 handle) noexcept {
+    // Compile and execute the original 37590 type-6 loader; the header
+    // pointer passed through 2ECB4 is distinct from the DOS stream handle.
+    static u16 type6_source_read_word(u32 header) noexcept {
+        auto& s=state();
+        if(header!=0x2B670u || s.stream_cursor+2u>s.active_entry_end){
+            fail_stream();return 0u;
+        }
+        constexpr u32 guest_len=0x2B680u;
+        if(read_file(guest_len,2u,s.stream_handle)!=2u){fail_stream();return 0u;}
+        return code2::load_le16(s.memory.data()+guest_len);
+    }
+    static void type6_source_set_stream(u32 stream) noexcept {
+        auto& s=state();
+        code2::function_2f960(s.machine,stream);
+    }
+    static void type6_source_align() noexcept {
+        auto& s=state();
+        code2::function_2f96c(s.machine,s.image_loader);
+    }
+    static void type6_source_decompress(u32 out,u32 desc,u32 data,u32 count,u32 mode) noexcept {
+        auto& s=state();
+        (void)code2::function_2fb04(s.machine,s.image_loader,out,desc,data,count,mode);
+    }
+    static u32 type6_loader(u32 header,u32 handle) noexcept {
         auto& s=state();
         ++s.source_type6_load_calls;
-        if(handle!=s.stream_handle || hdr!=0x2B670u ||
-           *code2::dg(s.machine,hdr+2u)!=6u) {fail_stream();return 0u;}
-        try {
-            const auto tex=rloft::original_res::decode_type6(
-                s.archive_bytes,s.resident_resource_id);
-            // EH type-6 has a zero-length typed header. The decoded-size
-            // word is the first two bytes of the stream AFTER the EH header,
-            // consumed by source 37590 rather than by source 2EB60.
-            constexpr u32 guest_len=0x2B680u;
-            if(s.active_entry_end<s.stream_cursor+2u ||
-               read_file(guest_len,2u,handle)!=2u) {fail_stream();return 0u;}
-            const u32 expected=code2::load_le16(s.memory.data()+guest_len);
-            if(expected!=tex.decoded_bytes) {fail_stream();return 0u;}
-            s.stream_cursor=s.active_entry_end; // bounded host decoding consumed stream
-            const u32 guest=alloc_guest(tex.decoded_bytes+2u);
-            if(!guest)return 0u;
-            code2::store_le16(s.memory.data()+guest,tex.decoded_bytes);
-            std::copy(tex.column_major.begin(),tex.column_major.end(),
-                      s.memory.begin()+guest+2u);
-            return guest;
-        } catch(const std::exception&) {fail_stream();return 0u;}
+        if(handle!=s.stream_handle || header!=0x2B670u ||
+           *code2::dg(s.machine,header+2u)!=6u){fail_stream();return 0u;}
+        const u32 allocated=code2::function_37590(s.type6_source,header,handle);
+        if(!allocated || s.stream_error || logical_file_position()!=s.active_entry_end)
+            fail_stream();
+        return allocated;
     }
     void open_readonly_resource(const std::string& filename,u32 item,u32 slot) {
         archive_bytes=rloft::original_res::read_only(filename);
@@ -288,7 +294,7 @@ struct Session {
             }
         }
         CHECK(!stream_error && !unsupported && !video.unsupported_read());
-        std::cout<<"COMPILED_CODE2_RES4_2ECB4_TYPE6_3395C_338C8_COLUMN_SAMPLER_PASS"
+        std::cout<<"COMPILED_CODE2_RES4_2ECB4_37590_37700_3395C_338C8_PASS"
                  <<" columns="<<tex.columns<<" height="<<height<<"\n";
         std::cout<<"FULL_WORLD_FIRST_PERSON_SCENE_ACCEPTED=NO; projection/screen geometry not connected\n";
     }
@@ -362,6 +368,13 @@ struct Session {
         resource_loader.call_310b0=&free_guest;
         resource_loader.call_2fd9c=&source_image_loader;
         resource_loader.call_37590=&type6_loader;
+        type6_source.read_word=&type6_source_read_word;
+        type6_source.alloc=&alloc_guest;
+        type6_source.read8=&read8;
+        type6_source.write8=&write8;
+        type6_source.call_2f960=&type6_source_set_stream;
+        type6_source.call_2f96c=&type6_source_align;
+        type6_source.call_2fb04=&type6_source_decompress;
         image_loader.app69=&resources;
         image_loader.call_312ec=&read_file;
         image_loader.call_3131c=&position_file;
