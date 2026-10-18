@@ -2,7 +2,7 @@ name: Original 181B4 Saved-Level Direct-Load Gate
 on:
   workflow_dispatch:
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/code2_original_save_game.cpp'

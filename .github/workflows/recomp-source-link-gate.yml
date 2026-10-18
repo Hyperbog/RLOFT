@@ -2,7 +2,7 @@ name: Canonical reconstructed CODE.1 + CODE.2 source link gate
 
 on:
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - '.github/workflows/recomp-source-link-gate.yml'
       - 'Recomp/**'

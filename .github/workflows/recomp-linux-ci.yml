@@ -1,7 +1,7 @@
 name: RLOFT Linux portable recompilation C++ regression
 on:
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - 'dev/linux.sh'
       - 'Recomp/src/**'

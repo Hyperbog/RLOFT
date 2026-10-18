@@ -11,7 +11,7 @@ on:
   schedule:
     - cron: '37 13 1,15 * *'
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - 'Recomp/ACCEPTANCE_GATES.json'
       - 'Code2/graphics/*.hpp'
@@ -27,6 +27,8 @@ on:
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/original_sintab_raster.hpp'
+      - 'Recomp/src/original_code2_369d8_raster.hpp'
+      - 'Recomp/src/test_original_code2_369d8_raster.cpp'
       - 'Recomp/test_original_37700_control.cpp'
       - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-milestone-windows.yml'
@@ -46,7 +48,7 @@ jobs:
       - name: Check out exact source for milestone (recomp, never game/demo)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name == 'recomp' && github.sha || 'recomp' }}
+          ref: ${{ github.ref_name == 'Recomp' && github.sha || 'Recomp' }}
           persist-credentials: false
       - name: Record actual checked-out recomp source revision
         id: source

@@ -2,12 +2,13 @@ name: Authentic Saved Level 5 Wall Compositor Probe
 on:
   workflow_dispatch:
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_original_save_game.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/original_sintab_raster.hpp'
+      - 'Recomp/src/original_code2_369d8_raster.hpp'
       - 'Code2/graphics/original_levels_grid.hpp'
       - '.github/workflows/recomp-saved-world-linux.yml'
 permissions:

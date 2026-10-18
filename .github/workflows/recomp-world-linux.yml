@@ -2,7 +2,7 @@ name: Source-authentic CODE2 world RES4 Linux gate
 on:
   workflow_dispatch:
   push:
-    branches: [recomp]
+    branches: [Recomp]
     paths:
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/original_sintab_raster.hpp'
