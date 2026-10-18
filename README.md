@@ -1,15 +1,11 @@
-# RLOFT — Ravenloft asset extractor workstream
+# Ravenloft Asset Extractor
 
-This branch develops the **Windows extractor and original-data extraction tools**. Its own source-level instructions, interface documentation, format proofs and history stay inside `Tools/`, `Resources/` and `DatFiles/`; they are not being centralized or deleted.
+**Branch:** `Ravenloft-Asset-Extractor`. Windows WPF/Python extraction and asset-inspection workstream, using immutable original game media supplied by the owner.
 
-## Project-specific documentation
+**Start here:** [Tools overview](Tools/README.md), [WPF extraction GUI](Tools/WpfExtractor/README.md), [Python/ANM and resource extraction](Tools/anm/README.md), [RES/ANM format research](Resources/README.md) and [DAT formats](DatFiles/README.md).
 
-- [Extraction tools overview](Tools/README.md)
-- [Python/ANM and original resource extraction](Tools/anm/README.md)
-- [WPF extractor project](Tools/WpfExtractor/README.md)
-- [RES/ANM binary-format evidence](Resources/README.md)
-- [Original DAT structure research](DatFiles/README.md)
+Original graphics, palettes, audio, sprites and animation frames may be decoded to the owner's chosen local cache/export directory; do not publish extracted copyrighted media in Git or public Actions artifacts. Static format/source analysis does not prove every original asset is decoded correctly.
 
-**[Cross-project index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/INDEX.md)** · [Branch ownership](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/BRANCH_OWNERSHIP.md) · [Current project status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/CURRENT_STATUS.md)
+**Build/release:** the owning GitHub workflows are `.github/workflows/build-wpf-fluent.yml` and `build-windows-extractor.yml` and now reference `Ravenloft-Asset-Extractor`. Check the exact source and artifact SHA when validating a release.
 
-Do not interpret copies of reconstructed `Code2.cpp` in this specialist branch as the current canonical decompilation: check the [shared-source register](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/SHARED_SOURCE_REGISTER.md) before using original code as an extraction reference. Original game files are preserved under `DnD-Classics` and are not included in extractor application source. Build/release and original source accuracy need revision-specific verification.
+[Project documentation index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/INDEX.md) · [automated live branch/CI snapshot](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/LIVE_STATUS.md).

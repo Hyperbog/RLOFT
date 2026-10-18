@@ -1,20 +1,10 @@
-# Ravenloft Tools
+# Ravenloft Asset Extractor — tools
 
-Modern preservation, inspection, extraction, and remastering utilities built
-from the certified reverse-engineering work in this repository.
+**Owning branch:** `Ravenloft-Asset-Extractor`. Active extraction applications:
 
-## Current tool
+- [WPF Fluent Windows extractor](WpfExtractor/README.md) — user-facing graphical application and local build wrapper.
+- [Original ANM / resource extraction](anm/README.md) — Python asset decoding, soundtrack and graphics/media export tools. The historical `anm/` directory name does not limit its resource coverage.
 
-- `anm/` — **Ravenloft Asset Extraction Suite**. The directory name is a
-  historical artifact from its ANM-only first phase; it now extracts the full
-  graphics/texture/font/shape, sampled-audio, music/timbre, cinematic,
-  palette/text, and renderer-support corpus.
+All original files are read-only and are never bundled in public CI or release media. Decoder/regression outcomes are specific to tested source revisions; unknown source-format semantics remain explicit. The asset extractor is a separate tool, not the playable game.
 
-All tools treat shipped Ravenloft bytes as immutable source evidence. Decoders
-follow the certified `Resources/` documentation, preserve canonical/native
-bytes alongside modern derivatives where useful, and keep unresolved semantics
-explicit rather than inventing them.
-
-## Optional shared REA research adapter
-
-[Optional shared REA analysis](REA_ANALYSIS.md) is available through the canonical `code1-decompilation:ResearchInfra/` checkout. It is local, read-only static analysis and **does not** install REA into this application's runtime, alter original game media, or certify original DOS/gameplay parity.
+[Original binary and palette research](../Resources/README.md) · [DAT research](../DatFiles/README.md) · [optional read-only REA static analysis](REA_ANALYSIS.md). Canonical original code remains on [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation), with source recompilation on [`recomp`](https://github.com/Hyperbog/RLOFT/tree/recomp).
