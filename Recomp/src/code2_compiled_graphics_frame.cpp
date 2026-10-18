@@ -3,7 +3,7 @@
 // original compiled resource lookup and image layout/draw routines.
 #include "../../Code2/Code2.cpp"
 #include "original_vga_host.hpp"
-#include "original_res_image_archive.hpp"
+#include "../../Code2/graphics/original_res_image_archive.hpp"
 #include <array>
 #include <algorithm>
 #include <cstdint>

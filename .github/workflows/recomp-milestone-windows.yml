@@ -19,7 +19,7 @@ on:
       - 'Recomp/src/original_vga_host.hpp'
       - 'Recomp/src/test_original_vga_host.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
-      - 'Recomp/src/original_res_image_archive.hpp'
+      - 'Code2/graphics/original_res_image_archive.hpp'
       - 'Recomp/tools/verify_owned_res_render.py'
       - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-milestone-windows.yml'
