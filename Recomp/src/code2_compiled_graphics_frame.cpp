@@ -5,6 +5,7 @@
 #include "original_vga_host.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "../../Code2/graphics/original_37700_control.hpp"
+#include "../../Code2/graphics/original_res_type6.hpp"
 #include <array>
 #include <algorithm>
 #include <cstdint>
@@ -223,6 +224,42 @@ struct Session {
                  <<" source_37700="<<bounded_lzss_callbacks<<"\n";
     }
 
+    void render_res4_columns(const rloft::original_res::Texture6& tex,
+                             u32 height,u32 shade) {
+        if(height<8u || height>256u || shade>63u)
+            throw std::invalid_argument("RES4 column height must be 8..256 and shade 0..63");
+        // Source textures are column-major, 128 texels per column. The
+        // original 33647..33664 selects +2*field_10 = 128*column bytes.
+        constexpr u32 pixels=0x320000u;
+        if(std::uint64_t(pixels)+tex.decoded_bytes>memory.size())
+            throw std::runtime_error("RES4 guest texture buffer overflow");
+        std::copy(tex.column_major.begin(),tex.column_major.end(),
+                  memory.begin()+pixels);
+        // Original 3395C writes map masks for successive VGA planes; original
+        // 338C8 writes into the guest A0000 shadow. Replicate those writes
+        // to the host VGA port aperture until CODE.2 guest memory is shared.
+        code2::Runtime95Boundary plane{};
+        plane.out16=&out16;
+        const u32 screen_x=(320u-tex.columns)/2u;
+        const u32 shade_pair=shade|(shade<<8u);
+        for(u32 col=0;col<tex.columns;++col) {
+            const u32 x=screen_x+col;
+            code2::function_3395c(plane,1u<<(x&3u));
+            const u32 dest=0xA0000u+(x>>2u);
+            const u32 src=pixels+col*128u;
+            code2::Application94Boundary scale_state(0u); // original stack residue unknown
+            code2::function_338c8(machine,scale_state,shade_pair,height,src,dest);
+            for(u32 row=0;row<256u;++row) {
+                const u32 guest=dest+row*80u;
+                if(!video.write_aperture(static_cast<u16>(guest),memory[guest]))
+                    throw std::runtime_error("RES4 video transfer failed");
+            }
+        }
+        CHECK(!unsupported && !video.unsupported_read());
+        std::cout<<"COMPILED_CODE2_RES4_3395C_338C8_COLUMN_SAMPLER_PASS"
+                 <<" columns="<<tex.columns<<" height="<<height<<"\n";
+        std::cout<<"FULL_WORLD_FIRST_PERSON_SCENE_ACCEPTED=NO; projection/screen geometry not connected\n";
+    }
     static Session* live;
     static Session& state() { if (!live) throw std::logic_error("No active graphics session"); return *live; }
     static bool vram(u32 a) { return a>=0xA0000u && a<0xB0000u; }
@@ -421,6 +458,25 @@ void write_frame(const std::string& stem,const rloft::graphics::OriginalVgaHost&
 
 int main(int argc,char**argv) {
     try {
+        if(argc>=2 && std::string(argv[1])=="--res4") {
+            if(argc!=7 && argc!=10)
+                throw std::invalid_argument(
+                    "usage: --res4 <owner-RES4-path> <entry-id> <height> <shade-0..63> <output-stem> [COLORS bank brightness]");
+            const u32 entry=static_cast<u32>(std::stoul(argv[3]));
+            const u32 height=static_cast<u32>(std::stoul(argv[4]));
+            const u32 shade=static_cast<u32>(std::stoul(argv[5]));
+            const auto image=rloft::original_res::load_type6(argv[2],entry);
+            Session session;
+            session.mode(3u);
+            if(argc==10) {
+                session.owned_colors_palette(argv[7],
+                    static_cast<unsigned>(std::stoul(argv[8])),
+                    static_cast<unsigned>(std::stoul(argv[9])));
+            } else session.indexed_palette();
+            session.render_res4_columns(image,height,shade);
+            write_frame(argv[6],session.video);
+            return 0;
+        }
         if (argc>=2 && std::string(argv[1])=="--res") {
             if(argc!=7 && argc!=10)
                 throw std::invalid_argument("usage: --res <original-RES-path> <entry-id> <slot-id> <frame-id> <out-stem> [COLORS bank brightness]");
