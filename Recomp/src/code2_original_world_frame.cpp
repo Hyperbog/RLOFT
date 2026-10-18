@@ -399,8 +399,9 @@ struct WorldFrame {
                  <<" c026="<<unsigned(gfx.memory[0xC026u])
                  <<" c027="<<unsigned(gfx.memory[0xC027u])
                  <<" c028="<<unsigned(gfx.memory[0xC028u])
-                 <<" sky_kind="<<unsigned(gfx.memory[0x258B0u])
-                 <<" ground_kind="<<unsigned(gfx.memory[0x258B1u])
+                 <<" ground_offset="<<code2::load_le16(gfx.memory.data()+0x2561Du)
+                 <<" sky_offset="<<code2::load_le16(gfx.memory.data()+0x2561Fu)
+                 <<" res4_environment_base="<<code2::load_le32(gfx.memory.data()+0x258F8u)
                  <<" FF50="<<code2::load_le32(gfx.memory.data()+0xFF50u)
                  <<"\\n";
         std::cout.flush();
@@ -464,6 +465,12 @@ struct WorldFrame {
                  <<"\\n";
         std::cout.flush();
         CHECK(background_resources.size()==2u);
+        if(code2::load_le32(gfx.memory.data()+0x258F8u)==600u) {
+            CHECK(background_resources.count(634u)==1u);
+            CHECK(background_resources.count(635u)==1u);
+            std::cout<<"CODE2_SAVED_LEVEL5_ORIGINAL_INIT_RES4_BASED_SKY_GROUND"
+                     <<" sky_res4=634 ground_res4=635\\n";
+        }
         CHECK(outdoor_setup_calls>=1u && outdoor_patch_words>=4u);
         CHECK(outdoor_patch_bytes>=12u);
         CHECK(outdoor_4plane_rows>0u && outdoor_2plane_rows>0u);
@@ -549,9 +556,8 @@ struct WorldFrame {
         code2::function_2939c(b,frame,y,x,image);
         ++s.hud_blits;
     }
-    void render_saved_hud(const std::string& filename,
-                           const std::string& init_file) {
-        initialize_original_hud_assets(init_file);
+    void render_saved_hud(const std::string& filename) {
+        CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
         CHECK(gfx.memory[0xEF4Du]==1u);
         code2::function_2abf4(gfx.hardware,0x8000u);
@@ -599,6 +605,8 @@ struct WorldFrame {
     void render(bool saved_outdoor=false,const std::string& hud_file="",
                 const std::string& init_file="") {
         install_world();
+        if(saved_outdoor && !init_file.empty())
+            initialize_original_hud_assets(init_file);
         prepare_materials();
         if(saved_outdoor)render_saved_background();
         const u32 before=gfx.source_type6_load_calls;
@@ -633,7 +641,7 @@ struct WorldFrame {
                    (callback_calls>0u || legacy_fallbacks>0u));
         CHECK(shader_flushes>0u);
         if(saved_outdoor && !hud_file.empty())
-            render_saved_hud(hud_file,init_file);
+            render_saved_hud(hud_file);
         if(saved_outdoor) {
             const u32 page=static_cast<u32>(gfx.memory[0xC050u]);
             CHECK(page==1u && gfx.memory[0xEF4Du]==1u);
