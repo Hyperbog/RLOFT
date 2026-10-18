@@ -58,9 +58,50 @@ int main() {
     CHECK(v.indexed_scanout(0,0)==0);
     CHECK(!v.write_indexed_port(0x3D4,0x0009)); // unimplemented scan mode
     CHECK(!v.write_port8(0x3DA,8)); // no synthetic retrace
-    CHECK(v.write_port8(0x3CE,5)); // index is valid
-    CHECK(!v.write_port8(0x3CF,0)); // register data unimplemented
+    CHECK(v.write_port8(0x3CE,6)); // GC register index is valid
+    CHECK(!v.write_port8(0x3CF,0)); // GC miscellaneous register not yet emulated
     const auto pixels=v.scanout_indices();
     CHECK(pixels.size()==320u*400u);
-    std::cout<<"CODE2_VGA_ADDRESS_PLANES_DAC6_CRTC_PASS\n";
+    // Mode 0 read-modify-write: original source draws read to load latches.
+    CHECK(v.write_indexed_port(0x3C4,0x0F02));
+    CHECK(v.write_indexed_port(0x3CE,0x0003));
+    CHECK(v.write_indexed_port(0x3CE,0x0005));
+    CHECK(v.write_indexed_port(0x3CE,0xFF08));
+    CHECK(v.write_aperture(100,0x0F));
+    CHECK(v.read_aperture(100)==0x0F);
+    CHECK(v.write_indexed_port(0x3CE,0x1803)); // XOR each latched plane
+    CHECK(v.write_aperture(100,0xFF));
+    CHECK(v.read_aperture(100)==0xF0);
+    CHECK(v.write_indexed_port(0x3CE,0x0003));
+    CHECK(v.write_indexed_port(0x3CE,0x0F08)); // preserve upper latch bits
+    CHECK(v.write_aperture(100,0x05));
+    CHECK(v.read_aperture(100)==0xF5);
+    CHECK(v.write_indexed_port(0x3CE,0xFF08));
+    CHECK(v.write_indexed_port(0x3CE,0x0105)); // mode 1 copies latch
+    CHECK(v.write_aperture(101,0));
+    CHECK(v.read_aperture(101)==0xF5);
+    CHECK(v.write_indexed_port(0x3CE,0x0205)); // mode 2 color expands bits
+    CHECK(v.write_aperture(102,0x05));
+    for (int p=0;p<4;++p) {
+        CHECK(v.write_indexed_port(0x3CE,static_cast<std::uint16_t>((p<<8)|4)));
+        CHECK(v.read_aperture(102)==((p&1)?0u:0xFFu));
+    }
+    CHECK(v.write_indexed_port(0x3CE,0x0005));
+    CHECK(v.write_aperture(103,0x0F));
+    CHECK(v.read_aperture(103)==0x0F);
+    CHECK(v.write_indexed_port(0x3CE,0x0500)); // set/reset planes 0 and 2
+    CHECK(v.write_indexed_port(0x3CE,0xF008)); // upper-nibble bit mask
+    CHECK(v.write_indexed_port(0x3CE,0x0305)); // mode 3 masked color
+    CHECK(v.write_aperture(103,0xF0));
+    for (int p=0;p<4;++p) {
+        CHECK(v.write_indexed_port(0x3CE,static_cast<std::uint16_t>((p<<8)|4)));
+        CHECK(v.read_aperture(103)==((p&1)?0x0Fu:0xFFu));
+    }
+    CHECK(!v.write_indexed_port(0x3CE,0x0805)); // read mode1 unsupported
+    CHECK(v.write_indexed_port(0x3CE,0x0005));
+    CHECK(v.write_indexed_port(0x3CE,0xFF08));
+    CHECK(v.write_indexed_port(0x3CE,0x0103)); // CPU data rotate right 1
+    CHECK(v.write_aperture(104,0x80));
+    CHECK(v.read_aperture(104)==0x40);
+    std::cout<<"CODE2_VGA_ADDRESS_PLANES_DAC6_CRTC_LATCH_ROP_PASS\n";
 }
