@@ -34,6 +34,10 @@ The `COLORS` resource format is 11,521 bytes: one count byte (15), followed by f
 - [Windows MSVC #39085580864](https://github.com/Hyperbog/RLOFT/actions/runs/39085580864), [Linux GCC #39085580768](https://github.com/Hyperbog/RLOFT/actions/runs/39085580768): **66/66 CTests** passed, including direct execution of original reconstructed CODE.2 drawing routines.
 - [Windows MSVC milestone #39085661346](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346): passed all 66 tests, invoked the compiled frame diagnostic independently and uploaded [Windows graphics engineering package](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346/artifacts/12120363240) containing `.idx` and `.bmp` frames, plus [test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39085661346/artifacts/12120383231). Later palette bank tests require their own verified CI result before being counted.
 
+## Authenticated original RES raster path
+
+Real game files are now supported in a separate read-only source bridge: original RES0:15 and RES1:336 rendered through **compiled CODE.2 2A20C → 2F29C → 2975C → 2A380** on the Windows milestone runner. Their verified nonzero pixel counts are 90 and 2,992 respectively, and no original artwork is uploaded. The bridge uses a bounded host decoder to prepopulate the real cache record; it **does not** execute original CODE.2 2FD9C's DOS file stream. See [original RES source execution/SHAs and limits](REAL_RES_TYPE1_SOURCE_RENDER.md). The earlier synthetic-frame samples remain separate diagnostic fixtures.
+
 ## Remaining acceptance gaps
 
 1. **Original image and world content**: the diagnostic currently uses synthetic planar image records; actual decoded RES textures, sprites, scene/HUD assets, animation state and palette banks are not yet linked into full game runtime.
