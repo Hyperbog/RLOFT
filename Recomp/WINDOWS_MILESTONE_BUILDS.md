@@ -45,3 +45,12 @@ This produces owner-local `portrait.idx` and `portrait.bmp` from authentic sourc
 
 
 [Windows build #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) **passed 68/68 tests** and exercised real owner-preserved RES0/RES1 through original `2ECB4`/ `2FD9C` file-backed loading and original image-cache population. The authenticated frame hashes remain unchanged. [Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121853934) and [test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121759678), retained until December 17, 2026. Only the synthetic preview frame is packaged; original raster and palette bytes stay on the runner. The `37700` compressed-stream stop condition is not yet reconstructed and is supplied by a bounded host callback. R04 is **not accepted**.
+
+## CODE.2 compressed source and authentic RES4 column milestone
+
+[Windows/MSVC #39092086421](https://github.com/Hyperbog/RLOFT/actions/runs/39092086421) passed **70/70 tests** and source-authenticated original `RES0:15`, `RES1:336`, `RES4:0`, `RES4:100`, `RES4:500` and `COLORS` SHA checks. The RES4 column samples are 64×128 original type-6 textures, with no visual scene/parity claim. The reconstructed `37700` stop control is guest-flag driven, `2E7F0` source resource initialization is exercised, and `338C8` original compiled column scaling runs into indexed VGA. The original full game startup and `37590` decompressor remain separate.
+
+- [Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39092086421/artifacts/12123107884) — source test tools, synthetic previews and SHA checksums
+- [CTest and milestone evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39092086421/artifacts/12122889028) — Windows diagnostics, no retail graphics
+
+Both expire December 17, 2026. Source-loaded original RES captures were generated only in temporary CI directories, not uploaded. **R04 remains unaccepted**. Technical evidence: [RES4 and 37700 source audit](../Code2/graphics/RES4_FIRST_PERSON_SOURCE.md).
