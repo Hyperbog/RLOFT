@@ -76,7 +76,7 @@ struct WorldFrame {
         CHECK(std::uint64_t(address)+count<=gfx.memory.size());
         std::copy_n(ray.guest.begin()+address,count,gfx.memory.begin()+address);
     }
-    void install_world() {
+    void install_world(bool saved_outdoor) {
         // Do not overwrite the active 2E7F0/2F29C RES4 cache descriptors.
         copy_guest(0x100000u,ray.heap_top-0x100000u); // 03838 SINTAB arena
         copy_guest(0x15618u,128u*4u);                // scale code sizes
@@ -91,13 +91,15 @@ struct WorldFrame {
         copy_guest(0xBF48u,0xA0u);               // original 1EA04 HUD placements
         copy_guest(0xC034u,4u);                  // source HUD mode
         copy_guest(0xF9CCu,4u);                   // original 31F94 time phase
-        // CODE.2 initialized DGROUP encodes the source viewport clip:
-        // FDAC=0x120 (bottom), FDB0=0x20 (top), x bounds 4..0x104.
-        // The isolated graphics adapter starts zeroed, so install original
-        // bytes rather than fabricating source polygon clip dimensions.
-        copy_guest(0xFDACu,0x10u);
-        CHECK(code2::load_le32(gfx.memory.data()+0xFDACu)==0x120u);
-        CHECK(code2::load_le32(gfx.memory.data()+0xFDB0u)==0x20u);
+        // Original CODE.2 startup initializes the clip rectangle in
+        // retail DGROUP. The synthetic Level11 ray regression does not
+        // boot that object and must not be subjected to the save-only
+        // invariant. Source saved Level5 does load the authentic bytes.
+        if(saved_outdoor) {
+            copy_guest(0xFDACu,0x10u);
+            CHECK(code2::load_le32(gfx.memory.data()+0xFDACu)==0x120u);
+            CHECK(code2::load_le32(gfx.memory.data()+0xFDB0u)==0x20u);
+        }
         copy_guest(0xFE14u,0x110u);               // 31EDC shade/FE94 lookup
         copy_guest(0xC026u,3u);                  // 1F1C8 outdoor state flags
         copy_guest(0xC050u,1u);                  // original display page
@@ -973,7 +975,7 @@ struct WorldFrame {
                 const std::string& npc_file="",
                 const std::string& object_file="",
                 const std::string& res3_file="") {
-        install_world();
+        install_world(saved_outdoor);
         if(saved_outdoor && !init_file.empty())
             initialize_original_hud_assets(init_file,npc_file,object_file);
         prepare_materials();
