@@ -14,6 +14,7 @@ import tempfile
 KNOWN = {
     "RES0": ("5e30584947c9627e31b5dd2573ad75c2d3cc9fe796ac669e0ca5d02d6db7e61d", 15, 0),
     "RES1": ("c13b8ae42f7d3b65c06d8413627f40a2a155a7404da44abfc158b38a4e5efd19", 336, 1),
+    "RES4": ("d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46", 0, None),
     "COLORS": ("e366986bf701ba832aa769bf99f0db90a76af658300ce3d02e7039a970a9baf5", None, None),
 }
 
@@ -29,7 +30,7 @@ def main() -> int:
         print(f"VERIFIED_ORIGINAL_FILE={filename} SHA256={digest}")
     with tempfile.TemporaryDirectory(prefix="rloft-private-source-raster-") as tmp:
         for archive,(sha,entry,slot) in KNOWN.items():
-            if entry is None: continue
+            if entry is None or slot is None: continue
             stem=pathlib.Path(tmp)/archive
             command=[str(executable),"--res",str(root/archive),
                      str(entry),str(slot),"0",str(stem),
@@ -58,7 +59,26 @@ def main() -> int:
                   f"nonzero_pixels={nonzero} "
                   f"indexed_sha256={hashlib.sha256(pixels).hexdigest()} "
                   f"palettized_bmp_sha256={hashlib.sha256(bmp).hexdigest()}")
-    print("ORIGINAL_RES_REAL_MEDIA_DRAW_PASS; FULL_WORLD_RENDER=UNVERIFIED")
+        for entry in (0, 100, 500):
+            stem=pathlib.Path(tmp)/f"RES4-{entry}"
+            cmd=[str(executable),"--res4",str(root/"RES4"),
+                 str(entry),"128","0",str(stem),str(root/"COLORS"),"0","0"]
+            p=subprocess.run(cmd,capture_output=True,text=True,timeout=30)
+            if p.returncode:
+                raise RuntimeError(f"RES4:{entry}: authentic 338C8 source rendering failed: "
+                                   +p.stderr[-1200:])
+            if "COMPILED_CODE2_RES4_3395C_338C8_COLUMN_SAMPLER_PASS" not in p.stdout:
+                raise RuntimeError(f"RES4:{entry}: missing original column sampler acknowledgement")
+            indices=stem.with_suffix(".idx").read_bytes()
+            bitmap=stem.with_suffix(".bmp").read_bytes()
+            if len(indices)!=128000 or len(bitmap)!=129078:
+                raise RuntimeError(f"RES4:{entry}: incorrect indexed-frame dimensions")
+            count=sum(v!=0 for v in indices)
+            if count==0:raise RuntimeError(f"RES4:{entry}: no authentic texture pixels")
+            print(f"ORIGINAL_RES4_COLUMN_RENDER_PASS entry={entry} nonzero_pixels={count} "
+                  f"indexed_sha256={hashlib.sha256(indices).hexdigest()} "
+                  f"palettized_bmp_sha256={hashlib.sha256(bitmap).hexdigest()}")
+    print("ORIGINAL_RES_REAL_MEDIA_DRAW_AND_RES4_COLUMN_PASS; FULL_WORLD_RENDER=UNVERIFIED")
     return 0
 
 if __name__=="__main__":
