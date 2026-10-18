@@ -99,6 +99,19 @@ def main() -> int:
                 raise RuntimeError(f"RES4:{entry}: incorrect indexed-frame dimensions")
             count=sum(v!=0 for v in indices)
             if count==0:raise RuntimeError(f"RES4:{entry}: no authentic texture pixels")
+            composed=pathlib.Path(tmp)/f"RES4-compositor-{entry}"
+            composed_cmd=[str(executable),"--res4-compositor",str(root/"RES4"),
+                          str(entry),"128","0",str(composed),str(root/"COLORS"),"0","0"]
+            projection=subprocess.run(composed_cmd,capture_output=True,text=True,timeout=30)
+            if projection.returncode:
+                raise RuntimeError(f"RES4:{entry}: original 3263C wall compositor failed: "
+                                   +projection.stderr[-1100:])
+            if "CODE2_RES4_SOURCE_2ECB4_37590_3263C_338C8_COMPOSITOR_PASS" not in projection.stdout:
+                raise RuntimeError(f"RES4:{entry}: compiled source compositor not acknowledged")
+            if composed.with_suffix(".idx").read_bytes()!=indices:
+                raise RuntimeError(f"RES4:{entry}: authentic source 3263C/338C8 indexed parity mismatch")
+            print(f"ORIGINAL_RES4_3263C_COMPOSITOR_PASS entry={entry} "
+                  f"source_index_sha256={hashlib.sha256(indices).hexdigest()}")
             print(f"ORIGINAL_RES4_COLUMN_RENDER_PASS entry={entry} nonzero_pixels={count} "
                   f"indexed_sha256={hashlib.sha256(indices).hexdigest()} "
                   f"palettized_bmp_sha256={hashlib.sha256(bitmap).hexdigest()}")
