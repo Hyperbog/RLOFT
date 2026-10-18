@@ -30,6 +30,11 @@ WINDOWS = {
  "res_stream_byte_2f9e4": (0x2F9E4,0x2FA2F,"6b63596dc23c7949dc6c201c6025bb92fac290dd50b43a0524b71b1277d75586"),
  "res_lzss_dispatch_2fb04": (0x2FB04,0x2FB66,"8685f1bcf40a6f3adf36a45cf60f76dc768ed1a7bf25e6dcd64b52323e83c7dc"),
  "res_lzss_pack_2fa30": (0x2FA30,0x2FB01,"d7746363c0a980d7c84cc27ffd57febdae1b4b41b973f2b32689bb7ba75abf76"),
+ "res_startup_slots_2e7f0": (0x2E7F0,0x2E9CB,"b762134b4bc2d7e4d1c3da2ea9db97f303235212e4c7c1dc55e096baee7bb7c7"),
+ "res_type6_loader_37590": (0x37590,0x375F0,"47c69a86484cfb139763bc18bee1fe72cfba523ddf58a9abd7fbbff3464f1441"),
+ "res4_column_select_33647": (0x33647,0x33665,"d1e0b75e4cf429c81f6a4294f6266c4ee508d609231b28355296438fe518d226"),
+ "res4_fixed_point_sampler_338c8": (0x338C8,0x3395A,"80e61b5265ca7c9512332895079f07b02ab7e8dee610ffc6b000173cc76946d7"),
+ "res4_vga_plane_selector_3395c": (0x3395C,0x339A2,"7bccc9fd1f104e0d2cbae0fb041c2df398e1f8708919aeab0159ad582576c6dd"),
 }
 
 def verify(data: bytes) -> dict[str,bool]:
@@ -43,7 +48,7 @@ def self_test() -> None:
         if not (0<=start<stop<ORIGINAL_LENGTH-OBJECT1_OFFSET and len(sha)==64 and
                 all(c in "0123456789abcdef" for c in sha)):
             raise AssertionError("Invalid source span record: "+name)
-    if len(WINDOWS)!=21: raise AssertionError("Unexpected source manifest count")
+    if len(WINDOWS)!=26: raise AssertionError("Unexpected source manifest count")
     try: verify(b"bad")
     except ValueError: pass
     else: raise AssertionError("Invalid original accepted")
