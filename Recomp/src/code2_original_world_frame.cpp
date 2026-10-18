@@ -401,6 +401,21 @@ struct WorldFrame {
         // This isolated saved-game source diagnostic must seed that original
         // coefficient table explicitly before 1F1C8's optional refresh.
         source_texture_view_setup();
+        const u32 coeff_a=code2::load_le16(gfx.memory.data()+0x193E0u);
+        const u32 coeff_b=code2::load_le16(gfx.memory.data()+0x19660u);
+        u32 populated_rows=0u;
+        for(u32 i=0u;i<128u;++i) {
+            const auto p=0xFF58u+i*6u;
+            if(code2::load_le16(gfx.memory.data()+p)!=0u ||
+               code2::load_le16(gfx.memory.data()+p+2u)!=0u ||
+               gfx.memory[p+4u]!=0u || gfx.memory[p+5u]!=0u)
+                ++populated_rows;
+        }
+        std::cout<<"CODE2_ORIGINAL_OUTDOOR_COEFFICIENTS"
+                 <<" src_193E0="<<coeff_a
+                 <<" src_19660="<<coeff_b
+                 <<" active_34998_rows="<<populated_rows<<"\\n";
+        std::cout.flush();
         // The original 334C4/32954 rays have already run on the source
         // save-loaded machine; do not duplicate geometry on gfx machine.
         code2::function_1f1c8(gfx.machine,dispatch);
@@ -416,6 +431,14 @@ struct WorldFrame {
         CHECK(textured_sky_dispatch==1u && textured_ground_dispatch==1u);
         CHECK(original_sky_calls==0u && original_ground_calls==0u &&
               original_background_bytes==0u);
+        const auto background_pixels=gfx.video.scanout_indices();
+        const u32 background_nonzero=static_cast<u32>(
+            std::count_if(background_pixels.begin(),background_pixels.end(),
+                [](u8 p){return p!=0u;}));
+        std::cout<<"CODE2_ORIGINAL_OUTDOOR_POST_RASTER"
+                 <<" nonzero_scanout="<<background_nonzero
+                 <<" pixels_written="<<outdoor_raster_bytes<<"\\n";
+        std::cout.flush();
         CHECK(background_resources.size()==2u);
         CHECK(outdoor_setup_calls>=1u && outdoor_patch_words>=4u);
         CHECK(outdoor_patch_bytes>=12u);
