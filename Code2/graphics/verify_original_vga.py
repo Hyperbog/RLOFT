@@ -24,6 +24,12 @@ WINDOWS = {
  "res_lookup_draw_2975c": (0x2975C,0x2978A,"57133ad4a6f17943d795e39c4fbefe47e8d2f8260ddd5d42099c2dfba74e6c7d"),
  "res_layout_permutation_37810": (0x37810,0x37958,"3b4abcfdc9dad165e0aba16bc070a7863508c9a4d1ac70eeb12ae98b1e4ee156"),
  "res_original_lzss_37700": (0x37700,0x3780D,"61c42dd14fd8db7a22e439ff433ed851343e160d38b1b0d88ac5548ecc7f9915"),
+ "res_typed_header_2eb60": (0x2EB60,0x2EC73,"5c98f9e862c7cda25a0a050947ba9ef1dd486c461665aaaec170529892fe4ec5"),
+ "res_unloaded_dispatch_2ecb4": (0x2ECB4,0x2EFB3,"787b20bda33e47803ed2f13cb90e203835e9f55fdcd0416e428a87745ba17e9b"),
+ "res_stream_align_2f96c": (0x2F96C,0x2F9AE,"4b40b4aa87a161b4a568e12206f9f23eca59211f1663d50b6d9a26e41f525eb8"),
+ "res_stream_byte_2f9e4": (0x2F9E4,0x2FA2F,"6b63596dc23c7949dc6c201c6025bb92fac290dd50b43a0524b71b1277d75586"),
+ "res_lzss_dispatch_2fb04": (0x2FB04,0x2FB66,"8685f1bcf40a6f3adf36a45cf60f76dc768ed1a7bf25e6dcd64b52323e83c7dc"),
+ "res_lzss_pack_2fa30": (0x2FA30,0x2FB01,"d7746363c0a980d7c84cc27ffd57febdae1b4b41b973f2b32689bb7ba75abf76"),
 }
 
 def verify(data: bytes) -> dict[str,bool]:
@@ -37,7 +43,7 @@ def self_test() -> None:
         if not (0<=start<stop<ORIGINAL_LENGTH-OBJECT1_OFFSET and len(sha)==64 and
                 all(c in "0123456789abcdef" for c in sha)):
             raise AssertionError("Invalid source span record: "+name)
-    if len(WINDOWS)!=15: raise AssertionError("Unexpected source manifest count")
+    if len(WINDOWS)!=21: raise AssertionError("Unexpected source manifest count")
     try: verify(b"bad")
     except ValueError: pass
     else: raise AssertionError("Invalid original accepted")
