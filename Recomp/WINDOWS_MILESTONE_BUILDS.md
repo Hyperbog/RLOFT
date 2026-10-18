@@ -37,3 +37,7 @@ To inspect your own legally held original graphic, run the packaged diagnostic:
 ```
 
 This produces owner-local `portrait.idx` and `portrait.bmp` from authentic source art. The ZIP contains only synthetic-frame examples. Original CODE.2 2FD9C unloaded resource/DOS IO is **not** wired, and R04 is unaccepted; [details](../Code2/graphics/REAL_RES_TYPE1_SOURCE_RENDER.md).
+
+## Unloaded original CODE.2 resource-loader milestone
+
+[Windows build #39089791043](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043) **passed 68/68 tests** and exercised real owner-preserved RES0/RES1 through original `2ECB4`/ `2FD9C` file-backed loading and original image-cache population. The authenticated frame hashes remain unchanged. [Windows engineering ZIP](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121853934) and [test evidence](https://github.com/Hyperbog/RLOFT/actions/runs/39089791043/artifacts/12121759678), retained until December 17, 2026. Only the synthetic preview frame is packaged; original raster and palette bytes stay on the runner. The `37700` compressed-stream stop condition is not yet reconstructed and is supplied by a bounded host callback. R04 is **not accepted**.
