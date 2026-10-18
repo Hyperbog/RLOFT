@@ -553,8 +553,10 @@ struct WorldFrame {
                            const std::string& init_file) {
         initialize_original_hud_assets(init_file);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
-        const u32 before=static_cast<u32>(gfx.video.scanout_indices().size());
-        CHECK(before==128000u);
+        CHECK(gfx.memory[0xEF4Du]==1u);
+        code2::function_2abf4(gfx.hardware,0x8000u);
+        const auto before=gfx.video.scanout_indices();
+        CHECK(before.size()==128000u);
         gfx.open_readonly_resource(filename,0u,0u);
         const u32 old_calls=gfx.draw_calls;
         code2::Application43Boundary hud{};
@@ -577,6 +579,18 @@ struct WorldFrame {
         CHECK(hud_res0_lookups==12u && hud_blits>=12u);
         CHECK(gfx.draw_calls-old_calls==hud_blits);
         hud_distinct_res0=static_cast<u32>(hud_resource_ids.size());
+        const auto after=gfx.video.scanout_indices();
+        const u32 changed=static_cast<u32>(
+            std::inner_product(before.begin(),before.end(),after.begin(),0u,
+                std::plus<u32>{},[](u8 old_pixel,u8 new_pixel) {
+                    return static_cast<u32>(old_pixel!=new_pixel);
+                }));
+        std::cout<<"CODE2_SAVE5_HUD_INDEXED_OUTPUT_DIAGNOSTIC"
+                 <<" changed_visible_pixels="<<changed
+                 <<" positions_first=("
+                 <<code2::load_le32(gfx.memory.data()+0xBF5Cu)<<","
+                 <<code2::load_le32(gfx.memory.data()+0xBF8Cu)<<")"
+                 <<" hud_page="<<unsigned(gfx.memory[0xEF4Du])<<"\\n";
         std::cout<<"CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS"
                  <<" lookups="<<hud_res0_lookups
                  <<" distinct_resources="<<hud_distinct_res0
