@@ -6,6 +6,7 @@ on:
     paths:
       - 'Code2/Code2.cpp'
       - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/code2_compiled_graphics_frame.cpp'
       - 'Recomp/src/original_code2_1f494_bridge.inc'
       - 'Recomp/src/code2_original_save_game.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
