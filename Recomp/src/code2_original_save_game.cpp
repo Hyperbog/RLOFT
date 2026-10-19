@@ -18,6 +18,7 @@ using SaveLevel=OriginalLevelGuest;
 struct SavedGame {
     SaveLevel& s;
     unsigned save_opens=0,level_opens=0,level_callbacks=0;
+    u32 expected_level=5u;
     bool error=false;
     static SavedGame* active;
     static SavedGame& live() noexcept {return *active;}
@@ -47,10 +48,19 @@ struct SavedGame {
     }
     static u32 open_level(u32 addr) noexcept {
         auto& t=live();
-        if(addr!=0x819Cu || !path_is(addr,"WORK\\LEV005.DAT")){
+        if(t.expected_level>=32u){t.error=true;return 0xFFFFFFFFu;}
+        // The authentic 181B4 rewrites the LEVnnn digits at 81A4..81A6.
+        // Only a matching original guest path may open the read-only file.
+        const auto n=t.expected_level;
+        std::string file="LEV";
+        file+=static_cast<char>('0'+n/100u);
+        file+=static_cast<char>('0'+n/10u%10u);
+        file+=static_cast<char>('0'+n%10u);
+        file+=".DAT";
+        if(addr!=0x819Cu || !path_is(addr,("WORK\\"+file).c_str())){
             t.error=true;return 0xFFFFFFFFu;
         }
-        const auto r=t.s.files.open("LEV005.DAT",0u);
+        const auto r=t.s.files.open(file,0u);
         if(r.carry){t.error=true;return 0xFFFFFFFFu;}
         ++t.level_opens;++t.s.opens;return r.ax;
     }
@@ -92,7 +102,7 @@ struct SavedGame {
     static void load_saved_level(u32 level) noexcept {
         auto& t=live();
         ++t.level_callbacks;
-        if(level!=5u){t.error=true;return;}
+        if(level!=t.expected_level){t.error=true;return;}
         code2::Application32Boundary b{};
         b.call_312a0=&open_level;
         b.call_312a0_local=&SaveLevel::open_archive;
@@ -117,7 +127,9 @@ struct SavedGame {
         // retail lengths 9288 and 9310. The original compiled 07938 parser
         // still controls whether the extra 22 source bytes are valid.
         VERIFY((save.size()==9288u || save.size()==9310u) &&
-               grid.level==5u);
+               grid.level<32u &&
+               code2::load_le32(save.data()+0x52u)==grid.level);
+        expected_level=grid.level;
         code2::Application10Boundary b{};
         code2::Application09Boundary ui{};
         b.call_312a0=&open_save;
@@ -140,7 +152,7 @@ struct SavedGame {
         VERIFY(status==0u && !error && !s.failed);
         VERIFY(save_opens==1u && level_opens==1u && level_callbacks==1u);
         VERIFY(s.files.open_handles()==0u && s.opens==s.closes);
-        VERIFY(code2::load_le32(s.guest.data()+0xC6C8u)==5u);
+        VERIFY(code2::load_le32(s.guest.data()+0xC6C8u)==grid.level);
         // Never force SAVE10's specific pose, light or daypart onto
         // independent original saves. Cross-check authentic saved camera
         // bytes against the compiled 07938 output instead.
@@ -169,10 +181,12 @@ struct SavedGame {
                                s.guest.begin()+0x218E0u+i*0x248u));
         }
         std::cout<<"CODE2_07938_ORIGINAL_SAVE5_LOAD_AND_181B4_DIRECT_LEVEL_PASS"
+                 <<" level="<<grid.level
                  <<" x16="<<code2::load_le32(s.guest.data()+0x255D0u)
                  <<" y16="<<code2::load_le32(s.guest.data()+0x255D4u)
                  <<" heading="<<code2::load_le32(s.guest.data()+0xC658u)
-                 <<" party=4 containers=62 level_cells=4096\\n";
+                 <<" party=4 containers=62 level_cells="
+                 <<grid.cells.size()<<"\\n";
         std::cout<<"CODE2_CONTINUOUS_CODE1_GAME_BOOT_ACCEPTED=NO\\n";
         std::cout<<"CODE2_SOURCE_DOS_PIXEL_PARITY_ACCEPTED=NO\\n";
     }
@@ -182,10 +196,14 @@ SavedGame* SavedGame::active=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        if(argc!=3)throw std::invalid_argument(
-            "usage: rloft_original_code2_save_game /private/SAVE10 "
-            "/private/CODE.2 (SINTAB must be in SAVE10)");
-        const std::filesystem::path dir(argv[1]),original(argv[2]);
+        const bool census=argc==4 &&
+            std::string(argv[1])=="--source-ray-census";
+        if((!census && argc!=3) || (argc==4 && !census))
+            throw std::invalid_argument(
+                "usage: [--source-ray-census] /private/SAVEnn "
+                "/private/CODE.2 (SINTAB must be next to SAVE.DAT)");
+        const std::filesystem::path dir(argv[census?2:1]),
+                                    original(argv[census?3:2]);
         VERIFY(std::filesystem::is_directory(dir) &&
                original.filename()=="CODE.2");
         const auto exe=rloft::original_levels::read_archive(original.string());
@@ -193,9 +211,17 @@ int main(int argc,char** argv) {
         VERIFY(exe.size()==558689u && exe.size()>object2_source+0x7330u+620u);
         const auto save=rloft::original_levels::read_archive(
             (dir/"SAVE.DAT").string());
+        VERIFY(save.size()>=0x997u);
+        const u32 level=code2::load_le32(save.data()+0x52u);
+        VERIFY(level<32u);
+        std::string levname="LEV";
+        levname+=static_cast<char>('0'+level/100u);
+        levname+=static_cast<char>('0'+level/10u%10u);
+        levname+=static_cast<char>('0'+level%10u);
+        levname+=".DAT";
         const auto lev=rloft::original_levels::read_archive(
-            (dir/"LEV005.DAT").string());
-        const auto grid=rloft::original_levels::decode_saved_grid(lev,5u);
+            (dir/levname).string());
+        const auto grid=rloft::original_levels::decode_saved_grid(lev,level);
         auto source=std::make_unique<SaveLevel>(dir,true);
         std::fill(source->guest.begin(),source->guest.end(),0u);
         // Original CODE.2 initialized DGROUP object-2 image, followed by BSS.
@@ -211,6 +237,38 @@ int main(int argc,char** argv) {
         source->load_original_sintab();
         SavedGame gate(*source);
         gate.execute(save,grid);
+        if(census) {
+            // Execute reconstructed original 334C4 -> 32954 against the
+            // unmodified guest state produced by original 07938/181B4.
+            code2::Application90Boundary view{};
+            view.call_35680=&code2::function_35680;
+            view.call_32954=&SaveLevel::original_ray_sweep;
+            code2::function_334c4(source->machine,view);
+            VERIFY(!source->failed && source->rays==1u);
+            VERIFY(code2::load_le32(source->guest.data()+0xFD0Cu)==
+                   grid.cells.size());
+            const auto count=code2::load_le16(
+                source->guest.data()+0x258A2u);
+            VERIFY(count<=4096u);
+            u32 marked=0u;
+            for(u32 i=0;i<count;++i) {
+                const u32 record=0x14D80u+i*0x16u;
+                VERIFY(std::uint64_t(record)+0x0Eu<=source->guest.size());
+                const u32 cell=code2::load_le16(
+                    source->guest.data()+record+0x0Cu);
+                VERIFY(cell<grid.cells.size());
+                marked+=(source->guest[0x198E0u+2u*cell]&0x40u)!=0u;
+            }
+            std::cout<<"CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS"
+                     <<" level="<<level
+                     <<" heading="<<code2::load_le32(
+                         source->guest.data()+0xC658u)
+                     <<" primary_actors="<<count
+                     <<" actor_cells_ray_visible="<<marked
+                     <<" original_07938_181B4_32954=YES"
+                     <<" sprite_draw_pixels=NOT_TESTED"
+                     <<" DOS_VGA_PARITY=NOT_VERIFIED\\n";
+        }
         return 0;
     } catch(const std::exception& e) {
         std::cerr<<"CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL: "
