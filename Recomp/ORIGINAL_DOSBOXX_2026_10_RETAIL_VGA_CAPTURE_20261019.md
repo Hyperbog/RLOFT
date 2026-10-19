@@ -99,15 +99,9 @@ Native `SAVE09(2)` source frame from accepted Milestone #185:
 
 **Confirmed original/native DAC divergence:** 8 RGB6 entries
 **246..253** differ, 24 component bytes total. All other **248**
-entries are byte-identical. Original and native RGB6 respectively:
-- 246 `(48,48,48)` vs `(25,25,31)`
-- 247 `(53,53,53)` vs `(34,34,41)`
-- 248 `(57,57,57)` vs `(48,44,45)`
-- 249 `(62,62,62)` vs `(50,50,50)`
-- 250 `(8,8,8)` vs `(2,2,2)`
-- 251 `(14,14,14)` vs `(3,3,3)`
-- 252 `(19,19,19)` vs `(5,5,5)`
-- 253 `(25,25,25)` vs `(6,6,6)`
+entries are byte-identical. The raw RGB6 triples are retained only in
+the owner's private JSON audit and `.pal` extraction outputs, **not in
+the public source checkpoint**.
 
 At their different animation/UI instants, original screenshot vs
 native source 320x400 frame:
