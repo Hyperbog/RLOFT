@@ -8,6 +8,7 @@
 #include "original_code2_369d8_raster.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -121,7 +122,9 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
     // All generated-opcode clipping is staged privately. The original
     // source patches 36C10/36C44 and later restores with 36C90/36CBC.
     auto staged=guest;
-    auto staged_video=video;
+    // A four-plane VGA snapshot is >256 KiB: Windows defaults to a 1 MiB
+    // thread stack. Allocate the transactional copy on the heap.
+    auto staged_video=std::make_unique<rloft::graphics::OriginalVgaHost>(video);
     if(call.vertical_mode==0u) {
         phase+=scaled_index;
         unsigned cutoff=128;
@@ -203,7 +206,7 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
         ctx.renderer_phase=static_cast<std::int32_t>(phase);
         ctx.row_base=row_base;ctx.video_page=page;
         ctx.individual_columns=mode;
-        const auto raster=execute_original_369d8(staged,staged_video,ctx);
+        const auto raster=execute_original_369d8(staged,*staged_video,ctx);
         shade=raster.lookup_after;
         metrics.indexed_writes+=raster.indexed_writes;
         metrics.plane_passes+=raster.plane_passes;
@@ -211,7 +214,7 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
     }
     // Commit only the completed planar sprite; never carry SINTAB
     // self-patched stop instructions into the live original guest.
-    video=std::move(staged_video);
+    video=std::move(*staged_video);
     std::copy_n(staged.begin()+0xA0000u,0x10000u,guest.begin()+0xA0000u);
     return metrics;
 }

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -60,7 +61,9 @@ inline Original369d8Report execute_original_369d8(
         throw std::out_of_range("369D8 original guest range invalid");
     // Original DOS has no rollback on malformed resource data.
     // Stage all plane writes privately to make the host execution bounded.
-    auto staged_video=video;
+    // A four-plane VGA snapshot is >256 KiB: Windows defaults to a 1 MiB
+    // thread stack. Allocate the transactional copy on the heap.
+    auto staged_video=std::make_unique<rloft::graphics::OriginalVgaHost>(video);
     const auto code_begin=ctx.sintab_begin, code_end=ctx.sintab_end;
     std::vector<std::uint8_t> local_code(
         guest.begin()+code_begin,guest.begin()+code_end);
@@ -121,7 +124,7 @@ inline Original369d8Report execute_original_369d8(
             for(unsigned pass=0;pass<3;++pass) {
                 const auto mask=original_369d8_mask(offset,width,pass);
                 if(pass!=0 && !mask)continue;
-                if(!staged_video.write_indexed_port(
+                if(!staged_video->write_indexed_port(
                     0x3C4u,static_cast<std::uint16_t>(
                         0x0002u|(unsigned(mask)<<8))))
                     throw std::runtime_error("369D8 VGA mask register failed");
@@ -136,7 +139,7 @@ inline Original369d8Report execute_original_369d8(
                             ? local_code[address-code_begin]:guest[address];
                     },
                     [&](std::uint32_t address,std::uint8_t color) {
-                        if(!staged_video.write_aperture(
+                        if(!staged_video->write_aperture(
                             static_cast<std::uint16_t>(address),color))
                             write_failed=true;
                         if(writes.size()==kMaxWrites)write_failed=true;
@@ -157,7 +160,7 @@ inline Original369d8Report execute_original_369d8(
     // Grouped 36B39 swaps AL/AH; individual 36B42 restores ECX.
     if(!ctx.individual_columns)
         report.lookup_after=original_369d8_swap(ctx.packed_lookup);
-    video=std::move(staged_video);
+    video=std::move(*staged_video);
     for(const auto& write:writes)guest[write.address]=write.color;
     return report;
 }
