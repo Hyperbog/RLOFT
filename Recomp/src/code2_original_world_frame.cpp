@@ -803,19 +803,28 @@ struct WorldFrame {
                  <<" cached=YES\\n";
         const u32 source_primary=code2::load_le16(
             gfx.memory.data()+0x258A2u);
-        u32 source_visible_tiles=0u;
+        u32 source_visible_tiles=0u,source_first_pass_eligible=0u;
+        u32 source_actor_flag_suppressed=0u;
         for(u32 i=0u;i<source_primary;++i) {
             const u32 rec=0x14D80u+i*0x16u;
             const u32 cell=code2::load_le16(
                 gfx.memory.data()+rec+0x0Cu);
             if(cell>=4096u){failure=true;break;}
-            if((gfx.memory[0x198E0u+cell*2u]&0x40u)!=0u)
+            if((gfx.memory[0x198E0u+cell*2u]&0x40u)!=0u) {
                 ++source_visible_tiles;
+                // Retail 2B6D0 at 2B703 and 2B763 rejects flag 0x02
+                // BEFORE and after its ray-mark check, respectively.
+                const bool suppressed=(gfx.memory[rec+0x0Bu]&0x02u)!=0u;
+                source_actor_flag_suppressed+=suppressed;
+                source_first_pass_eligible+=!suppressed;
+            }
         }
         CHECK(!failure);
         std::cout<<"CODE2_SAVE5_RES3_SCENE_SOURCE_RAY_VISIBILITY"
                  <<" primary="<<source_primary
                  <<" primary_cells_visible="<<source_visible_tiles
+                 <<" source_2b6d0_initial_eligible="<<source_first_pass_eligible
+                 <<" source_2b6d0_flag02_rejected="<<source_actor_flag_suppressed
                  <<"\\n";
         code2::Application64Boundary projection{};
         projection.call_30ca2=&source_scene_rand;
