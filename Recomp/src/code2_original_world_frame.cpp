@@ -1283,7 +1283,14 @@ int main(int argc,char** argv) {
             constexpr char sin_name[]="SINTAB";
             std::copy_n(sin_name,sizeof(sin_name),ray->guest.begin()+0x24u);
             ray->load_original_sintab();
-            { SavedGame load(*ray); load.execute(save,grid); }
+            {
+                // The original 16D04 -> 16990 INIT scene descriptors must
+                // exist *before* 07938, as in genuine Level22 execution.
+                // This also isolates projection from missing boot metadata.
+                SavedGame load(*ray);
+                load.initialize_original_scene(save_file.parent_path());
+                load.execute(save,grid);
+            }
             code2::Application90Boundary view{};
             view.call_35680=&code2::function_35680;
             view.call_32954=&WorldRaySource::original_ray_sweep;
