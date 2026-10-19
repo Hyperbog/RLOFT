@@ -142,6 +142,16 @@ jobs:
           python Recomp/tools/milestone_report.py --milestone "$env:MILESTONE" --sha "${{ steps.source.outputs.sha }}" --junit "build/windows-milestone/ctest-results.xml" --build-result "${{ job.status }}" --out "build/windows-milestone/milestone-report.json"
           if ($LASTEXITCODE -ne 0) { throw "Unable to create milestone evidence" }
           python Recomp/tools/recomp_progress.py --json | Set-Content -Encoding utf8 build/windows-milestone/recomp-progress.json
+      - name: Validate owner-private two-skeleton PowerShell runner syntax
+        if: success()
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path "Recomp/tools/run_two_skeleton_complete_frame.ps1").Path,
+              [ref]$tokens, [ref]$parseErrors)
+          if (@($parseErrors).Count -ne 0) { throw "Owner-local runner contains PowerShell parser errors" }
       - name: Package verified engineering executables and checksums
         if: success()
         shell: pwsh
@@ -164,6 +174,8 @@ jobs:
             'RLOFT CODE.1/CODE.2 reconstructed-source milestone diagnostics'
             'NOT A PLAYABLE GAME; no original commercial game files included.'
             'No successful DOS/4GW runtime parity or game completion is implied.'
+            'Private two-skeleton visual approval requires two positive active-page viewport sprite footprints, 400 original RES0 base frames, and owner-local screenshot inspection.'
+            'Full party portrait, hand-widget and status HUD parity remains unverified; do not treat frame-base success as a complete HUD or retail screenshot match.'
             'The VGA adapter tests and the CODE.2 graphics frame use synthetic inputs; they are not a captured scene from the real game.'
             'code2-compiled-frame.idx is 320x400 raw palette indices; code2-compiled-frame.bmp is a palettized Windows BMP.'
             "Milestone probe: $env:MILESTONE"
