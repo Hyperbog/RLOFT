@@ -50,6 +50,7 @@ struct WorldFrame {
     u32 outdoor_raster_bytes=0,outdoor_4plane_rows=0,outdoor_2plane_rows=0;
     u32 outdoor_nonzero_stores=0,outdoor_page0_stores=0,outdoor_page1_stores=0;
     u32 hud_res0_lookups=0,hud_blits=0,hud_distinct_res0=0;
+    u32 source_frame_base_res0_loads=0,source_frame_base_blits=0;
     u32 scene_candidates=0,scene_quad_eligible=0,scene_draw_requests=0;
     u32 quad_scanline_calls=0,quad_guest_vga_changes=0,quad_source_pixel_writes=0;
     u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
@@ -1136,6 +1137,62 @@ struct WorldFrame {
         code2::function_2939c(b,frame,y,x,image);
         ++s.hud_blits;
     }
+    // Retail 1F8FC -> 2E510 -> 2F29C -> 2E4A4 -> 2939C
+    // draws the two original mode-selected RES0 frame bases at
+    // row 0 and row 200, BEFORE drawing the first-person world.
+    void render_original_gameplay_frame_base(
+            const std::string& res0,const std::string& res4) {
+        CHECK(std::filesystem::path(res0).filename()=="RES0");
+        CHECK(std::filesystem::path(res4).filename()=="RES4");
+        const u32 mode=code2::load_le32(gfx.memory.data()+0xC034u);
+        CHECK(mode<=2u);
+        const u32 base=code2::load_le32(gfx.memory.data()+0x258DCu);
+        CHECK(base==15u);
+        const u32 page=gfx.memory[0xC050u];
+        CHECK(page<=1u);
+        // 1F8FC first calls original 291B0(C050).
+        source_select_draw_page(page);
+        CHECK(!failure);
+        gfx.open_readonly_resource(res0,0u,0u);
+        const u32 original_draws=gfx.draw_calls;
+        for(u32 part=0u;part<2u;++part) {
+            // Retail 1F914 and 1F93F: base + (part+1) + 3*HUD_mode.
+            const u32 id=base+part+1u+3u*mode;
+            CHECK(id<gfx.entry_offsets.size()-1u);
+            const u32 image=code2::function_2f29c(
+                gfx.machine,gfx.resources,id,0u);
+            CHECK(!gfx.stream_error && image!=0u &&
+                  std::uint64_t(image)+6u<=gfx.heap_cursor);
+            ++source_frame_base_res0_loads;
+            // Original 2E4A4 loops every source frame, advancing the
+            // row by decoded image word +4 each time.
+            const u32 frames=code2::load_le16(gfx.memory.data()+image+2u);
+            const u32 row_step=code2::load_le16(gfx.memory.data()+image+4u);
+            CHECK(frames>=1u && frames<=400u &&
+                  row_step>=1u && row_step<=400u &&
+                  std::uint64_t(part)*200u+
+                    std::uint64_t(frames-1u)*row_step<400u);
+            for(u32 frame=0u;frame<frames;++frame) {
+                const u32 row=part*200u+frame*row_step;
+                code2::Application56Boundary draw{};
+                draw.call_2a380=&WorldGraphicsSource::draw_image;
+                code2::function_2939c(draw,frame,row,0u,image);
+                ++source_frame_base_blits;
+            }
+        }
+        CHECK(!gfx.unsupported && !gfx.stream_error &&
+              !failure && source_frame_base_res0_loads==2u &&
+              gfx.draw_calls-original_draws==source_frame_base_blits);
+        std::cout<<"CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS"
+                 <<" res0_loads="<<source_frame_base_res0_loads
+                 <<" frame_blits="<<source_frame_base_blits
+                 <<" frame_top=0 frame_bottom=200"
+                 <<" hud_mode="<<mode
+                 <<" draw_page="<<page<<"\\n";
+        // Restore resource 4 for original 335DC texture and sky callers.
+        gfx.open_readonly_resource(res4,0u,4u);
+        CHECK(!gfx.stream_error);
+    }
     void render_saved_hud(const std::string& filename) {
         CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
@@ -1188,10 +1245,15 @@ struct WorldFrame {
                 const std::string& init_file="",
                 const std::string& npc_file="",
                 const std::string& object_file="",
-                const std::string& res3_file="") {
+                const std::string& res3_file="",
+                const std::string& res4_file="") {
         install_world(saved_outdoor);
         if(saved_outdoor && !init_file.empty())
             initialize_original_hud_assets(init_file,npc_file,object_file);
+        if(saved_outdoor && !hud_file.empty()) {
+            CHECK(!res4_file.empty());
+            render_original_gameplay_frame_base(hud_file,res4_file);
+        }
         prepare_materials();
         if(saved_outdoor && !npc_file.empty())verify_original_scene_index();
         if(saved_outdoor)render_saved_background();
@@ -1345,7 +1407,8 @@ int main(int argc,char** argv) {
                     // two-skeleton camera. Retain it for the composed frame.
                     world.render(true,std::string(argv[9]),
                         init_file.string(),npc_file.string(),
-                        object_file.string(),res3_file.string());
+                        object_file.string(),res3_file.string(),
+                        res4_file.string());
                     full_frame_calls=world.scene_sprite_emits;
                     full_frame_sprite_writes=world.scene_sprite_pixels;
                     world_off_aperture_writes=
@@ -1554,7 +1617,8 @@ int main(int argc,char** argv) {
                          with_hud?std::string(argv[8]):"",
                          with_scene?std::string(argv[10]):"",
                          with_scene?std::string(argv[11]):"",
-                         with_scene?std::string(argv[12]):"");
+                         with_scene?std::string(argv[12]):"",
+                         saved_outdoor?res4.string():"");
         }
         const std::string output=argv[saved_outdoor?(with_scene?13:(with_hud?10:8)):6];
         write_frame(output,gfx->video);
