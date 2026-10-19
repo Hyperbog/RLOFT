@@ -193,8 +193,7 @@ static void party_30508(u32 row,u32 col,u32 width,u32 text,u32 font_id) noexcept
     // glyph widths at font+4+char. ASCII decimal/minus are the only
     // characters accepted by the 2E6F0 decimal formatter.
     const u32 image=code2::load_le32(w.gfx.memory.data()+font);
-    if(!image || std::uint64_t(image)+8u>=w.gfx.heap_cursor ||
-       w.gfx.memory[image+7u]>0xFFu) {
+    if(!image || std::uint64_t(image)+8u>=w.gfx.heap_cursor) {
         ++w.party_missing_text;w.failure=true;return;
     }
     u32 measured=0u,chars=0u;
@@ -206,7 +205,17 @@ static void party_30508(u32 row,u32 col,u32 width,u32 text,u32 font_id) noexcept
         measured+=w.gfx.memory[font+4u+c];
         ++chars;
     }
-    if(chars==0u||chars>=10u || measured>width) {
+    // Original 30508 centers even when the text is wider than its
+    // nominal width (SAR of signed width-minus-measured). Never reject
+    // solely for that; reject only if the resulting guest VGA footprint
+    // would actually extend outside the physical scanout.
+    const auto signed_gap=static_cast<std::int64_t>(width)-
+                          static_cast<std::int64_t>(measured);
+    const auto half_gap=signed_gap>=0 ?
+        signed_gap/2 : (signed_gap-1)/2;
+    const auto start_x=static_cast<std::int64_t>(col)+half_gap;
+    if(chars==0u || chars>=10u || measured==0u ||
+       start_x<0 || start_x+measured>320u) {
         ++w.party_missing_text;w.failure=true;return;
     }
     code2::Application56Boundary glyph{};
