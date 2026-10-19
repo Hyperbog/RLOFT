@@ -59,6 +59,11 @@ struct WorldFrame {
     u32 scene_projection_nonzero_scale=0,scene_projection_y_min=65535u;
     u32 scene_projection_y_max=0,scene_projection_scale_min=65535u;
     u32 scene_projection_scale_max=0;
+    u32 scene_projection_depth_rejected=0,scene_projection_primary_match=0;
+    std::int32_t scene_projection_min_depth=INT32_MAX;
+    std::int32_t scene_projection_max_depth=INT32_MIN;
+    std::int32_t scene_primary_min_depth=INT32_MAX;
+    std::int32_t scene_primary_max_depth=INT32_MIN;
     std::set<u32> source_res3_ids{},source_projected_res3_ids{};
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
@@ -693,6 +698,30 @@ struct WorldFrame {
            std::uint64_t(scale)+2u>s.gfx.memory.size()){
             s.failure=true;return;
         }
+        const u32 ax=x-code2::load_le32(s.gfx.memory.data()+0x255ECu);
+        const u32 bx=y-code2::load_le32(s.gfx.memory.data()+0x255F4u);
+        const u32 p0=code2::function_35680(
+            ax,code2::load_le32(s.gfx.memory.data()+0x255F8u));
+        const u32 p1=code2::function_35680(
+            bx,code2::load_le32(s.gfx.memory.data()+0x255FCu));
+        const auto depth=static_cast<std::int32_t>(p0-p1-0x2000u);
+        s.scene_projection_depth_rejected+=(depth<0x5800);
+        s.scene_projection_min_depth=std::min(s.scene_projection_min_depth,depth);
+        s.scene_projection_max_depth=std::max(s.scene_projection_max_depth,depth);
+        const u32 primary=code2::load_le16(s.gfx.memory.data()+0x258A2u);
+        for(u32 i=0u;i<primary && i<4096u;++i) {
+            const u32 rec=0x14D80u+i*0x16u;
+            if(x!=code2::load_le32(s.gfx.memory.data()+rec) ||
+               y!=code2::load_le32(s.gfx.memory.data()+rec+4u))continue;
+            const u32 cell=code2::load_le16(s.gfx.memory.data()+rec+0x0Cu);
+            if(cell>=4096u ||
+               !(s.gfx.memory[0x198E0u+cell*2u]&0x40u) ||
+               (s.gfx.memory[rec+0x0Bu]&0x02u))continue;
+            ++s.scene_projection_primary_match;
+            s.scene_primary_min_depth=std::min(s.scene_primary_min_depth,depth);
+            s.scene_primary_max_depth=std::max(s.scene_primary_max_depth,depth);
+            break;
+        }
         code2::function_35798(s.gfx.machine,x,y,target,scale);
         // Observe the exact original 35798 callback post-state. 2B6D0
         // subsequently rejects any y <= source horizon C02D or
@@ -864,6 +893,12 @@ struct WorldFrame {
                  <<" y_max="<<scene_projection_y_max
                  <<" projected_min="<<(scene_projection_callbacks?scene_projection_scale_min:0u)
                  <<" projected_max="<<scene_projection_scale_max
+                 <<" near_plane_rejected="<<scene_projection_depth_rejected
+                 <<" depth_min="<<(scene_projection_callbacks?scene_projection_min_depth:0)
+                 <<" depth_max="<<(scene_projection_callbacks?scene_projection_max_depth:0)
+                 <<" primary_actor_callback_matches="<<scene_projection_primary_match
+                 <<" primary_depth_min="<<(scene_projection_primary_match?scene_primary_min_depth:0)
+                 <<" primary_depth_max="<<(scene_projection_primary_match?scene_primary_max_depth:0)
                  <<" source_2c294_count="<<code2::load_le16(
                      gfx.memory.data()+0xF038u+
                          2u*code2::load_le32(gfx.memory.data()+0xC050u))
