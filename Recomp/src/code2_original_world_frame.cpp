@@ -849,11 +849,20 @@ struct WorldFrame {
         // 334C4 is authoritative for the 35798 camera basis. Verify
         // that the frame's copied guest registers are the *same* registers
         // the original 32954 source ray pass used; never repair them here.
+        u32 basis_mismatch_count=0u;
         for(u32 off: {0x255D0u,0x255D4u,0x255E0u,0x255ECu,0x255F4u,
                       0x255F8u,0x255FCu,0xC658u,0xC6CCu,0xC6D0u}) {
-            CHECK(code2::load_le32(gfx.memory.data()+off)==
-                  code2::load_le32(ray.guest.data()+off));
+            const u32 frame=code2::load_le32(gfx.memory.data()+off);
+            const u32 original=code2::load_le32(ray.guest.data()+off);
+            if(frame!=original) {
+                ++basis_mismatch_count;
+                std::cout<<"CODE2_ORIGINAL_RAY_PROJECTION_BASIS_DIFF"
+                         <<" guest_offset="<<off
+                         <<" ray_value="<<original
+                         <<" projector_value="<<frame<<"\\n";
+            }
         }
+        CHECK(basis_mismatch_count==0u);
         const u32 heading=code2::load_le32(ray.guest.data()+0xC658u);
         const u32 trig=code2::load_le32(ray.guest.data()+0xC65Cu);
         CHECK(heading<360u && trig>=0x100000u &&
