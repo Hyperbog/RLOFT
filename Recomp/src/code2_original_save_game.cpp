@@ -349,12 +349,15 @@ SavedGame* SavedGame::active=nullptr;
 
 int main(int argc,char** argv) {
     try {
+        const bool finder=argc==4 &&
+            std::string(argv[1])=="--find-visible-res3";
         const bool census=argc==4 &&
-            std::string(argv[1])=="--source-ray-census";
+            (std::string(argv[1])=="--source-ray-census" || finder);
         if((!census && argc!=3) || (argc==4 && !census))
             throw std::invalid_argument(
-                "usage: [--source-ray-census] /private/SAVEnn "
-                "/private/CODE.2 (SINTAB must be next to SAVE.DAT)");
+                "usage: [--source-ray-census|--find-visible-res3] "
+                "/private/SAVEnn /private/CODE.2 (original INIT, "
+                "NPCS.DAT, OBJECTS.DAT and SINTAB must be adjacent)");
         const std::filesystem::path dir(argv[census?2:1]),
                                     original(argv[census?3:2]);
         VERIFY(std::filesystem::is_directory(dir) &&
@@ -415,6 +418,101 @@ int main(int argc,char** argv) {
                     source->guest.data()+record+0x0Cu);
                 VERIFY(cell<grid.cells.size());
                 marked+=(source->guest[0x198E0u+2u*cell]&0x40u)!=0u;
+            }
+            if(finder) {
+                // Source 2B6D0 uses primary 14D80 records, flag 02, the
+                // 32954 ray-marked 0040 cells and source 35798 projection.
+                // No save/actor/camera/ray byte is changed; original 35798
+                // receives two short-lived scratch outputs which are restored.
+                VERIFY(std::filesystem::exists(dir/"INIT") &&
+                       std::filesystem::exists(dir/"NPCS.DAT") &&
+                       std::filesystem::exists(dir/"OBJECTS.DAT"));
+                VERIFY(count<=(0x17618u-0x14D80u)/0x16u);
+                const u32 origin_x=code2::load_le32(
+                    source->guest.data()+0x255ECu);
+                const u32 origin_y=code2::load_le32(
+                    source->guest.data()+0x255F4u);
+                const u32 sin=code2::load_le32(
+                    source->guest.data()+0x255FCu);
+                const u32 cos=code2::load_le32(
+                    source->guest.data()+0x255F8u);
+                const u32 horizon=source->guest[0xC02Du];
+                const u32 camera=code2::load_le32(
+                    source->guest.data()+0xC658u);
+                VERIFY(camera==code2::load_le32(save.data()+0x5Eu));
+                u32 active=0u,flag_ok=0u,front=0u;
+                u32 ray_front=0u,ray_projectable=0u;
+                u32 all_front=0u,all_projectable=0u;
+                std::int32_t minimum_depth=INT32_MAX,maximum_depth=INT32_MIN;
+                const u32 scratch=static_cast<u32>(source->guest.size()-8u);
+                std::array<u8,8> prior{};
+                std::copy_n(source->guest.data()+scratch,8u,prior.data());
+                for(u32 i=0u;i<count;++i) {
+                    const u32 record=0x14D80u+i*0x16u;
+                    const u32 cell=code2::load_le16(
+                        source->guest.data()+record+0x0Cu);
+                    VERIFY(cell<grid.cells.size());
+                    const bool marked=(source->guest[0x198E0u+2u*cell]&0x40u)!=0u;
+                    const bool enabled=(source->guest[record+0x0Bu]&0x02u)==0u;
+                    const u32 x=code2::load_le32(
+                        source->guest.data()+record);
+                    const u32 y=code2::load_le32(
+                        source->guest.data()+record+4u);
+                    const auto product_x=code2::function_35680(x-origin_x,cos);
+                    const auto product_y=code2::function_35680(y-origin_y,sin);
+                    const auto depth=static_cast<std::int32_t>(
+                        product_x-product_y-0x2000u);
+                    const bool passes=depth>=0x5800;
+                    // Original 35798 writes zero scale and does NOT
+                    // overwrite the target coordinate when depth is near.
+                    std::fill_n(source->guest.data()+scratch,8u,0u);
+                    code2::function_35798(
+                        source->machine,x,y,scratch,scratch+2u);
+                    const u32 screen=code2::load_le16(
+                        source->guest.data()+scratch);
+                    const u32 scale=code2::load_le16(
+                        source->guest.data()+scratch+2u);
+                    std::copy_n(prior.data(),8u,source->guest.data()+scratch);
+                    const bool projected=passes && screen>horizon && scale!=0u;
+                    if(enabled){++flag_ok;all_front+=passes;all_projectable+=projected;}
+                    if(marked && enabled) {
+                        ++active;front+=passes;ray_front+=passes;
+                        ray_projectable+=projected;
+                        minimum_depth=std::min(minimum_depth,depth);
+                        maximum_depth=std::max(maximum_depth,depth);
+                        std::cout<<"CODE2_UNTOUCHED_SOURCE_ACTOR_PROJECTION"
+                                 <<" level="<<level
+                                 <<" actor_index="<<i
+                                 <<" actor_type="<<code2::load_le16(
+                                     source->guest.data()+record+0x0Eu)
+                                 <<" cell="<<cell
+                                 <<" signed_depth="<<depth
+                                 <<" near_plane_pass="<<(passes?1:0)
+                                 <<" projected_scale="<<scale
+                                 <<" projected_screen="<<screen
+                                 <<" horizon="<<horizon
+                                 <<" drawable_2b6d0_initial="<<(projected?1:0)
+                                 <<" unmodified=YES\\n";
+                    }
+                }
+                VERIFY(std::equal(prior.begin(),prior.end(),
+                                  source->guest.begin()+scratch));
+                std::cout<<"CODE2_UNTOUCHED_SOURCE_RES3_CAMERA_FIND"
+                         <<" level="<<level
+                         <<" heading="<<camera
+                         <<" primary_actors="<<count
+                         <<" actor_flags_allowed="<<flag_ok
+                         <<" ray_marked_allowed="<<active
+                         <<" ray_marked_near_plane_pass="<<ray_front
+                         <<" ray_marked_projectable="<<ray_projectable
+                         <<" all_actors_near_plane_pass="<<all_front
+                         <<" all_actors_projectable="<<all_projectable
+                         <<" visible_min_depth="<<(active?minimum_depth:0)
+                         <<" visible_max_depth="<<(active?maximum_depth:0)
+                         <<" candidate="<<(ray_projectable?"YES":"NO")
+                         <<" source_35798=YES"
+                         <<" genuine_36cec_calls=NOT_TESTED"
+                         <<" DOS_VGA_PARITY=NOT_VERIFIED\\n";
             }
             std::cout<<"CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS"
                      <<" level="<<level
