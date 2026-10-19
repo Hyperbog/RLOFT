@@ -530,7 +530,8 @@ struct Session {
         CHECK(memory[palette+1u]==63u);
         memory[profile+0x6Cu]=0u;
     }
-    void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength) {
+    void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength,
+                              bool original_dac_observed_slice=false) {
         // Read-only user-owned COLORS palette bank:
         // byte 0 = 15; bank N is 768 RGB6 bytes at 1 + 768*N.
         // CODE.2 325B0 uses that exact bank offset, applies 32150, and
@@ -545,6 +546,21 @@ struct Session {
         constexpr u32 destination=0x17000u,profile=0x1C000u;
         const auto start=content.begin()+1+static_cast<std::ptrdiff_t>(bank*768u);
         std::copy_n(start,768,memory.begin()+destination);
+        if(original_dac_observed_slice) {
+            // Independent original DOSBox-X 2026.10.01 VGA/DAC saves
+            // (two instants) both show palette indices 246..253 taken
+            // exactly from retail COLORS bank 3 while all other entries
+            // match bank 0. Preserve the *original game asset values*,
+            // not screenshot-derived RGB literals. The retail caller
+            // sequencing that installs this slice is not yet traced:
+            // this opt-in path is an observed-hardware hypothesis.
+            CHECK(bank==0u && strength==0u);
+            constexpr u32 src_bank=3u, first=246u, entries=8u;
+            const auto src=content.begin()+1u+
+                static_cast<std::ptrdiff_t>(src_bank*768u+first*3u);
+            std::copy_n(src,entries*3u,
+                        memory.begin()+destination+first*3u);
+        }
         code2::store_le32(memory.data()+0xF050u,profile);
         memory[profile+0x6Cu]=static_cast<u8>(strength);
         code2::function_32150(machine,destination);
