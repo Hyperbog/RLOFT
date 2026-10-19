@@ -123,6 +123,18 @@ struct SavedGame {
         original.call_312ec_local=&read_init_local;
         original.call_312dc=&close_init;
         code2::function_16d04(s.machine,original);
+        std::cout<<"CODE2_16D04_INIT_SOURCE_DIAGNOSTIC"
+                 <<" error="<<error<<" guest_failed="<<s.failed
+                 <<" opens="<<metadata_init_opens
+                 <<" closes="<<metadata_init_closes
+                 <<" init_cursor="<<metadata_init_cursor
+                 <<" init_bytes="<<metadata_init.size()
+                 <<" npc_cursor="<<metadata_npc_cursor
+                 <<" npc_bytes="<<metadata_npcs.size()
+                 <<" object_cursor="<<metadata_object_cursor
+                 <<" object_bytes="<<metadata_objects.size()
+                 <<" view_table="<<code2::load_le32(s.guest.data()+0x2B764u)
+                 <<" heap_top="<<s.heap_top<<"\\n";
         VERIFY(!error && !s.failed && metadata_init_opens==1u &&
                metadata_init_closes==1u &&
                metadata_init_cursor==metadata_init.size() &&
