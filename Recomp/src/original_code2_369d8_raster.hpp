@@ -25,6 +25,7 @@ struct Original369d8Context {
 };
 struct Original369d8Report {
     std::uint32_t descriptors{}, plane_passes{}, indexed_writes{};
+    std::uint32_t off_aperture_cpu_writes{};
     std::uint16_t lookup_after{};
     std::uint8_t last_plane_mask{};
 };
@@ -54,7 +55,8 @@ inline Original369d8Report execute_original_369d8(
     if (ctx.run_width==0 || ctx.run_width>255 ||
         (!ctx.individual_columns && ctx.run_width>7))
         throw std::out_of_range("36B14 unvalidated grouped raster width");
-    if (ctx.video_page>1 || ctx.sintab_begin>=ctx.sintab_end ||
+    if (guest.size()<0xC0000u || ctx.video_page>1 ||
+        ctx.sintab_begin>=ctx.sintab_end ||
         ctx.sintab_end>guest.size() ||
         ctx.image_begin>=ctx.image_end || ctx.image_end>guest.size() ||
         ctx.source_body<ctx.image_begin || ctx.source_body>=ctx.image_end ||
@@ -89,8 +91,12 @@ inline Original369d8Report execute_original_369d8(
             static_cast<std::int64_t>(ctx.row_base)+(x>>2);
         const std::int64_t dest=
             0xA0000LL+ctx.video_page*0x8000LL+row_offset;
-        if(dest<0xA0000LL || dest+2>=0xB0000LL)
-            throw std::out_of_range("369D8 VGA aperture exceeded");
+        // 369D8's retail MOV [EDI+disp32],AL/AH has no 64K
+        // clipping instruction. Guest stores past AFFFF are legal
+        // CPU writes into the adjacent bounded B0000-BFFFF region,
+        // but are not evidence of pixels in the displayed VGA plane.
+        if(dest<0xA0000LL || dest+2>=0xC0000LL)
+            throw std::out_of_range("369D8 bounded video-address region exceeded");
         const unsigned offset=static_cast<unsigned>(x)&3u;
         std::size_t at=ctx.list_pointer;
         while(true) {
@@ -144,12 +150,19 @@ inline Original369d8Report execute_original_369d8(
                             ? local_code[address-code_begin]:guest[address];
                     },
                     [&](std::uint32_t address,std::uint8_t color) {
-                        if(!staged_video->write_aperture(
-                            static_cast<std::uint16_t>(address),color))
-                            write_failed=true;
+                        // Never truncate address 0xB0032 to 0x0032:
+                        // the old code's uint16_t cast would corrupt
+                        // the visible top of the 64K planar window.
+                        if(address<0xB0000u) {
+                            if(!staged_video->write_aperture(
+                                static_cast<std::uint16_t>(address),color))
+                                write_failed=true;
+                        } else {
+                            ++report.off_aperture_cpu_writes;
+                        }
                         if(writes.size()==kMaxWrites)write_failed=true;
                         else writes.push_back({address,color});
-                    });
+                    },0xC0000u);
                 if(write_failed)
                     throw std::runtime_error("369D8 bounded write limit");
                 if(!result.ok) {
