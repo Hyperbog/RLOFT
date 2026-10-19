@@ -36,6 +36,8 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01/LEV023.DAT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE03/SAVE.DAT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE03/LEV005.DAT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE04/SAVE.DAT
@@ -135,3 +137,34 @@ jobs:
           done
           echo "ORIGINAL_SAVED_CAMERA_CENSUS_END"
           echo "No original save files, RES bytes, indexed frames or palettes uploaded."
+
+      - name: Genuine Level 23 source-only 2C294 to 36CEC sprite probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="original-media/MASTER/Ravenloft - Strahd's Possession"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          cp "$root/cloud_saves/RLOFT/SAVE01/SAVE.DAT" "$scratch/"
+          cp "$root/cloud_saves/RLOFT/SAVE01/LEV023.DAT" "$scratch/"
+          for f in SINTAB RES4 COLORS CODE.2 INIT RES0 NPCS.DAT OBJECTS.DAT RES3; do
+            cp "$root/RLOFT/$f" "$scratch/"
+          done
+          status=0
+          build/save5-world/rloft_original_code2_world_frame --save-sprite-probe \
+            "$scratch/SAVE.DAT" "$scratch/LEV023.DAT" "$scratch/SINTAB" \
+            "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
+            "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
+            "$scratch/RES3" "$scratch/scene23" > "$scratch/probe.log" 2>&1 || status=$?
+          result=$(grep 'CODE2_GENUINE_RES3_SOURCE_PROBE' "$scratch/probe.log" | tail -n 1 || true)
+          visible=$(grep 'CODE2_SAVE5_RES3_SCENE_SOURCE_RAY_VISIBILITY' "$scratch/probe.log" | tail -n 1 || true)
+          echo "GENUINE_LEVEL23_RASTER_RESULT status=$status ${visible:-visibility_unresolved} ${result:-source_renderer_unresolved}"
+          if test "$status" -ne 0; then
+            error=$(grep -E 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL|CODE2_SOURCE_36CEC_RASTER_FAILURE' "$scratch/probe.log" | tail -n 2 || true)
+            echo "GENUINE_LEVEL23_RASTER_EXCEPTION ${error:-no_error_marker}"
+            exit "$status"
+          fi
+          test -n "$result"
+          test "$(wc -c < "$scratch/scene23.idx")" -eq 128000
+          test "$(wc -c < "$scratch/scene23.pal")" -eq 768
+          echo "Original media and generated RES3 indexed pixels remain private and are deleted."
