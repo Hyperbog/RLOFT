@@ -198,7 +198,7 @@ jobs:
             echo "GENUINE_COMPLETE_WORLD_FRAME_FAIL status=$status reason=${error:-no_failure_marker}"
             exit 1
           fi
-          grep -q 'CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=1 raster_indexed_writes=127 frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED' "$scratch/full.log"
+          grep -Eq 'CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=1 raster_indexed_writes=127 off_aperture_cpu_writes=[0-9]+ frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED' "$scratch/full.log"
           grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
