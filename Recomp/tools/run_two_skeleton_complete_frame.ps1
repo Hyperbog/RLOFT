@@ -219,7 +219,12 @@ try {
     $panelFailure = [int]$panel.Groups[13].Value
     if ($activeCharacters -ne 4 -or $lutNonzero -eq 0 -or
         $maskedDraws -lt 8 -or $handCalls -ne 8 -or
-        $decimalText -lt 2 -or $decimalText -ne $centeredText -or
+        # Owner-original SAVE09(2) has ONE active status numeral. The
+        # earlier >=2 check was borrowed from a deliberately synthetic
+        # two-status CI fixture and rejected a fully completed retail frame.
+        # Require actual source work and complete decimal->centered->glyph
+        # coverage; never synthesize a second status effect.
+        $decimalText -lt 1 -or $decimalText -ne $centeredText -or
         $glyphDraws -lt $centeredText -or
         $unsupportedText -ne 0 -or $panelFailure -ne 0) {
         throw "Original party HUD incomplete: actors=$activeCharacters LUT=$lutNonzero masked=$maskedDraws hand_calls=$handCalls decimal=$decimalText centered=$centeredText glyphs=$glyphDraws unsupported=$unsupportedText failure=$panelFailure"
