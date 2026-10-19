@@ -6,10 +6,20 @@
 #include <cstdint>
 
 namespace rloft_recomp {
+enum class SintabRasterFailure : std::uint8_t {
+    none, invalid_entry, invalid_ip, truncated_instruction,
+    invalid_jump, source_read_out_of_range, vga_write_out_of_range,
+    unknown_instruction, instruction_budget
+};
 struct SintabRasterResult {
     bool ok=false;
     std::uint32_t pixels=0;
     std::uint32_t instructions=0;
+    SintabRasterFailure failure=SintabRasterFailure::none;
+    std::uint32_t failure_ip=0;
+    std::uint64_t failure_address=0;
+    std::uint8_t failure_opcode=0;
+    std::uint8_t failure_modrm=0;
 };
 template<class Read, class Write>
 SintabRasterResult execute_sintab_scale(
@@ -22,27 +32,49 @@ SintabRasterResult execute_sintab_scale(
     // Generated x86 loads [ESI+disp32]; validate those effective
     // read addresses individually, not ESI itself.
     if(target<code_begin || target>=code_end ||
-       source_begin>=source_end) return result;
+       source_begin>=source_end) {
+        result.failure=SintabRasterFailure::invalid_entry;
+        result.failure_ip=target;
+        return result;
+    }
     std::uint8_t al=0,ah=0;
     std::uint32_t ip=target;
     for(std::uint32_t budget=0;budget<32768u;++budget) {
-        if(ip>=code_end || ip<code_begin)return result;
+        result.failure_ip=ip;
+        if(ip>=code_end || ip<code_begin) {
+            result.failure=SintabRasterFailure::invalid_ip;
+            return result;
+        }
         const std::uint8_t opcode=read(ip);
+        result.failure_opcode=opcode;
+        result.failure_modrm=0u;
         ++result.instructions;
         if(opcode==0xC3u) {
             result.ok=true;
+            result.failure=SintabRasterFailure::none;
             return result;
         }
         if(opcode==0xEBu) {
-            if(ip+2u>code_end)return result;
+            if(ip+2u>code_end) {
+                result.failure=SintabRasterFailure::truncated_instruction;
+                return result;
+            }
             const std::int32_t delta=static_cast<std::int8_t>(read(ip+1u));
             const std::int64_t next=static_cast<std::int64_t>(ip)+2+delta;
-            if(next<code_begin || next>=code_end)return result;
+            if(next<code_begin || next>=code_end) {
+                result.failure=SintabRasterFailure::invalid_jump;
+                result.failure_address=static_cast<std::uint64_t>(next);
+                return result;
+            }
             ip=static_cast<std::uint32_t>(next);
             continue;
         }
-        if(ip+2u>code_end)return result;
+        if(ip+2u>code_end) {
+            result.failure=SintabRasterFailure::truncated_instruction;
+            return result;
+        }
         const std::uint8_t modrm=read(ip+1u);
+        result.failure_modrm=modrm;
         if(opcode==0x88u && modrm==0xC4u) {
             ah=al;
             ip+=2u;
@@ -58,13 +90,20 @@ SintabRasterResult execute_sintab_scale(
             ip+=2u;
             continue;
         }
-        if(ip+6u>code_end)return result;
+        if(ip+6u>code_end) {
+            result.failure=SintabRasterFailure::truncated_instruction;
+            return result;
+        }
         std::uint32_t offset=0;
         for(std::uint32_t i=0;i<4u;++i)
             offset|=static_cast<std::uint32_t>(read(ip+2u+i))<<(i*8u);
         if(opcode==0x8Au && modrm==0x86u) {
             const auto addr=static_cast<std::uint64_t>(source)+offset;
-            if(addr<source_begin || addr>=source_end)return result;
+            if(addr<source_begin || addr>=source_end) {
+                result.failure=SintabRasterFailure::source_read_out_of_range;
+                result.failure_address=addr;
+                return result;
+            }
             al=read(static_cast<std::uint32_t>(addr));
             ip+=6u;
             continue;
@@ -72,15 +111,21 @@ SintabRasterResult execute_sintab_scale(
         if(opcode==0x88u && (modrm==0x87u || modrm==0xA7u)) {
             const auto addr=static_cast<std::uint64_t>(destination)+offset;
             // Original planar destination is the 64K VGA window shadow.
-            if(addr<0xA0000u || addr>=0xB0000u)return result;
+            if(addr<0xA0000u || addr>=0xB0000u) {
+                result.failure=SintabRasterFailure::vga_write_out_of_range;
+                result.failure_address=addr;
+                return result;
+            }
             write(static_cast<std::uint32_t>(addr),
                   modrm==0x87u?al:ah);
             ++result.pixels;
             ip+=6u;
             continue;
         }
+        result.failure=SintabRasterFailure::unknown_instruction;
         return result; // Fail closed for all other generated x86 forms.
     }
+    result.failure=SintabRasterFailure::instruction_budget;
     return result;
 }
 } // namespace rloft_recomp
