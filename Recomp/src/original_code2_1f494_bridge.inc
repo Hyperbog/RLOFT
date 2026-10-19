@@ -64,7 +64,7 @@ static void party_2a258(u32 frame,u32 image) noexcept {
 }
 static u32 party_24478(u32 actor,u32 hand) noexcept {
     return code2::function_24478(
-        self().gfx.machine,static_cast<s32>(actor),hand);
+        self().gfx.machine,static_cast<std::int32_t>(actor),hand);
 }
 static u32 party_clock() noexcept {
     return code2::function_19cc4(self().gfx.machine);
@@ -116,7 +116,7 @@ static void party_22f40(u32 slot,u32 state) noexcept {
     auto& w=self();
     code2::Application50Boundary b{};
     b.call_298f0=&party_298f0;
-    code2::function_22f40(w.gfx.machine,b,static_cast<s32>(slot),state);
+    code2::function_22f40(w.gfx.machine,b,static_cast<std::int32_t>(slot),state);
 }
 static void party_23024(u32,u32) noexcept {
     // Group-list UI needs original 23024-specific fonts / navigation.
