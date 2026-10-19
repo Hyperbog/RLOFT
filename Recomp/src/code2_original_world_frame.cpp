@@ -1473,10 +1473,15 @@ int main(int argc,char** argv) {
             std::cout<<id<<":"<<n<<",";
         std::cout<<"\\n";
         if(!saved_outdoor) {
-            CHECK(front_materials.size()==3u);
-            CHECK(front_materials.count(48u)==1u &&
-                  front_materials.count(53u)==1u &&
-                  front_materials.count(59u)==1u);
+            // Source 32954 addresses full row*width+column cells.
+            // After the DDA correction the original Level11 fixture
+            // reaches these four exact authored type-6 materials.
+            // Pin source ray frequencies, not an obsolete three-ID set.
+            CHECK(front_materials.size()==4u);
+            CHECK(front_materials.at(48u)==1u &&
+                  front_materials.at(56u)==7u &&
+                  front_materials.at(59u)==2u &&
+                  front_materials.at(409u)==2u);
         }
         auto gfx=std::make_unique<WorldGraphicsSource>();
         gfx->mode(3u);
