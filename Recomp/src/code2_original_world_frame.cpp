@@ -1354,6 +1354,28 @@ struct WorldFrame {
                      <<" draw_page="<<page<<" crtc_start=32768\\n";
         }
         const auto pixels=gfx.video.scanout_indices();
+        if(saved_outdoor && !hud_file.empty()) {
+            // The previous native full-frame BMP had an entirely black
+            // HUD region at rows 260..344 despite 1EA04 image callbacks.
+            // Original 1F8FC RES0 frame bases must populate the lower
+            // 140 rows before the active page is accepted.
+            u32 lower_nonzero=0u,fully_black_rows=0u;
+            for(u32 y=260u;y<400u;++y) {
+                const auto from=pixels.begin()+y*320u;
+                const u32 colored=static_cast<u32>(
+                    std::count_if(from,from+320u,
+                        [](u8 value){return value!=0u;}));
+                lower_nonzero+=colored;
+                fully_black_rows+=(colored==0u);
+            }
+            std::cout<<"CODE2_ORIGINAL_GAMEPLAY_HUD_BASE_LOWER_FRAME"
+                     <<" rows=140 nonzero_pixels="<<lower_nonzero
+                     <<" black_rows="<<fully_black_rows
+                     <<" original_frame_blits="<<source_frame_base_blits
+                     <<" party_portraits_complete=NO"
+                     <<" DOS_PIXEL_PARITY=NOT_VERIFIED\\n";
+            CHECK(lower_nonzero>20000u && fully_black_rows==0u);
+        }
         const auto nonzero=std::count_if(pixels.begin(),pixels.end(),
                                         [](u8 value){return value!=0u;});
         CHECK(nonzero>0);
