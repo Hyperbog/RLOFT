@@ -96,8 +96,15 @@ struct SavedGame {
         // executed the original INIT/scene metadata initialization.
         // Fail closed at this host boundary, not inside unchecked guest
         // memory. Do not substitute a fake view, actor, or descriptor.
+        const u32 packed=code2::load_le32(t.s.guest.data()+0xCF4Cu);
+        u32 phase=packed>>16u;
+        if(phase==0xFFFFu)phase=0x17u;
+        phase%=0x18u;
+        const u32 previous=code2::load_le32(t.s.guest.data()+0xF9CCu);
         const u32 view=t.s.guest[0x258A8u];
-        if(view!=0xFFu) {
+        // Original 31F94 returns before touching 2B764 if the phase
+        // already matches F9CC. Respect that prerequisite precisely.
+        if(phase!=previous && view!=0xFFu) {
             const u32 table=code2::load_le32(t.s.guest.data()+0x2B764u);
             const std::uint64_t slot=std::uint64_t(table)+view*4u;
             bool ready=table>=0x400000u &&

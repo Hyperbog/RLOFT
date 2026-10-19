@@ -58,8 +58,12 @@ jobs:
             "$temp/diagnostic.log" | head -n 35 || true
           if test "$status" -eq 0; then
             echo "SOURCE_LEVEL22_ASAN_NO_FAILURE_ACTUAL_SOURCE_EXECUTION_PASS"
-          else
+          elif grep -q 'CODE2_31F94_ORIGINAL_VIEW_DESCRIPTOR_PREREQUISITE' "$temp/diagnostic.log"; then
+            echo "SOURCE_LEVEL22_ASAN_MEMORY_SAFETY_PASS_SOURCE_STARTUP_PREREQUISITE_MISSING"
+          elif grep -q 'ERROR: AddressSanitizer' "$temp/diagnostic.log"; then
             echo "SOURCE_LEVEL22_ASAN_CRASH_REPRODUCED_UNRESOLVED"
-            test -s "$temp/diagnostic.log"
+          else
+            echo "SOURCE_LEVEL22_ASAN_UNCLASSIFIED_FAILURE"
+            exit 1
           fi
           echo "No original game media, captured pixels, or sanitizer memory dumps published."
