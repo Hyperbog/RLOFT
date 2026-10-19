@@ -467,3 +467,19 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_298f0_six_argument_res1_masked_abi
         COMMAND rloft_original_code2_298f0_party_abi_test)
 endif()
+
+# Authentic CODE.2 373BF signed decimal / 30508 centered original RES0
+# font and 303C8 glyph dispatch, isolated from private retail media.
+add_executable(rloft_original_code2_status_text_test
+    src/test_original_code2_30508_status_text.cpp)
+set_target_properties(rloft_original_code2_status_text_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_status_text_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_status_text_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_373bf_30508_status_text_vga_glyphs
+        COMMAND rloft_original_code2_status_text_test)
+endif()
