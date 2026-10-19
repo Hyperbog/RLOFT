@@ -80,6 +80,7 @@ int main() {
     try {(void)execute_original_369d8(guest,vga,c);}
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
+    c.run_width=5u; // restore valid grouped width after width=8 rejection
     // Authentic 369D8 ABI: ESI is image+signed adjustment, not
     // necessarily in the image. The generated [ESI+disp32] read is.
     // Reproduce a negative display-list adjustment exceeding the
