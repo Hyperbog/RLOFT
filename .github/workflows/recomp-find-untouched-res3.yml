@@ -119,4 +119,10 @@ jobs:
           echo "UNTOUCHED_RES3_DISCOVERY_RESULT checked=$checked source_near_plane_candidates=$candidates original_36cec_calls=$real_calls original_369d8_indexed_writes=$real_pixels full_source_scene_failures=$scene_failures genuine_sprite_pixels_confirmed=$([[ "$real_pixels" -gt 0 ]] && echo YES || echo NO) DOS_VGA_PARITY=NOT_VERIFIED"
           test "$checked" -eq "${#saved[@]}"
           test "$scene_failures" -eq 0
+          # Existing immutable original owner-save corpus now supplies five
+          # true source-driven raster draws and 3,111 indexed pixel stores.
+          # Additional genuine saves may increase, never decrease, these.
+          test "$real_calls" -ge 5
+          test "$real_pixels" -ge 3111
+          echo "CODE2_ORIGINAL_UNTOUCHED_RES3_INDEXED_SPRITE_ACCEPTANCE_PASS calls=$real_calls writes=$real_pixels DOS_VGA_PARITY=NOT_VERIFIED"
           echo "All owner-original saves, resource data and any generated pixels have been deleted with the private scratch directory."
