@@ -144,10 +144,11 @@ try {
     }
     $log = Get-Content -LiteralPath $nativeLog -Raw
     $marker = [regex]::Match($log,
-        "CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=(\d+) raster_indexed_writes=(\d+) frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED")
+        "CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=(\d+) raster_indexed_writes=(\d+) off_aperture_cpu_writes=(\d+) frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED")
     if (-not $marker.Success) { throw "Missing native complete-frame acceptance marker; see $nativeLog" }
     $calls = [int]$marker.Groups[1].Value
     $writes = [int]$marker.Groups[2].Value
+    $offscreenWrites = [int]$marker.Groups[3].Value
     if ($calls -ne 2 -or $writes -ne 5515) {
         throw "The original two-skeleton source fingerprint changed: calls=$calls writes=$writes (expected 2/5515)"
     }
@@ -179,6 +180,7 @@ try {
         "ORIGINAL_LEVEL_SHA256=$expectedLevel",
         "SOURCE_ACTOR_36CEC_CALLS=$calls",
         "SOURCE_369D8_INDEXED_WRITES=$writes",
+        "SOURCE_369D8_OFF_APERTURE_CPU_WRITES=$offscreenWrites",
         "NATIVE_FRAME_SHA256=$idxHash",
         "NATIVE_PALETTE_SHA256=$palHash",
         "DOS_VGA_PARITY=NOT_VERIFIED",
