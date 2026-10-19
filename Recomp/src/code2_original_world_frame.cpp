@@ -846,6 +846,41 @@ struct WorldFrame {
                  <<" shape_id="<<source_shape
                  <<" decompressed_bytes="<<decoded_length
                  <<" cached=YES\\n";
+        // 334C4 is authoritative for the 35798 camera basis. Verify
+        // that the frame's copied guest registers are the *same* registers
+        // the original 32954 source ray pass used; never repair them here.
+        for(u32 off: {0x255D0u,0x255D4u,0x255E0u,0x255ECu,0x255F4u,
+                      0x255F8u,0x255FCu,0xC658u,0xC6CCu,0xC6D0u}) {
+            CHECK(code2::load_le32(gfx.memory.data()+off)==
+                  code2::load_le32(ray.guest.data()+off));
+        }
+        const u32 heading=code2::load_le32(ray.guest.data()+0xC658u);
+        const u32 trig=code2::load_le32(ray.guest.data()+0xC65Cu);
+        CHECK(heading<360u && trig>=0x100000u &&
+              std::uint64_t(trig)+(heading+90u)*4u+4u<ray.guest.size());
+        const u32 expected_sine=code2::load_le32(
+            ray.guest.data()+trig+heading*4u);
+        const u32 expected_cosine=code2::load_le32(
+            ray.guest.data()+trig+(heading+90u)*4u);
+        const u32 actual_sine=code2::load_le32(gfx.memory.data()+0x255FCu);
+        const u32 actual_cosine=code2::load_le32(gfx.memory.data()+0x255F8u);
+        CHECK(expected_sine==actual_sine && expected_cosine==actual_cosine);
+        const u32 camera_radius=code2::load_le32(gfx.memory.data()+0x2560Cu);
+        const u32 center_y=code2::load_le32(gfx.memory.data()+0x255D4u)-
+            code2::function_35680(camera_radius,actual_cosine);
+        const u32 center_x=code2::load_le32(gfx.memory.data()+0x255D0u)+
+            code2::function_35680(camera_radius,actual_sine);
+        CHECK(center_y==code2::load_le32(gfx.memory.data()+0x255ECu) &&
+              center_x==code2::load_le32(gfx.memory.data()+0x255F4u));
+        std::cout<<"CODE2_334C4_35798_SOURCE_CAMERA_BASIS_VERIFIED"
+                 <<" heading="<<heading
+                 <<" radius="<<camera_radius
+                 <<" sin="<<static_cast<std::int32_t>(actual_sine)
+                 <<" cos="<<static_cast<std::int32_t>(actual_cosine)
+                 <<" 255ec="<<center_y
+                 <<" 255f4="<<center_x
+                 <<" ray_and_renderer_registers_equal=YES"
+                 <<" orientation_matches_original_source=YES\\n";
         const u32 source_primary=code2::load_le16(
             gfx.memory.data()+0x258A2u);
         u32 source_visible_tiles=0u,source_first_pass_eligible=0u;
