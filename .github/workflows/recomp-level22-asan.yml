@@ -37,6 +37,9 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/LEV022.DAT
             MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/INIT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/NPCS.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/OBJECTS.DAT
       - name: Instrumented original 07938 through 32954 diagnostic
         shell: bash
         run: |
@@ -44,7 +47,7 @@ jobs:
           root="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           temp=$(mktemp -d)
           trap 'rm -rf "$temp"' EXIT
-          cp "$root/SAVE01/SAVE.DAT" "$root/SAVE01/LEV022.DAT" "$root/CODE.2" "$root/SINTAB" "$temp/"
+          cp "$root/SAVE01/SAVE.DAT" "$root/SAVE01/LEV022.DAT" "$root/CODE.2" "$root/SINTAB" "$root/INIT" "$root/NPCS.DAT" "$root/OBJECTS.DAT" "$temp/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $temp/CODE.2" | sha256sum -c -
           status=0
           ASAN_OPTIONS=detect_leaks=0:abort_on_error=1:print_stacktrace=1 \

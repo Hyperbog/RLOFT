@@ -40,6 +40,9 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/LEV022.DAT
             MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/INIT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/NPCS.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/OBJECTS.DAT
       - name: Execute genuine 07938, 181B4, 334C4 and 32954
         shell: bash
         run: |
@@ -47,7 +50,7 @@ jobs:
           root="original-media/MASTER/Ravenloft - Strahd's Possession"
           scratch=$(mktemp -d)
           trap 'rm -rf "$scratch"' EXIT
-          cp "$root/RLOFT/CODE.2" "$root/RLOFT/SINTAB" "$scratch/"
+          cp "$root/RLOFT/CODE.2" "$root/RLOFT/SINTAB" "$root/RLOFT/INIT" "$root/RLOFT/NPCS.DAT" "$root/RLOFT/OBJECTS.DAT" "$scratch/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
           echo "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87  $scratch/SINTAB" | sha256sum -c -
           success=0
