@@ -6,6 +6,7 @@ on:
     paths:
       - 'Code2/Code2.cpp'
       - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/original_code2_1f494_bridge.inc'
       - 'Recomp/src/code2_original_save_game.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/original_sintab_raster.hpp'
@@ -52,6 +53,7 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
             MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
             MASTER/Ravenloft - Strahd's Possession/RLOFT/RES0
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES1
             MASTER/Ravenloft - Strahd's Possession/RLOFT/INIT
             MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS
             MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
@@ -181,9 +183,10 @@ jobs:
           trap 'rm -rf "$scratch"' EXIT
           cp "$root/cloud_saves/RLOFT/SAVE09/SAVE.DAT" "$scratch/SAVE.DAT"
           cp "$root/cloud_saves/RLOFT/SAVE09/LEV005.DAT" "$scratch/LEV005.DAT"
-          for f in SINTAB RES4 COLORS CODE.2 INIT RES0 NPCS.DAT OBJECTS.DAT RES3; do
+          for f in SINTAB RES4 COLORS CODE.2 INIT RES0 RES1 NPCS.DAT OBJECTS.DAT RES3; do
             cp "$root/RLOFT/$f" "$scratch/"
           done
+          echo "c13b8ae42f7d3b65c06d8413627f40a2a155a7404da44abfc158b38a4e5efd19  $scratch/RES1" | sha256sum -c -
           # This is the archive-preserved SAVE09 (187 degrees), NOT the
           # owner's separate private SAVE09(2).zip two-skeleton camera.
           # The exact private save must be tested only on the owner's PC.
@@ -193,7 +196,7 @@ jobs:
             "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
             "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
             "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
-            "$scratch/RES3" "$scratch/frame" > "$scratch/full.log" 2>&1 || status=$?
+            "$scratch/RES3" "$scratch/frame" "$scratch/RES1" > "$scratch/full.log" 2>&1 || status=$?
           if test "$status" -ne 0; then
             error=$(grep -oE 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL:[^\\]*|CODE2_SOURCE_36CEC_RASTER_FAILURE:[^\\]*' "$scratch/full.log" | tail -n 3 || true)
             echo "GENUINE_COMPLETE_WORLD_FRAME_FAIL status=$status reason=${error:-no_failure_marker}"
@@ -202,6 +205,7 @@ jobs:
           grep -Eq 'CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=1 raster_indexed_writes=127 off_aperture_cpu_writes=[0-9]+ frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED' "$scratch/full.log"
           grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS' "$scratch/full.log"
           grep -q 'CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS res0_loads=2 frame_blits=400' "$scratch/full.log"
+          grep -q 'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD' "$scratch/full.log"
           grep -Eq 'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT .*changed_pixels=[1-9][0-9]* world_rows_changed=[1-9][0-9]* bbox=' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
