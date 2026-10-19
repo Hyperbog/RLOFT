@@ -1,0 +1,65 @@
+name: Instrumented Original Level22 Saved-Camera Crash
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/code2_original_save_game.cpp'
+      - 'Recomp/src/code2_original_level_loader.cpp'
+      - '.github/workflows/recomp-level22-asan.yml'
+permissions:
+  contents: read
+jobs:
+  instrumented-level22:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build GCC address and undefined behavior sanitizer source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S Recomp -B build/level22-asan -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF \
+            '-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -O1' \
+            '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined'
+          cmake --build build/level22-asan --target rloft_original_code2_save_game --parallel 2
+      - name: Read original unchanged Level22 save and source data
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/LEV022.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+      - name: Instrumented original 07938 through 32954 diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          temp=$(mktemp -d)
+          trap 'rm -rf "$temp"' EXIT
+          cp "$root/SAVE01/SAVE.DAT" "$root/SAVE01/LEV022.DAT" "$root/CODE.2" "$root/SINTAB" "$temp/"
+          echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $temp/CODE.2" | sha256sum -c -
+          status=0
+          ASAN_OPTIONS=detect_leaks=0:abort_on_error=1:print_stacktrace=1 \
+          UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+          build/level22-asan/rloft_original_code2_save_game \
+            --source-ray-census "$temp" "$temp/CODE.2" > "$temp/diagnostic.log" 2>&1 || status=$?
+          echo "SOURCE_LEVEL22_ASAN_PROCESS_STATUS=$status"
+          # Only frame names, sanitizer summaries and a bounded stacktrace,
+          # not source media, memory bytes or protected actor state.
+          grep -E 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|runtime error:|stack-overflow|^#[0-9]+ |CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS' \
+            "$temp/diagnostic.log" | head -n 35 || true
+          if test "$status" -eq 0; then
+            echo "SOURCE_LEVEL22_ASAN_NO_FAILURE_ACTUAL_SOURCE_EXECUTION_PASS"
+          else
+            echo "SOURCE_LEVEL22_ASAN_CRASH_REPRODUCED_UNRESOLVED"
+            test -s "$temp/diagnostic.log"
+          fi
+          echo "No original game media, captured pixels, or sanitizer memory dumps published."
