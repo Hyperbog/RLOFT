@@ -24,6 +24,7 @@ using OriginalLevelGuest=WorldRaySource;
 #undef RLOFT_CANONICAL_CODE2_INCLUDED
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_columns.hpp"
+#include "original_code2_36cec_scene.hpp"
 #include <array>
 #include <filesystem>
 #include <map>
@@ -52,6 +53,7 @@ struct WorldFrame {
     u32 quad_scanline_calls=0,quad_guest_vga_changes=0,quad_source_pixel_writes=0;
     u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
     u32 scene_source_columns_preflighted=0,scene_descriptors_preflighted=0;
+    u32 scene_ray_visible_runs=0,scene_raster_plane_passes=0,scene_sprite_pixels=0;
     std::set<u32> source_res3_ids{},source_projected_res3_ids{};
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
@@ -706,8 +708,8 @@ struct WorldFrame {
     }
     // Original 2C4A3..2C4E6 pushes the arguments of 36CEC in reverse
     // cdecl order. In particular, argument TWO is the absolute RES3 ID.
-    // This callback is a verified input/display-list bridge only; actual
-    // 369D8 / 36B14 indexed VGA writes remain a subsequent milestone.
+    // Original 36CEC center-out ray occlusion now dispatches the tested
+    // 36B14/369D8 VGA executor. Only real source 2C294 calls reach here.
     static void source_scene_sprite_emit(
             u32 screen_x,u32 res3_id,u32 projected_size,u32 lookup_bias,
             u32 vertical_mode,u32 ray_depth) noexcept {
@@ -748,8 +750,18 @@ struct WorldFrame {
                     plan.source_x_order.size());
                 s.scene_descriptors_preflighted+=static_cast<u32>(
                     plan.descriptors.size());
+                const auto raster=rloft_recomp::raster_original_36cec_scene(
+                    s.gfx.memory,s.gfx.video,call,ptr+2u,length,
+                    s.code_start,s.code_end);
+                s.scene_ray_visible_runs+=raster.visible_runs;
+                s.scene_raster_plane_passes+=raster.plane_passes;
+                s.scene_sprite_pixels+=raster.indexed_writes;
             }
-        } catch(const std::exception&) {s.failure=true;}
+        } catch(const std::exception& error) {
+            // Diagnostic reason only: no original asset or framebuffer data.
+            std::cerr<<"CODE2_SOURCE_36CEC_RASTER_FAILURE: "<<error.what()<<"\\n";
+            s.failure=true;
+        }
     }
     void project_original_scene_res3(const std::string& filename) {
         CHECK(std::filesystem::path(filename).filename()=="RES3");
@@ -826,7 +838,11 @@ struct WorldFrame {
                  <<" emitted_calls="<<scene_sprite_emits
                  <<" 36cec_preflight_columns="<<scene_source_columns_preflighted
                  <<" 36cec_preflight_descriptors="<<scene_descriptors_preflighted
-                 <<" res3_sprite_pixels_rendered=NO\\n";
+                 <<" 36cec_visible_runs="<<scene_ray_visible_runs
+                 <<" 369d8_plane_passes="<<scene_raster_plane_passes
+                 <<" 369d8_indexed_writes="<<scene_sprite_pixels
+                 <<" res3_sprite_pixels_rendered="
+                 <<(scene_sprite_pixels>0u?"YES":"NO")<<"\\n";
     }
     static code2::s32 source_open_definition(u32 pointer) noexcept {
         auto& s=self();

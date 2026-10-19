@@ -141,7 +141,6 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
             ((std::uint64_t(scaled_index)*2u*call.vertical_mode)+64u)>>8;
         if(correction>static_cast<std::uint64_t>(INT32_MAX))
             throw std::out_of_range("36CEC vertical offset overflow");
-        initial_phase; // original patch scratch state is not persistent
         if(phase<static_cast<std::int64_t>(correction)) {
             const auto cutoff=original_36cec_cutoff(
                 staged,table,static_cast<unsigned>(correction-phase),false);
@@ -170,6 +169,7 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
     const auto mode=guest.at(0xC029u)!=0u;
     const auto row_base=original_36cec_dword(guest,0xC6E0u);
     const auto page=guest.at(0xEF4Du);
+    std::uint16_t shade=plan.packed_lookup;
     int left=static_cast<std::int32_t>(call.screen_x);
     int right=left;
     for(const auto source_x:plan.source_x_order) {
@@ -199,11 +199,12 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
         ctx.sintab_begin=table;ctx.sintab_end=sintab_arena_end;
         ctx.screen_x=run.x;ctx.run_width=
             static_cast<std::uint16_t>(run.width);
-        ctx.packed_lookup=plan.packed_lookup;
+        ctx.packed_lookup=shade;
         ctx.renderer_phase=static_cast<std::int32_t>(phase);
         ctx.row_base=row_base;ctx.video_page=page;
         ctx.individual_columns=mode;
         const auto raster=execute_original_369d8(staged,staged_video,ctx);
+        shade=raster.lookup_after;
         metrics.indexed_writes+=raster.indexed_writes;
         metrics.plane_passes+=raster.plane_passes;
         ++metrics.visible_runs;
