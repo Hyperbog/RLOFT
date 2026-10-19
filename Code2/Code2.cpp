@@ -19920,10 +19920,18 @@ static_assert(0x298B4u-0x2986Cu==72u);
 }
 static_assert(0x298EFu-0x298B4u==59u);
 
-[[nodiscard]] u32 function_298f0(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 a5) noexcept {
-    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+[[nodiscard]] u32 function_298f0(Application57Boundary& b,
+    u32 frame,u32 row,u32 column,u32 resource_id,u32 archive_slot,u32 table) noexcept {
+    // Retail 298F0 pushes [ESP+14h] (archive slot), then [ESP+14h]
+    // (resource ID) to 2F29C; after restoring ESP it forwards SIX
+    // cdecl arguments via 2A584(frame,row,column,image,table).
+    // The former five-input reconstruction lost the separate column
+    // and conflated it with the resource ID.
+    const u32 image=b.call_2f29c?
+        b.call_2f29c(resource_id,archive_slot):0u;
     if(image==0u)return 0u;
-    if(b.call_2a584)(void)b.call_2a584(a1,a2,key,image,a5);
+    if(b.call_2a584)
+        (void)b.call_2a584(frame,row,column,image,table);
     return b.call_2e758?b.call_2e758():0u; // encoded tail JMP
 }
 static_assert(0x29922u-0x298F0u==50u);
