@@ -189,7 +189,7 @@ try {
         $spriteDescriptions += "SPRITE_$($callNum)_VISIBILITY=$changedPixels world=$worldPixels bbox=$minX,$minY,$maxX,$maxY"
     }
     $panel = [regex]::Match($log,
-        'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD active_original_characters=(\d+) source_state_lut_nonzero=(\d+) resource_calls=(\d+) masked_298f0_2a584=(\d+) direct_2975c=(\d+) fills_29aa4=(\d+) borders_2e374=(\d+) hand_slots_1ea90=(\d+) unsupported_text=(\d+) callback_failure=(\d+)')
+        'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD active_original_characters=(\d+) source_state_lut_nonzero=(\d+) resource_calls=(\d+) masked_298f0_2a584=(\d+) direct_2975c=(\d+) fills_29aa4=(\d+) borders_2e374=(\d+) hand_slots_1ea90=(\d+) decimal_2e6f0=(\d+) centered_30508=(\d+) glyph_303c8=(\d+) unsupported_text=(\d+) callback_failure=(\d+)')
     if (-not $panel.Success) {
         throw "Missing original 1F494/1EA90 party compositor evidence in $nativeLog"
     }
@@ -197,12 +197,17 @@ try {
     $lutNonzero = [int]$panel.Groups[2].Value
     $maskedDraws = [int]$panel.Groups[4].Value
     $handCalls = [int]$panel.Groups[8].Value
-    $unsupportedText = [int]$panel.Groups[9].Value
-    $panelFailure = [int]$panel.Groups[10].Value
+    $decimalText = [int]$panel.Groups[9].Value
+    $centeredText = [int]$panel.Groups[10].Value
+    $glyphDraws = [int]$panel.Groups[11].Value
+    $unsupportedText = [int]$panel.Groups[12].Value
+    $panelFailure = [int]$panel.Groups[13].Value
     if ($activeCharacters -ne 4 -or $lutNonzero -eq 0 -or
         $maskedDraws -lt 8 -or $handCalls -ne 8 -or
+        $decimalText -lt 2 -or $decimalText -ne $centeredText -or
+        $glyphDraws -lt $centeredText -or
         $unsupportedText -ne 0 -or $panelFailure -ne 0) {
-        throw "Original party HUD incomplete: actors=$activeCharacters LUT=$lutNonzero masked=$maskedDraws hand_calls=$handCalls unsupported=$unsupportedText failure=$panelFailure"
+        throw "Original party HUD incomplete: actors=$activeCharacters LUT=$lutNonzero masked=$maskedDraws hand_calls=$handCalls decimal=$decimalText centered=$centeredText glyphs=$glyphDraws unsupported=$unsupportedText failure=$panelFailure"
     }
     $idx = Require-File ($stem + ".idx")
     $pal = Require-File ($stem + ".pal")
@@ -233,6 +238,9 @@ try {
         "ORIGINAL_298F0_2A584_MASKED_BLITS=$maskedDraws",
         "ORIGINAL_1EA90_HAND_SLOTS=$handCalls",
         "ORIGINAL_1F494_LUT_NONZERO_BYTES=$lutNonzero",
+        "ORIGINAL_2E6F0_DECIMAL_FORMATS=$decimalText",
+        "ORIGINAL_30508_CENTERED_TEXT_CALLS=$centeredText",
+        "ORIGINAL_303C8_SOURCE_GLYPH_DRAWS=$glyphDraws",
         "ORIGINAL_PARTY_HUD_COMPLETE=NOT_DOS_VERIFIED",
         $spriteDescriptions,
         "NATIVE_FRAME_SHA256=$idxHash",
