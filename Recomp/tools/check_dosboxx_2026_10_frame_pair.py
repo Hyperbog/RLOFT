@@ -110,7 +110,8 @@ def main():
     state_rgb = b"".join(colors[i] for i in indexed)
     shot, shot_format = screenshot_pixels(opt.screenshot)
     matched, rows = compare(state_rgb, shot)
-    valid_colors = sum(shot[i:i+3] in set(colors)
+    palette_colors = set(colors)
+    valid_colors = sum(shot[i:i+3] in palette_colors
                        for i in range(0, len(shot), 3))
     report = {
         "program": program,
