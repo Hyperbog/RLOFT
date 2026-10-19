@@ -25,6 +25,8 @@ on:
       - 'Recomp/src/code2_original_res_startup.cpp'
       - 'Recomp/src/code2_original_level_view.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
+      - 'Recomp/src/code2_original_save_game.cpp'
+      - 'Recomp/src/original_code2_36cec_scene.hpp'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/original_sintab_raster.hpp'
       - 'Recomp/src/original_code2_369d8_raster.hpp'
