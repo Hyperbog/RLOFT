@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace rloft_recomp {
@@ -151,8 +152,22 @@ inline Original369d8Report execute_original_369d8(
                     });
                 if(write_failed)
                     throw std::runtime_error("369D8 bounded write limit");
-                if(!result.ok)
-                    throw std::runtime_error("369D8 unsupported SINTAB opcode");
+                if(!result.ok) {
+                    // Return exact interpreter failure; historically this
+                    // masked invalid EH7 effective reads as bad opcodes.
+                    // Offsets and scalar diagnostics only, never asset bytes.
+                    throw std::runtime_error(
+                        "369D8 SINTAB execution rejected reason="+
+                        std::to_string(static_cast<unsigned>(result.failure))+
+                        " ip_offset="+std::to_string(
+                            std::uint64_t(result.failure_ip)-code_begin)+
+                        " opcode="+std::to_string(result.failure_opcode)+
+                        " modrm="+std::to_string(result.failure_modrm)+
+                        " address="+std::to_string(result.failure_address)+
+                        " source="+std::to_string(source)+
+                        " image_begin="+std::to_string(ctx.image_begin)+
+                        " image_end="+std::to_string(ctx.image_end));
+                }
                 report.indexed_writes+=result.pixels;
                 ++report.plane_passes;
             }
