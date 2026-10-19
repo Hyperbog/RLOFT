@@ -531,7 +531,9 @@ struct WorldFrame {
         const u32 p=code2::load_le16(gfx.memory.data()+0x258A2u);
         const u32 t=code2::load_le16(gfx.memory.data()+0x258A4u);
         const u32 n=code2::load_le16(gfx.memory.data()+0x258A6u);
-        CHECK(p==90u && t==68u && n==163u);
+        // Source 181B4 writes counts per mutable saved level. Their
+        // packed 0x16-byte records must remain in the 0x7C00-byte arena.
+        CHECK(p>0u && std::uint64_t(p+t+n)*0x16u<=0x7C00u);
         for(code2::s32 x=0;x<64;++x)
             for(code2::s32 y=0;y<64;++y){
                 const u32 rec=source_scene_record(x,y);

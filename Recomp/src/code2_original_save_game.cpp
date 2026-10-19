@@ -153,7 +153,9 @@ struct SavedGame {
         VERIFY(code2::load_le32(s.guest.data()+0xC658u)<360u);
         VERIFY(code2::load_le32(s.guest.data()+0xCF4Cu)==
                code2::load_le32(save.data()+0x70u));
-        VERIFY(code2::load_le32(s.guest.data()+0xC038u)==0u);
+        // Saved placed-object count may differ across genuine owner saves.
+        // Do not replace original 07938's dynamic count with SAVE10's zero.
+        VERIFY(code2::load_le32(s.guest.data()+0xC038u)<=4096u);
         VERIFY(code2::load_le32(s.guest.data()+0xBF44u)==0x270Fu);
         VERIFY(std::equal(save.begin()+0x32u,save.begin()+0x52u,
                           s.guest.begin()+0x22200u));
