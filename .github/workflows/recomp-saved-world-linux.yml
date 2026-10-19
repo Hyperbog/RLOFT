@@ -83,6 +83,7 @@ jobs:
           grep -q CODE2_SAVE5_ORIGINAL_181B4_1E8C8_SCENE_INDEX_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_SOURCE_34DE8_34BB0_33E6C_QUAD_GATE build/save5-world/save5-verification.log
           grep -q CODE2_SOURCE_NPCS_RES3_ORIGINAL_EH7_37590_PASS build/save5-world/save5-verification.log
+          grep -q CODE2_334C4_35798_SOURCE_CAMERA_BASIS_VERIFIED build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_2C294_RES3_SCENE_PROJECTION_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_16D04_INIT_HUD_BASE_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_16810_168C8_1686C_16934_16990_SCENE_DEFINITIONS_PASS build/save5-world/save5-verification.log

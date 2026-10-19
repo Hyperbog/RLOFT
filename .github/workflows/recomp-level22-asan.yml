@@ -60,11 +60,15 @@ jobs:
           grep -E 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|runtime error:|stack-overflow|^[[:space:]]*#[0-9]+ |CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS' \
             "$temp/diagnostic.log" | head -n 35 || true
           if test "$status" -eq 0; then
+            grep -q 'CODE2_16D04_16990_ORIGINAL_SCENE_VIEW_DESCRIPTORS_PASS' "$temp/diagnostic.log"
+            grep -q 'CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS level=22' "$temp/diagnostic.log"
             echo "SOURCE_LEVEL22_ASAN_NO_FAILURE_ACTUAL_SOURCE_EXECUTION_PASS"
           elif grep -q 'CODE2_31F94_ORIGINAL_VIEW_DESCRIPTOR_PREREQUISITE' "$temp/diagnostic.log"; then
-            echo "SOURCE_LEVEL22_ASAN_MEMORY_SAFETY_PASS_SOURCE_STARTUP_PREREQUISITE_MISSING"
+            echo "SOURCE_LEVEL22_ASAN_SOURCE_INITIALIZATION_MISSING"
+            exit 1
           elif grep -q 'ERROR: AddressSanitizer' "$temp/diagnostic.log"; then
             echo "SOURCE_LEVEL22_ASAN_CRASH_REPRODUCED_UNRESOLVED"
+            exit 1
           else
             echo "SOURCE_LEVEL22_ASAN_UNCLASSIFIED_FAILURE"
             exit 1

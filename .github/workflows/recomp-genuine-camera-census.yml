@@ -89,6 +89,9 @@ jobs:
             rm -f "$scratch/LEV$level.DAT" "$scratch/SAVE.DAT" "$scratch/result.log"
           done
           echo "GENUINE_CROSS_LEVEL_CENSUS_FINISHED verified=$success rejected=$failures"
+          # All three original saves now require 16D04->16990 metadata;
+          # a source-only decoder may not silently replace those records.
+          test "$success" -eq 3
           echo "No original save, level, indexed image or DOS VGA data uploaded."
           test "$failures" -eq 0
           test "$success" -eq 3
