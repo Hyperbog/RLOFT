@@ -158,6 +158,33 @@ try {
     if ($log -notmatch "primary_actor_callback_matches=2") {
         throw "The two original actors were not both projected."
     }
+    if ($log -notmatch "CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS res0_loads=2 frame_blits=400") {
+        throw "Original 1F8FC gameplay frame base was not reconstructed (expected two RES0 resources and 400 source image frames)."
+    }
+    # The original 36CEC callbacks are not themselves proof that a
+    # skeleton is on screen. Each callback must independently change
+    # pixels on the active 320x400 VGA page inside the 256-row world.
+    $visibleSprites = @([regex]::Matches($log,
+        'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT sprite_call=(\d+) res3_id=(\d+) source_x=(\d+) projected_size=(\d+) active_page=(\d+) changed_pixels=(\d+) world_rows_changed=(\d+) bbox=(\d+),(\d+),(\d+),(\d+)'))
+    if ($visibleSprites.Count -ne 2) {
+        throw "Expected two independently measured active-page sprite scanouts; got $($visibleSprites.Count). See $nativeLog"
+    }
+    $spriteDescriptions = @()
+    foreach ($match in $visibleSprites) {
+        $callNum = [int]$match.Groups[1].Value
+        $changedPixels = [int]$match.Groups[6].Value
+        $worldPixels = [int]$match.Groups[7].Value
+        $minX = [int]$match.Groups[8].Value
+        $minY = [int]$match.Groups[9].Value
+        $maxX = [int]$match.Groups[10].Value
+        $maxY = [int]$match.Groups[11].Value
+        if ($changedPixels -le 0 -or $worldPixels -le 0 -or
+            $minX -lt 32 -or $maxX -gt 287 -or
+            $minY -ge 256 -or $minY -gt $maxY) {
+            throw "Sprite call $callNum did not establish visible source pixels within the original first-person viewport: changed=$changedPixels world=$worldPixels bbox=$minX,$minY,$maxX,$maxY"
+        }
+        $spriteDescriptions += "SPRITE_$($callNum)_VISIBILITY=$changedPixels world=$worldPixels bbox=$minX,$minY,$maxX,$maxY"
+    }
     $idx = Require-File ($stem + ".idx")
     $pal = Require-File ($stem + ".pal")
     $bmp = Require-File ($stem + ".bmp")
@@ -181,6 +208,9 @@ try {
         "SOURCE_ACTOR_36CEC_CALLS=$calls",
         "SOURCE_369D8_INDEXED_WRITES=$writes",
         "SOURCE_369D8_OFF_APERTURE_CPU_WRITES=$offscreenWrites",
+        "SOURCE_RES0_FRAME_BASE_IMAGES=400",
+        "TWO_SKELETONS_ACTIVE_WORLD_SCANOUT_VISIBLE=YES",
+        $spriteDescriptions,
         "NATIVE_FRAME_SHA256=$idxHash",
         "NATIVE_PALETTE_SHA256=$palHash",
         "DOS_VGA_PARITY=NOT_VERIFIED",
