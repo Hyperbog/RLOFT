@@ -89,7 +89,35 @@ struct SavedGame {
                                static_cast<u32>(item),known);
     }
     static void update_daypart() noexcept {
-        code2::function_31f94(live().s.machine);
+        auto& t=live();
+        // CODE.2 31F94 indexes the transient active-view descriptor bank
+        // through heap table 2B764 when 258A8 != FF. Level22's preserved
+        // save enters this branch before the isolated 07938 harness has
+        // executed the original INIT/scene metadata initialization.
+        // Fail closed at this host boundary, not inside unchecked guest
+        // memory. Do not substitute a fake view, actor, or descriptor.
+        const u32 view=t.s.guest[0x258A8u];
+        if(view!=0xFFu) {
+            const u32 table=code2::load_le32(t.s.guest.data()+0x2B764u);
+            const std::uint64_t slot=std::uint64_t(table)+view*4u;
+            bool ready=table>=0x400000u &&
+                       slot+4u<=t.s.guest.size();
+            u32 record=0u;
+            if(ready) {
+                record=code2::load_le32(t.s.guest.data()+slot);
+                ready=record>=0x400000u &&
+                      std::uint64_t(record)+8u<=t.s.guest.size();
+            }
+            if(!ready) {
+                std::cerr<<"CODE2_31F94_ORIGINAL_VIEW_DESCRIPTOR_PREREQUISITE"
+                         <<" view="<<view
+                         <<" scene_heap_initialized=NO"
+                         <<" source_level_load_rejected=YES\\n";
+                t.error=true;
+                return;
+            }
+        }
+        code2::function_31f94(t.s.machine);
     }
     static void set_environment(u32 raw) noexcept {
         code2::function_31edc(live().s.machine,
