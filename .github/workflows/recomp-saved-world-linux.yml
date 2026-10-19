@@ -88,7 +88,7 @@ jobs:
           grep -q CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS' build/save5-world/save5-verification.log
-          grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS RES3_SPRITE_RASTER_36CEC=UNIMPLEMENTED' build/save5-world/save5-verification.log
+          grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS RES3_36CEC_SOURCE_DRAWS=0 RES3_369D8_INDEXED_WRITES=0 RES3_SPRITE_DOS_PARITY=NOT_VERIFIED' build/save5-world/save5-verification.log
           test "$(wc -c < build/save5-world/save5.idx)" -eq 128000
           test "$(wc -c < build/save5-world/save5.pal)" -eq 768
           sha256sum build/save5-world/save5.idx build/save5-world/save5.pal

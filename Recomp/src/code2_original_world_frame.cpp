@@ -1114,7 +1114,9 @@ struct WorldFrame {
             std::cout<<"CODE2_338C8_FALLBACK_USED_IN_REAL_WORLD_FIRST_PASS=NO\\n";
         else
             std::cout<<"CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS"
-                     <<" RES3_SPRITE_RASTER_36CEC=UNIMPLEMENTED\\n";
+                     <<" RES3_36CEC_SOURCE_DRAWS="<<scene_sprite_emits
+                     <<" RES3_369D8_INDEXED_WRITES="<<scene_sprite_pixels
+                     <<" RES3_SPRITE_DOS_PARITY=NOT_VERIFIED\\n";
         std::cout<<"CODE2_FULL_DOS_WORLD_PARITY_ACCEPTED=NO\\n";
     }
 };
