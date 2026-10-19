@@ -55,6 +55,10 @@ struct WorldFrame {
     u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
     u32 scene_source_columns_preflighted=0,scene_descriptors_preflighted=0;
     u32 scene_ray_visible_runs=0,scene_raster_plane_passes=0,scene_sprite_pixels=0;
+    u32 scene_projection_callbacks=0,scene_projection_above_horizon=0;
+    u32 scene_projection_nonzero_scale=0,scene_projection_y_min=65535u;
+    u32 scene_projection_y_max=0,scene_projection_scale_min=65535u;
+    u32 scene_projection_scale_max=0;
     std::set<u32> source_res3_ids{},source_projected_res3_ids{};
     std::map<u32,u32> scene_quad_res4_ids{};
     std::set<u32> hud_resource_ids{};
@@ -690,6 +694,18 @@ struct WorldFrame {
             s.failure=true;return;
         }
         code2::function_35798(s.gfx.machine,x,y,target,scale);
+        // Observe the exact original 35798 callback post-state. 2B6D0
+        // subsequently rejects any y <= source horizon C02D or
+        // projected zero scale, without invoking 21BF0 or 36CEC.
+        const u32 yy=code2::load_le16(s.gfx.memory.data()+target+2u);
+        const u32 projected=code2::load_le16(s.gfx.memory.data()+scale);
+        ++s.scene_projection_callbacks;
+        s.scene_projection_above_horizon+=(yy>s.gfx.memory[0xC02Du]);
+        s.scene_projection_nonzero_scale+=(projected!=0u);
+        s.scene_projection_y_min=std::min(s.scene_projection_y_min,yy);
+        s.scene_projection_y_max=std::max(s.scene_projection_y_max,yy);
+        s.scene_projection_scale_min=std::min(s.scene_projection_scale_min,projected);
+        s.scene_projection_scale_max=std::max(s.scene_projection_scale_max,projected);
     }
     static u32 source_scene_rand() noexcept {
         return code2::function_30ca2(self().gfx.machine);
@@ -839,6 +855,19 @@ struct WorldFrame {
         // the original wall pass twice.
         scene.call_36cec=&source_scene_sprite_emit;
         code2::function_2c294(gfx.machine,scene);
+        std::cout<<"CODE2_ORIGINAL_2B6D0_PROJECTED_SOURCE_GATES"
+                 <<" callbacks="<<scene_projection_callbacks
+                 <<" y_gt_C02D="<<scene_projection_above_horizon
+                 <<" y_nonzero="<<scene_projection_nonzero_scale
+                 <<" horizon="<<unsigned(gfx.memory[0xC02Du])
+                 <<" y_min="<<(scene_projection_callbacks?scene_projection_y_min:0u)
+                 <<" y_max="<<scene_projection_y_max
+                 <<" projected_min="<<(scene_projection_callbacks?scene_projection_scale_min:0u)
+                 <<" projected_max="<<scene_projection_scale_max
+                 <<" source_2c294_count="<<code2::load_le16(
+                     gfx.memory.data()+0xF038u+
+                         2u*code2::load_le32(gfx.memory.data()+0xC050u))
+                 <<"\\n";
         CHECK(!failure && !gfx.stream_error && !gfx.unsupported);
         CHECK(res3_shape_loads>=1u && source_res3_ids.count(source_shape)==1u);
         std::cout<<"CODE2_SAVE5_ORIGINAL_2C294_RES3_SCENE_PROJECTION_PASS"
