@@ -25050,7 +25050,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                 state=jump_left?Left:Right;continue;
             }
             if(state==Left){
-                const u32 index=left_expr>>1;store_le32(dg(m,0xFCDCu),index);
+                // left_expr is row * level_width + column: a CELL index, not a byte offset.
+                const u32 index=left_expr;store_le32(dg(m,0xFCDCu),index);
                 if(index>=load_le32(dg(m,0xFD0Cu))){if(b.call_32f4c)b.call_32f4c();done=true;continue;}
                 const u32 rec=0x198E0u+index*2u;u16 flags=load_le16(dg(m,rec));
                 const bool treat_empty=(flags&0x003Fu)==0u || (load_le32(dg(m,0xFD08u))!=0u && (flags&0x0800u)!=0u);
@@ -25083,7 +25084,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                 left_expr=app84_mul_words(static_cast<s16>(load_le16(dg(m,0x248E6u))),scale)+static_cast<u32>(static_cast<s32>(bx));store_le32(dg(m,0xFCDCu),left_expr);state=CompareLeft;continue;
             }
 
-            const u32 index=right_expr>>1;store_le32(dg(m,0xFCDCu),index);
+            // right_expr likewise addresses cells; 198E0 stores 2 bytes per cell.
+            const u32 index=right_expr;store_le32(dg(m,0xFCDCu),index);
             if(index>=load_le32(dg(m,0xFD0Cu))){if(b.call_32f4c)b.call_32f4c();done=true;continue;}
             const u32 rec=0x198E0u+index*2u;u16 flags=load_le16(dg(m,rec));
             const bool treat_empty=(flags&0x003Fu)==0u || (load_le32(dg(m,0xFD08u))!=0u && (flags&0x0800u)!=0u);
