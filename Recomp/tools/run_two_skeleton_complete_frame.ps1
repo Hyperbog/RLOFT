@@ -133,13 +133,28 @@ try {
         $isolatedLogText = Get-Content -LiteralPath $isolatedLog -Raw
         $isolatedPass = ($isolatedExit -eq 0 -and
             $isolatedLogText -match 'CODE2_GENUINE_RES3_SOURCE_PROBE level=5 source_36cec_calls=2 raster_indexed_writes=5515')
-        $diagnostic = @(Get-Content -LiteralPath $nativeLog |
-            Select-String -Pattern 'CODE2_SOURCE_36CEC_RASTER_FAILURE|CODE2_SINTAB_POST_WORLD_PRE_SPRITE_STATE|CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL' |
-            Select-Object -Last 5 | ForEach-Object { $_.Line })
+        # Native source logs intentionally contain literal backslash-n
+        # delimiters. Select-String would capture an entire multi-kilobyte
+        # logical line and print the full output in a PowerShell exception.
+        # Extract bounded scalar diagnostics instead.
+        $fullText = Get-Content -LiteralPath $nativeLog -Raw
+        $diagnostic = @()
+        foreach ($pattern in @(
+            'CODE2_ORIGINAL_1F494_RESOURCE_ERROR[^\\\r\n]{0,300}',
+            'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD[^\\\r\n]{0,300}',
+            'CODE2_SOURCE_36CEC_RASTER_FAILURE[^\\\r\n]{0,300}',
+            'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL:[^\\\r\n]{0,250}'
+        )) {
+            foreach ($hit in [regex]::Matches($fullText,$pattern)) {
+                $diagnostic += $hit.Value
+            }
+        }
+        $diagnostic = @($diagnostic | Select-Object -Last 5)
         @(
             "FULL_FRAME_EXIT=$nativeExit",
             "ISOLATED_SPRITE_EXIT=$isolatedExit",
             "ISOLATED_TWO_SKELETON_RASTER_PASS=$isolatedPass",
+            "SOURCE_FAILURE_SCALAR_DIAGNOSTICS=$($diagnostic -join '; ')",
             "FULL_FRAME_LOG=$nativeLog",
             "ISOLATED_SPRITE_LOG=$isolatedLog"
         ) | Set-Content -LiteralPath (Join-Path $OutputDir "native_failure_differential.txt") -Encoding UTF8
