@@ -113,7 +113,11 @@ struct SavedGame {
     static u32 no_object_at(code2::s32,code2::s32) noexcept {return 0u;}
     void execute(const std::vector<u8>& save,
                  const rloft::original_levels::LevelGrid& grid) {
-        VERIFY(save.size()==9288u && grid.level==5u);
+        // Multiple owner-preserved, unmodified SAVE.DAT snapshots have
+        // retail lengths 9288 and 9310. The original compiled 07938 parser
+        // still controls whether the extra 22 source bytes are valid.
+        VERIFY((save.size()==9288u || save.size()==9310u) &&
+               grid.level==5u);
         code2::Application10Boundary b{};
         code2::Application09Boundary ui{};
         b.call_312a0=&open_save;
@@ -137,13 +141,18 @@ struct SavedGame {
         VERIFY(save_opens==1u && level_opens==1u && level_callbacks==1u);
         VERIFY(s.files.open_handles()==0u && s.opens==s.closes);
         VERIFY(code2::load_le32(s.guest.data()+0xC6C8u)==5u);
-        VERIFY(code2::load_le32(s.guest.data()+0x255D0u)==0x65960u);
-        VERIFY(code2::load_le32(s.guest.data()+0x255D4u)==0x6EB68u);
-        VERIFY(code2::load_le32(s.guest.data()+0xC658u)==252u);
+        // Never force SAVE10's specific pose, light or daypart onto
+        // independent original saves. Cross-check authentic saved camera
+        // bytes against the compiled 07938 output instead.
+        VERIFY(code2::load_le32(s.guest.data()+0x255D0u)==
+               code2::load_le32(save.data()+0x56u));
+        VERIFY(code2::load_le32(s.guest.data()+0x255D4u)==
+               code2::load_le32(save.data()+0x5Au));
+        VERIFY(code2::load_le32(s.guest.data()+0xC658u)==
+               code2::load_le32(save.data()+0x5Eu));
+        VERIFY(code2::load_le32(s.guest.data()+0xC658u)<360u);
         VERIFY(code2::load_le32(s.guest.data()+0xCF4Cu)==
                code2::load_le32(save.data()+0x70u));
-        VERIFY(code2::load_le32(s.guest.data()+0xF920u)==10u);
-        VERIFY(code2::load_le32(s.guest.data()+0xF91Cu)==3u);
         VERIFY(code2::load_le32(s.guest.data()+0xC038u)==0u);
         VERIFY(code2::load_le32(s.guest.data()+0xBF44u)==0x270Fu);
         VERIFY(std::equal(save.begin()+0x32u,save.begin()+0x52u,
@@ -158,8 +167,10 @@ struct SavedGame {
                                s.guest.begin()+0x218E0u+i*0x248u));
         }
         std::cout<<"CODE2_07938_ORIGINAL_SAVE5_LOAD_AND_181B4_DIRECT_LEVEL_PASS"
-                 <<" x16=416096 y16=453480 heading=252 party=4"
-                 <<" containers=62 level_cells=4096\\n";
+                 <<" x16="<<code2::load_le32(s.guest.data()+0x255D0u)
+                 <<" y16="<<code2::load_le32(s.guest.data()+0x255D4u)
+                 <<" heading="<<code2::load_le32(s.guest.data()+0xC658u)
+                 <<" party=4 containers=62 level_cells=4096\\n";
         std::cout<<"CODE2_CONTINUOUS_CODE1_GAME_BOOT_ACCEPTED=NO\\n";
         std::cout<<"CODE2_SOURCE_DOS_PIXEL_PARITY_ACCEPTED=NO\\n";
     }
