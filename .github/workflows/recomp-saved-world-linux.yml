@@ -126,6 +126,10 @@ jobs:
             echo "SOURCE_CAMERA_RESULT save=$id status=$status ${visibility:-visibility_unresolved} ${emissions:-emissions_unresolved}"
             if test "$status" -ne 0; then
               echo "SOURCE_CAMERA_NOT_VALIDATED save=$id; inspect source-only failure separately"
+              # Emit only C++ failure/assertion markers; never print saved
+              # party data, original media bytes or captured image contents.
+              diagnostics=$(grep -E 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL|CHECK failed|CHECK\(|terminate called|runtime_error|out_of_range' "$scratch/probe.log" | tail -n 5 || true)
+              echo "SOURCE_CAMERA_FAILURE_REASON save=$id ${diagnostics:-no_reason_emitted}"
             fi
             rm -f "$scratch/output.idx" "$scratch/output.bmp" "$scratch/output.pal" "$scratch/probe.log"
           done
