@@ -3,6 +3,8 @@
 std::string party_res0_path{},party_res1_path{};
 u32 party_resource_calls=0,party_masked_blits=0,party_direct_blits=0;
 u32 party_rect_fills=0,party_status_frames=0,party_missing_text=0;
+u32 party_decimal_formats=0,party_centered_text_draws=0,party_glyph_blits=0;
+u32 party_decimal_bytes=0;
 static u32 party_lookup(u32 id,u32 slot) noexcept {
     auto& w=self();
     if(w.failure)return 0u;
@@ -122,13 +124,105 @@ static void party_23024(u32,u32) noexcept {
     // Group-list UI needs original 23024-specific fonts / navigation.
     self().failure=true;
 }
-static u32 party_2e6f0(u32) noexcept {
-    ++self().party_missing_text;
-    self().failure=true;return 0u;
+// 2E6F0 -> retail 373BF: signed decimal into CODE.2 guest 2B64E.
+// The original 10-byte scratch buffer belongs to CODE.2, not the host.
+static void party_decimal_write8(u32 at,u8 value) noexcept {
+    auto& w=self();
+    if(at<0x2B64Eu || at>=0x2B658u) {
+        w.failure=true;return;
+    }
+    w.gfx.memory[at]=value;
+    ++w.party_decimal_bytes;
 }
-static void party_30508(u32,u32,u32,u32,u32) noexcept {
-    ++self().party_missing_text;
-    self().failure=true;
+static void party_decimal_format(u32 raw,u32 target,u32 radix) noexcept {
+    auto& w=self();
+    code2::Runtime124Boundary b{};
+    b.write8=&party_decimal_write8;
+    (void)code2::function_373bf(w.gfx.machine,b,
+        static_cast<std::int32_t>(raw),target,radix);
+}
+static u32 party_2e6f0(u32 value) noexcept {
+    auto& w=self();
+    constexpr u32 text=0x2B64Eu,capacity=10u;
+    std::fill_n(w.gfx.memory.begin()+text,capacity,0u);
+    w.party_decimal_bytes=0u;
+    code2::Application67Boundary b{};
+    b.call_373bf=&party_decimal_format;
+    const u32 result=code2::function_2e6f0(b,value);
+    if(result!=text || !w.party_decimal_bytes ||
+       w.party_decimal_bytes>=capacity || w.failure) {
+        ++w.party_missing_text; w.failure=true; return 0u;
+    }
+    // 373BF's generated ASCII loop does not store a terminal zero;
+    // the zeroed remaining guest buffer is the C-string sentinel.
+    ++w.party_decimal_formats;
+    return result;
+}
+static u32 party_glyph_direct(u32 frame,u32 row,u32 col,u32 image) noexcept {
+    auto& w=self();
+    if(!image || frame>255u || w.failure) {
+        w.failure=true;return 0u;
+    }
+    ++w.party_glyph_blits;
+    return party_draw_direct(frame,row,col,image);
+}
+static u32 party_glyph_masked(
+        u32 frame,u32 row,u32 col,u32 image,u32 palette) noexcept {
+    auto& w=self();
+    if(!image || frame>255u || w.failure) {
+        w.failure=true;return 0u;
+    }
+    ++w.party_glyph_blits;
+    return party_draw_masked(frame,row,col,image,palette);
+}
+static void party_30508(u32 row,u32 col,u32 width,u32 text,u32 font_id) noexcept {
+    auto& w=self();
+    if(w.failure)return;
+    if(text!=0x2B64Eu || font_id!=0u || row>=400u ||
+       col>=320u || width>320u-col) {
+        ++w.party_missing_text;w.failure=true;return;
+    }
+    // 30508 uses app70_font -> 2F29C(RES0 resource font_id,0).
+    // Make archive slot 0 current BEFORE entering compiled CODE.2;
+    // the same original cache/decoder is used as every other RES image.
+    const u32 font=party_lookup(font_id,0u);
+    if(!font || std::uint64_t(font)+132u>=w.gfx.heap_cursor) {
+        ++w.party_missing_text;w.failure=true;return;
+    }
+    // Retail font starts with an IMAGE pointer, followed by signed-byte
+    // glyph widths at font+4+char. ASCII decimal/minus are the only
+    // characters accepted by the 2E6F0 decimal formatter.
+    const u32 image=code2::load_le32(w.gfx.memory.data()+font);
+    if(!image || std::uint64_t(image)+8u>=w.gfx.heap_cursor ||
+       w.gfx.memory[image+7u]>0xFFu) {
+        ++w.party_missing_text;w.failure=true;return;
+    }
+    u32 measured=0u,chars=0u;
+    for(u32 at=text; at<text+10u && w.gfx.memory[at];++at) {
+        const u8 c=w.gfx.memory[at];
+        if(!((c>='0'&&c<='9')||c=='-')) {
+            w.failure=true;++w.party_missing_text;return;
+        }
+        measured+=w.gfx.memory[font+4u+c];
+        ++chars;
+    }
+    if(chars==0u||chars>=10u || measured>width) {
+        ++w.party_missing_text;w.failure=true;return;
+    }
+    code2::Application56Boundary glyph{};
+    glyph.call_2a380=&party_glyph_direct;
+    glyph.call_2a584=&party_glyph_masked;
+    code2::Application70Boundary text_bound{};
+    text_bound.app69=&w.gfx.resources;
+    text_bound.app56=&glyph;
+    // The source handles centering, 2B680 cursor, 2B684 row,
+    // per-glyph widths, 2939C/293EC and the original VGA store.
+    code2::function_30508(w.gfx.machine,text_bound,
+                          row,col,width,text,font_id);
+    if(w.failure || !w.party_glyph_blits) {
+        ++w.party_missing_text;w.failure=true;return;
+    }
+    ++w.party_centered_text_draws;
 }
 void render_original_1f494_party(const std::string& res0,
                                  const std::string& res1) {
@@ -184,6 +278,9 @@ void render_original_1f494_party(const std::string& res0,
              <<" fills_29aa4="<<party_rect_fills
              <<" borders_2e374="<<party_status_frames
              <<" hand_slots_1ea90=8"
+             <<" decimal_2e6f0="<<party_decimal_formats
+             <<" centered_30508="<<party_centered_text_draws
+             <<" glyph_303c8="<<party_glyph_blits
              <<" unsupported_text="<<party_missing_text
              <<" callback_failure="<<failure
              <<" DOS_PARITY=NOT_VERIFIED\\n";
