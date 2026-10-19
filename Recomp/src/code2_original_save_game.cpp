@@ -61,6 +61,10 @@ struct SavedGame {
         auto& t=live();
         const std::vector<u8>* media=nullptr;
         u32* cursor=nullptr;
+        // 16D04 also uses the *guest-memory* 312EC callback for INIT
+        // class-1/class-3 records (1686C/16934) and 16990 nested views.
+        // This is distinct from INIT's stack-local 312EC_local callback.
+        if(handle==0x49u){media=&t.metadata_init;cursor=&t.metadata_init_cursor;}
         if(handle==0x4Au){media=&t.metadata_npcs;cursor=&t.metadata_npc_cursor;}
         if(handle==0x4Bu){media=&t.metadata_objects;cursor=&t.metadata_object_cursor;}
         if(!media || !cursor ||
