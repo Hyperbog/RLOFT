@@ -67,6 +67,20 @@ jobs:
             else
               error=$(grep -E 'CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|181B4 source loader:' "$scratch/result.log" | tail -n 1 || true)
               echo "GENUINE_CROSS_LEVEL_CAMERA_FAILURE source=$source_path level=$level status=$status reason=${error:-missing_validation_marker}"
+              if test "$status" -eq 139; then
+                if command -v gdb >/dev/null 2>&1; then
+                  # Only named stack frames/signal; never print saved bytes.
+                  gdb --batch --quiet \
+                    -ex 'set pagination off' -ex 'run' -ex 'bt 6' \
+                    --args build/genuine-census/rloft_original_code2_save_game \
+                    --source-ray-census "$scratch" "$scratch/CODE.2" \
+                    > "$scratch/backtrace.log" 2>&1 || true
+                  grep -E 'Program received signal|^#[0-9]+ ' "$scratch/backtrace.log" | head -n 8 || true
+                  rm -f "$scratch/backtrace.log"
+                else
+                  echo "GENUINE_CAMERA_CRASH_BACKTRACE_UNAVAILABLE gdb_missing"
+                fi
+              fi
               failures=$((failures+1))
             fi
             rm -f "$scratch/LEV$level.DAT" "$scratch/SAVE.DAT" "$scratch/result.log"
