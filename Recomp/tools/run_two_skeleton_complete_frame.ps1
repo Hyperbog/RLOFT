@@ -118,7 +118,9 @@ try {
         # sprite decoding without manufacturing visibility or changing files.
         $isolatedLog = Join-Path $OutputDir "native_isolated_sprite_check.log"
         $isolatedStem = Join-Path $OutputDir "two_skeleton_isolated_check"
-        $isolatedArgs = @($nativeArgs)
+        # --save-sprite-probe retains the legacy 12-file contract;
+        # the extra RES1 argument belongs only to the 1F494 full frame.
+        $isolatedArgs = @($nativeArgs[0..($nativeArgs.Count - 2)])
         $isolatedArgs[0] = "--save-sprite-probe"
         $isolatedArgs[$isolatedArgs.Count - 1] = $isolatedStem
         $ErrorActionPreference = "Continue"
