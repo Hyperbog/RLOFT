@@ -128,7 +128,9 @@ int main() {
     const auto offscreen=execute_original_369d8(guest,vga,c);
     assert(offscreen.indexed_writes==2u &&
            offscreen.off_aperture_cpu_writes==2u);
-    assert(guest[0xB0020u]==40u && guest[0xB0070u]==38u); // AL/AH differ after 16-bit shade subtraction
+    // 369D8 patches code+0x210 to RET, so the first store executes
+    // during both plane-mask passes and the later +80-byte store does not.
+    assert(guest[0xB0020u]==40u && guest[0xB0070u]==0u);
     assert(vga.scanout_indices()==before_offscreen);
     c.renderer_phase=1230u;
     rejected=false;
