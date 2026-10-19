@@ -116,6 +116,12 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
     const std::int64_t initial_phase=special
         ? (std::int64_t(base_scale)*2+(base_scale*2u>>3))
         : (base_scale>>2);
+    // Retail 36EC9/36ECF writes the actual sprite row into 10450;
+    // 36F3E..36F88 computes a *different* scalar for generated SINTAB
+    // clipping. 36B78 loads 10450 for the raster's EDI address.
+    // Using the clipping scalar as a row was placing sprites far below
+    // the active draw page (and spuriously entering the B000 shadow).
+    std::int64_t raster_row=initial_phase;
     std::int64_t phase=initial_phase+
         (static_cast<std::int64_t>(256)-scaled_index)/2+
         (scaled_index>>3);
@@ -158,11 +164,11 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
                 staged[at+1u]=static_cast<std::uint8_t>(next-offset-2u);
             }
         }
-        phase=initial_phase-
-            static_cast<std::int64_t>(correction); // 36E51 subtracts 10450
+        raster_row=initial_phase-
+            static_cast<std::int64_t>(correction); // retail 36FD1 SUB [10450], EAX
     }
-    if(phase<INT32_MIN || phase>INT32_MAX)
-        throw std::out_of_range("36CEC renderer phase out of range");
+    if(raster_row<INT32_MIN || raster_row>INT32_MAX)
+        throw std::out_of_range("36CEC renderer raster row out of range");
     const auto ray_count=original_36cec_dword(guest,0xC6D8u);
     if(ray_count!=256u)
         throw std::out_of_range("36CEC expects original 256 ray records");
@@ -203,7 +209,7 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
         ctx.screen_x=run.x;ctx.run_width=
             static_cast<std::uint16_t>(run.width);
         ctx.packed_lookup=shade;
-        ctx.renderer_phase=static_cast<std::int32_t>(phase);
+        ctx.renderer_phase=static_cast<std::int32_t>(raster_row);
         ctx.row_base=row_base;ctx.video_page=page;
         ctx.individual_columns=mode;
         const auto raster=execute_original_369d8(staged,*staged_video,ctx);
