@@ -184,8 +184,11 @@ int main() {
     assert(integrated.visible_runs==1u &&
            integrated.occluded_columns==1u);
     assert(integrated.indexed_writes==1u);
-    assert(scene_vga.indexed_scanout(0u,130u)==0u);
-    assert(scene_vga.indexed_scanout(1u,130u)==32u);
+    // Synthetic size=8 has clamped_scale=1 and therefore original
+    // guest 10450 raster row 0. The separate clip scalar is 130,
+    // which must NEVER become the VGA destination row.
+    assert(scene_vga.indexed_scanout(1u,0u)==32u);
+    assert(scene_vga.indexed_scanout(1u,130u)==0u);
     assert(scene[scene_code+0x210u]==0x88u);
     // Original 36CEC uses strictly LESS THAN depth threshold.
     const auto edge=original_36cec_clip_run(0,3,256,10u,
