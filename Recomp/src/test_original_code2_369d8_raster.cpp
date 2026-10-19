@@ -94,6 +94,29 @@ int main() {
     try {(void)execute_original_369d8(guest,vga,c);}
     catch(const std::runtime_error&) {rejected=true;}
     assert(rejected); // no out-of-allocation guest read is permitted
+    // Rejected address and unknown opcode are different host boundaries.
+    // Diagnostic classification must never claim both are bad opcodes.
+    {
+        const auto bad_read=execute_sintab_scale(
+            code+0x200u,body-40u,0xA8000u,0u,
+            code,code+0x300u,body-2u,body+0x80u,
+            [&](std::uint32_t at)->std::uint8_t{return guest.at(at);},
+            [](std::uint32_t,std::uint8_t){});
+        assert(!bad_read.ok &&
+            bad_read.failure==SintabRasterFailure::source_read_out_of_range);
+        const auto saved=guest[code+0x200u];
+        guest[code+0x200u]=0x90u; // intentionally unsupported synthetic NOP
+        const auto unknown=execute_sintab_scale(
+            code+0x200u,body,0xA8000u,0u,
+            code,code+0x300u,body-2u,body+0x80u,
+            [&](std::uint32_t at)->std::uint8_t{return guest.at(at);},
+            [](std::uint32_t,std::uint8_t){});
+        assert(!unknown.ok &&
+            unknown.failure==SintabRasterFailure::unknown_instruction &&
+            unknown.failure_opcode==0x90u &&
+            unknown.failure_ip==code+0x200u);
+        guest[code+0x200u]=saved;
+    }
     word(guest,list+2,0xfffe);
     word(guest,code+0x200u+2u,4u);
     // Entire original 36CEC -> 369D8 traversal, SYNTHETIC actor/rays.
