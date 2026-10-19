@@ -1376,7 +1376,10 @@ struct WorldFrame {
                      <<" rows=140 nonzero_pixels="<<lower_nonzero
                      <<" black_rows="<<fully_black_rows
                      <<" original_frame_blits="<<source_frame_base_blits
-                     <<" party_portraits_complete=NO"
+                     <<" original_party_compositor_executed="
+                     <<((res1_file.empty() || party_masked_blits==0u)?"NO":"YES")
+                     <<" masked_2A584_blits="<<party_masked_blits
+                     <<" centered_30508_text="<<party_centered_text_draws
                      <<" DOS_PIXEL_PARITY=NOT_VERIFIED\\n";
             CHECK(lower_nonzero>20000u && fully_black_rows==0u);
         }
