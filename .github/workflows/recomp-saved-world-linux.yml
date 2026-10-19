@@ -206,6 +206,9 @@ jobs:
           grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS' "$scratch/full.log"
           grep -q 'CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS res0_loads=2 frame_blits=400' "$scratch/full.log"
           grep -q 'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD' "$scratch/full.log"
+          # Source counts only. Do not upload original party fields, art,
+          # decoded portraits, frames or resource bytes to CI artifacts.
+          grep -o 'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD[^\\]*' "$scratch/full.log" | tail -n 1
           grep -Eq 'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT .*changed_pixels=[1-9][0-9]* world_rows_changed=[1-9][0-9]* bbox=' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
