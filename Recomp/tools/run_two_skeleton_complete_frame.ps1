@@ -112,10 +112,35 @@ try {
         $ErrorActionPreference = "Stop"
     }
     if ($nativeExit -ne 0) {
+        # Re-execute the *same original save* with its previously successful
+        # sprite-only path. This distinguishes scene composition from source
+        # sprite decoding without manufacturing visibility or changing files.
+        $isolatedLog = Join-Path $OutputDir "native_isolated_sprite_check.log"
+        $isolatedStem = Join-Path $OutputDir "two_skeleton_isolated_check"
+        $isolatedArgs = @($nativeArgs)
+        $isolatedArgs[0] = "--save-sprite-probe"
+        $isolatedArgs[$isolatedArgs.Count - 1] = $isolatedStem
+        $ErrorActionPreference = "Continue"
+        try {
+            & $exe @isolatedArgs 2>&1 | Out-File -LiteralPath $isolatedLog -Encoding utf8
+            $isolatedExit = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = "Stop"
+        }
+        $isolatedLogText = Get-Content -LiteralPath $isolatedLog -Raw
+        $isolatedPass = ($isolatedExit -eq 0 -and
+            $isolatedLogText -match 'CODE2_GENUINE_RES3_SOURCE_PROBE level=5 source_36cec_calls=2 raster_indexed_writes=5515')
         $diagnostic = @(Get-Content -LiteralPath $nativeLog |
-            Select-String -Pattern 'CODE2_SOURCE_36CEC_RASTER_FAILURE|CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL' |
-            Select-Object -Last 3 | ForEach-Object { $_.Line })
-        throw "Source frame renderer failed (exit $nativeExit); $($diagnostic -join '; '); full log: $nativeLog"
+            Select-String -Pattern 'CODE2_SOURCE_36CEC_RASTER_FAILURE|CODE2_SINTAB_POST_WORLD_PRE_SPRITE_STATE|CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL' |
+            Select-Object -Last 5 | ForEach-Object { $_.Line })
+        @(
+            "FULL_FRAME_EXIT=$nativeExit",
+            "ISOLATED_SPRITE_EXIT=$isolatedExit",
+            "ISOLATED_TWO_SKELETON_RASTER_PASS=$isolatedPass",
+            "FULL_FRAME_LOG=$nativeLog",
+            "ISOLATED_SPRITE_LOG=$isolatedLog"
+        ) | Set-Content -LiteralPath (Join-Path $OutputDir "native_failure_differential.txt") -Encoding UTF8
+        throw "Complete source frame failed; isolated sprite succeeds=$isolatedPass. $($diagnostic -join '; '); see native_failure_differential.txt and the two private logs in $OutputDir"
     }
     $log = Get-Content -LiteralPath $nativeLog -Raw
     $marker = [regex]::Match($log,
