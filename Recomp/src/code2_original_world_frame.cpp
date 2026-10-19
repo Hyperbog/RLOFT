@@ -1242,6 +1242,7 @@ struct WorldFrame {
         gfx.open_readonly_resource(res4,0u,4u);
         CHECK(!gfx.stream_error);
     }
+#include "original_code2_1f494_bridge.inc"
     void render_saved_hud(const std::string& filename) {
         CHECK(code2::load_le32(gfx.memory.data()+0x258DCu)==15u);
         CHECK(std::filesystem::path(filename).filename()=="RES0");
@@ -1295,7 +1296,8 @@ struct WorldFrame {
                 const std::string& npc_file="",
                 const std::string& object_file="",
                 const std::string& res3_file="",
-                const std::string& res4_file="") {
+                const std::string& res4_file="",
+                const std::string& res1_file="") {
         install_world(saved_outdoor);
         if(saved_outdoor && !init_file.empty())
             initialize_original_hud_assets(init_file,npc_file,object_file);
@@ -1340,6 +1342,8 @@ struct WorldFrame {
         CHECK(shader_flushes>0u);
         if(saved_outdoor && !res3_file.empty())
             project_original_scene_res3(res3_file);
+        if(saved_outdoor && !res1_file.empty())
+            render_original_1f494_party(hud_file,res1_file);
         if(saved_outdoor && !hud_file.empty())
             render_saved_hud(hud_file);
         if(saved_outdoor) {
@@ -1415,7 +1419,7 @@ int main(int argc,char** argv) {
         // authentic outdoor -> quad -> wall -> RES3 -> HUD draw sequence.
         const bool isolated_sprite_probe=argc==14 &&
             std::string(argv[1])=="--save-sprite-probe";
-        const bool complete_saved_frame=argc==14 &&
+        const bool complete_saved_frame=(argc==14 || argc==15) &&
             std::string(argv[1])=="--save-complete-frame";
         if(isolated_sprite_probe || complete_saved_frame) {
             const std::filesystem::path save_file(argv[2]),lev_file(argv[3]);
@@ -1479,7 +1483,8 @@ int main(int argc,char** argv) {
                     world.render(true,std::string(argv[9]),
                         init_file.string(),npc_file.string(),
                         object_file.string(),res3_file.string(),
-                        res4_file.string());
+                        res4_file.string(),
+                        argc==15?std::string(argv[14]):"");
                     full_frame_calls=world.scene_sprite_emits;
                     full_frame_sprite_writes=world.scene_sprite_pixels;
                     world_off_aperture_writes=
