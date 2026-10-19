@@ -215,4 +215,24 @@ jobs:
           test -s "$scratch/frame.bmp"
           echo 'GENUINE_COMPLETE_WORLD_FRAME_NATIVE_PASS original_save=SAVE09 expected_source_sprite_writes=127 full_frame=YES DOS_VGA_PARITY=NOT_VERIFIED'
           sha256sum "$scratch/frame.idx" "$scratch/frame.pal"
+          # Deliberately synthetic guest-HUD status fields on an otherwise
+          # untouched source save. Only checks genuine original font pixels
+          # are renderable; this output is NOT a retail save/frame oracle.
+          status=0
+          timeout 180s build/save5-world/rloft_original_code2_world_frame --save-status-text-fixture \
+            "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
+            "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
+            "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
+            "$scratch/RES3" "$scratch/synthetic-text" "$scratch/RES1" \
+            > "$scratch/synthetic-text.log" 2>&1 || status=$?
+          if test "$status" -ne 0; then
+            echo "SYNTHETIC_SOURCE_STATUS_TEXT_FAIL status=$status"
+            grep -oE 'CODE2_ORIGINAL_1F494_RESOURCE_ERROR[^\\]*|CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD[^\\]*|CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL:[^\\]*' "$scratch/synthetic-text.log" | tail -n 5 || true
+            exit 1
+          fi
+          grep -q 'CODE2_SYNTHETIC_STATUS_FIXTURE_ONLY untouched_archive_inputs=YES guest_status_adjustments=5 original_save_parity=NOT_VERIFIED' "$scratch/synthetic-text.log"
+          grep -Eq 'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD .*decimal_2e6f0=2 centered_30508=2 glyph_303c8=[2-9][0-9]* unsupported_text=0 callback_failure=0' "$scratch/synthetic-text.log"
+          test "$(wc -c < "$scratch/synthetic-text.idx")" -eq 128000
+          test "$(wc -c < "$scratch/synthetic-text.pal")" -eq 768
+          echo 'SOURCE_STATUS_GLYPH_REAL_RES0_FONT_PASS synthetic_guest_status=YES independent_DOS_parity=NOT_VERIFIED'
           echo 'All original media, indexed frames, previews and palettes were kept private and deleted.'
