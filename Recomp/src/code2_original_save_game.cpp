@@ -19,6 +19,9 @@ struct SavedGame {
     SaveLevel& s;
     unsigned save_opens=0,level_opens=0,level_callbacks=0;
     u32 expected_level=5u;
+    std::vector<u8> metadata_init,metadata_npcs,metadata_objects;
+    u32 metadata_init_cursor=0u,metadata_npc_cursor=0u,metadata_object_cursor=0u;
+    u32 metadata_init_opens=0u,metadata_init_closes=0u;
     bool error=false;
     static SavedGame* active;
     static SavedGame& live() noexcept {return *active;}
@@ -37,6 +40,107 @@ struct SavedGame {
         }
         return g[address+len]==0u;
     }
+    // Original retail 16D04 calls 16810, 168C8, 1686C, 16934 and
+    // 16990. In particular 16990 allocates the 2B764 view table from INIT.
+    // All bytes and allocations go through those *compiled* original
+    // routines; this host only supplies bounded read-only file callbacks.
+    static code2::s32 open_definition(u32 pointer) noexcept {
+        auto& t=live();
+        if(pointer==0x6F8u && !t.metadata_npcs.empty()) {
+            t.metadata_npc_cursor=0u;return 0x4Au;
+        }
+        if(pointer==0x704u && !t.metadata_objects.empty()) {
+            t.metadata_object_cursor=0u;return 0x4Bu;
+        }
+        t.error=true;return -1;
+    }
+    static void close_definition(u32 handle) noexcept {
+        if(handle!=0x4Au && handle!=0x4Bu)live().error=true;
+    }
+    static void read_definition(u32 dst,u32 length,u32 handle) noexcept {
+        auto& t=live();
+        const std::vector<u8>* media=nullptr;
+        u32* cursor=nullptr;
+        if(handle==0x4Au){media=&t.metadata_npcs;cursor=&t.metadata_npc_cursor;}
+        if(handle==0x4Bu){media=&t.metadata_objects;cursor=&t.metadata_object_cursor;}
+        if(!media || !cursor ||
+           std::uint64_t(*cursor)+length>media->size() ||
+           std::uint64_t(dst)+length>t.s.guest.size()){
+            t.error=true;return;
+        }
+        std::copy_n(media->data()+*cursor,length,t.s.guest.data()+dst);
+        *cursor+=length;
+    }
+    static u32 open_init(u32 pointer) noexcept {
+        auto& t=live();
+        if(pointer!=0x718u || t.metadata_init.size()!=1879u ||
+           std::string(reinterpret_cast<char*>(t.s.guest.data()+pointer))!="INIT"){
+            t.error=true;return 0xFFFFFFFFu;
+        }
+        t.metadata_init_cursor=0u;++t.metadata_init_opens;
+        return 0x49u;
+    }
+    static u32 read_init_local(u8* dst,u32 length,u32 handle) noexcept {
+        auto& t=live();
+        if(handle!=0x49u || !dst ||
+           std::uint64_t(t.metadata_init_cursor)+length>t.metadata_init.size()){
+            t.error=true;return 0u;
+        }
+        std::copy_n(t.metadata_init.data()+t.metadata_init_cursor,length,dst);
+        t.metadata_init_cursor+=length;return length;
+    }
+    static void close_init(u32 handle) noexcept {
+        auto& t=live();
+        if(handle!=0x49u)t.error=true;
+        ++t.metadata_init_closes;
+    }
+    void initialize_original_scene(const std::filesystem::path& dir) {
+        metadata_init=rloft::original_levels::read_archive((dir/"INIT").string());
+        metadata_npcs=rloft::original_levels::read_archive((dir/"NPCS.DAT").string());
+        metadata_objects=rloft::original_levels::read_archive((dir/"OBJECTS.DAT").string());
+        VERIFY(metadata_init.size()==1879u &&
+               metadata_npcs.size()==5731u &&
+               metadata_objects.size()==21844u);
+        VERIFY(code2::load_le32(metadata_npcs.data())==83u &&
+               code2::load_le32(metadata_objects.data())==336u);
+        constexpr char init_name[]="INIT";
+        std::copy_n(init_name,sizeof(init_name),s.guest.data()+0x718u);
+        code2::Application25Boundary defs{};
+        code2::Application26Boundary files{};
+        code2::Application28Boundary context{};
+        code2::Application29Boundary streams{};
+        code2::Application30Boundary original{};
+        defs.call_312ec=&read_definition;
+        files.call_312a0=&open_definition;
+        files.call_312dc=&close_definition;
+        files.call_3104c=&SaveLevel::allocate;
+        context.app25=&defs;
+        context.app26=&files;
+        streams.app28=&context;
+        streams.call_312ec_local=&read_init_local;
+        original.app29=&streams;
+        original.call_312a0=&open_init;
+        original.call_312ec_local=&read_init_local;
+        original.call_312dc=&close_init;
+        code2::function_16d04(s.machine,original);
+        VERIFY(!error && !s.failed && metadata_init_opens==1u &&
+               metadata_init_closes==1u &&
+               metadata_init_cursor==metadata_init.size() &&
+               metadata_npc_cursor==metadata_npcs.size() &&
+               metadata_object_cursor==metadata_objects.size());
+        VERIFY(code2::load_le32(s.guest.data()+0x258F4u)==83u &&
+               code2::load_le32(s.guest.data()+0x258E8u)==336u);
+        const u32 count=code2::load_le16(s.guest.data()+0x2B750u);
+        const u32 table=code2::load_le32(s.guest.data()+0x2B764u);
+        VERIFY(table>=0x100000u && table<s.heap_top &&
+               std::uint64_t(table)+4u<=s.heap_top);
+        std::cout<<"CODE2_16D04_16990_ORIGINAL_SCENE_VIEW_DESCRIPTORS_PASS"
+                 <<" view_table="<<table
+                 <<" first_view_key="<<count
+                 <<" metadata_init_bytes="<<metadata_init_cursor
+                 <<" original_dos_parity=NOT_VERIFIED\\n";
+    }
+
     static u32 open_save(u32 addr) noexcept {
         auto& t=live();
         if(addr!=0x12990u || !path_is(addr,"WORK\\SAVE.DAT")){
@@ -269,6 +373,10 @@ int main(int argc,char** argv) {
         std::copy_n(sintab,sizeof(sintab),source->guest.begin()+0x24u);
         source->load_original_sintab();
         SavedGame gate(*source);
+        if(census && std::filesystem::exists(dir/"INIT") &&
+           std::filesystem::exists(dir/"NPCS.DAT") &&
+           std::filesystem::exists(dir/"OBJECTS.DAT"))
+            gate.initialize_original_scene(dir);
         gate.execute(save,grid);
         if(census) {
             // Execute reconstructed original 334C4 -> 32954 against the
