@@ -33,6 +33,7 @@ using OriginalLevelGuest=WorldRaySource;
 #include <fstream>
 #include <numeric>
 #include <functional>
+#include <cstdio>
 
 namespace {
 struct WorldFrame {
@@ -1125,6 +1126,80 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
+        // Camera and actors are original 07938/181B4-loaded guest bytes.
+        // This draws authentic source-visible RES3 on a BLANK VGA target:
+        // an isolated source sprite probe, NOT a complete world/DOS frame.
+        if(argc==14 && std::string(argv[1])=="--save-sprite-probe") {
+            const std::filesystem::path save_file(argv[2]),lev_file(argv[3]);
+            const std::filesystem::path sintab_file(argv[4]),res4_file(argv[5]);
+            const std::filesystem::path colors_file(argv[6]),code_file(argv[7]);
+            const std::filesystem::path init_file(argv[8]),npc_file(argv[10]);
+            const std::filesystem::path object_file(argv[11]),res3_file(argv[12]);
+            CHECK(save_file.filename()=="SAVE.DAT" && code_file.filename()=="CODE.2");
+            CHECK(lev_file.parent_path()==save_file.parent_path());
+            CHECK(sintab_file.parent_path()==save_file.parent_path());
+            CHECK(res4_file.parent_path()==save_file.parent_path());
+            CHECK(colors_file.parent_path()==save_file.parent_path());
+            const auto save=rloft::original_levels::read_archive(save_file.string());
+            CHECK(save.size()>=0x997u);
+            const u32 level=code2::load_le32(save.data()+0x52u);
+            CHECK(level<32u);
+            char lev_name[11]{};
+            std::snprintf(lev_name,sizeof(lev_name),"LEV%03u.DAT",level);
+            CHECK(lev_file.filename()==lev_name);
+            const auto lev=rloft::original_levels::read_archive(lev_file.string());
+            const auto grid=rloft::original_levels::decode_saved_grid(lev,level);
+            const auto executable=rloft::original_levels::read_archive(code_file.string());
+            constexpr std::size_t data_image=0x75F24u;
+            CHECK(executable.size()==558689u &&
+                  executable.size()>data_image+0x7330u+620u);
+            auto ray=std::make_unique<WorldRaySource>(save_file.parent_path(),true);
+            std::fill(ray->guest.begin(),ray->guest.end(),0u);
+            std::copy(executable.begin()+data_image,executable.end(),
+                      ray->guest.begin());
+            CHECK(ray->guest[0x7330u]==4u &&
+                  code2::load_le32(ray->guest.data()+0x7335u)==0x6FC4u);
+            constexpr char sin_name[]="SINTAB";
+            std::copy_n(sin_name,sizeof(sin_name),ray->guest.begin()+0x24u);
+            ray->load_original_sintab();
+            { SavedGame load(*ray); load.execute(save,grid); }
+            code2::Application90Boundary view{};
+            view.call_35680=&code2::function_35680;
+            view.call_32954=&WorldRaySource::original_ray_sweep;
+            code2::function_334c4(ray->machine,view);
+            CHECK(!ray->failed && ray->rays==1u &&
+                  code2::load_le32(ray->guest.data()+0xFD0Cu)==grid.cells.size());
+            auto gfx=std::make_unique<WorldGraphicsSource>();
+            gfx->mode(3u);
+            gfx->owned_colors_palette(colors_file.string(),0u,0u);
+            gfx->open_readonly_resource(res4_file.string(),0u,4u);
+            {
+                WorldFrame world(*ray,*gfx);
+                world.install_world(true);
+                world.initialize_original_hud_assets(init_file.string(),
+                    npc_file.string(),object_file.string());
+                world.project_original_scene_res3(res3_file.string());
+                std::cout<<"CODE2_GENUINE_RES3_SOURCE_PROBE"
+                         <<" level="<<level
+                         <<" source_36cec_calls="<<world.scene_sprite_emits
+                         <<" raster_indexed_writes="<<world.scene_sprite_pixels
+                         <<" source_ray_occlusion=YES"
+                         <<" full_frame=NO DOS_VGA_PARITY=NOT_VERIFIED\\n";
+            }
+            // No original DOS VGA data or source pixels are published.
+            const std::string stem(argv[13]);
+            write_frame(stem,gfx->video);
+            std::ofstream pal(stem+".pal",std::ios::binary|std::ios::trunc);
+            CHECK(bool(pal));
+            for(u32 i=0;i<256u;++i){
+                const auto c=gfx->video.palette(static_cast<u8>(i));
+                pal.put(static_cast<char>(c.r));
+                pal.put(static_cast<char>(c.g));
+                pal.put(static_cast<char>(c.b));
+            }
+            CHECK(bool(pal));
+            return 0;
+        }
         const bool saved_outdoor=(argc==9 || argc==11 || argc==14) &&
                                  std::string(argv[1])=="--save-world";
         const bool with_hud=saved_outdoor && argc>=11;
