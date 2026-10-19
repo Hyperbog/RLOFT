@@ -101,9 +101,21 @@ try {
         (Join-Path $media "RES3"),
         $stem
     )
-    & $exe @nativeArgs > $nativeLog 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Source frame renderer failed (exit $LASTEXITCODE); see $nativeLog"
+    # Windows PowerShell 5.1 promotes native stderr into a terminating
+    # NativeCommandError when ErrorActionPreference=Stop. Capture both
+    # streams while retaining the real executable exit code.
+    $ErrorActionPreference = "Continue"
+    try {
+        & $exe @nativeArgs 2>&1 | Out-File -LiteralPath $nativeLog -Encoding utf8
+        $nativeExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = "Stop"
+    }
+    if ($nativeExit -ne 0) {
+        $diagnostic = @(Get-Content -LiteralPath $nativeLog |
+            Select-String -Pattern 'CODE2_SOURCE_36CEC_RASTER_FAILURE|CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL' |
+            Select-Object -Last 3 | ForEach-Object { $_.Line })
+        throw "Source frame renderer failed (exit $nativeExit); $($diagnostic -join '; '); full log: $nativeLog"
     }
     $log = Get-Content -LiteralPath $nativeLog -Raw
     $marker = [regex]::Match($log,
