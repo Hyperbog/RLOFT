@@ -15,7 +15,7 @@
 namespace rloft_recomp {
 struct Original36cecRasterMetrics {
     std::uint32_t source_columns{}, visible_runs{}, occluded_columns{};
-    std::uint32_t plane_passes{}, indexed_writes{};
+    std::uint32_t plane_passes{}, indexed_writes{}, off_aperture_cpu_writes{};
 };
 inline std::uint32_t original_36cec_dword(
     const std::vector<std::uint8_t>& g,std::uint64_t p) {
@@ -209,13 +209,16 @@ inline Original36cecRasterMetrics raster_original_36cec_scene(
         const auto raster=execute_original_369d8(staged,*staged_video,ctx);
         shade=raster.lookup_after;
         metrics.indexed_writes+=raster.indexed_writes;
+        metrics.off_aperture_cpu_writes+=raster.off_aperture_cpu_writes;
         metrics.plane_passes+=raster.plane_passes;
         ++metrics.visible_runs;
     }
-    // Commit only the completed planar sprite; never carry SINTAB
-    // self-patched stop instructions into the live original guest.
+    // Commit the bounded CPU write region and staged VGA planes only
+    // after the complete sprite succeeds. The B0000-BFFFF shadow is
+    // NOT mapped back into visible VGA; it records source CPU stores
+    // without wrapping into A0000. Never commit temporary SINTAB patches.
     video=std::move(*staged_video);
-    std::copy_n(staged.begin()+0xA0000u,0x10000u,guest.begin()+0xA0000u);
+    std::copy_n(staged.begin()+0xA0000u,0x20000u,guest.begin()+0xA0000u);
     return metrics;
 }
 } // namespace rloft_recomp
