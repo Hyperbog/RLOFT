@@ -420,6 +420,7 @@ int main(int argc,char** argv) {
                 marked+=(source->guest[0x198E0u+2u*cell]&0x40u)!=0u;
             }
             if(finder) {
+                std::cout<<std::endl; // separate legacy literal-\\n diagnostics
                 // Source 2B6D0 uses primary 14D80 records, flag 02, the
                 // 32954 ray-marked 0040 cells and source 35798 projection.
                 // No save/actor/camera/ray byte is changed; original 35798
@@ -492,7 +493,7 @@ int main(int argc,char** argv) {
                                  <<" projected_screen="<<screen
                                  <<" horizon="<<horizon
                                  <<" drawable_2b6d0_initial="<<(projected?1:0)
-                                 <<" unmodified=YES\\n";
+                                 <<" unmodified=YES"<<std::endl;
                     }
                 }
                 VERIFY(std::equal(prior.begin(),prior.end(),
@@ -512,7 +513,7 @@ int main(int argc,char** argv) {
                          <<" candidate="<<(ray_projectable?"YES":"NO")
                          <<" source_35798=YES"
                          <<" genuine_36cec_calls=NOT_TESTED"
-                         <<" DOS_VGA_PARITY=NOT_VERIFIED\\n";
+                         <<" DOS_VGA_PARITY=NOT_VERIFIED"<<std::endl;
             }
             std::cout<<"CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS"
                      <<" level="<<level
