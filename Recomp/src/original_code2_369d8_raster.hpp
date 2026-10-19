@@ -116,8 +116,12 @@ inline Original369d8Report execute_original_369d8(
                 throw std::out_of_range("369D8 generated code offset invalid");
             const std::int64_t source=
                 static_cast<std::int64_t>(ctx.source_body)+adjustment;
-            if(source<ctx.image_begin || source>=ctx.image_end)
-                throw std::out_of_range("369D8 source adjustment outside allocation");
+            // Original 369D8 computes ESI = coordinate + signed16
+            // adjustment, then generated SINTAB x86 reads [ESI+disp32].
+            // A valid ESI may precede the decoded EH7 sprite allocation:
+            // only its eventual *effective* read must fall inside it.
+            if(source<0 || source>=static_cast<std::int64_t>(guest.size()))
+                throw std::out_of_range("369D8 adjusted guest pointer invalid");
             const auto stop_index=static_cast<std::size_t>(stop_address-code_begin);
             const auto previous=local_code[stop_index];
             local_code[stop_index]=0xC3u; // 36A75 temporary RET

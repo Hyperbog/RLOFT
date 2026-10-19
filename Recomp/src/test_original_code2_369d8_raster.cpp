@@ -80,6 +80,21 @@ int main() {
     try {(void)execute_original_369d8(guest,vga,c);}
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
+    // Authentic 369D8 ABI: ESI is image+signed adjustment, not
+    // necessarily in the image. The generated [ESI+disp32] read is.
+    // Reproduce a negative display-list adjustment exceeding the
+    // decoded two-byte prefix; only the effective guest read is bounded.
+    word(guest,list+2,0xffd8); // image - 40
+    word(guest,code+0x200u+2u,42u); // source - 40 + 42 = image + 2
+    const auto negative_adjustment=execute_original_369d8(guest,vga,c);
+    assert(negative_adjustment.indexed_writes==2u);
+    word(guest,code+0x200u+2u,36u); // source - 40 + 36 = image - 4
+    rejected=false;
+    try {(void)execute_original_369d8(guest,vga,c);}
+    catch(const std::runtime_error&) {rejected=true;}
+    assert(rejected); // no out-of-allocation guest read is permitted
+    word(guest,list+2,0xfffe);
+    word(guest,code+0x200u+2u,4u);
     // Entire original 36CEC -> 369D8 traversal, SYNTHETIC actor/rays.
     // This is a bounded unit test, never a claim of genuine saved visibility.
     std::vector<std::uint8_t> scene(0xB0000u,0u);

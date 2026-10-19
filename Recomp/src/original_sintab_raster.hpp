@@ -18,8 +18,11 @@ SintabRasterResult execute_sintab_scale(
     std::uint32_t code_end,std::uint32_t source_begin,
     std::uint32_t source_end,Read read,Write write) noexcept {
     SintabRasterResult result{};
+    // Source is the ESI base, not necessarily a valid dereference.
+    // Generated x86 loads [ESI+disp32]; validate those effective
+    // read addresses individually, not ESI itself.
     if(target<code_begin || target>=code_end ||
-       source<source_begin || source>=source_end) return result;
+       source_begin>=source_end) return result;
     std::uint8_t al=0,ah=0;
     std::uint32_t ip=target;
     for(std::uint32_t budget=0;budget<32768u;++budget) {
