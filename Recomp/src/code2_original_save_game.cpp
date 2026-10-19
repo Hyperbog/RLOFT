@@ -107,13 +107,11 @@ struct SavedGame {
         if(phase!=previous && view!=0xFFu) {
             const u32 table=code2::load_le32(t.s.guest.data()+0x2B764u);
             const std::uint64_t slot=std::uint64_t(table)+view*4u;
-            bool ready=table>=0x400000u &&
-                       slot+4u<=t.s.guest.size();
+            bool ready=slot+4u<=t.s.guest.size();
             u32 record=0u;
             if(ready) {
                 record=code2::load_le32(t.s.guest.data()+slot);
-                ready=record>=0x400000u &&
-                      std::uint64_t(record)+8u<=t.s.guest.size();
+                ready=std::uint64_t(record)+8u<=t.s.guest.size();
             }
             if(!ready) {
                 std::cerr<<"CODE2_31F94_ORIGINAL_VIEW_DESCRIPTOR_PREREQUISITE"
