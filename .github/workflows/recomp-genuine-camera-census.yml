@@ -87,6 +87,21 @@ jobs:
               fi
               failures=$((failures+1))
             fi
+            # Guard the original 32954 cell-index regression without
+            # fabricating visibility. The untouched Level22/21 saves
+            # genuinely yield a ray-marked, depth-projectable primary actor.
+            # Level23's saved pose currently does not, and is only censused.
+            if [[ "$level" == "022" || "$level" == "021" ]]; then
+              status=0
+              build/genuine-census/rloft_original_code2_save_game --find-visible-res3 "$scratch" "$scratch/CODE.2" > "$scratch/cell-index.log" 2>&1 || status=$?
+              verdict=$(grep '^CODE2_UNTOUCHED_SOURCE_RES3_CAMERA_FIND' "$scratch/cell-index.log" | tail -n 1 || true)
+              echo "CODE2_ORIGINAL_RAY_CELL_INDEX_REGRESSION level=$level status=$status $verdict"
+              test "$status" -eq 0
+              [[ "$verdict" == *"ray_marked_allowed=1"* ]]
+              [[ "$verdict" == *"ray_marked_projectable=1"* ]]
+              [[ "$verdict" == *"candidate=YES"* ]]
+              rm -f "$scratch/cell-index.log"
+            fi
             rm -f "$scratch/LEV$level.DAT" "$scratch/SAVE.DAT" "$scratch/result.log"
           done
           echo "GENUINE_CROSS_LEVEL_CENSUS_FINISHED verified=$success rejected=$failures"
