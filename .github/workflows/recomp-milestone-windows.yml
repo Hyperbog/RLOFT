@@ -148,7 +148,7 @@ jobs:
           $source = "build/windows-milestone/Debug"
           $dir = "build/windows-milestone/package"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_world_frame.exe")) {
+          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
             Copy-Item (Join-Path $source $exe) $dir -ErrorAction Stop
           }
           Copy-Item build/windows-milestone/milestone-report.json $dir
