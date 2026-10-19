@@ -57,6 +57,8 @@ struct WorldFrame {
     u32 scene_source_columns_preflighted=0,scene_descriptors_preflighted=0;
     u32 scene_ray_visible_runs=0,scene_raster_plane_passes=0,scene_sprite_pixels=0;
     u32 scene_sprite_off_aperture_writes=0;
+    u32 scene_sprites_changed_active_scanout=0;
+    u32 scene_sprite_active_scanout_pixels=0;
     u32 scene_projection_callbacks=0,scene_projection_above_horizon=0;
     u32 scene_projection_nonzero_scale=0,scene_projection_y_min=65535u;
     u32 scene_projection_y_max=0,scene_projection_scale_min=65535u;
@@ -762,6 +764,23 @@ struct WorldFrame {
     // cdecl order. In particular, argument TWO is the absolute RES3 ID.
     // Original 36CEC center-out ray occlusion now dispatches the tested
     // 36B14/369D8 VGA executor. Only real source 2C294 calls reach here.
+    // Observe the reconstructed VGA ACTIVE draw page without changing the
+    // real CRTC start. The displayed page is normally switched *after*
+    // the world/HUD draw sequence, so querying the live host too early
+    // would falsely report that every source sprite is invisible.
+    static std::vector<u8> sprite_active_page_indices() {
+        auto& s=self();
+        auto probe=std::make_unique<rloft::graphics::OriginalVgaHost>(
+            s.gfx.video);
+        const u32 page=s.gfx.memory[0xEF4Du];
+        CHECK(page<=1u);
+        const u32 start=page*0x8000u;
+        CHECK(probe->write_indexed_port(0x3D4u,
+            static_cast<u16>(0x000Cu|((start>>8u)&0xFFu)<<8u)));
+        CHECK(probe->write_indexed_port(0x3D4u,
+            static_cast<u16>(0x000Du|((start&0xFFu)<<8u))));
+        return probe->scanout_indices();
+    }
     static void source_scene_sprite_emit(
             u32 screen_x,u32 res3_id,u32 projected_size,u32 lookup_bias,
             u32 vertical_mode,u32 ray_depth) noexcept {
@@ -801,6 +820,7 @@ struct WorldFrame {
                 lookup.data(),lookup.size(),
                 code2::load_le32(s.gfx.memory.data()+0xC730u));
             if(plan.drawable) {
+                const auto before=sprite_active_page_indices();
                 s.scene_source_columns_preflighted+=static_cast<u32>(
                     plan.source_x_order.size());
                 s.scene_descriptors_preflighted+=static_cast<u32>(
@@ -813,6 +833,35 @@ struct WorldFrame {
                 s.scene_sprite_pixels+=raster.indexed_writes;
                 s.scene_sprite_off_aperture_writes+=
                     raster.off_aperture_cpu_writes;
+                const auto after=sprite_active_page_indices();
+                CHECK(before.size()==128000u && after.size()==128000u);
+                u32 changed=0u,min_x=320u,min_y=400u,max_x=0u,max_y=0u;
+                u32 changed_in_world_view=0u;
+                for(u32 y=0u;y<400u;++y)
+                  for(u32 x=0u;x<320u;++x) {
+                    const u32 at=y*320u+x;
+                    if(before[at]==after[at])continue;
+                    ++changed;
+                    min_x=std::min(min_x,x);max_x=std::max(max_x,x);
+                    min_y=std::min(min_y,y);max_y=std::max(max_y,y);
+                    if(y<256u)++changed_in_world_view;
+                  }
+                if(changed>0u)++s.scene_sprites_changed_active_scanout;
+                s.scene_sprite_active_scanout_pixels+=changed;
+                std::cout<<"CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT"
+                         <<" sprite_call="<<s.scene_sprite_emits
+                         <<" res3_id="<<res3_id
+                         <<" source_x="<<screen_x
+                         <<" projected_size="<<projected_size
+                         <<" active_page="<<unsigned(s.gfx.memory[0xEF4Du])
+                         <<" changed_pixels="<<changed
+                         <<" world_rows_changed="<<changed_in_world_view
+                         <<" bbox="<<min_x<<","<<min_y
+                         <<","<<max_x<<","<<max_y
+                         <<" source_cpu_writes="<<raster.indexed_writes
+                         <<" off_aperture_cpu_writes="
+                         <<raster.off_aperture_cpu_writes
+                         <<" DOS_VGA_PARITY=NOT_VERIFIED\\n";
             }
         } catch(const std::exception& error) {
             // Diagnostic reason only: no original asset or framebuffer data.
