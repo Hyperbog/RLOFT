@@ -1247,10 +1247,15 @@ WorldFrame* WorldFrame::current=nullptr;
 
 int main(int argc,char** argv) {
     try {
-        // Camera and actors are original 07938/181B4-loaded guest bytes.
-        // This draws authentic source-visible RES3 on a BLANK VGA target:
-        // an isolated source sprite probe, NOT a complete world/DOS frame.
-        if(argc==14 && std::string(argv[1])=="--save-sprite-probe") {
+        // Both commands share the identical, original scene-initialized
+        // 07938/181B4 -> 334C4/32954 save/camera preparation. The probe
+        // isolates RES3 pixels; the full-frame command preserves the
+        // authentic outdoor -> quad -> wall -> RES3 -> HUD draw sequence.
+        const bool isolated_sprite_probe=argc==14 &&
+            std::string(argv[1])=="--save-sprite-probe";
+        const bool complete_saved_frame=argc==14 &&
+            std::string(argv[1])=="--save-complete-frame";
+        if(isolated_sprite_probe || complete_saved_frame) {
             const std::filesystem::path save_file(argv[2]),lev_file(argv[3]);
             const std::filesystem::path sintab_file(argv[4]),res4_file(argv[5]);
             const std::filesystem::path colors_file(argv[6]),code_file(argv[7]);
@@ -1301,18 +1306,31 @@ int main(int argc,char** argv) {
             gfx->mode(3u);
             gfx->owned_colors_palette(colors_file.string(),0u,0u);
             gfx->open_readonly_resource(res4_file.string(),0u,4u);
+            u32 full_frame_calls=0u,full_frame_sprite_writes=0u;
             {
                 WorldFrame world(*ray,*gfx);
-                world.install_world(true);
-                world.initialize_original_hud_assets(init_file.string(),
-                    npc_file.string(),object_file.string());
-                world.project_original_scene_res3(res3_file.string());
-                std::cout<<std::endl<<"CODE2_GENUINE_RES3_SOURCE_PROBE"
-                         <<" level="<<level
-                         <<" source_36cec_calls="<<world.scene_sprite_emits
-                         <<" raster_indexed_writes="<<world.scene_sprite_pixels
-                         <<" source_ray_occlusion=YES"
-                         <<" full_frame=NO DOS_VGA_PARITY=NOT_VERIFIED"<<std::endl;
+                if(complete_saved_frame) {
+                    // The isolated sprite probe previously proved this exact
+                    // source-save initialization sequence for the owner's
+                    // two-skeleton camera. Retain it for the composed frame.
+                    world.render(true,std::string(argv[9]),
+                        init_file.string(),npc_file.string(),
+                        object_file.string(),res3_file.string());
+                    full_frame_calls=world.scene_sprite_emits;
+                    full_frame_sprite_writes=world.scene_sprite_pixels;
+                } else {
+                    world.install_world(true);
+                    world.initialize_original_hud_assets(init_file.string(),
+                        npc_file.string(),object_file.string());
+                    world.project_original_scene_res3(res3_file.string());
+                    std::cout<<std::endl<<"CODE2_GENUINE_RES3_SOURCE_PROBE"
+                             <<" level="<<level
+                             <<" source_36cec_calls="<<world.scene_sprite_emits
+                             <<" raster_indexed_writes="<<world.scene_sprite_pixels
+                             <<" source_ray_occlusion=YES"
+                             <<" full_frame=NO DOS_VGA_PARITY=NOT_VERIFIED"
+                             <<std::endl;
+                }
             }
             // No original DOS VGA data or source pixels are published.
             const std::string stem(argv[13]);
@@ -1326,6 +1344,14 @@ int main(int argc,char** argv) {
                 pal.put(static_cast<char>(c.b));
             }
             CHECK(bool(pal));
+            if(complete_saved_frame) {
+                std::cout<<"CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS"
+                         <<" level="<<level
+                         <<" source_36cec_calls="<<full_frame_calls
+                         <<" raster_indexed_writes="<<full_frame_sprite_writes
+                         <<" frame_indices=128000 palette_rgb6=768"
+                         <<" DOS_VGA_PARITY=NOT_VERIFIED"<<std::endl;
+            }
             return 0;
         }
         const bool saved_outdoor=(argc==9 || argc==11 || argc==14) &&
@@ -1336,7 +1362,8 @@ int main(int argc,char** argv) {
         if(!saved_outdoor && !original_world)
             throw std::invalid_argument(
                 "usage: --world LEVELS.DAT SINTAB RES4 COLORS output-stem"
-                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [INIT RES0 [NPCS.DAT OBJECTS.DAT RES3]] output-stem");
+                " | --save-world SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 [INIT RES0 [NPCS.DAT OBJECTS.DAT RES3]] output-stem"
+                " | --save-complete-frame SAVE.DAT LEV005.DAT SINTAB RES4 COLORS CODE.2 INIT RES0 NPCS.DAT OBJECTS.DAT RES3 output-stem");
         const std::filesystem::path levels(argv[2]),sintab(argv[3+(saved_outdoor?1:0)]);
         const std::filesystem::path res4(argv[4+(saved_outdoor?1:0)]),
                                     colors(argv[5+(saved_outdoor?1:0)]);
