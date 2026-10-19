@@ -42,3 +42,14 @@ The retail party panel routine `1F494` renders four character slots (offsets 0, 
 **Native private save:** `SAVE09(2).zip` was verified in the preceding audit, but the new source/build has **not yet been executed on that exact two-skeleton save**. The owner must run the packaged `run_two_skeleton_complete_frame.ps1` with the matching Windows binary, then return receipt/log/BMP or raw .idx/.pal. The next run's active-page per-skeleton footprints and lower-HUD pixel census provide positive observable acceptance gates, but independent retail DOSBox pixel/DAC parity remains a separate requirement.
 
 **Data policy:** No original game binaries, saves, portraits, screenshots, RES bytes or palettes are committed.
+
+
+## Verified build and archived regression links (same source revision)
+
+- [Windows MSVC Milestone #171](https://github.com/Hyperbog/RLOFT/actions/runs/39216776172) at commit `0f1e9d614c66ee62c3ff0de3458c63865c22590a`: **74/74 CTests passed**, package upload successful, and packaged private owner runner passed PowerShell syntax validation. Package `RLOFT-Recomp-Windows-Milestone-171`, GitHub artifact ID `12170385541`, archive SHA-256 `60a7add78aa0555264baad9d1e8c8ad22a0e3b09ef0332c649b3466ccb8dd6df`.
+- [Linux 74/74 regression suite](https://github.com/Hyperbog/RLOFT/actions/runs/39216776174): success.
+- [Authentic archived Level 5 world compositor](https://github.com/Hyperbog/RLOFT/actions/runs/39216776118): success, including the new no-fully-black-HUD-row acceptance.
+- [Source-world native view/texture gate](https://github.com/Hyperbog/RLOFT/actions/runs/39216776254): success.
+- [Strict archived original save UI and sprite acceptance](https://github.com/Hyperbog/RLOFT/actions/runs/39216646786): success, including 400 original frame image blits, one real sprite's active-page image footprint, and the complete 320x400 indexed / RGB6 native outputs.
+
+**Do not infer that the exact owner-uploaded two-skeleton `SAVE09(2).zip` has passed this new build:** that save is not on the GitHub CI runner and no owner-result frame from Milestone #171 has yet been received. The earlier owner result from Milestone #165 with 5,515 source sprite writes and offscreen/missing HUD was a different, older executable; it must not be used to claim new presentation success.
