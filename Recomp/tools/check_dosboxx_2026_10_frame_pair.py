@@ -110,6 +110,29 @@ def main():
     state_rgb = b"".join(colors[i] for i in indexed)
     shot, shot_format = screenshot_pixels(opt.screenshot)
     matched, rows = compare(state_rgb, shot)
+    # Report world vs HUD separately. Skeleton animation and portrait
+    # overlays can change while the largely static terrain/frame remains
+    # unchanged. These are audits, not automatic parity verdicts.
+    region_bounds = {
+        "world_viewport": (32, 0, 288, 256),
+        "lower_hud": (0, 260, 320, 400),
+        "top_50_rows": (0, 0, 320, 50),
+        "mid_world": (32, 100, 288, 200),
+        "right_party_panel": (211, 320, 320, 400),
+    }
+    regions = {}
+    for key, (x0, y0, x1, y1) in region_bounds.items():
+        good = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                off = (y * 320 + x) * 3
+                good += state_rgb[off:off+3] == shot[off:off+3]
+        total = (x1-x0) * (y1-y0)
+        regions[key] = {
+            "matching_rgb_pixels": good,
+            "different_rgb_pixels": total-good,
+            "matching_percent": round(good*100/total, 3),
+        }
     palette_colors = set(colors)
     valid_colors = sum(shot[i:i+3] in palette_colors
                        for i in range(0, len(shot), 3))
@@ -128,6 +151,15 @@ def main():
         "state_vs_screenshot_match_pct": round(100*matched/PIXELS, 3),
         "screenshot_pixels_in_saved_dac": valid_colors,
         "per_row_rgb_match_counts": rows,
+        "region_match_diagnostics": regions,
+        "screenshot_includes_window_chrome": (
+            shot_format == "known 642x452 SDL2 screenshot with window chrome"),
+        "frame_sync_caution": (
+            "A window-chrome screenshot or an emulator render buffer can "
+            "represent a different instant from the serialized VGA page. "
+            "Do not accept exact DOS/native frame parity unless original "
+            "screen pixels and hardware scanout coincide."),
+
         "synchronized_frame_evidence": (
             "strong" if matched == PIXELS else
             "partial/not exact; review timing, VGA scanout and game animation"),
