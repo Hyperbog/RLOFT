@@ -1490,7 +1490,22 @@ int main(int argc,char** argv) {
                   code2::load_le32(ray->guest.data()+0xFD0Cu)==grid.cells.size());
             auto gfx=std::make_unique<WorldGraphicsSource>();
             gfx->mode(3u);
-            gfx->owned_colors_palette(colors_file.string(),0u,0u);
+            // The independently saved retail VGA DAC has bank-3
+            // grayscale entries 246..253, while the remaining 248
+            // entries are from COLORS bank 0. Only composed saved-
+            // gameplay frames use this measured, source-asset-backed
+            // provisional palette overlay; it is not yet proof of the
+            // retail palette-update caller's instruction order.
+            const bool retail_dac_observed=complete_saved_frame ||
+                                            status_text_fixture;
+            gfx->owned_colors_palette(
+                colors_file.string(),0u,0u,retail_dac_observed);
+            if(retail_dac_observed)
+                std::cout<<"CODE2_ORIGINAL_DOSBOXX_DAC_RECONCILIATION"
+                         <<" source_COLORS_base_bank=0"
+                         <<" source_COLORS_slice_bank=3"
+                         <<" first_index=246 entries=8"
+                         <<" retail_palette_caller_parity=NOT_VERIFIED\\n";
             gfx->open_readonly_resource(res4_file.string(),0u,4u);
             u32 full_frame_calls=0u,full_frame_sprite_writes=0u;
             u32 world_off_aperture_writes=0u;
