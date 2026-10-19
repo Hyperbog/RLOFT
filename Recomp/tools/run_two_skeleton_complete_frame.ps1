@@ -79,7 +79,7 @@ try {
     Copy-Item -LiteralPath $level -Destination (Join-Path $media "LEV005.DAT")
 
     foreach ($name in @("SINTAB", "RES4", "COLORS", "CODE.2", "INIT",
-                        "RES0", "NPCS.DAT", "OBJECTS.DAT", "RES3")) {
+                        "RES0", "NPCS.DAT", "OBJECTS.DAT", "RES3", "RES1")) {
         Copy-Item -LiteralPath (Require-File (Join-Path $GameDataDir $name)) -Destination (Join-Path $media $name)
     }
     $null = Require-Sha256 (Join-Path $media "CODE.2") $expectedCode2
@@ -99,7 +99,8 @@ try {
         (Join-Path $media "NPCS.DAT"),
         (Join-Path $media "OBJECTS.DAT"),
         (Join-Path $media "RES3"),
-        $stem
+        $stem,
+        (Join-Path $media "RES1")
     )
     # Windows PowerShell 5.1 promotes native stderr into a terminating
     # NativeCommandError when ErrorActionPreference=Stop. Capture both
