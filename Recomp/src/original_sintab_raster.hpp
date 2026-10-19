@@ -26,7 +26,8 @@ SintabRasterResult execute_sintab_scale(
     std::uint32_t target,std::uint32_t source,std::uint32_t destination,
     std::uint32_t subtract_pair,std::uint32_t code_begin,
     std::uint32_t code_end,std::uint32_t source_begin,
-    std::uint32_t source_end,Read read,Write write) noexcept {
+    std::uint32_t source_end,Read read,Write write,
+    std::uint32_t destination_end=0xB0000u) noexcept {
     SintabRasterResult result{};
     // Source is the ESI base, not necessarily a valid dereference.
     // Generated x86 loads [ESI+disp32]; validate those effective
@@ -110,8 +111,11 @@ SintabRasterResult execute_sintab_scale(
         }
         if(opcode==0x88u && (modrm==0x87u || modrm==0xA7u)) {
             const auto addr=static_cast<std::uint64_t>(destination)+offset;
-            // Original planar destination is the 64K VGA window shadow.
-            if(addr<0xA0000u || addr>=0xB0000u) {
+            // The world scaler only permits the 64K A000 aperture.
+            // The sprite call site can pass the full A000-BFFF legacy
+            // CPU address region; destinations beyond AFFFF are staged as
+            // off-aperture guest writes, never wrapped to visible VGA.
+            if(addr<0xA0000u || addr>=destination_end) {
                 result.failure=SintabRasterFailure::vga_write_out_of_range;
                 result.failure_address=addr;
                 return result;
