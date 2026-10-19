@@ -97,6 +97,10 @@ struct WorldFrame {
         copy_guest(0x193E0u,0x100u);                // original 34998 row coefficients
         copy_guest(0x19660u,0x100u);                // original 34998 row coefficients
         copy_guest(0x18FE0u,128u*4u);                // scale code pointers
+        // 334C4 reads C658 from the saved camera before selecting the
+        // original trig/viewport basis. Its 4-byte heading precedes
+        // C65C, so the previous bulk copy silently omitted it.
+        copy_guest(0xC658u,4u);                       // original source heading
         copy_guest(0xC65Cu,0xC73Cu+0x400u-0xC65Cu); // source trig and camera tables
         copy_guest(0x255D0u,0x258BCu-0x255D0u);    // source camera+level header
         copy_guest(0x258F8u,4u);                  // original 1F1C8 resource base
