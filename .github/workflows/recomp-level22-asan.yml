@@ -54,7 +54,7 @@ jobs:
           echo "SOURCE_LEVEL22_ASAN_PROCESS_STATUS=$status"
           # Only frame names, sanitizer summaries and a bounded stacktrace,
           # not source media, memory bytes or protected actor state.
-          grep -E 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|runtime error:|stack-overflow|^#[0-9]+ |CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS' \
+          grep -E 'ERROR: AddressSanitizer|SUMMARY: AddressSanitizer|runtime error:|stack-overflow|^[[:space:]]*#[0-9]+ |CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS' \
             "$temp/diagnostic.log" | head -n 35 || true
           if test "$status" -eq 0; then
             echo "SOURCE_LEVEL22_ASAN_NO_FAILURE_ACTUAL_SOURCE_EXECUTION_PASS"
