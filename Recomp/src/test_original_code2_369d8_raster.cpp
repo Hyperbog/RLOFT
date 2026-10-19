@@ -128,7 +128,7 @@ int main() {
     const auto offscreen=execute_original_369d8(guest,vga,c);
     assert(offscreen.indexed_writes==2u &&
            offscreen.off_aperture_cpu_writes==2u);
-    assert(guest[0xB0020u]==40u && guest[0xB0070u]==40u);
+    assert(guest[0xB0020u]==40u && guest[0xB0070u]==38u); // AL/AH differ after 16-bit shade subtraction
     assert(vga.scanout_indices()==before_offscreen);
     c.renderer_phase=1230u;
     rejected=false;
