@@ -170,3 +170,39 @@ jobs:
           test "$(wc -c < "$scratch/scene23.idx")" -eq 128000
           test "$(wc -c < "$scratch/scene23.pal")" -eq 768
           echo "Original media and generated RES3 indexed pixels remain private and are deleted."
+
+      - name: Compose authentic Level 5 indexed world with its original RES3 sprite
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="original-media/MASTER/Ravenloft - Strahd's Possession"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          cp "$root/cloud_saves/RLOFT/SAVE09/SAVE.DAT" "$scratch/SAVE.DAT"
+          cp "$root/cloud_saves/RLOFT/SAVE09/LEV005.DAT" "$scratch/LEV005.DAT"
+          for f in SINTAB RES4 COLORS CODE.2 INIT RES0 NPCS.DAT OBJECTS.DAT RES3; do
+            cp "$root/RLOFT/$f" "$scratch/"
+          done
+          # This is the archive-preserved SAVE09 (187 degrees), NOT the
+          # owner's separate private SAVE09(2).zip two-skeleton camera.
+          # The exact private save must be tested only on the owner's PC.
+          echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          status=0
+          timeout 180s build/save5-world/rloft_original_code2_world_frame --save-complete-frame \
+            "$scratch/SAVE.DAT" "$scratch/LEV005.DAT" "$scratch/SINTAB" \
+            "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
+            "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
+            "$scratch/RES3" "$scratch/frame" > "$scratch/full.log" 2>&1 || status=$?
+          if test "$status" -ne 0; then
+            error=$(grep -oE 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL:[^\\]*|CODE2_SOURCE_36CEC_RASTER_FAILURE:[^\\]*' "$scratch/full.log" | tail -n 3 || true)
+            echo "GENUINE_COMPLETE_WORLD_FRAME_FAIL status=$status reason=${error:-no_failure_marker}"
+            exit 1
+          fi
+          grep -q 'CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=1 raster_indexed_writes=127 frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED' "$scratch/full.log"
+          grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS' "$scratch/full.log"
+          test "$(wc -c < "$scratch/frame.idx")" -eq 128000
+          test "$(wc -c < "$scratch/frame.pal")" -eq 768
+          test -s "$scratch/frame.bmp"
+          echo 'GENUINE_COMPLETE_WORLD_FRAME_NATIVE_PASS original_save=SAVE09 expected_source_sprite_writes=127 full_frame=YES DOS_VGA_PARITY=NOT_VERIFIED'
+          sha256sum "$scratch/frame.idx" "$scratch/frame.pal"
+          echo 'All original media, indexed frames, previews and palettes were kept private and deleted.'
