@@ -1421,7 +1421,13 @@ int main(int argc,char** argv) {
             std::string(argv[1])=="--save-sprite-probe";
         const bool complete_saved_frame=(argc==14 || argc==15) &&
             std::string(argv[1])=="--save-complete-frame";
-        if(isolated_sprite_probe || complete_saved_frame) {
+        // Synthetic state-activation test only. It loads an untouched
+        // archived save and toggles two guest HUD status values after the
+        // retail deserializer. Never label its output as an original save.
+        const bool status_text_fixture=argc==15 &&
+            std::string(argv[1])=="--save-status-text-fixture";
+        if(isolated_sprite_probe || complete_saved_frame ||
+           status_text_fixture) {
             const std::filesystem::path save_file(argv[2]),lev_file(argv[3]);
             const std::filesystem::path sintab_file(argv[4]),res4_file(argv[5]);
             const std::filesystem::path colors_file(argv[6]),code_file(argv[7]);
@@ -1462,6 +1468,17 @@ int main(int argc,char** argv) {
                 load.initialize_original_scene(save_file.parent_path());
                 load.execute(save,grid);
             }
+            if(status_text_fixture) {
+                code2::store_le32(ray->guest.data()+0x21A86u,1u);
+                code2::store_le32(ray->guest.data()+0x21A92u,23u);
+                code2::store_le32(ray->guest.data()+0x21A7Eu,500u);
+                code2::store_le32(ray->guest.data()+0x21A8Au,5u);
+                code2::store_le32(ray->guest.data()+0xA7E4u,10u);
+                std::cout<<"CODE2_SYNTHETIC_STATUS_FIXTURE_ONLY"
+                         <<" untouched_archive_inputs=YES"
+                         <<" guest_status_adjustments=5"
+                         <<" original_save_parity=NOT_VERIFIED\\n";
+            }
             code2::Application90Boundary view{};
             view.call_35680=&code2::function_35680;
             view.call_32954=&WorldRaySource::original_ray_sweep;
@@ -1476,7 +1493,7 @@ int main(int argc,char** argv) {
             u32 world_off_aperture_writes=0u;
             {
                 WorldFrame world(*ray,*gfx);
-                if(complete_saved_frame) {
+                if(complete_saved_frame || status_text_fixture) {
                     // The isolated sprite probe previously proved this exact
                     // source-save initialization sequence for the owner's
                     // two-skeleton camera. Retain it for the composed frame.
