@@ -142,7 +142,17 @@ void render_original_1f494_party(const std::string& res0,
     copy_guest(0xD8A8u,8u);
     copy_guest(0x6DAEu,2u);
     copy_guest(0xA7E4u,4u);
-    for(u32 i=0u;i<4u;++i)gfx.memory[0xCF5Au+i]=1u;
+    u32 active_character_records=0u;
+    for(u32 i=0u;i<4u;++i) {
+        gfx.memory[0xCF5Au+i]=1u;
+        const u16 flags=code2::load_le16(
+            gfx.memory.data()+0x218F0u+i*0x248u);
+        active_character_records+=((flags&0x8000u)==0u);
+    }
+    const u32 lut_nonzero_bytes=static_cast<u32>(
+        std::count_if(gfx.memory.begin()+0xCF70u,
+                      gfx.memory.begin()+0xD370u,
+                      [](u8 value){return value!=0u;}));
     code2::Application43Boundary b43{};
     b43.call_19cc4=&party_clock;
     b43.call_2f29c=&party_lookup;
@@ -166,6 +176,8 @@ void render_original_1f494_party(const std::string& res0,
     b44.divide_error=[](){self().failure=true;};
     code2::function_1f494(gfx.machine,b44,0u);
     std::cout<<"CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD"
+             <<" active_original_characters="<<active_character_records
+             <<" source_state_lut_nonzero="<<lut_nonzero_bytes
              <<" resource_calls="<<party_resource_calls
              <<" masked_298f0_2a584="<<party_masked_blits
              <<" direct_2975c="<<party_direct_blits
