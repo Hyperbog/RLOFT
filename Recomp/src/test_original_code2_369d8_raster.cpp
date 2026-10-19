@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "original_code2_369d8_raster.hpp"
+#include "original_code2_36cec_scene.hpp"
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
@@ -79,5 +80,58 @@ int main() {
     try {(void)execute_original_369d8(guest,vga,c);}
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
+    // Entire original 36CEC -> 369D8 traversal, SYNTHETIC actor/rays.
+    // This is a bounded unit test, never a claim of genuine saved visibility.
+    std::vector<std::uint8_t> scene(0xB0000u,0u);
+    auto dword=[&](unsigned at,unsigned value) {
+        word(scene,at,value&65535u);
+        word(scene,at+2u,value>>16u);
+    };
+    constexpr unsigned scene_code=0x2000u,scene_image=0x1002u;
+    dword(0x18FE4u,0x2204u); // scale-block 1 -> source SINTAB
+    dword(0xC738u,1u);
+    dword(0xC730u,508u);
+    dword(0x258C4u,0x4000u); // 509 source lookup words
+    dword(0xC6D8u,256u); // source ray count
+    dword(0x15A18u,100u); // x0 foreground occlusion
+    dword(0x15A18u+28u,1u); // x1 background = sprite visible
+    word(scene,scene_code+2u,0x210u); // stop RET
+    word(scene,scene_code+4u,0x200u); // entry
+    word(scene,scene_code+0x102u+2u*31u,1u);
+    word(scene,scene_code+0x102u+2u*32u,1u);
+    for(unsigned i=0u;i<sizeof(bytes)/sizeof(*bytes);++i)
+        scene[scene_code+0x200u+i]=static_cast<std::uint8_t>(bytes[i]);
+    word(scene,scene_image-2u,0x2Cu); // real decompressed prefix
+    word(scene,scene_image+0u,64u);
+    word(scene,scene_image+2u,31u);
+    word(scene,scene_image+4u,32u);
+    word(scene,scene_image+6u,0u);
+    word(scene,scene_image+8u,128u);
+    word(scene,scene_image+10u,14u); // shared two-column list
+    word(scene,scene_image+12u,14u);
+    word(scene,scene_image+14u,2u); // original stop selector
+    word(scene,scene_image+16u,0u); // source adjustment
+    word(scene,scene_image+18u,4u); // entry selector
+    word(scene,scene_image+20u,0u); // terminator
+    rloft::graphics::OriginalVgaHost scene_vga;
+    Original36cecCall sprite{};
+    sprite.screen_x=1u;
+    sprite.res3_id=1829u;
+    sprite.projected_size=8u;
+    sprite.ray_depth=10u;
+    const auto integrated=raster_original_36cec_scene(
+        scene,scene_vga,sprite,scene_image,0x2Cu,
+        scene_code,scene_code+0x300u);
+    assert(integrated.source_columns==2u);
+    assert(integrated.visible_runs==1u &&
+           integrated.occluded_columns==1u);
+    assert(integrated.indexed_writes==1u);
+    assert(scene_vga.indexed_scanout(0u,130u)==0u);
+    assert(scene_vga.indexed_scanout(1u,130u)==32u);
+    assert(scene[scene_code+0x210u]==0x88u);
+    // Original 36CEC uses strictly LESS THAN depth threshold.
+    const auto edge=original_36cec_clip_run(0,3,256,10u,
+        [&](unsigned x){return x==2?10u:1u;});
+    assert(edge.x==0 && edge.width==2u);
     (void)addr;
 }
