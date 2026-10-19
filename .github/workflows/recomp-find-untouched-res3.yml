@@ -64,6 +64,7 @@ jobs:
           candidates=0
           real_calls=0
           real_pixels=0
+          scene_failures=0
           for original_save in "${saved[@]}"; do
             folder=$(dirname "$original_save")
             label=${folder#"$root/"}
@@ -87,8 +88,11 @@ jobs:
             checked=$((checked+1))
             if [[ "$result" == *"candidate=YES"* ]]; then
               candidates=$((candidates+1))
-              for f in RES0 RES3 RES4 COLORS; do cp "$root/RLOFT/$f" "$scratch/"; done
-              status=0
+            fi
+            # Inspect *all* four original 2C294 record passes, not just
+            # the primary 2B6D0 candidates found above.
+            for f in RES0 RES3 RES4 COLORS; do cp "$root/RLOFT/$f" "$scratch/"; done
+            status=0
               build/untouched-res3/rloft_original_code2_world_frame --save-sprite-probe \
                 "$scratch/SAVE.DAT" "$scratch/$level_name" "$scratch/SINTAB" \
                 "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
@@ -98,17 +102,18 @@ jobs:
               echo "UNTOUCHED_RES3_REAL_SOURCE_DRAW source=$label status=$status ${scene:-source_scene_unresolved}"
               if test "$status" -ne 0 || test -z "$scene"; then
                 grep -E 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL|CODE2_SOURCE_36CEC_RASTER_FAILURE' "$scratch/scene.log" | tail -n 3 || true
-                exit 1
-              fi
+                scene_failures=$((scene_failures+1))
+              else
               calls=$(echo "$scene" | sed -n 's/.*source_36cec_calls=\([0-9]*\).*/\1/p')
               pixels=$(echo "$scene" | sed -n 's/.*raster_indexed_writes=\([0-9]*\).*/\1/p')
               test -n "$calls" && test -n "$pixels"
               real_calls=$((real_calls+calls))
               real_pixels=$((real_pixels+pixels))
+              fi
               rm -f "$scratch/native-res3.idx" "$scratch/native-res3.pal" "$scratch/native-res3.bmp"
-            fi
             rm -f "$scratch/$level_name" "$scratch/SAVE.DAT" "$scratch/find.log" "$scratch/scene.log"
           done
-          echo "UNTOUCHED_RES3_DISCOVERY_RESULT checked=$checked source_near_plane_candidates=$candidates original_36cec_calls=$real_calls original_369d8_indexed_writes=$real_pixels genuine_sprite_pixels_confirmed=$([[ "$real_pixels" -gt 0 ]] && echo YES || echo NO) DOS_VGA_PARITY=NOT_VERIFIED"
+          echo "UNTOUCHED_RES3_DISCOVERY_RESULT checked=$checked source_near_plane_candidates=$candidates original_36cec_calls=$real_calls original_369d8_indexed_writes=$real_pixels full_source_scene_failures=$scene_failures genuine_sprite_pixels_confirmed=$([[ "$real_pixels" -gt 0 ]] && echo YES || echo NO) DOS_VGA_PARITY=NOT_VERIFIED"
           test "$checked" -eq "${#saved[@]}"
+          test "$scene_failures" -eq 0
           echo "All owner-original saves, resource data and any generated pixels have been deleted with the private scratch directory."

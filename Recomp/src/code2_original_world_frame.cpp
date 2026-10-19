@@ -1307,12 +1307,12 @@ int main(int argc,char** argv) {
                 world.initialize_original_hud_assets(init_file.string(),
                     npc_file.string(),object_file.string());
                 world.project_original_scene_res3(res3_file.string());
-                std::cout<<"CODE2_GENUINE_RES3_SOURCE_PROBE"
+                std::cout<<std::endl<<"CODE2_GENUINE_RES3_SOURCE_PROBE"
                          <<" level="<<level
                          <<" source_36cec_calls="<<world.scene_sprite_emits
                          <<" raster_indexed_writes="<<world.scene_sprite_pixels
                          <<" source_ray_occlusion=YES"
-                         <<" full_frame=NO DOS_VGA_PARITY=NOT_VERIFIED\\n";
+                         <<" full_frame=NO DOS_VGA_PARITY=NOT_VERIFIED"<<std::endl;
             }
             // No original DOS VGA data or source pixels are published.
             const std::string stem(argv[13]);
