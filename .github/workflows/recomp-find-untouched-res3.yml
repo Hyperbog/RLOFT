@@ -1,0 +1,114 @@
+name: Untouched Original RES3 Actor Discovery
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/code2_original_save_game.cpp'
+      - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/original_code2_36cec_scene.hpp'
+      - '.github/workflows/recomp-find-untouched-res3.yml'
+permissions:
+  contents: read
+concurrency:
+  group: genuine-res3-discovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile original source camera and VGA probes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S Recomp -B build/untouched-res3 -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/untouched-res3 --target rloft_original_code2_save_game rloft_original_code2_world_frame --parallel 2
+      - name: Sparse checkout owner-original snapshot inventory and resource data
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: owner-media
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/LEV022.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/INIT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/NPCS.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/OBJECTS.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES0
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES3
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/COLORS
+      - name: Exhaustively test original untouched cameras and conditional authentic sprite draws
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="owner-media/MASTER/Ravenloft - Strahd's Possession"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          for f in CODE.2 SINTAB INIT NPCS.DAT OBJECTS.DAT; do cp "$root/RLOFT/$f" "$scratch/"; done
+          echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          mapfile -d '' saved < <(find "$root/cloud_saves/RLOFT" "$root/RLOFT/SAVE01" "$root/CD_Extracted/RLOFT" -type f -name SAVE.DAT -print0 | sort -z)
+          echo "UNTOUCHED_RES3_SAVE_FILES_DISCOVERED=${#saved[@]}"
+          test "${#saved[@]}" -ge 10
+          checked=0
+          candidates=0
+          real_calls=0
+          real_pixels=0
+          for original_save in "${saved[@]}"; do
+            folder=$(dirname "$original_save")
+            label=${folder#"$root/"}
+            level=$(python3 -c 'import struct,sys; d=open(sys.argv[1],"rb").read(0x56); assert len(d)==0x56; print(struct.unpack_from("<I",d,0x52)[0])' "$original_save")
+            test "$level" -ge 0 && test "$level" -lt 32
+            level_name=$(printf 'LEV%03d.DAT' "$level")
+            test -f "$folder/$level_name" || { echo "UNTOUCHED_RES3_MISSING_MATCHING_LEVEL source=$label"; exit 1; }
+            cp "$original_save" "$scratch/SAVE.DAT"
+            cp "$folder/$level_name" "$scratch/$level_name"
+            fingerprint=$(sha256sum "$original_save" | cut -d' ' -f1)
+            status=0
+            build/untouched-res3/rloft_original_code2_save_game --find-visible-res3 "$scratch" "$scratch/CODE.2" > "$scratch/find.log" 2>&1 || status=$?
+            result=$(grep '^CODE2_UNTOUCHED_SOURCE_RES3_CAMERA_FIND' "$scratch/find.log" | tail -n 1 || true)
+            if test "$status" -ne 0 || test -z "$result"; then
+              error=$(grep -E 'CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|CODE2_31F94_ORIGINAL_VIEW_DESCRIPTOR' "$scratch/find.log" | tail -n 2 || true)
+              echo "UNTOUCHED_RES3_SOURCE_FAILURE source=$label level=$level status=$status ${error:-no_source_marker}"
+              exit 1
+            fi
+            echo "UNTOUCHED_RES3_SOURCE_CHECK source=$label save_sha256=$fingerprint $result"
+            grep '^CODE2_UNTOUCHED_SOURCE_ACTOR_PROJECTION' "$scratch/find.log" | sed "s/^/UNTOUCHED_RES3_ACTOR source=$label /" || true
+            checked=$((checked+1))
+            if [[ "$result" == *"candidate=YES"* ]]; then
+              candidates=$((candidates+1))
+              for f in RES0 RES3 RES4 COLORS; do cp "$root/RLOFT/$f" "$scratch/"; done
+              status=0
+              build/untouched-res3/rloft_original_code2_world_frame --save-sprite-probe \
+                "$scratch/SAVE.DAT" "$scratch/$level_name" "$scratch/SINTAB" \
+                "$scratch/RES4" "$scratch/COLORS" "$scratch/CODE.2" "$scratch/INIT" \
+                "$scratch/RES0" "$scratch/NPCS.DAT" "$scratch/OBJECTS.DAT" \
+                "$scratch/RES3" "$scratch/native-res3" > "$scratch/scene.log" 2>&1 || status=$?
+              scene=$(grep '^CODE2_GENUINE_RES3_SOURCE_PROBE' "$scratch/scene.log" | tail -n 1 || true)
+              echo "UNTOUCHED_RES3_REAL_SOURCE_DRAW source=$label status=$status ${scene:-source_scene_unresolved}"
+              if test "$status" -ne 0 || test -z "$scene"; then
+                grep -E 'CODE2_AUTHENTIC_WORLD_RES4_FRAME_FAIL|CODE2_SOURCE_36CEC_RASTER_FAILURE' "$scratch/scene.log" | tail -n 3 || true
+                exit 1
+              fi
+              calls=$(echo "$scene" | sed -n 's/.*source_36cec_calls=\([0-9]*\).*/\1/p')
+              pixels=$(echo "$scene" | sed -n 's/.*raster_indexed_writes=\([0-9]*\).*/\1/p')
+              test -n "$calls" && test -n "$pixels"
+              real_calls=$((real_calls+calls))
+              real_pixels=$((real_pixels+pixels))
+              rm -f "$scratch/native-res3.idx" "$scratch/native-res3.pal" "$scratch/native-res3.bmp"
+            fi
+            rm -f "$scratch/$level_name" "$scratch/SAVE.DAT" "$scratch/find.log" "$scratch/scene.log"
+          done
+          echo "UNTOUCHED_RES3_DISCOVERY_RESULT checked=$checked source_near_plane_candidates=$candidates original_36cec_calls=$real_calls original_369d8_indexed_writes=$real_pixels genuine_sprite_pixels_confirmed=$([[ "$real_pixels" -gt 0 ]] && echo YES || echo NO) DOS_VGA_PARITY=NOT_VERIFIED"
+          test "$checked" -eq "${#saved[@]}"
+          echo "All owner-original saves, resource data and any generated pixels have been deleted with the private scratch directory."
