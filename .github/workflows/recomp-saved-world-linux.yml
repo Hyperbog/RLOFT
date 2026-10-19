@@ -90,6 +90,7 @@ jobs:
           grep -q CODE2_SAVE5_ORIGINAL_16810_168C8_1686C_16934_16990_SCENE_DEFINITIONS_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_INIT_RES4_BASED_SKY_GROUND sky_res4=634 ground_res4=635' build/save5-world/save5-verification.log
           grep -q CODE2_SAVE5_ORIGINAL_1EA04_2F29C_2939C_2A380_RES0_HUD_PASS build/save5-world/save5-verification.log
+          grep -q 'CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS res0_loads=2 frame_blits=400' build/save5-world/save5-verification.log
           grep -q CODE2_SAVED_LEVEL5_ORIGINAL_1F1C8_34A74_TEXTURED_OUTDOOR_DISPATCH_PASS build/save5-world/save5-verification.log
           grep -q 'CODE2_SAVED_LEVEL5_ORIGINAL_34998_34A74_342E4_34954_OUTDOOR_VGA_PASS' build/save5-world/save5-verification.log
           grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS RES3_36CEC_SOURCE_DRAWS=0 RES3_369D8_INDEXED_WRITES=0 RES3_SPRITE_DOS_PARITY=NOT_VERIFIED' build/save5-world/save5-verification.log
@@ -200,6 +201,8 @@ jobs:
           fi
           grep -Eq 'CODE2_GENUINE_SAVED_SOURCE_FULL_FRAME_PASS level=5 source_36cec_calls=1 raster_indexed_writes=127 off_aperture_cpu_writes=[0-9]+ frame_indices=128000 palette_rgb6=768 DOS_VGA_PARITY=NOT_VERIFIED' "$scratch/full.log"
           grep -q 'CODE2_LEVEL5_SOURCE_SKY_GROUND_WALL_QUAD_RES0_HUD=PASS' "$scratch/full.log"
+          grep -q 'CODE2_ORIGINAL_1F8FC_2E510_RES0_GAMEPLAY_FRAME_BASE_PASS res0_loads=2 frame_blits=400' "$scratch/full.log"
+          grep -Eq 'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT .*changed_pixels=[1-9][0-9]* world_rows_changed=[1-9][0-9]* bbox=' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
           test -s "$scratch/frame.bmp"
