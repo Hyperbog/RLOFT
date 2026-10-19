@@ -15,7 +15,7 @@ static void word(std::vector<std::uint8_t>& m,unsigned at,unsigned value) {
 int main() {
     // Generated SINTAB x86: read source+4; AH=AL; subtract ECX;
     // write AL to VGA; write AH one 80-byte row below; return.
-    std::vector<std::uint8_t> guest(0xB0000,0);
+    std::vector<std::uint8_t> guest(0xC0000,0);
     constexpr unsigned code=0x2000,body=0x1002,list=body+0x20;
     word(guest,code+2,0x210); // temporary RET before second store
     word(guest,code+4,0x200); // generated code entry
@@ -119,9 +119,26 @@ int main() {
     }
     word(guest,list+2,0xfffe);
     word(guest,code+0x200u+2u,4u);
+    // Retail x86 MOV [EDI+disp32] also writes outside the 64K A000
+    // window when a vertically overflowing sprite uses draw page 1.
+    // Preserve bounded B000 CPU writes without aliasing the visible
+    // VGA page or silently clipping the original generated instruction.
+    const auto before_offscreen=vga.scanout_indices();
+    c.renderer_phase=410u;
+    const auto offscreen=execute_original_369d8(guest,vga,c);
+    assert(offscreen.indexed_writes==2u &&
+           offscreen.off_aperture_cpu_writes==2u);
+    assert(guest[0xB0020u]==40u && guest[0xB0070u]==40u);
+    assert(vga.scanout_indices()==before_offscreen);
+    c.renderer_phase=1230u;
+    rejected=false;
+    try {(void)execute_original_369d8(guest,vga,c);}
+    catch(const std::out_of_range&) {rejected=true;}
+    assert(rejected); // bounded B000-BFFF; never admit C000+.
+    c.renderer_phase=4u;
     // Entire original 36CEC -> 369D8 traversal, SYNTHETIC actor/rays.
     // This is a bounded unit test, never a claim of genuine saved visibility.
-    std::vector<std::uint8_t> scene(0xB0000u,0u);
+    std::vector<std::uint8_t> scene(0xC0000u,0u);
     auto dword=[&](unsigned at,unsigned value) {
         word(scene,at,value&65535u);
         word(scene,at+2u,value>>16u);
