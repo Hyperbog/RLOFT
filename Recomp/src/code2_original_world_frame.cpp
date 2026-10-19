@@ -55,6 +55,7 @@ struct WorldFrame {
     u32 res3_shape_loads=0,res3_shape_cache_hits=0,scene_sprite_emits=0;
     u32 scene_source_columns_preflighted=0,scene_descriptors_preflighted=0;
     u32 scene_ray_visible_runs=0,scene_raster_plane_passes=0,scene_sprite_pixels=0;
+    u32 scene_sprite_off_aperture_writes=0;
     u32 scene_projection_callbacks=0,scene_projection_above_horizon=0;
     u32 scene_projection_nonzero_scale=0,scene_projection_y_min=65535u;
     u32 scene_projection_y_max=0,scene_projection_scale_min=65535u;
@@ -809,6 +810,8 @@ struct WorldFrame {
                 s.scene_ray_visible_runs+=raster.visible_runs;
                 s.scene_raster_plane_passes+=raster.plane_passes;
                 s.scene_sprite_pixels+=raster.indexed_writes;
+                s.scene_sprite_off_aperture_writes+=
+                    raster.off_aperture_cpu_writes;
             }
         } catch(const std::exception& error) {
             // Diagnostic reason only: no original asset or framebuffer data.
@@ -987,6 +990,8 @@ struct WorldFrame {
                  <<" 36cec_visible_runs="<<scene_ray_visible_runs
                  <<" 369d8_plane_passes="<<scene_raster_plane_passes
                  <<" 369d8_indexed_writes="<<scene_sprite_pixels
+                 <<" 369d8_off_aperture_cpu_writes="
+                 <<scene_sprite_off_aperture_writes
                  <<" res3_sprite_pixels_rendered="
                  <<(scene_sprite_pixels>0u?"YES":"NO")<<"\\n";
     }
@@ -1331,6 +1336,7 @@ int main(int argc,char** argv) {
             gfx->owned_colors_palette(colors_file.string(),0u,0u);
             gfx->open_readonly_resource(res4_file.string(),0u,4u);
             u32 full_frame_calls=0u,full_frame_sprite_writes=0u;
+            u32 world_off_aperture_writes=0u;
             {
                 WorldFrame world(*ray,*gfx);
                 if(complete_saved_frame) {
@@ -1342,6 +1348,8 @@ int main(int argc,char** argv) {
                         object_file.string(),res3_file.string());
                     full_frame_calls=world.scene_sprite_emits;
                     full_frame_sprite_writes=world.scene_sprite_pixels;
+                    world_off_aperture_writes=
+                        world.scene_sprite_off_aperture_writes;
                 } else {
                     world.install_world(true);
                     world.initialize_original_hud_assets(init_file.string(),
@@ -1373,6 +1381,8 @@ int main(int argc,char** argv) {
                          <<" level="<<level
                          <<" source_36cec_calls="<<full_frame_calls
                          <<" raster_indexed_writes="<<full_frame_sprite_writes
+                         <<" off_aperture_cpu_writes="
+                         <<world_off_aperture_writes
                          <<" frame_indices=128000 palette_rgb6=768"
                          <<" DOS_VGA_PARITY=NOT_VERIFIED"<<std::endl;
             }
