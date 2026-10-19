@@ -451,3 +451,19 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_369d8_res3_vga_plane_raster
         COMMAND rloft_original_code2_369d8_raster_test)
 endif()
+
+# Retail 298F0 had an incorrectly shortened five-argument source ABI.
+# Keep this sentinel test independent of any owned RES image contents.
+add_executable(rloft_original_code2_298f0_party_abi_test
+    src/test_original_code2_298f0_party_masked_abi.cpp)
+set_target_properties(rloft_original_code2_298f0_party_abi_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_298f0_party_abi_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_298f0_party_abi_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_298f0_six_argument_res1_masked_abi
+        COMMAND rloft_original_code2_298f0_party_abi_test)
+endif()
