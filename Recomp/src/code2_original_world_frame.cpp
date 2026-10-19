@@ -765,6 +765,9 @@ struct WorldFrame {
             u32 vertical_mode,u32 ray_depth) noexcept {
         auto& s=self();
         ++s.scene_sprite_emits;
+        // A failed earlier callback must not cause a second, misleading
+        // "unloaded RES3 body" exception for an otherwise valid shape.
+        if(s.failure)return;
         try {
             if(res3_id>=s.gfx.entry_offsets.size()-1u)
                 throw std::out_of_range("36CEC original RES3 source ID");
@@ -809,12 +812,33 @@ struct WorldFrame {
             }
         } catch(const std::exception& error) {
             // Diagnostic reason only: no original asset or framebuffer data.
-            std::cerr<<"CODE2_SOURCE_36CEC_RASTER_FAILURE: "<<error.what()<<"\\n";
+            std::cerr<<"CODE2_SOURCE_36CEC_RASTER_FAILURE"
+                     <<" res3_id="<<res3_id
+                     <<" projected_size="<<projected_size
+                     <<" vertical_mode="<<vertical_mode
+                     <<" ray_depth="<<ray_depth
+                     <<" reason="<<error.what()<<"\\n";
             s.failure=true;
         }
     }
     void project_original_scene_res3(const std::string& filename) {
         CHECK(std::filesystem::path(filename).filename()=="RES3");
+        // Check whether the preceding world/wall pipeline left transient
+        // mutations in generated source scale code. A code-span difference
+        // is diagnostic only; do not silently overwrite guest state.
+        u32 changed_code_bytes=0u;
+        u32 first_modified=0u;
+        for(u32 at=code_start;at<code_end;++at) {
+            if(gfx.memory[at]!=ray.guest[at]) {
+                if(changed_code_bytes==0u)first_modified=at;
+                ++changed_code_bytes;
+            }
+        }
+        std::cout<<"CODE2_SINTAB_POST_WORLD_PRE_SPRITE_STATE"
+                 <<" changed_code_bytes="<<changed_code_bytes
+                 <<" first_modified_offset="<<first_modified
+                 <<" source_guest_preserved=YES"
+                 <<" restoration_applied=NO\\n";
         gfx.open_readonly_resource(filename,0u,3u);
         CHECK(gfx.entry_offsets.size()==4235u);
         // A stable source-derived EH7 sample exists even when the
