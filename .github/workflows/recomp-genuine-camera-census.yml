@@ -1,0 +1,77 @@
+name: Genuine Cross-Level Saved-Camera Ray Census
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/code2_original_save_game.cpp'
+      - 'Recomp/src/code2_original_level_loader.cpp'
+      - '.github/workflows/recomp-genuine-camera-census.yml'
+permissions:
+  contents: read
+concurrency:
+  group: genuine-cameras-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  genuine-cameras:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build compiled original CODE.2 save and ray source
+        run: |
+          cmake -S Recomp -B build/genuine-census -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/genuine-census --target rloft_original_code2_save_game --parallel 2
+      - name: Read-only original camera inputs
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01/LEV023.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE02/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE02/LEV021.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/SAVE.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SAVE01/LEV022.DAT
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
+      - name: Execute genuine 07938, 181B4, 334C4 and 32954
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="original-media/MASTER/Ravenloft - Strahd's Possession"
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          cp "$root/RLOFT/CODE.2" "$root/RLOFT/SINTAB" "$scratch/"
+          echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          echo "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87  $scratch/SINTAB" | sha256sum -c -
+          success=0
+          failures=0
+          for entry in "cloud_saves/RLOFT/SAVE01:023" "cloud_saves/RLOFT/SAVE02:021" "RLOFT/SAVE01:022"; do
+            source_path=${entry%:*}
+            level=${entry##*:}
+            label=${source_path##*/}
+            cp "$root/$source_path/SAVE.DAT" "$scratch/SAVE.DAT"
+            cp "$root/$source_path/LEV$level.DAT" "$scratch/LEV$level.DAT"
+            status=0
+            build/genuine-census/rloft_original_code2_save_game --source-ray-census "$scratch" "$scratch/CODE.2" > "$scratch/result.log" 2>&1 || status=$?
+            metric=$(grep 'CODE2_SOURCE_GENUINE_SAVE_CAMERA_RAY_CENSUS_PASS' "$scratch/result.log" | tail -n 1 || true)
+            if test "$status" -eq 0 && test -n "$metric"; then
+              echo "GENUINE_CROSS_LEVEL_CAMERA source=$source_path $metric"
+              success=$((success+1))
+            else
+              error=$(grep -E 'CODE2_ORIGINAL_SOURCE_SAVE5_GATE_FAIL|181B4 source loader:' "$scratch/result.log" | tail -n 1 || true)
+              echo "GENUINE_CROSS_LEVEL_CAMERA_FAILURE source=$source_path level=$level status=$status reason=${error:-missing_validation_marker}"
+              failures=$((failures+1))
+            fi
+            rm -f "$scratch/LEV$level.DAT" "$scratch/SAVE.DAT" "$scratch/result.log"
+          done
+          echo "GENUINE_CROSS_LEVEL_CENSUS_FINISHED verified=$success rejected=$failures"
+          echo "No original save, level, indexed image or DOS VGA data uploaded."
+          test "$failures" -eq 0
+          test "$success" -eq 3
