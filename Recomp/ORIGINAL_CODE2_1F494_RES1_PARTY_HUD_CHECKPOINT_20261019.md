@@ -139,3 +139,33 @@ number/font rendering (`2E6F0/30508` if activated), alternative
 party group menu (`23024`), full CODE1 game startup, independent
 DOSBox original VGA/CRTC/sprite clipping capture and matching 256-entry
 RGB6 DAC. R08/R09/R12 full DOS parity gates remain **OPEN**.
+
+
+## Final packaged owner validation (Windows Milestone #176)
+
+[Windows CI #39220612351](https://github.com/Hyperbog/RLOFT/actions/runs/39220612351)
+at exact source commit `f4d097813c3f09c9c567dd3b738b7a4ad231ae39`
+**passed 75/75 CTests** (including the new original six-input
+`298F0` ABI regression) and PowerShell runner syntax checks. Its
+packaged artifact is
+[`RLOFT-Recomp-Windows-Milestone-176`](https://github.com/Hyperbog/RLOFT/actions/runs/39220612351/artifacts/12171088431)
+(artifact 12171088431, ZIP SHA256
+`f22ec818175fb7ce78374714c4a4c9646d0c460ae6c35bc92db9fbcdbae24e9b`).
+
+[Linux CI #39220612228](https://github.com/Hyperbog/RLOFT/actions/runs/39220612228)
+and [CODE1/CODE2 source-link #39220612203](https://github.com/Hyperbog/RLOFT/actions/runs/39220612203)
+also passed on the same source revision.
+
+Updated owner-local execution must use the matched script and EXE
+**from the Windows #176 ZIP**, stage the owner's original RES1 from
+the installed RLOFT directory, and send a new empty output directory.
+Successful source counters alone cannot establish original retail DOS
+screen pixel equivalence. The new `1F494` runs after source RES3
+and before 1EA04 HUD overlays; gameplay status-text paths that need
+unimplemented source fonts still fail closed, and are not incorrectly
+counted as complete.
+
+New exact owner-private BMP/log and indexed framebuffer are needed
+for visual acceptance of all four masked portraits, both hands,
+status details and sprite/background preservation. No such new
+private result exists at this checkpoint.
