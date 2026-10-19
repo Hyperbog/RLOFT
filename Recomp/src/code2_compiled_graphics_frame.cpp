@@ -162,6 +162,29 @@ struct Session {
             fail_stream();
         return image;
     }
+    // RES type 2 is the retail 301A8 font loader, not an ordinary
+    // 2FD9C image. It allocates a font descriptor (glyph-width table
+    // and image pointer) and decodes its embedded image using 2FD9C.
+    static u32 source_font_loader(u32 record,u32 handle) noexcept {
+        auto& s=state();
+        if(handle!=s.stream_handle || s.stream_error ||
+           std::uint64_t(record)+9u>s.memory.size()) {
+            fail_stream();return 0u;
+        }
+        const u32 payload=code2::load_le32(s.memory.data()+record+5u);
+        const u32 span=code2::load_le16(s.memory.data()+record+3u);
+        if(span<8u || payload<8u ||
+           std::uint64_t(payload)+span>s.memory.size()) {
+            fail_stream();return 0u;
+        }
+        const u32 result=code2::function_301a8(
+            s.machine,s.image_loader,record,handle);
+        if(!result || s.stream_error ||
+           logical_file_position()!=s.active_entry_end) {
+            fail_stream();return 0u;
+        }
+        return result;
+    }
     // Compile and execute the original 37590 type-6 loader; the header
     // pointer passed through 2ECB4 is distinct from the DOS stream handle.
     static u16 type6_source_read_word(u32 header) noexcept {
@@ -451,6 +474,7 @@ struct Session {
         resource_loader.call_3104c=&alloc_guest;
         resource_loader.call_310b0=&free_guest;
         resource_loader.call_2fd9c=&source_image_loader;
+        resource_loader.call_301a8=&source_font_loader;
         resource_loader.call_37590=&type6_loader;
         type6_source.read_word=&type6_source_read_word;
         type6_source.alloc=&alloc_guest;
