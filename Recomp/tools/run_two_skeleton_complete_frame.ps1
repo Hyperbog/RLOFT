@@ -186,6 +186,22 @@ try {
         }
         $spriteDescriptions += "SPRITE_$($callNum)_VISIBILITY=$changedPixels world=$worldPixels bbox=$minX,$minY,$maxX,$maxY"
     }
+    $panel = [regex]::Match($log,
+        'CODE2_ORIGINAL_1F494_1EA90_PARTY_HUD active_original_characters=(\d+) source_state_lut_nonzero=(\d+) resource_calls=(\d+) masked_298f0_2a584=(\d+) direct_2975c=(\d+) fills_29aa4=(\d+) borders_2e374=(\d+) hand_slots_1ea90=(\d+) unsupported_text=(\d+) callback_failure=(\d+)')
+    if (-not $panel.Success) {
+        throw "Missing original 1F494/1EA90 party compositor evidence in $nativeLog"
+    }
+    $activeCharacters = [int]$panel.Groups[1].Value
+    $lutNonzero = [int]$panel.Groups[2].Value
+    $maskedDraws = [int]$panel.Groups[4].Value
+    $handCalls = [int]$panel.Groups[8].Value
+    $unsupportedText = [int]$panel.Groups[9].Value
+    $panelFailure = [int]$panel.Groups[10].Value
+    if ($activeCharacters -ne 4 -or $lutNonzero -eq 0 -or
+        $maskedDraws -lt 8 -or $handCalls -ne 8 -or
+        $unsupportedText -ne 0 -or $panelFailure -ne 0) {
+        throw "Original party HUD incomplete: actors=$activeCharacters LUT=$lutNonzero masked=$maskedDraws hand_calls=$handCalls unsupported=$unsupportedText failure=$panelFailure"
+    }
     $idx = Require-File ($stem + ".idx")
     $pal = Require-File ($stem + ".pal")
     $bmp = Require-File ($stem + ".bmp")
@@ -211,6 +227,11 @@ try {
         "SOURCE_369D8_OFF_APERTURE_CPU_WRITES=$offscreenWrites",
         "SOURCE_RES0_FRAME_BASE_IMAGES=400",
         "TWO_SKELETONS_ACTIVE_WORLD_SCANOUT_VISIBLE=YES",
+        "ORIGINAL_1F494_PARTY_CHARACTERS=$activeCharacters",
+        "ORIGINAL_298F0_2A584_MASKED_BLITS=$maskedDraws",
+        "ORIGINAL_1EA90_HAND_SLOTS=$handCalls",
+        "ORIGINAL_1F494_LUT_NONZERO_BYTES=$lutNonzero",
+        "ORIGINAL_PARTY_HUD_COMPLETE=NOT_DOS_VERIFIED",
         $spriteDescriptions,
         "NATIVE_FRAME_SHA256=$idxHash",
         "NATIVE_PALETTE_SHA256=$palHash",
