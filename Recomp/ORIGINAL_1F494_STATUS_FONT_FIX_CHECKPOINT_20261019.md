@@ -114,3 +114,35 @@ To approve private result:
 
 No proprietary code blobs, original art, source media, saved party
 members, raw palette, BMP, or private SAVE09(2) bytes are committed.
+
+
+## Verified Windows deliverable: Milestone #183
+
+[Windows CI #39224182470](https://github.com/Hyperbog/RLOFT/actions/runs/39224182470)
+at source commit `cbb3135016d4a3adb6eb7c99d2b98a088b9a9b15`
+**SUCCESS**, **76/76 MSVC CTests** including
+`canonical_code2_original_373bf_30508_status_text_vga_glyphs`,
+and owner PowerShell script parse/syntax verification passed.
+
+Matched Windows package
+[`RLOFT-Recomp-Windows-Milestone-183`](https://github.com/Hyperbog/RLOFT/actions/runs/39224182470/artifacts/12172189656)
+artifact ID `12172189656`, ZIP SHA256
+`c46266360bfa2d1afe9973b399ade9541edb4a9e76dd5e3ba587efc3a3a69754`.
+Package contains the updated executable and updated
+`run_two_skeleton_complete_frame.ps1` from the **same** build.
+Compiled source/runner commit includes the original 301A8 font loader,
+2E6F0 signed-decimal, 30508/303C8 glyph drawing, and bounded native
+diagnostics.
+
+[Linux regression CI #39224182652](https://github.com/Hyperbog/RLOFT/actions/runs/39224182652)
+passed. [Authentic archive plus original RES0 font synthetic-status
+CI #39224182491](https://github.com/Hyperbog/RLOFT/actions/runs/39224182491)
+passed after source-signed centering update.
+[CODE1/CODE2 link gate #39224182432](https://github.com/Hyperbog/RLOFT/actions/runs/39224182432)
+records the same build revision.
+
+**Strict conclusion:** Original party font/status source path now has
+green authentic-resource activation and a matched Windows deliverable.
+Exact privately held two-skeleton image from Milestone #183 has
+not been returned, and independent retail DOS VGA/DAC palette parity
+remains not verified.
