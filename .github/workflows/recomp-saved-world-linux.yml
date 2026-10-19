@@ -213,6 +213,12 @@ jobs:
           grep -Eq 'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT .*changed_pixels=[1-9][0-9]* world_rows_changed=[1-9][0-9]* bbox=' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
+          # Source-asset-only reconstruction of the independently
+          # observed original DOSBox-X VGA DAC: bank 0 plus the 8
+          # grayscale triples 246..253 from actual COLORS bank 3.
+          # Check RGB6 bytes, NOT pixel parity or retail caller timing.
+          grep -q 'CODE2_ORIGINAL_DOSBOXX_DAC_RECONCILIATION source_COLORS_base_bank=0 source_COLORS_slice_bank=3 first_index=246 entries=8 retail_palette_caller_parity=NOT_VERIFIED' "$scratch/full.log"
+          echo '0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812  '"$scratch/frame.pal" | sha256sum -c -
           test -s "$scratch/frame.bmp"
           echo 'GENUINE_COMPLETE_WORLD_FRAME_NATIVE_PASS original_save=SAVE09 expected_source_sprite_writes=127 full_frame=YES DOS_VGA_PARITY=NOT_VERIFIED'
           sha256sum "$scratch/frame.idx" "$scratch/frame.pal"
