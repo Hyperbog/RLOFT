@@ -4,6 +4,7 @@ on:
   push:
     branches: [Recomp]
     paths:
+      - 'Code2/Code2.cpp'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_original_save_game.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
