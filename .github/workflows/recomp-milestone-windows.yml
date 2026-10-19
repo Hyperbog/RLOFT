@@ -14,6 +14,7 @@ on:
     branches: [Recomp]
     paths:
       - 'Recomp/ACCEPTANCE_GATES.json'
+      - 'Code2/Code2.cpp'
       - 'Code2/graphics/*.hpp'
       - 'Code2/graphics/*.py'
       - 'Recomp/src/original_vga_host.hpp'
