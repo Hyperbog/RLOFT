@@ -55,10 +55,14 @@ the correct propagated result; it did not implicate RES4.
   the nominal field width, as in the retail SAR computation;
   it rejects only actual off-screen guest VGA bounds, not broad
   host-authored text clipping.
-- The owner-local runner now requires 2+ source decimal formats,
-  matching original centered-text callbacks, positive original
-  glyph draws and zero unsupported callbacks for this **exact**
-  private-skeleton save. Native exception summaries are bounded
+- Earlier revisions of the owner-local runner incorrectly required
+  **2+** decimal formats because the archived CI fixture deliberately
+  injected two synthetic status values. This was a TEST expectation,
+  not an original retail SAVE09(2) invariant. The user's actual
+  private scene produces **one** status numeral, one centered-text
+  callback and one glyph draw. The runner now requires 1+ matching
+  source-derived decimal/centered/glyph callbacks and zero unsupported
+  source calls, without fabricating a second status. Native exception summaries are bounded
   regex-extracted scalar diagnostics, not the entire literal
   backslash-n-delimited stdout stream.
 
