@@ -394,6 +394,17 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# Authenticated 16-bit R.EXE child-process supervisor state machine.
+# It is a typed host-side control boundary, never an invented guest jump.
+add_executable(rloft_original_supervisor_test
+    tests/original_r_exe_supervisor_test.cpp)
+set_target_properties(rloft_original_supervisor_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME original_r_exe_supervisor_code2_first_status10_status12
+        COMMAND rloft_original_supervisor_test)
+endif()
+
 # Local owner GOG game.gog ISO9660 CD data extraction. The binary can
 # extract only RES9 and RES10 to private scratch; never ships game media.
 add_executable(rloft_gog_cd_extract src/gog_cd_iso_extract.cpp)
