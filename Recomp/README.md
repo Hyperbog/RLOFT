@@ -110,3 +110,24 @@ COLORS bank-3 palette at C054. A SHA-pinned
 passed [original-media Linux CI](https://github.com/Hyperbog/RLOFT/actions/runs/39402847517).
 **Source bank identity is verified; exact dynamic producer call ancestry,
 emulator-save frame phase and DOS/native indexed pixel parity are not.**
+
+## Part 27 — Native source scene palette now uses full COLORS bank (2026-10-20)
+
+[Native palette integration](SOURCE_SCENE_PALETTE_NATIVE_INTEGRATION_20261020.md)
+replaces the prior 246–253 bank-3 splice with **complete 768-byte bank
+selection** from original CODE.2 level scene descriptors at object-2
+0x81AC + 3*level. For the authentic Level-5 save the source table
+selects bank 3. The native palette loader stages the selected complete
+original COLORS bank at 0xC054 and runs compiled original CODE.2 32150
+brightness and 29CA0 DAC output. There is no copied eight-color overlay
+or special case for skeleton sprites.
+
+[Authentic saved-world Linux gate](https://github.com/Hyperbog/RLOFT/actions/runs/39419812617)
+**passed** scene-selector and malformed-input unit tests, unchanged RES3
+skeleton/RES0 HUD/world compilation, and **full 768-byte** native output
+palette equality against owner-original COLORS bank 3. The --world
+LEVELS-only diagnostic remains an explicitly named bank0 fallback because
+it has no original CODE.2 scene table. Full original boot sequence,
+retail dynamic setter call ancestry, animation-phase synchronization and
+DOS/native indexed pixel parity remain NOT VERIFIED. This is a native
+saved-world renderer integration, not a completed playable game.
