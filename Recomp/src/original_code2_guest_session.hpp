@@ -17,6 +17,8 @@ struct Evidence {
     std::uint32_t vga_port_writes=0;
     std::uint64_t dispatch_calls=0;
     bool initialized=false;
+    bool original_20608_executed_to_host_dependency=false;
+    std::uint32_t original_352ee_getenv_calls=0;
     bool original_game_loop_connected=false;
 };
 Opaque* create(const std::filesystem::path& original_game_directory,
