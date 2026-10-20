@@ -4,6 +4,7 @@
 #include "../../Code2/Code2.cpp"
 #include "original_code2_palette_loader.hpp"
 #include "original_code2_scene_palette.hpp"
+#include "original_code2_guest_session.hpp"
 #include "original_media_identity.hpp"
 #include "original_vga_host.hpp"
 #include <algorithm>
@@ -371,6 +372,65 @@ struct Session {
 };
 Session* Session::current=nullptr;
 }
+
+namespace rloft { namespace original_code2_session {
+struct Opaque {
+    Session guest;
+    std::uint64_t dispatches=0;
+    bool initialized=false;
+    explicit Opaque(const std::filesystem::path& root,
+                    const std::filesystem::path& cd,unsigned level)
+        :guest(root.string(),cd.string()) {
+        if(level>=32u)throw std::out_of_range("CODE.2 scene level out of range");
+        guest.seed_authenticated_code2(root/"CODE.2");
+        guest.boot();
+        guest.source_palette_from_scene(root,level);
+        initialized=true;
+    }
+};
+static std::uint64_t guest_source_fingerprint(const Opaque& s) {
+    // FNV-1a over source guest memory is an in-process state continuity
+    // fingerprint, NOT a cryptographic content authenticator or DOS trace.
+    std::uint64_t hash=14695981039346656037ULL;
+    for(const auto b:s.guest.memory) {
+        hash^=b;
+        hash*=1099511628211ULL;
+    }
+    return hash;
+}
+Opaque* create(const std::filesystem::path& root,
+               const std::filesystem::path& cd,unsigned level) {
+    return new Opaque(root,cd,level);
+}
+Evidence inspect(const Opaque* s) {
+    if(!s)throw std::invalid_argument("Null original CODE2 guest");
+    if(s->guest.m.data!=s->guest.memory.data())
+        throw std::runtime_error("CODE2 guest memory base changed");
+    Evidence e{};
+    e.memory_address=s->guest.memory.data();
+    e.source_state_fingerprint=guest_source_fingerprint(*s);
+    e.resource_cache_base=code2::load_le32(s->guest.memory.data()+0xF0B8u);
+    e.resource_archives=code2::load_le32(s->guest.memory.data()+0xF0B4u);
+    e.selected_palette=code2::load_le32(s->guest.memory.data()+0xC034u);
+    e.vga_port_writes=s->guest.video_port_writes;
+    e.dispatch_calls=s->dispatches;
+    e.initialized=s->initialized;
+    e.original_game_loop_connected=false;
+    return e;
+}
+void dispatch_pending(Opaque* s) {
+    if(!s || !s->initialized)
+        throw std::invalid_argument("CODE2 startup guest is not initialized");
+    if(s->guest.m.data!=s->guest.memory.data())
+        throw std::runtime_error("CODE2 guest lost its original state");
+    ++s->dispatches;
+    // The original CODE.2 20608 -> 1FC14 world loop is not yet
+    // connected to the source INIT/RES guest; do NOT execute a guessed
+    // frame, reset memory, send artificial keys, or claim process exit.
+}
+void destroy(Opaque* s) noexcept {delete s;}
+}} // namespace rloft::original_code2_session
+
 int original_code2_resource_main(int argc,char** argv) {
     try {
         const bool palette=(argc==7 && std::string(argv[1])=="--root" &&
