@@ -2,6 +2,10 @@
 // INFO.DAT -> eleven original RES0..RES10 archive slot tables.
 // This executable is an isolated CODE.2 subsystem gate, NOT CODE.1->game boot.
 #include "../../Code2/Code2.cpp"
+#include "original_code2_palette_loader.hpp"
+#include "original_code2_scene_palette.hpp"
+#include "original_media_identity.hpp"
+#include "original_vga_host.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -95,6 +99,53 @@ struct Session {
     unsigned init_opens=0,info_opens=0,res_opens=0;
     u32 music_base=0;
     bool error=false;
+    rloft::graphics::OriginalVgaHost video{};
+    std::filesystem::path owner_palette_file{};
+    std::ifstream palette_stream{};
+    u32 video_port_writes=0;
+    bool palette_bad_port=false;
+    static u8 palette_get8(u32 addr) {
+        auto& t=state();
+        if(addr>=t.memory.size()){t.palette_bad_port=true;return 0;}
+        return t.memory[addr];
+    }
+    static u8 palette_in8(u16 port) {return state().video.read_port8(port);}
+    static void palette_out8(u16 port,u8 value) {
+        auto& t=state();
+        if(!t.video.write_port8(port,value))t.palette_bad_port=true;
+        else ++t.video_port_writes;
+    }
+    static void palette_sync(u32) {
+        // Source retrace callback: use the same modeled 3DA register used
+        // by the native compiled graphics adapter, not a fake DOS tick.
+        (void)state().video.read_port8(0x3DAu);
+    }
+    static bool colors_open(void* opaque,const char* name) {
+        auto& t=*static_cast<Session*>(opaque);
+        if(std::string(name)!="COLORS")return false;
+        t.palette_stream.open(t.owner_palette_file,std::ios::binary|std::ios::ate);
+        if(!t.palette_stream || t.palette_stream.tellg()!=std::streamoff(11521))
+            return false;
+        t.palette_stream.seekg(0,std::ios::beg);
+        char count=0;
+        t.palette_stream.read(&count,1);
+        return bool(t.palette_stream) && static_cast<u8>(count)==15u;
+    }
+    static bool colors_seek(void* opaque,u32 offset) {
+        auto& t=*static_cast<Session*>(opaque);
+        t.palette_stream.seekg(static_cast<std::streamoff>(offset),std::ios::beg);
+        return bool(t.palette_stream);
+    }
+    static bool colors_read(void* opaque,u8* dst,u32 size) {
+        auto& t=*static_cast<Session*>(opaque);
+        t.palette_stream.read(reinterpret_cast<char*>(dst),
+                              static_cast<std::streamsize>(size));
+        return bool(t.palette_stream) &&
+            std::all_of(dst,dst+size,[](u8 v){return v<=63u;});
+    }
+    static void colors_close(void* opaque) {
+        static_cast<Session*>(opaque)->palette_stream.close();
+    }
     static Session* current;
     static Session& state(){REQUIRE(current);return *current;}
     static void guest_string(u32 addr,const char* s) {
@@ -225,6 +276,65 @@ struct Session {
         res_callbacks.call_312ec=&read_guest_void;
     }
     ~Session(){current=nullptr;}
+    void seed_authenticated_code2(const std::filesystem::path& code_file) {
+        const auto original=disk_read(code_file);
+        REQUIRE(rloft_recomp::is_original_code2(original));
+        constexpr u32 object2_file=0x75F24u;
+        REQUIRE(original.size()>object2_file+0x81ACu+32u*3u);
+        // Stage the authentic initialized retail data object into the
+        // same guest memory used by original INIT/INFO/RES entry functions.
+        std::copy(original.begin()+object2_file,original.end(),memory.begin());
+        guest_string(0x718u,"INIT");
+        guest_string(0x1384u,"INFO.DAT");
+        guest_string(0x26000u,"RES");
+        REQUIRE(m.data==memory.data());
+    }
+    void source_palette_from_scene(const std::filesystem::path& root,unsigned level) {
+        REQUIRE(init_opens==1u && info_opens==1u && res_opens==11u);
+        const unsigned bank=rloft::original_scene_palette::select_bank(memory,level);
+        owner_palette_file=root/"COLORS";
+        // The original 1F8E0 setter is mapped, but the continuous original
+        // CODE.1->CODE.2 main is not. Explicitly stage the selected source
+        // scene value here; this is a host-orchestrated transition.
+        code2::store_le32(memory.data()+0xC034u,bank);
+        memory[0xCF58u]=1u;
+        constexpr u32 profile=0x300000u;
+        code2::store_le32(memory.data()+0xF050u,profile);
+        memory[profile+0x6Cu]=0u; // original startup default brightness
+        rloft::original_code2_palette::ReadOnlyFile file{};
+        file.opaque=this;
+        file.open=&colors_open;
+        file.seek_absolute=&colors_seek;
+        file.read_exact=&colors_read;
+        file.close=&colors_close;
+        const auto loaded=rloft::original_code2_palette::function_325b0(
+            m,file,0xC054u,0u,bank,256u,static_cast<u32>(memory.size()));
+        REQUIRE(loaded.offset==1u+bank*768u &&
+                loaded.brightness_source_executed && loaded.count==256u);
+        code2::Graphics2Boundary io{};
+        io.read8=&palette_get8;
+        io.in8=&palette_in8;
+        io.out8=&palette_out8;
+        io.sync_2abc4=&palette_sync;
+        code2::function_29ca0(io,0xC054u,0u,768u);
+        REQUIRE(!palette_bad_port && !video.unsupported_read());
+        REQUIRE(video_port_writes==769u);
+        for(u32 i=0;i<256u;++i) {
+            const auto rgb=video.palette(static_cast<u8>(i));
+            REQUIRE(rgb.r==memory[0xC054u+3u*i] &&
+                    rgb.g==memory[0xC054u+3u*i+1u] &&
+                    rgb.b==memory[0xC054u+3u*i+2u]);
+        }
+        std::cout<<"CODE2_REAL_STARTUP_RES_TO_SCENE_PALETTE_PASS"
+                 <<" level="<<level<<" bank="<<bank
+                 <<" source_palette_loader=325B0_RECONSTRUCTED"
+                 <<" compiled_brightness=32150"
+                 <<" compiled_DAC_writer=29CA0"
+                 <<" DAC_port_writes="<<video_port_writes
+                 <<" guest_palette=C054"
+                 <<" source_COLOR_file=READ_ONLY"
+                 <<" DOS_CPU_CALL_ORDER=NOT_VERIFIED\n";
+    }
     void boot() {
         code2::function_16d04(m,init_callbacks);
         REQUIRE(init_opens==1u && music_base==49u);
@@ -261,14 +371,28 @@ struct Session {
 };
 Session* Session::current=nullptr;
 }
-int main(int argc,char** argv) {
+int original_code2_resource_main(int argc,char** argv) {
     try {
+        const bool palette=(argc==7 && std::string(argv[1])=="--root" &&
+            std::string(argv[3])=="--cd-root" &&
+            std::string(argv[5])=="--palette-level");
         if(argc!=1 && !(argc==3 && std::string(argv[1])=="--root") &&
-           !(argc==5 && std::string(argv[1])=="--root" && std::string(argv[3])=="--cd-root"))
-            throw std::invalid_argument("usage: rloft_original_code2_init_resources [--root INSTALL_DIR [--cd-root CD_RLOFT_DIR]]");
-        Session s(argc==1?"":argv[2],argc==5?argv[4]:"");
-        s.boot();return 0;
+           !(argc==5 && std::string(argv[1])=="--root" &&
+             std::string(argv[3])=="--cd-root") && !palette)
+            throw std::invalid_argument("usage: rloft_original_code2_init_resources [--root INSTALL_DIR [--cd-root CD_RLOFT_DIR [--palette-level LEVEL]]]");
+        const unsigned level=palette?
+            static_cast<unsigned>(std::stoul(argv[6])):0u;
+        if(palette && (level>=32u || argv[6][0]=='-'))
+            throw std::invalid_argument("Palette scene level must be 0..31");
+        Session s(argc==1?"":argv[2],argc>=5?argv[4]:"");
+        if(palette)s.seed_authenticated_code2(std::filesystem::path(argv[2])/"CODE.2");
+        s.boot();
+        if(palette)s.source_palette_from_scene(argv[2],level);
+        return 0;
     }catch(const std::exception& e){
         std::cerr<<"SOURCE_RESOURCE_STARTUP_FAIL: "<<e.what()<<'\n';return 1;
     }
 }
+#ifndef RLOFT_BUNDLE_NO_MAIN
+int main(int argc,char** argv) {return original_code2_resource_main(argc,argv);}
+#endif
