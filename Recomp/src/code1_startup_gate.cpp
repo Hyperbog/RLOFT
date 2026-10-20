@@ -655,7 +655,7 @@ void execute(Mode mode,const std::vector<u8>* original) {
              <<"CHARACTER_CREATION_BOOTED=NO\n";
 }
 } // namespace
-int main(int argc,char** argv) {
+int original_code1_startup_main(int argc,char** argv) {
     try {
         Mode mode=Mode::BeforeVersion;
         int index=1;
@@ -681,3 +681,6 @@ int main(int argc,char** argv) {
         return 1;
     }
 }
+#ifndef RLOFT_BUNDLE_NO_MAIN
+int main(int argc,char** argv) {return original_code1_startup_main(argc,argv);}
+#endif
