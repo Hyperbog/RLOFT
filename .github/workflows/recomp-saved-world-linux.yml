@@ -7,6 +7,8 @@ on:
       - 'Code2/Code2.cpp'
       - 'Recomp/tools/trace_original_palette_write_chain.py'
       - 'Recomp/tools/audit_original_palette_indirect_candidates.py'
+      - 'Recomp/tools/audit_original_le_palette_fixups.py'
+      - 'Recomp/tools/verify_dosboxx_palette_port_trace.py'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
       - 'Recomp/src/original_code2_1f494_bridge.inc'
@@ -74,6 +76,12 @@ jobs:
           cp "$source_save/SAVE.DAT" "$source_save/LEV005.DAT" "$scratch/"
           cp "$media/SINTAB" "$media/RES4" "$media/RES0" "$media/INIT" "$media/COLORS" "$media/CODE.2" "$media/NPCS.DAT" "$media/OBJECTS.DAT" "$media/RES3" "$scratch/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          python3 Recomp/tools/audit_original_le_palette_fixups.py --self-test
+          python3 Recomp/tools/audit_original_le_palette_fixups.py --code2 "$scratch/CODE.2" --report "$scratch/retail-le-fixups.json" | tee "$scratch/retail-le-fixups.log"
+          grep -q 'ORIGINAL_LE_PALETTE_FIXUP_PASS records=9813 target_object1=794 candidate_palette_function_relocations=0 buffer_sources=89 dynamic_palette_provenance=NOT_VERIFIED' "$scratch/retail-le-fixups.log"
+          python3 Recomp/tools/verify_dosboxx_palette_port_trace.py --self-test
+          # Never construct a fake retail port-event trace from native frames, SAV, or COLORS.
+          # A separately captured original DOSBox-X I/O trace is NOT present in CI.
           python3 Recomp/tools/audit_original_palette_indirect_candidates.py --self-test
           python3 Recomp/tools/audit_original_palette_indirect_candidates.py --code2 "$scratch/CODE.2" --report "$scratch/palette-indirect-evidence.json" | tee "$scratch/palette-indirect.log"
           grep -q 'AUTHENTIC_ORIGINAL_PALETTE_INDIRECT_CENSUS_PASS raw_E8_E9_EB_and_direct_le32_candidates=0 for 29248/323BC/324F8; original_DAC_trace=NOT_CAPTURED bank3_246_253_caller=NOT_VERIFIED' "$scratch/palette-indirect.log"
