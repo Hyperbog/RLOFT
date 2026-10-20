@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <csetjmp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -100,6 +101,59 @@ struct Session {
     unsigned init_opens=0,info_opens=0,res_opens=0;
     u32 music_base=0;
     bool error=false;
+    // Bounded execution of canonical 20608 on THIS resource guest. No
+    // substitute getenv/atoi result or reset of the shared memory.
+    std::jmp_buf original_game_escape{};
+    unsigned original_game_getenv_callbacks=0;
+    u32 original_game_getenv_query=0;
+    bool original_main_reached_environment=false;
+    static u32 stop_at_game_environment(u32 query) noexcept {
+        auto& t=state();
+        ++t.original_game_getenv_callbacks;
+        t.original_game_getenv_query=query;
+        std::longjmp(t.original_game_escape,1);
+    }
+    static u32 stop_at_game_atoi(u32) noexcept {
+        auto& t=state();
+        std::longjmp(t.original_game_escape,2);
+    }
+    static void stop_at_game_audio(u32,u32) noexcept {
+        auto& t=state();
+        std::longjmp(t.original_game_escape,3);
+    }
+    static u32 stop_at_game_disk(u32, u32*) noexcept {
+        auto& t=state();
+        std::longjmp(t.original_game_escape,4);
+    }
+    void execute_real_20608_to_first_dependency() {
+        REQUIRE(!original_main_reached_environment);
+        REQUIRE(m.data==memory.data());
+        code2::Application46Boundary calls{};
+        calls.call_352ee=&stop_at_game_environment;
+        calls.call_35349=&stop_at_game_atoi;
+        calls.call_2f2ec=&stop_at_game_audio;
+        calls.call_35286=&stop_at_game_disk;
+        const u8* const base=memory.data();
+        const int boundary=setjmp(original_game_escape);
+        if(boundary==0) {
+            // ORIGINAL compiled CODE2 20608, not a host copy of its
+            // results. The first unavailable environment call stops
+            // before any fabricated value reaches original gameplay.
+            code2::function_20608(m,calls);
+            throw std::runtime_error("Original 20608 returned before a bounded host dependency");
+        }
+        REQUIRE(m.data==base && memory.data()==base);
+        REQUIRE(boundary==1 && original_game_getenv_callbacks==1u &&
+                original_game_getenv_query>=0x1000u &&
+                original_game_getenv_query<0x2000u);
+        original_main_reached_environment=true;
+        std::cout<<"CODE2_PERSISTENT_GUEST_ORIGINAL_20608_ENTRY_PASS"
+                 <<" first_unavailable_dependency=ORIGINAL_352EE_ENVIRONMENT"
+                 <<" source_game_entry=20608"
+                 <<" original_guest_memory=RETAINED"
+                 <<" synthetic_environment_answer=NO"
+                 <<" game_loop_1FC14=NOT_REACHED\n";
+    }
     rloft::graphics::OriginalVgaHost video{};
     std::filesystem::path owner_palette_file{};
     std::ifstream palette_stream{};
@@ -383,6 +437,7 @@ struct Opaque {
         :guest(root.string(),cd.string()) {
         if(level>=32u)throw std::out_of_range("CODE.2 scene level out of range");
         guest.seed_authenticated_code2(root/"CODE.2");
+        guest.execute_real_20608_to_first_dependency();
         guest.boot();
         guest.source_palette_from_scene(root,level);
         initialized=true;
