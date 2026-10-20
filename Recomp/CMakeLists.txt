@@ -396,6 +396,23 @@ endif()
 
 # Authenticated 16-bit R.EXE child-process supervisor state machine.
 # It is a typed host-side control boundary, never an invented guest jump.
+# Persistent native supervisor lifecycle: CODE.2 child stays live across
+# steps; actual status10/12 cause transitions, exact 0x920 CHARS byte handoff.
+# The synthetic regression does NOT execute a playable CODE.2 engine.
+add_executable(rloft_original_supervisor_session_test
+    tests/original_r_exe_native_session_test.cpp)
+set_target_properties(rloft_original_supervisor_session_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_supervisor_session_test PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_original_supervisor_session_test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_r_exe_persistent_code2_child_and_exact_chars
+        COMMAND rloft_original_supervisor_session_test)
+endif()
+
 add_executable(rloft_original_supervisor_test
     tests/original_r_exe_supervisor_test.cpp)
 set_target_properties(rloft_original_supervisor_test PROPERTIES
