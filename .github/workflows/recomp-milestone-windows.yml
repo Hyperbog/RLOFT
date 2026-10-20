@@ -24,6 +24,10 @@ on:
       - 'Recomp/tools/verify_owned_res_render.py'
       - 'Recomp/tools/test_compiled_res4.py'
       - 'Recomp/src/code2_original_res_startup.cpp'
+      - 'Recomp/src/code1_code2_staged_boot.cpp'
+      - 'Recomp/src/original_code2_palette_loader.hpp'
+      - 'Recomp/src/code1_startup_gate.cpp'
+      - 'Recomp/CMakeLists.txt'
       - 'Recomp/src/code2_original_level_view.cpp'
       - 'Recomp/src/code2_original_level_loader.cpp'
       - 'Recomp/src/code2_original_save_game.cpp'
@@ -113,6 +117,22 @@ jobs:
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
           & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media" --cd-root "$cdMedia"
           if ($LASTEXITCODE -ne 0) { throw "Original INIT/INFO.DAT/RES0..RES10 resource startup failed" }
+      - name: Execute source-staged CODE.1 → CODE.2 boot and original palette bank
+        shell: pwsh
+        run: |
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $paletteLog = & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media" --cd-root "$cdMedia" --palette-level 5
+          if ($LASTEXITCODE -ne 0) { throw "Same-session original INIT/INFO/RES and palette loader failed" }
+          if (($paletteLog -join "`n") -notmatch 'CODE2_REAL_STARTUP_RES_TO_SCENE_PALETTE_PASS level=5 bank=3 source_palette_loader=325B0_RECONSTRUCTED compiled_brightness=32150 compiled_DAC_writer=29CA0 DAC_port_writes=769') {
+            throw "Original scene palette 325B0/32150/29CA0 execution proof missing"
+          }
+          $stagedLog = & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia"
+          if ($LASTEXITCODE -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed" }
+          if (($stagedLog -join "`n") -notmatch 'RLOFT_CODE1_CODE2_SOURCE_BOOT_PIPELINE_PASS.*handoff=HOST_ORDERED.*gameplay_boot=NOT_ACCEPTED') {
+            throw "Host-staged original CODE.1 -> CODE.2 pipeline proof missing"
+          }
+          Write-Host "ORIGINAL_CODE1_CODE2_STAGED_BOOT_PALETTE_PASS source_only=YES full_game_boot=NO"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
