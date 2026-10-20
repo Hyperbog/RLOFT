@@ -26,6 +26,9 @@ on:
       - 'Recomp/src/code2_original_res_startup.cpp'
       - 'Recomp/src/code1_code2_staged_boot.cpp'
       - 'Recomp/src/original_r_exe_supervisor.hpp'
+      - 'Recomp/src/original_r_exe_native_session.hpp'
+      - 'Recomp/src/original_code2_guest_session.hpp'
+      - 'Recomp/tests/original_r_exe_native_session_test.cpp'
       - 'Recomp/tests/original_r_exe_supervisor_test.cpp'
       - 'Recomp/src/gog_cd_iso_extract.cpp'
       - 'Recomp/tools/test_gog_cd_iso_extract.py'
@@ -141,6 +144,9 @@ jobs:
           }
           $stagedLog = & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia"
           if ($LASTEXITCODE -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed" }
+          if (($stagedLog -join "`n") -notmatch 'RLOFT_CODE2_SAME_GUEST_PERSISTENCE_PASS.*source_archives=11.*palette_bank=3.*DAC_writes=769.*pending_steps=2.*relaunches=0.*game_loop=NOT_CONNECTED') {
+            throw "Original CODE.2 resources/palette were not retained in one guest across two Pending steps"
+          }
           if (($stagedLog -join "`n") -notmatch 'RLOFT_CODE1_CODE2_SOURCE_BOOT_PIPELINE_PASS.*handoff=HOST_ORDERED.*gameplay_boot=NOT_ACCEPTED') {
             throw "Host-staged original CODE.1 -> CODE.2 pipeline proof missing"
           }
