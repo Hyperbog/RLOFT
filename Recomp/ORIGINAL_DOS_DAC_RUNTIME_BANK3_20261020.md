@@ -49,3 +49,67 @@ Submission 28 begins at event sequence 23,054; submission 29 at 23,823; submissi
 - Do not commit `CODE.2`, SAV files, raw JSONL logs, complete original palettes, or GOG media to public GitHub. The owner-private byte-level audit report remains a separate downloadable artifact.
 
 Existing context: [Part 24 LE fixups and trace acceptance](ORIGINAL_LE_PALETTE_FIXUPS_AND_DOS_DAC_TRACE_20261020.md).
+
+
+## Part 26 — original COLORS bank 0→3 source-producer resolution
+
+New exact original media result (2026-10-20): The authentic 11,521-byte
+COLORS file (SHA256 e366986bf701ba832aa769bf99f0db90a76af658300ce3d02e7039a970a9baf5)
+contains 15 RGB6 palette banks. The bank at index 0 has SHA256
+1f60d7831cd7b034ae67c894dc91662f15d4341fbf28e2a954b1b7e3e780f64f;
+index 3 has SHA256
+0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812.
+These are **exact** independent SHA256 matches to original DOSBox-X full-bank
+DAC submission 28 (bank 0) and submissions 29/30 (bank 3). The source file's
+two palette banks differ at exactly eight indices **246–253**, 24 RGB6
+components; the other 744 component bytes match. No reconstructed or
+synthetic port history was involved.
+
+### Authenticated CODE.2 machine-code path
+
+- Object-1 0x18C85/0x18C8D reads a scene's 3-byte descriptor first byte
+  from object-2 0x81AC + scene_index*3 and calls object-1 0x1F8E0.
+- 0x1F8E0 selects the scene palette by storing the ID into object-2 0xC034
+  and flags palette refresh at object-2 0xCF58.
+- 0x1FAC4/0x1FADB is a guarded palette refresh that passes [0xC034],
+  the original COLORS file name and buffer 0xC054 to 0x325B0;
+  0x1FAE8 then calls the 0x29234 full-bank DAC submission wrapper.
+- 0x325B0 seeks to 1 + palette_index*768 in COLORS and reads 768 RGB6
+  bytes for a full-bank request, then calls 0x32150 for optional in-memory
+  brightness adjustment. The hardware writer is 0x29CA0.
+- 0x20510/0x2051D is a second authentic startup call path that
+  loads [0xC034] from COLORS and calls 0x29234.
+
+The authenticated retail CODE.2 object-2 scene table at 0x81AC contains
+the **Level-5 triplet [3,10,3]**. Its first byte selects palette bank 3.
+Do not assign semantics to the other two bytes without further evidence.
+
+The owner's independent DOSBox-X 1.sav serializes a DWORD **3** at original
+data offset 0xC034, and a full byte-exact COLORS bank-3 staging palette
+at original 0xC054 (SAV Memory component offset 0x20D0DC); the SAV's VGA
+hardware palette independently matches the same 768-byte bank.
+The SAV Memory header consumes 0x88 bytes before MemBase, with observed
+original guest data linear base 0x201000 in this capture.
+
+### Evidence boundary
+
+**Proven:** correct original retail source bank values, full runtime output
+matching the bank 0→3 transition, saved scene selection state, exact original
+source selection/loading code and hardware writer.
+
+**Still not proven from existing v1 I/O hook:** which static 0x325B0
+call site actually executed at submission 29; the first-generation
+emulator hook recorded outgoing DAC bytes and raw EIP hints, not the
+producer/caller stack. The source chain through 0x18C8D, 0x1F8E0 and
+0x1FADB is a strongly supported static explanation, but not an independently
+recorded temporal CPU call sequence. The owner's game save was captured
+approximately one animation after load, so exact phase synchronization,
+skeleton animation frames and native pixel parity remain open.
+
+The original bank-3 value-level slice is now **source authenticated**;
+the original CPU instruction ancestry and native graphics timing remain
+NOT_VERIFIED. A skeleton RES3 image comparison is unnecessary to explain
+this bank switch; it belongs to a separate sprite rendering investigation.
+
+See tools/audit_original_colors_scene_palette.py for SHA-pinned reproduction;
+its optional --trace/--sav inputs are owner-private, never committed to Git.
