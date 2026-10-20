@@ -375,6 +375,25 @@ if(BUILD_TESTING)
         PROPERTIES TIMEOUT 25)
 endif()
 
+# Original SOURCE-STAGED CODE.1 constructors -> CODE.2 INIT/INFO/RES
+# -> scene-selected full COLORS 325B0/32150/29CA0 in one host process.
+# This is NOT the unimplemented DOS guest CODE.1->CODE.2 branch transfer.
+add_executable(rloft_code1_code2_staged_boot
+    src/code1_code2_staged_boot.cpp
+    src/code1_startup_gate.cpp
+    src/code2_original_res_startup.cpp
+    src/original_le_image.cpp)
+target_compile_definitions(rloft_code1_code2_staged_boot PRIVATE RLOFT_BUNDLE_NO_MAIN)
+set_target_properties(rloft_code1_code2_staged_boot PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_code1_code2_staged_boot PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_code1_code2_staged_boot PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+# Original-media acceptance is run by recomp-milestone-windows.yml with
+# read-only sparse-checkout files, not a self-contained synthetic CTest.
+
 # Original LEVELS.DAT -> CODE.2 334C4 view preparation; stop before 32954 rays.
 # This is real input plumbing into original source, not a world frame.
 add_executable(rloft_original_code2_level_view src/code2_original_level_view.cpp)
