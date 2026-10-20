@@ -157,3 +157,36 @@ is **not a playable executable** and takes an extracted read-only CD
 resource directory for RES9 and RES10 (not a mounted `game.gog` image).
 The unresolved CODE.1 game-entry overlay switch, CODE.2 runtime loop,
 original CPU call ancestry and DOS/native frame parity remain open.
+
+## Part 30 - persistent R.EXE native child protocol and CODE.2 source guest (2026-10-20)
+
+[Implementation and boundaries](ORIGINAL_SUPERVISOR_PERSISTENT_CODE2_RUNTIME_20261020.md):
+a new resumable R.EXE supervisor lifecycle retains child objects across
+uncompleted Pending dispatches, routes only real CODE.2 status 10 to
+CODE.1, verifies the exact 0x920 CHARS handoff on CODE.1 completion,
+and routes CODE.2 status 12 to CHARS cleanup/restart. Missing child
+execution or CHARS producer fails closed rather than inventing success.
+The portable child transitions are exercised with openly labeled
+synthetic outcomes; they are **not** the live original game loop.
+
+The original CODE.2 runtime-resource session now exposes a persistent
+guest object across host dispatches. Original INIT, INFO.DAT and eleven
+RES archive descriptors, original CODE.2 scene selection, original
+COLORS-bank loading, compiled 32150 brightness and compiled 29CA0 VGA
+hardware output share the same retained guest. The source-staged
+R.EXE-first executable now checks two Pending steps retain the exact
+guest memory address, a full memory fingerprint, the RES cache base,
+11 archive descriptors, selected palette bank and 769 port writes,
+without re-initializing or fabricating a CODE.2 child process exit.
+
+[Owner-original Windows source/regression check](https://github.com/Hyperbog/RLOFT/actions/runs/39515268398)
+**passed** the new pending-guest marker and all 79 Windows CTests.
+
+The remaining **hard stop** is wiring the canonical CODE.2 353A0/20608
+game entry and 1FC14..20293 gameplay loop, true input/interrupt host
+services and frame presentation into this **same** guest memory/runtime.
+The previous preview build is not a game boot and should not be
+delivered as a playable milestone. The next user-facing game build
+requires actual original startup and at least one live event-driven
+gameplay frame.
+
