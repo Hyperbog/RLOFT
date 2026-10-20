@@ -191,6 +191,15 @@ jobs:
         shell: pwsh
         run: |
           $path = "Recomp/tools/Launch-RLOFT-Recomp-Preview.ps1"
+          # This is launched with powershell.exe (Windows PowerShell 5.1),
+          # which defaults BOM-less UTF-8 .ps1 source to a legacy ANSI
+          # codepage. A Unicode em dash inside a quoted literal can break
+          # the parser despite passing the pwsh 7 AST test.
+          $bytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $path).Path)
+          $highBytes = @($bytes | Where-Object { $_ -gt 127 })
+          if ($highBytes.Count -ne 0) {
+            throw "One-click PS5.1 launcher must be 7-bit ASCII; BOM-less UTF-8 high bytes found"
+          }
           $tok = $null
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tok, [ref]$errors)
