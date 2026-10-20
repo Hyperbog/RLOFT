@@ -22,13 +22,15 @@ import verify_dosboxx_palette_port_trace as verifier
 
 def inspect(raw, save_file=None):
     events, meta = converter.normalize(raw)
+    # The normalized replay strips raw CPU hints after validating their structure.
+    hints = [json.loads(row) for row in raw.splitlines()[1:]]
     palette = bytearray(768)
     known = bytearray(768)
     index, component = None, 0
     writes = [0] * 256
     samples = {str(i): [] for i in range(246, 254)}
     last_writer = {}
-    for e in events:
+    for e, hint in zip(events, hints):
         if e['port'] == 0x3c8:
             index = e['value']
             component = 0
@@ -45,8 +47,8 @@ def inspect(raw, save_file=None):
             if len(sampled) < 12:
                 sampled.append({
                     'seq': e['seq'], 'channel': component, 'value': e['value'],
-                    'guest_cs_hint': e['guest_cs_hint'],
-                    'guest_eip_hint': e['guest_eip_hint'],
+                    'guest_cs_hint': hint['guest_cs_hint'],
+                    'guest_eip_hint': hint['guest_eip_hint'],
                 })
         component += 1
         if component == 3:
