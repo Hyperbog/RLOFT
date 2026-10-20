@@ -60,7 +60,7 @@ Item record(const char* p,unsigned limit){
     Item v{le32(p+2),le32(p+10),(static_cast<u8>(p[25])&2u)!=0,{}};
     for(unsigned i=0;i<n;++i){
         const auto ch=static_cast<u8>(p[33+i]);
-        if((n==1 && ch<=1u))return {};
+        if(n==1 && ch<=1u){v.name=(ch==0u?".":"..");return v;}
         if(ch==';')break;
         if(ch<32u||ch>126u)throw std::runtime_error("Unsupported ISO filename");
         v.name+=static_cast<char>((ch>='a'&&ch<='z')?ch-32:ch);
@@ -85,7 +85,7 @@ std::vector<Item> entries(Disc& d,const Item& dir) {
             if(!n)break;  // sector padding
             if(n>2048u-off)throw std::runtime_error("ISO directory record crosses sector");
             const auto ent=record(sec.data()+off,n);
-            if(!ent.name.empty())children.push_back(ent);
+            if(!ent.name.empty() && ent.name!="." && ent.name!="..")children.push_back(ent);
             if(children.size()>4096)throw std::runtime_error("ISO directory entry bound exceeded");
             off+=n;
         }
