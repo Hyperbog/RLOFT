@@ -92,3 +92,21 @@ DOSBox-X executable, an original Ravenloft runtime capture or an accepted
 native graphics parity check. Keep original-game SAV, port captures,
 palette bytes and indexed frames private. The retail eight-entry
 `COLORS` bank-3 update caller remains unverified.
+
+## Part 26 — original COLORS bank selection explains DOS DAC entries 246–253
+
+[Authenticated COLORS→CODE.2 scene selector chain](ORIGINAL_DOS_DAC_RUNTIME_BANK3_20261020.md)
+now identifies the source of the eight-color change: **original COLORS bank 0
+exactly equals gameplay DAC submission 28**, while **COLORS bank 3 equals
+submissions 29/30 and independently saved original VGA DAC**. These banks
+differ only in 24 RGB6 channels at indices 246–253; no skeleton RES image
+patch or guessed palette interpolation is needed to explain the transition.
+Source object-1 18C8D → 1F8E0 updates palette selector C034 using the original
+Level-5 scene descriptor at 81AC; authenticated source loader 325B0 reads
+the selected COLORS bank into C054; wrapper 29234 → 29CA0 emits the DAC
+bytes. The owner's SAV independently contains selector C034=3 and an exact
+COLORS bank-3 palette at C054. A SHA-pinned
+[palette-selection audit](tools/audit_original_colors_scene_palette.py)
+passed [original-media Linux CI](https://github.com/Hyperbog/RLOFT/actions/runs/39402847517).
+**Source bank identity is verified; exact dynamic producer call ancestry,
+emulator-save frame phase and DOS/native indexed pixel parity are not.**
