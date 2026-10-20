@@ -5,6 +5,7 @@
 #include "../../Code2/Code2.cpp"
 #include "original_le_image.h"
 #include "original_media_identity.hpp"
+#include "canonical_code2_runtime_owner.hpp"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
@@ -1167,13 +1168,15 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          const std::filesystem::path* host_root=nullptr,
          bool use_host_dpmi=false,bool multi_resource_probe=false,
          bool source_host_heap=false,bool source_dos_fallback=false,
-         bool source_break_growth=false) {
+         bool source_break_growth=false,
+         std::unique_ptr<Session>* retained_owner=nullptr) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
             img.objects[0].raw.size()==0x3A852u &&
             img.objects[1].raw.size()==0x2DD10u,"CODE.2 LE geometry mismatch");
-    Session state;
+    auto owner=std::make_unique<Session>();
+    Session& state=*owner;
     state.extended=extended;
     state.source_host_heap=source_host_heap;
     state.source_dos_fallback=source_dos_fallback;
@@ -1861,8 +1864,65 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     "RELEASED":"NOT_REACHED")<<"\\n";
     }
 
+    if(retained_owner) {
+        require(state.machine.data==state.data.data() &&
+                source_host_heap && execute_application &&
+                !advance_to_mouse &&
+                state.stop_reason==std::string(
+                    "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"),
+                "Cannot retain incomplete original startup/heap guest");
+        *retained_owner=std::move(owner);
+    }
 }
 }
+namespace rloft { namespace canonical_code2_runtime {
+struct Opaque {
+    std::unique_ptr<Session> session;
+};
+Opaque* start(const std::filesystem::path& original_code2) {
+    const auto filename=original_code2.string();
+    const auto bytes=read_file(filename.c_str());
+    if(!rloft_recomp::is_original_code2(bytes))
+        throw std::runtime_error("Original CODE.2 identity mismatch");
+    const auto image=rloft_recomp::OriginalLeImage::parse(bytes);
+    auto result=std::make_unique<Opaque>();
+    run(image,true,true,true,GameConfig::Unset,
+        false,false,false,nullptr,MouseResetBranch::Stop,
+        nullptr,false,false,true,false,false,&result->session);
+    if(!result->session)
+        throw std::runtime_error("Canonical CODE.2 startup was not retained");
+    return result.release();
+}
+Evidence inspect(const Opaque* owner) {
+    if(!owner || !owner->session)
+        throw std::invalid_argument("Missing canonical CODE.2 source runtime");
+    const auto& s=*owner->session;
+    if(s.data.data()!=s.machine.data || !s.dpmi_linear_memory ||
+       s.stop_reason!=std::string("STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"))
+        throw std::runtime_error("Canonical source heap/guest identity changed");
+    Evidence out{};
+    out.memory_address=s.data.data();
+    out.memory_bytes=s.data.size();
+    out.heap_arena_header=code2::load_le32(s.data.data()+0x12624u);
+    out.source_353a0_executed=s.completed_initializers==4u;
+    out.source_20608_executed=s.audio_init_calls==1u;
+    out.source_heap_provider_retained=true;
+    out.source_cpu_stack_resumable=false;
+    return out;
+}
+std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
+    if(!owner || !owner->session)
+        throw std::invalid_argument("Missing canonical CODE.2 memory owner");
+    return owner->session->data;
+}
+void* canonical_machine(Opaque* owner) {
+    if(!owner || !owner->session)
+        throw std::invalid_argument("Missing canonical CODE.2 machine");
+    return &owner->session->machine;
+}
+void destroy(Opaque* owner) noexcept {delete owner;}
+}} // namespace rloft::canonical_code2_runtime
+#ifndef RLOFT_BUNDLE_NO_MAIN
 int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
@@ -2050,3 +2110,5 @@ int main(int argc,char**argv) {
         return 1;
     }
 }
+
+#endif // RLOFT_BUNDLE_NO_MAIN
