@@ -46,7 +46,7 @@ $session = Join-Path (Join-Path $documents 'RLOFT-Recomp-Preview') ([DateTime]::
 New-Item -ItemType Directory -Force -Path $session | Out-Null
 $cdRoot = Join-Path $session 'private-cd-resources'
 $results = New-Object System.Collections.Generic.List[string]
-$results.Add("RLOFT source-build experiment — NOT a playable boot.")
+$results.Add("RLOFT source-build experiment - NOT a playable boot.")
 $results.Add("Original installation: $game")
 $results.Add("Owner CD image: $cdImage")
 $results.Add("Output: $session")
@@ -69,7 +69,7 @@ function Invoke-Logged([string]$exe, [string[]]$argv, [string]$log) {
 }
 
 Write-Host ""
-Write-Host "RAVENLOFT NATIVE SOURCE BUILD — BOOT CHECK + VISUAL PREVIEW"
+Write-Host "RAVENLOFT NATIVE SOURCE BUILD - BOOT CHECK + VISUAL PREVIEW"
 Write-Host "Game:    $game"
 Write-Host "Output:  $session"
 Write-Host "This is an engineering preview, not an interactive game."
@@ -209,4 +209,4 @@ $summary=Join-Path $session 'STARTUP_RESULT.txt'
 $results | Set-Content -LiteralPath $summary -Encoding UTF8
 Write-Host ""
 Write-Host "All results: $summary"
-Write-Host "Original-source startup is bounded. An interactive CODE.1→CODE.2 game boot is NOT implemented."
+Write-Host "Original-source startup is bounded. An interactive CODE.1->CODE.2 game boot is NOT implemented."
