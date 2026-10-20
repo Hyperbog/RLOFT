@@ -107,11 +107,21 @@ struct Session {
     unsigned original_game_getenv_callbacks=0;
     u32 original_game_getenv_query=0;
     bool original_main_reached_environment=false;
-    static u32 stop_at_game_environment(u32 query) noexcept {
+    static u32 original_game_environment(u32 query) noexcept {
         auto& t=state();
         ++t.original_game_getenv_callbacks;
         t.original_game_getenv_query=query;
-        std::longjmp(t.original_game_escape,1);
+        if(query!=0x114Cu && query!=0x1154u &&
+           query!=0x115Cu && query!=0x1164u)
+            std::longjmp(t.original_game_escape,5);
+        // Use the ACTUAL canonical CODE.2 352EE lookup and its original
+        // 39526 case-insensitive string comparator. The original DGROUP
+        // contains no reconstructed Watcom environment table yet, so
+        // this is an authentic no-DOS-environment branch, not fabricated
+        // environment variable text supplied by the host.
+        code2::Runtime111Boundary lookup{};
+        lookup.call_39526=&code2::function_39526;
+        return code2::function_352ee(t.m,lookup,query);
     }
     static code2::s32 stop_at_game_atoi(u32) noexcept {
         auto& t=state();
@@ -129,7 +139,7 @@ struct Session {
         REQUIRE(!original_main_reached_environment);
         REQUIRE(m.data==memory.data());
         code2::Application46Boundary calls{};
-        calls.call_352ee=&stop_at_game_environment;
+        calls.call_352ee=&original_game_environment;
         calls.call_35349=&stop_at_game_atoi;
         calls.call_2f2ec=&stop_at_game_audio;
         calls.call_35286=&stop_at_game_disk;
@@ -143,15 +153,15 @@ struct Session {
             throw std::runtime_error("Original 20608 returned before a bounded host dependency");
         }
         REQUIRE(m.data==base && memory.data()==base);
-        REQUIRE(boundary==1 && original_game_getenv_callbacks==1u &&
+        REQUIRE(boundary==3 && original_game_getenv_callbacks>=1u &&
                 original_game_getenv_query>=0x1000u &&
                 original_game_getenv_query<0x2000u);
         original_main_reached_environment=true;
         std::cout<<"CODE2_PERSISTENT_GUEST_ORIGINAL_20608_ENTRY_PASS"
-                 <<" first_unavailable_dependency=ORIGINAL_352EE_ENVIRONMENT"
+                 <<" first_unavailable_dependency=ORIGINAL_2F2EC_AUDIO_CALLBACK"
                  <<" source_game_entry=20608"
                  <<" original_guest_memory=RETAINED"
-                 <<" synthetic_environment_answer=NO"
+                 <<" compiled_getenv=352EE"\n                 <<" synthetic_environment_answer=NO"
                  <<" game_loop_1FC14=NOT_REACHED\n";
     }
     rloft::graphics::OriginalVgaHost video{};
