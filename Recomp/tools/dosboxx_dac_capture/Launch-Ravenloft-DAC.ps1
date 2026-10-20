@@ -35,8 +35,8 @@ try {
     Write-Host 'Ravenloft original game folder:' $GameFolder
     Write-Host 'Instrumented DOSBox-X:' $emulator
     Write-Host 'Private DAC capture:' $log
-    Write-Host 'Launching RLOFT.BAT automatically after the DOSBox-X drive mount.'
-    $commands = @('-c', ('mount c "' + $GameFolder + '"'), '-c', 'c:', '-c', 'rloft.bat')
+    Write-Host 'Launching R.EXE directly so original RLOFT.BAT cannot issue EXIT and hide startup errors.'
+    $commands = @('-c', ('mount c "' + $GameFolder + '"'), '-c', 'c:', '-c', 'r.exe')
     & $emulator @commands
     if ($LASTEXITCODE -ne 0) { Write-Warning "DOSBox-X returned code $LASTEXITCODE" }
 }
