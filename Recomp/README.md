@@ -131,3 +131,29 @@ it has no original CODE.2 scene table. Full original boot sequence,
 retail dynamic setter call ancestry, animation-phase synchronization and
 DOS/native indexed pixel parity remain NOT VERIFIED. This is a native
 saved-world renderer integration, not a completed playable game.
+
+## Part 28 — host-ordered original CODE.1 → CODE.2 source boot and COLORS loader
+
+[Implementation and acceptance boundary](ORIGINAL_STAGED_BOOT_AND_PALETTE_20261020.md):
+new non-playable `rloft_code1_code2_staged_boot` target executes the
+reconstructed CODE.1 CC1C/CD97/FCE8/FC98 constructor/startup checkpoint
+(with its original 508C **host stop**) and then, under explicit host
+scheduling, enters a CODE.2 session executing original 16D04 INIT,
+2E768/2E7F0 INFO/11 resource initialization, authenticated source
+scene palette selection, source-derived 325B0 read-only COLORS bank
+open/seek/read, compiled original 32150 brightness processing and
+compiled original 29CA0 VGA DAC submission (769 real adapter-port calls).
+**This is a staged host progression, not a reconstructed DOS guest transfer.**
+The same `325B0` source-derived file callbacks also replace host-side
+palette copying in the native saved-world renderer. No original media or
+save state is needed to initialize the CODE.2 resource/palette session
+once owner-original INIT/INFO/RES/CODE.2/COLORS files are provided.
+
+[Passing owner-original Windows regression](https://github.com/Hyperbog/RLOFT/actions/runs/39509429048)
+verified the assembled startup chain, its source media identity, full
+scene bank-3 VGA submission, and existing source startup/rendering tests.
+The Windows engineering milestone ZIP includes the stage runner; it
+is **not a playable executable** and takes an extracted read-only CD
+resource directory for RES9 and RES10 (not a mounted `game.gog` image).
+The unresolved CODE.1 game-entry overlay switch, CODE.2 runtime loop,
+original CPU call ancestry and DOS/native frame parity remain open.
