@@ -24,6 +24,12 @@ $missing = @($mustExist | Where-Object { -not (Test-Path -LiteralPath (Join-Path
 if ($missing.Count -gt 0) {
     throw "Wrong game folder: $GameFolder`nMissing original game file(s): $($missing -join ', ')`nSelect the RLOFT folder itself, not its parent."
 }
+# GOG puts the original disc image alongside the RLOFT game directory.
+# Mounting the installed files alone cannot satisfy INFO.DAT's D: resource paths.
+$imagePath = Join-Path (Split-Path -Path $GameFolder -Parent) 'game.gog'
+if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+    throw "Missing GOG CD image at: $imagePath`nThe original game needs both its installed files and the virtual CD."
+}
 $private = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'RLOFT-DAC-private'
 New-Item -ItemType Directory -Path $private -Force | Out-Null
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
@@ -36,7 +42,15 @@ try {
     Write-Host 'Instrumented DOSBox-X:' $emulator
     Write-Host 'Private DAC capture:' $log
     Write-Host 'Launching R.EXE directly so original RLOFT.BAT cannot issue EXIT and hide startup errors.'
-    $commands = @('-c', ('mount c "' + $GameFolder + '"'), '-c', 'c:', '-c', 'r.exe')
+    # DOSBox-X IMGMOUNT needs -t iso because GOG uses a .gog extension.
+    # The resource loader resolves RES9/RES10 on CD drive D:.
+    $commands = @(
+        '-c', ('mount c "' + $GameFolder + '"'),
+        '-c', ('imgmount d "' + $imagePath + '" -t iso -fs iso'),
+        '-c', 'c:',
+        '-c', 'r.exe'
+    )
+    Write-Host 'GOG CD image:' $imagePath
     if ($CompatibilityMode) {
         # Controlled DOS/4GW diagnostic: defaults + interpreted CPU + no EMS/VCPI.
         # Keep XMS enabled. Do not alter game files.
