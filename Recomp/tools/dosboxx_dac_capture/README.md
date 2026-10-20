@@ -119,3 +119,37 @@ independently verified EIP/CS mapping to the loaded CODE.2 LE object.
 Keep all user-supplied original game binaries, VGA snapshots, RGB6
 palettes, DOSBox-X raw event streams and reconstructed indexed frames
 outside published CI artifacts and public git commits.
+
+## Automated private capture handoff (Windows PowerShell)
+
+The full Windows SDL2 build is attempted by
+[the source-pinned GitHub Actions workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-dosboxx-windows-build.yml).
+A workflow artifact is only available **if that actual full-emulator job succeeds**.
+The Windows host must still run the original retail game locally; the CI
+build does not fabricate original DOS events or original saved-state files.
+
+From a local `Recomp` checkout, launch the instrumented executable from the
+extracted build bundle into a previously empty private directory:
+
+```powershell
+& "C:\RLOFT-source\Recomp\tools\dosboxx_dac_capture\start_original_capture.ps1" -DosboxExe "C:\RLOFT-DAC-build\dosbox-x.exe" -PrivateFolder "C:\RLOFT-DAC-private"
+```
+
+Inside the instrumented DOSBox-X, launch the original game, reach the matching
+saved Level-5 camera, and **pause emulation without running interrupts**. Use
+DOSBox-X's emulator *Save state* UI to create a fresh `.sav`. Do **not**
+unpause between saving and the following command (run it in PowerShell in
+parallel, outside DOSBox-X):
+
+```powershell
+& "C:\RLOFT-source\Recomp\tools\dosboxx_dac_capture\freeze_original_capture.ps1" -RloftRoot "C:\RLOFT-source" -PrivateFolder "C:\RLOFT-DAC-private" -SavedState "C:\Path\To\New\2.sav" -OriginalCode2 "C:\Games\RLOFT\CODE.2" -CaptureId "L5-camera1"
+```
+
+This copies frozen raw DAC JSONL and original VGA SAV into the private folder,
+checks that the SAV did not change during copying, and calls the strict
+`convert_capture.py` validator. It refuses to overwrite existing evidence.
+Your confirmation that the emulator remained paused is **not** external proof
+of synchronization: the receipt retains `UNATTESTED` status. If the validator
+fails, preserve both original files locally for diagnosis; never manufacture
+port events from a saved DAC to make them pass.
+
