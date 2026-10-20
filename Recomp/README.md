@@ -74,3 +74,21 @@ The [source-level 334C4 grid integration](../Code2/graphics/ORIGINAL_LEVEL_VIEW_
 ## Current source-scene checkpoint (supersedes older historical graphics notes)
 
 [Part 21 original SAVE5 quads, RES3 shape and independent DOS oracle handoff](ORIGINAL_SAVE5_RES3_SCENE_AND_DOS_CAPTURE_20261018.md) records the verified current source execution. Original CODE.2 source now deserializes the saved Level 5 state, renders source sky/ground (RES4:634/635), 256-ray world walls, one source-visible world quad through compiled 34DE8 → 34BB0 → 33E6C, and 12 original RES0 HUD blits. The original NPCS/OBJECTS/INIT descriptor banks were initialized in the same graphics session. Source NPC type 61 resolved authenticated RES3 shape 1829; original 2F29C/37590 decompressed its 4,219-byte EH7 body and passed cache reuse. A compiled 2C294/2B6D0 scene projection gate is connected but yields **zero visible sprite draw requests** at the actual saved Level 5 camera, so **36CEC sprite pixel rendering is still unimplemented**. This is neither the complete outdoors game nor a reference DOS capture. Latest source verification [saved Level 5 #39164949396](https://github.com/Hyperbog/RLOFT/actions/runs/39164949396), [Level 11 world regression #39164949379](https://github.com/Hyperbog/RLOFT/actions/runs/39164949379), [Windows #39164949386](https://github.com/Hyperbog/RLOFT/actions/runs/39164949386), all passed. No original-media pixel files were published.
+
+## Part 24 — original DOSBox-X 2026.10.01 DAC provenance hook (2026-10-20)
+
+The [instrumented DOSBox-X capture kit](tools/dosboxx_dac_capture/README.md) pins
+upstream VGA source to Git blob `509d42fbead67a56594e49cec55549bc6fcc6d7c`
+and adds opt-in, post-lockout/mask capture at the actual `0x3C8/0x3C9`
+VGA byte write handlers, preserving the individual bytes from `REP OUTSB`.
+Its JSONL converter rejects unverified upstream hooks, overflow,
+truncated DAC histories and original-save palette divergence.
+
+The [dedicated CI](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-dosboxx-dac-hook.yml)
+passed exact release-source patching, compiled standalone C++11 hook
+tests, and compiled an isolated harness using the **actual patched
+upstream VGA handler bodies**. This is **not** yet a completed Windows
+DOSBox-X executable, an original Ravenloft runtime capture or an accepted
+native graphics parity check. Keep original-game SAV, port captures,
+palette bytes and indexed frames private. The retail eight-entry
+`COLORS` bank-3 update caller remains unverified.
