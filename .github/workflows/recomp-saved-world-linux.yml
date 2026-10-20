@@ -6,6 +6,7 @@ on:
     paths:
       - 'Code2/Code2.cpp'
       - 'Recomp/tools/trace_original_palette_write_chain.py'
+      - 'Recomp/tools/audit_original_palette_indirect_candidates.py'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
       - 'Recomp/src/original_code2_1f494_bridge.inc'
@@ -73,6 +74,9 @@ jobs:
           cp "$source_save/SAVE.DAT" "$source_save/LEV005.DAT" "$scratch/"
           cp "$media/SINTAB" "$media/RES4" "$media/RES0" "$media/INIT" "$media/COLORS" "$media/CODE.2" "$media/NPCS.DAT" "$media/OBJECTS.DAT" "$media/RES3" "$scratch/"
           echo "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314  $scratch/CODE.2" | sha256sum -c -
+          python3 Recomp/tools/audit_original_palette_indirect_candidates.py --self-test
+          python3 Recomp/tools/audit_original_palette_indirect_candidates.py --code2 "$scratch/CODE.2" --report "$scratch/palette-indirect-evidence.json" | tee "$scratch/palette-indirect.log"
+          grep -q 'AUTHENTIC_ORIGINAL_PALETTE_INDIRECT_CENSUS_PASS raw_E8_E9_EB_and_direct_le32_candidates=0 for 29248/323BC/324F8; original_DAC_trace=NOT_CAPTURED bank3_246_253_caller=NOT_VERIFIED' "$scratch/palette-indirect.log"
           python3 Recomp/tools/trace_original_palette_write_chain.py --self-test
           python3 Recomp/tools/trace_original_palette_write_chain.py --code2 "$scratch/CODE.2" --output "$scratch/palette-chain-evidence.json" | tee "$scratch/palette-chain-evidence.log"
           grep -q 'AUTHENTIC_PALETTE_STATIC_CHAIN_PASS full_DAC_callers=21 COLORS_full_bank_loaders=23 effect_fade_calls=28 direct_partial_DAC_calls=0 retail_slice_246_253_caller=NOT_VERIFIED DOS_FRAME_PARITY=NOT_VERIFIED' "$scratch/palette-chain-evidence.log"
