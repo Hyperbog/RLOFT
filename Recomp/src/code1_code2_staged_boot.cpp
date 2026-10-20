@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 #include "original_media_identity.hpp"
+#include "original_r_exe_supervisor.hpp"
+#include <fstream>
+#include <iterator>
+#include <cstdint>
 
 int original_code1_startup_main(int argc,char** argv);
 int original_code2_resource_main(int argc,char** argv);
@@ -38,21 +42,45 @@ int main(int argc,char** argv) {
            !std::filesystem::is_regular_file(code2) ||
            !std::filesystem::is_regular_file(root/"COLORS"))
             throw std::runtime_error("CODE.1/CODE.2/COLORS not present at original installation");
-        std::cout<<"RLOFT_STAGED_BOOT_STAGE=CODE1_ORIGINAL_CC1C_CD97_CTORS\n";
-        if(run_stage(&original_code1_startup_main,
-                     {"rloft_code1_startup_gate",
-                      "--extender-host-resize-to-cd97-constructors",code1})!=0)
-            throw std::runtime_error("Original CODE.1 source runtime boundary failed");
-        // A guest CPU transfer from original CODE.1 main to CODE.2 is
-        // not reconstructed. Fail closed at the seam as a HOST-ORDERED
-        // transition; this is not continuous original execution.
-        std::cout<<"RLOFT_STAGED_BOOT_HANDOFF=HOST_ORDERED_NOT_DOS_GUEST\n";
+        // The original 16-bit R.EXE supervisor launches CODE.2 FIRST,
+        // then CODE.1 only when CODE.2 actually exits with status 10.
+        // Never model an imagined CODE.1 -> CODE.2 direct CPU jump.
+        const auto r_exe=root/"R.EXE";
+        std::ifstream rfile(r_exe,std::ios::binary);
+        if(!rfile)throw std::runtime_error("Missing original R.EXE supervisor");
+        const std::vector<std::uint8_t> supervisor_bytes{
+            std::istreambuf_iterator<char>(rfile),
+            std::istreambuf_iterator<char>()};
+        if(supervisor_bytes.size()!=12368u ||
+           rloft_recomp::sha256_hex(supervisor_bytes)!=
+           "a6d5874dc91fb068a3ed0a07290547c310ee7f4f50be4d8176c4788f251631b0")
+            throw std::runtime_error("Original R.EXE supervisor SHA-256 mismatch");
+        rloft::original_supervisor::Machine owner_supervisor;
+        if(owner_supervisor.next_module()!=rloft::original_supervisor::Module::Code2)
+            throw std::runtime_error("R.EXE source protocol no longer starts CODE.2");
+        std::cout<<"RLOFT_ORIGINAL_SUPERVISOR_R_EXE_SHA256=AUTHENTIC"
+                 <<" INITIAL_CHILD=CODE2\n";
         std::cout<<"RLOFT_STAGED_BOOT_STAGE=CODE2_ORIGINAL_INIT_INFO_11_RES_PALETTE\n";
         if(run_stage(&original_code2_resource_main,
                      {"rloft_original_code2_init_resources","--root",
                       root.string(),"--cd-root",cd.string(),
                       "--palette-level","5"})!=0)
             throw std::runtime_error("Original CODE.2 source INIT/RES/palette checkpoint failed");
+        // The CODE.2 source initializer has not reached an authentic DOS
+        // process-exit instruction or status 10/12. STOP the R.EXE
+        // supervisor here; do NOT invoke CODE.1 as its next child.
+        std::cout<<"RLOFT_ORIGINAL_SUPERVISOR_STOP="
+                 <<"CODE2_PROCESS_EXIT_STATUS_NOT_OBSERVED"
+                 <<" NEXT_CODE1_CHILD=NOT_AUTHORIZED\n";
+        // Additional independent bounded CODE.1 source diagnostic: it
+        // may be useful to the developer but is not an R.EXE child action.
+        std::cout<<"RLOFT_STAGED_BOOT_INDEPENDENT_DIAGNOSTIC="
+                 <<"CODE1_CC1C_CD97_FCE8_CTORS_NOT_SUPERVISOR_CHILD\n";
+        if(run_stage(&original_code1_startup_main,
+                     {"rloft_code1_startup_gate",
+                      "--extender-host-resize-to-cd97-constructors",code1})!=0)
+            throw std::runtime_error("Independent original CODE.1 constructors failed");
+        std::cout<<"RLOFT_STAGED_BOOT_HANDOFF=HOST_ORDERED_NOT_DOS_GUEST\n";
         std::cout<<"RLOFT_CODE1_CODE2_SOURCE_BOOT_PIPELINE_PASS"
                  <<" code1=CC1C_CD97_FCE8_FC98"
                  <<" code2=16D04_2E768_2E7F0_325B0_32150_29CA0"
