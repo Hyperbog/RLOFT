@@ -530,12 +530,16 @@ struct Session {
         CHECK(memory[palette+1u]==63u);
         memory[profile+0x6Cu]=0u;
     }
-    void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength,
-                              bool original_dac_observed_slice=false) {
-        // Read-only user-owned COLORS palette bank:
-        // byte 0 = 15; bank N is 768 RGB6 bytes at 1 + 768*N.
-        // CODE.2 325B0 uses that exact bank offset, applies 32150, and
-        // streams the bank to the indexed DAC through its graphics path.
+    void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength) {
+        // Original 325B0 COLORS contract: read the COMPLETE selected
+        // 256*RGB6 bank at file offset 1 + 768*bank into staging 0xC054.
+        // The original 32150 brightness function and 29CA0 port writer
+        // execute as compiled CODE.2. No fixed eight-color copy/overlay.
+        //
+        // Source bank is supplied by the caller (scene-table selection for
+        // real saved-world frames, explicit CLI bank for archive probes).
+        // No forced retail checksum here: future owner-created COLORS
+        // replacements can preserve this validated 15-bank file format.
         CHECK(bank<15u && strength<=63u);
         std::ifstream f(path,std::ios::binary);
         if (!f) throw std::runtime_error("Cannot open owner-provided COLORS file");
@@ -543,24 +547,12 @@ struct Session {
                                       std::istreambuf_iterator<char>()};
         if (content.size()!=11521u || content[0]!=15u)
             throw std::runtime_error("Unsupported COLORS bank structure");
-        constexpr u32 destination=0x17000u,profile=0x1C000u;
+        constexpr u32 destination=0xC054u,profile=0x1C000u;
+        CHECK(std::uint64_t(destination)+768u<=memory.size());
         const auto start=content.begin()+1+static_cast<std::ptrdiff_t>(bank*768u);
-        std::copy_n(start,768,memory.begin()+destination);
-        if(original_dac_observed_slice) {
-            // Independent original DOSBox-X 2026.10.01 VGA/DAC saves
-            // (two instants) both show palette indices 246..253 taken
-            // exactly from retail COLORS bank 3 while all other entries
-            // match bank 0. Preserve the *original game asset values*,
-            // not screenshot-derived RGB literals. The retail caller
-            // sequencing that installs this slice is not yet traced:
-            // this opt-in path is an observed-hardware hypothesis.
-            CHECK(bank==0u && strength==0u);
-            constexpr u32 src_bank=3u, first=246u, entries=8u;
-            const auto src=content.begin()+1u+
-                static_cast<std::ptrdiff_t>(src_bank*768u+first*3u);
-            std::copy_n(src,entries*3u,
-                        memory.begin()+destination+first*3u);
-        }
+        if (!std::all_of(start,start+768u,[](u8 v){return v<=63u;}))
+            throw std::runtime_error("Selected COLORS bank has non-RGB6 channel");
+        std::copy_n(start,768u,memory.begin()+destination);
         code2::store_le32(memory.data()+0xF050u,profile);
         memory[profile+0x6Cu]=static_cast<u8>(strength);
         code2::function_32150(machine,destination);
