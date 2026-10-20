@@ -1,71 +1,79 @@
-# Launch the original Ravenloft game inside instrumented DOSBox-X.
-# Original game files must be owner-supplied; never downloads/copies game files.
+# Ravenloft: Strahd's Possession -- exact GOG installation, instrumented DOSBox-X.
+# This script NEVER modifies the original game or the original game.gog image.
 [CmdletBinding()]
-param([string]$GameFolder, [switch]$CompatibilityMode)
+param([switch]$CompatibilityMode)
+
 $ErrorActionPreference = 'Stop'
-$emulator = Join-Path $PSScriptRoot 'dosbox-x.exe'
-if (-not (Test-Path -LiteralPath $emulator -PathType Leaf)) {
-    throw "Cannot find dosbox-x.exe alongside this launcher: $emulator"
+
+# Owner-confirmed installation paths. Keep both values quoted.
+$gameDir = "D:\GOG Games\Ravenloft - Strahd's Possession\RLOFT"
+$cdImage = "D:\GOG Games\Ravenloft - Strahd's Possession\game.gog"
+$dosbox = Join-Path $PSScriptRoot 'dosbox-x.exe'
+
+if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
+    throw "Instrumented dosbox-x.exe not found beside the launcher: $dosbox"
 }
-if ([string]::IsNullOrWhiteSpace($GameFolder)) {
-    Add-Type -AssemblyName System.Windows.Forms
-    $picker = New-Object System.Windows.Forms.FolderBrowserDialog
-    $picker.Description = 'Select the folder containing original Ravenloft R.EXE and RLOFT.BAT'
-    $picker.ShowNewFolderButton = $false
-    if ($picker.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
-        Write-Host 'No game folder selected. No emulator launched.'
-        return
+if (-not (Test-Path -LiteralPath $gameDir -PathType Container)) {
+    throw "Ravenloft game directory not found: $gameDir"
+}
+if (-not (Test-Path -LiteralPath $cdImage -PathType Leaf)) {
+    throw "Ravenloft GOG CD image not found: $cdImage"
+}
+foreach ($required in @('R.EXE', 'RLOFT.BAT', 'CODE.1', 'CODE.2', 'INFO.DAT', 'COLORS')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $gameDir $required) -PathType Leaf)) {
+        throw "Missing $required in $gameDir; this must be the innermost RLOFT folder."
     }
-    $GameFolder = $picker.SelectedPath
 }
-$GameFolder = (Resolve-Path -LiteralPath $GameFolder).Path
-$mustExist = @('R.EXE','RLOFT.BAT','CODE.1','CODE.2','COLORS','RES0','RES3','RES4')
-$missing = @($mustExist | Where-Object { -not (Test-Path -LiteralPath (Join-Path $GameFolder $_) -PathType Leaf) })
-if ($missing.Count -gt 0) {
-    throw "Wrong game folder: $GameFolder`nMissing original game file(s): $($missing -join ', ')`nSelect the RLOFT folder itself, not its parent."
+
+$documents = [Environment]::GetFolderPath('MyDocuments')
+if ([string]::IsNullOrWhiteSpace($documents)) {
+    throw 'Windows Documents folder could not be resolved.'
 }
-# GOG puts the original disc image alongside the RLOFT game directory.
-# Mounting the installed files alone cannot satisfy INFO.DAT's D: resource paths.
-$imagePath = Join-Path (Split-Path -Path $GameFolder -Parent) 'game.gog'
-if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
-    throw "Missing GOG CD image at: $imagePath`nThe original game needs both its installed files and the virtual CD."
+$privateDir = Join-Path $documents 'RLOFT-DAC-private'
+New-Item -ItemType Directory -Path $privateDir -Force | Out-Null
+$utc = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
+$log = Join-Path $privateDir "active-dac-$utc-$PID.jsonl"
+if (Test-Path -LiteralPath $log) {
+    throw "Refusing to overwrite an existing DAC capture: $log"
 }
-$private = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'RLOFT-DAC-private'
-New-Item -ItemType Directory -Path $private -Force | Out-Null
-$stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
-$log = Join-Path $private "active-dac-$stamp.jsonl"
-if (Test-Path -LiteralPath $log) { throw "Capture file already exists: $log" }
-$old = $env:RLOFT_DAC_CAPTURE_JSONL
+
+# DOSBox-X -c arguments are individual DOS commands (not Windows shell commands).
+# Unmount stale C:/D: mappings from the user's DOSBox-X autoexec settings.
+# The original game's INFO.DAT may resolve CD resources as D:\RES9/RES10
+# or D:\RLOFT\RES9/RES10 depending on installation; mount the *disc* as D:.
+$commands = @(
+    '-c', 'mount -u c',
+    '-c', 'mount -u d',
+    '-c', ('mount c "' + $gameDir + '"'),
+    '-c', ('imgmount d "' + $cdImage + '" -t iso -fs iso'),
+    '-c', 'c:',
+    '-c', 'r.exe'
+)
+if ($CompatibilityMode) {
+    $commands = @('-set', 'cpu core=normal', '-set', 'cpu cycles=5000',
+                  '-set', 'dos ems=false') + $commands
+}
+
+Write-Host ''
+Write-Host 'ORIGINAL RAVENLOFT LAUNCH' -ForegroundColor Cyan
+Write-Host "C: Game:  $gameDir"
+Write-Host "D: CD:    $cdImage"
+Write-Host "DAC log:  $log"
+Write-Host 'Game:     R.EXE (not RLOFT.BAT, which ends with EXIT)'
+Write-Host ''
+
+$prior = $env:RLOFT_DAC_CAPTURE_JSONL
 try {
     $env:RLOFT_DAC_CAPTURE_JSONL = $log
-    Write-Host 'Ravenloft original game folder:' $GameFolder
-    Write-Host 'Instrumented DOSBox-X:' $emulator
-    Write-Host 'Private DAC capture:' $log
-    Write-Host 'Launching R.EXE directly so original RLOFT.BAT cannot issue EXIT and hide startup errors.'
-    # DOSBox-X IMGMOUNT needs -t iso because GOG uses a .gog extension.
-    # The resource loader resolves RES9/RES10 on CD drive D:.
-    $commands = @(
-        '-c', ('mount c "' + $GameFolder + '"'),
-        '-c', ('imgmount d "' + $imagePath + '" -t iso -fs iso'),
-        '-c', 'c:',
-        '-c', 'r.exe'
-    )
-    Write-Host 'GOG CD image:' $imagePath
-    if ($CompatibilityMode) {
-        # Controlled DOS/4GW diagnostic: defaults + interpreted CPU + no EMS/VCPI.
-        # Keep XMS enabled. Do not alter game files.
-        $commands = @('-defaultconf', '-set', 'cpu core=normal', '-set',
-                      'cpu cycles=5000', '-set', 'dos ems=false') + $commands
-        Write-Host 'Compatibility test: core=normal, cycles=5000, ems=false'
-    }
-    & $emulator @commands
-    $exitCode = $LASTEXITCODE
-    Write-Host "DOSBox-X host process ended with exit code $exitCode"
-    if ($exitCode -ne 0) { Write-Warning "DOSBox-X returned a nonzero code $exitCode" }
-    if ($CompatibilityMode) {
-        Read-Host 'Press Enter to close this diagnostic window'
+    & $dosbox @commands
+    $code = $LASTEXITCODE
+    Write-Host "DOSBox-X exited with code: $code"
+    Write-Host "Capture path: $log"
+    if ($code -ne 0) {
+        Write-Warning "DOSBox-X reported exit code $code"
+        exit $code
     }
 }
 finally {
-    $env:RLOFT_DAC_CAPTURE_JSONL = $old
+    $env:RLOFT_DAC_CAPTURE_JSONL = $prior
 }
