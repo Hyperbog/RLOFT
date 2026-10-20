@@ -113,7 +113,7 @@ struct Session {
         t.original_game_getenv_query=query;
         std::longjmp(t.original_game_escape,1);
     }
-    static u32 stop_at_game_atoi(u32) noexcept {
+    static code2::s32 stop_at_game_atoi(u32) noexcept {
         auto& t=state();
         std::longjmp(t.original_game_escape,2);
     }
@@ -121,7 +121,7 @@ struct Session {
         auto& t=state();
         std::longjmp(t.original_game_escape,3);
     }
-    static u32 stop_at_game_disk(u32, u32*) noexcept {
+    static u32 stop_at_game_disk(u32, u16&, u16&, u16&) noexcept {
         auto& t=state();
         std::longjmp(t.original_game_escape,4);
     }
