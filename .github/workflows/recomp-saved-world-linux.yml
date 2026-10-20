@@ -9,6 +9,10 @@ on:
       - 'Recomp/tools/audit_original_palette_indirect_candidates.py'
       - 'Recomp/tools/audit_original_le_palette_fixups.py'
       - 'Recomp/tools/audit_original_colors_scene_palette.py'
+      - 'Recomp/src/original_code2_scene_palette.hpp'
+      - 'Recomp/tests/scene_palette_selection.cpp'
+      - 'Recomp/src/code2_original_world_frame.cpp'
+      - 'Recomp/src/code2_compiled_graphics_frame.cpp'
       - 'Recomp/tools/verify_dosboxx_palette_port_trace.py'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
@@ -80,6 +84,9 @@ jobs:
           python3 Recomp/tools/audit_original_le_palette_fixups.py --self-test
           python3 Recomp/tools/audit_original_le_palette_fixups.py --code2 "$scratch/CODE.2" --report "$scratch/retail-le-fixups.json" | tee "$scratch/retail-le-fixups.log"
           grep -q 'ORIGINAL_LE_PALETTE_FIXUP_PASS records=9813 target_object1=794 candidate_palette_function_relocations=0 buffer_sources=89 dynamic_palette_provenance=NOT_VERIFIED' "$scratch/retail-le-fixups.log"
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror Recomp/tests/scene_palette_selection.cpp -o "$scratch/scene-palette-test"
+          "$scratch/scene-palette-test" | grep -q 'SYNTHETIC_SCENE_COLORS_SELECTION_PASS independent_level_values=YES invalid_bank_rejected=YES invalid_level_rejected=YES truncated_table_rejected=YES'
+          "$scratch/scene-palette-test" "$scratch/CODE.2" "$scratch/COLORS" | grep -q 'AUTHENTIC_CODE2_SCENE_COLORS_SELECTION_PASS level=5 bank=3 changed_indices=8 channels=24 native_source_palette=FULL_BANK'
           python3 Recomp/tools/audit_original_colors_scene_palette.py --self-test
           python3 Recomp/tools/audit_original_colors_scene_palette.py --code2 "$scratch/CODE.2" --colors "$scratch/COLORS" --report "$scratch/retail-colors-scene-bank3.json" | tee "$scratch/retail-colors-scene-bank3.log"
           grep -q 'ORIGINAL_COLORS_SCENE_BANK3_SOURCE_PASS source_LEVEL5_81AC=3 palette_C034=3 bank0_to_3_changed_indices=246..253 RGB6_components=24' "$scratch/retail-colors-scene-bank3.log"
@@ -234,11 +241,19 @@ jobs:
           grep -Eq 'CODE2_SOURCE_RES3_SPRITE_ACTIVE_SCANOUT .*changed_pixels=[1-9][0-9]* world_rows_changed=[1-9][0-9]* bbox=' "$scratch/full.log"
           test "$(wc -c < "$scratch/frame.idx")" -eq 128000
           test "$(wc -c < "$scratch/frame.pal")" -eq 768
-          # Source-asset-only reconstruction of the independently
-          # observed original DOSBox-X VGA DAC: bank 0 plus the 8
-          # grayscale triples 246..253 from actual COLORS bank 3.
-          # Check RGB6 bytes, NOT pixel parity or retail caller timing.
-          grep -q 'CODE2_ORIGINAL_DOSBOXX_DAC_RECONCILIATION source_COLORS_base_bank=0 source_COLORS_slice_bank=3 first_index=246 entries=8 retail_palette_caller_parity=NOT_VERIFIED' "$scratch/full.log"
+          # Direct data-driven original scene palette: the saved level
+          # selects a complete COLORS bank, NOT a splice of 8 special
+          # palette entries. Check all RGB6 values, not pixel parity.
+          grep -q 'CODE2_ORIGINAL_SCENE_COLORS_FULL_BANK scene_level=5 selected_bank=3 selector_table=CODE2_81AC staging_buffer=C054 source_loader_contract=325B0 eight_color_overlay=NONE DOS_CALL_ANCESTRY=NOT_VERIFIED' "$scratch/full.log"
+          python3 - "$scratch/COLORS" "$scratch/frame.pal" <<'PY_SCENE_COLORS'
+          from pathlib import Path
+          import sys
+          source=Path(sys.argv[1]).read_bytes()
+          actual=Path(sys.argv[2]).read_bytes()
+          assert len(source)==11521 and len(actual)==768
+          assert actual==source[1+3*768:1+4*768], "Native palette is not the selected complete retail COLORS bank"
+          print('AUTHENTIC_NATIVE_SCENE_BANK3_RGB6_EQUAL_SOURCE_PASS')
+          PY_SCENE_COLORS
           echo '0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812  '"$scratch/frame.pal" | sha256sum -c -
           test -s "$scratch/frame.bmp"
           echo 'GENUINE_COMPLETE_WORLD_FRAME_NATIVE_PASS original_save=SAVE09 expected_source_sprite_writes=127 full_frame=YES DOS_VGA_PARITY=NOT_VERIFIED'
