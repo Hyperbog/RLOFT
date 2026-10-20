@@ -25,6 +25,7 @@ jobs:
       - name: Compile and exercise byte-level DAC capture header
         run: |
           set -euo pipefail
+          pwsh -NoProfile -Command '$files = @("Recomp/tools/dosboxx_dac_capture/Launch-Ravenloft-DAC.ps1", "Recomp/tools/dosboxx_dac_capture/start_original_capture.ps1", "Recomp/tools/dosboxx_dac_capture/freeze_original_capture.ps1"); foreach ($file in $files) { $tokens = $null; $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null; if ($errors.Count -ne 0) { throw "PowerShell parse failure in $file - $errors" } }; Write-Host "RLOFT_WINDOWS_POWERSHELL_CAPTURE_SCRIPTS_PARSE_PASS"'
           python3 Recomp/tools/dosboxx_dac_capture/test_capture.py
           python3 Recomp/tools/verify_dosboxx_palette_port_trace.py --self-test
       - name: Validate exact DOSBox-X 2026.10.01 upstream hook anchors
