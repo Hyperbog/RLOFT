@@ -1,7 +1,7 @@
 # Launch the original Ravenloft game inside instrumented DOSBox-X.
 # Original game files must be owner-supplied; never downloads/copies game files.
 [CmdletBinding()]
-param([string]$GameFolder)
+param([string]$GameFolder, [switch]$CompatibilityMode)
 $ErrorActionPreference = 'Stop'
 $emulator = Join-Path $PSScriptRoot 'dosbox-x.exe'
 if (-not (Test-Path -LiteralPath $emulator -PathType Leaf)) {
@@ -37,8 +37,20 @@ try {
     Write-Host 'Private DAC capture:' $log
     Write-Host 'Launching R.EXE directly so original RLOFT.BAT cannot issue EXIT and hide startup errors.'
     $commands = @('-c', ('mount c "' + $GameFolder + '"'), '-c', 'c:', '-c', 'r.exe')
+    if ($CompatibilityMode) {
+        # Controlled DOS/4GW diagnostic: defaults + interpreted CPU + no EMS/VCPI.
+        # Keep XMS enabled. Do not alter game files.
+        $commands = @('-defaultconf', '-set', 'cpu core=normal', '-set',
+                      'cpu cycles=5000', '-set', 'dos ems=false') + $commands
+        Write-Host 'Compatibility test: core=normal, cycles=5000, ems=false'
+    }
     & $emulator @commands
-    if ($LASTEXITCODE -ne 0) { Write-Warning "DOSBox-X returned code $LASTEXITCODE" }
+    $exitCode = $LASTEXITCODE
+    Write-Host "DOSBox-X host process ended with exit code $exitCode"
+    if ($exitCode -ne 0) { Write-Warning "DOSBox-X returned a nonzero code $exitCode" }
+    if ($CompatibilityMode) {
+        Read-Host 'Press Enter to close this diagnostic window'
+    }
 }
 finally {
     $env:RLOFT_DAC_CAPTURE_JSONL = $old
