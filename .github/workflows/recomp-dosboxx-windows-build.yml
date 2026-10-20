@@ -1,0 +1,58 @@
+name: RLOFT DOSBox-X Windows DAC Capture Executable
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - '.github/workflows/recomp-dosboxx-windows-build.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: microsoft/setup-msbuild@v2
+      - name: Pin exact upstream emulator
+        run: |
+          git clone --depth 1 --branch dosbox-x-v2026.10.01 https://github.com/joncampbell123/dosbox-x.git "$env:RUNNER_TEMP\dosbox-x"
+          if ($LASTEXITCODE -ne 0) {throw "DOSBox-X clone failed"}
+          $head = (git -C "$env:RUNNER_TEMP\dosbox-x" rev-parse HEAD).Trim()
+          if ($head -ne "b6abbd5980a885f5f310a4088c59a8688d1b116c") {throw "DOSBox-X upstream mismatch: $head"}
+      - name: Patch authenticated DAC handlers
+        run: |
+          $p = "Recomp/tools/dosboxx_dac_capture"
+          $root = "$env:RUNNER_TEMP\dosbox-x"
+          python "$p/apply_dosboxx_dac_capture.py" --dosbox-root "$root" --header "$p/rloft_dac_port_capture.hpp"
+          if ($LASTEXITCODE -ne 0) {throw "DAC hook patch failed"}
+      - name: Build full release SDL2 x64 executable
+        run: |
+          $root = "$env:RUNNER_TEMP\dosbox-x"
+          msbuild "$root\vs\dosbox-x.sln" "/t:dosbox-x:Rebuild" "/p:Configuration=Release SDL2" "/p:Platform=x64" "/p:PlatformToolset=v143" "/m:2" "/v:minimal" "/nologo"
+          if ($LASTEXITCODE -ne 0) {throw "Full DOSBox-X Windows build failed"}
+      - name: Package emulator, source patch and capture instructions
+        run: |
+          $bin = "$env:RUNNER_TEMP\dosbox-x\bin\x64\Release SDL2"
+          $exe = "$bin\dosbox-x.exe"
+          if (!(Test-Path $exe -PathType Leaf)) {throw "Missing emulator executable"}
+          if ((Get-Item $exe).Length -lt 1000000) {throw "Emulator output too small"}
+          $out = "$env:RUNNER_TEMP\rloft-dosboxx-dac-win64"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item "$bin\*" "$out\" -Recurse -Force
+          Copy-Item "Recomp/tools/dosboxx_dac_capture/README.md" "$out\RLOFT-DAC-README.md"
+          Copy-Item "Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp" "$out\rloft_dac_port_capture.hpp"
+          (Get-FileHash $exe -Algorithm SHA256).Hash | Out-File "$out\dosbox-x.exe.sha256.txt"
+          Compress-Archive -Path "$out\*" -DestinationPath "$env:RUNNER_TEMP\rloft-dosboxx-dac-win64.zip"
+          Write-Host "FULL_WINDOWS_DOSBOXX_DAC_CAPTURE_BUILD_PASS retail_game_not_tested"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rloft-dosboxx-dac-win64
+          path: ${{ runner.temp }}/rloft-dosboxx-dac-win64.zip
+          if-no-files-found: error
+          retention-days: 14
