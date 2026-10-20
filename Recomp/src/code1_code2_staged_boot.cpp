@@ -78,6 +78,8 @@ int main(int argc,char** argv) {
                 initial=owner::inspect(game.get());
                 if(!initial.initialized || initial.resource_archives!=11u ||
                    initial.selected_palette!=3u || initial.vga_port_writes!=769u ||
+                   !initial.original_20608_executed_to_host_dependency ||
+                   initial.original_352ee_getenv_calls==0u ||
                    initial.original_game_loop_connected)
                     throw std::runtime_error("Original CODE.2 persistent guest startup differs");
             }
@@ -115,6 +117,8 @@ int main(int argc,char** argv) {
                  <<" source_archives=11"
                  <<" palette_bank=3"
                  <<" DAC_writes=769"
+                 <<" original_main_20608=EXECUTED_TO_2F2EC"
+                 <<" original_352EE_getenv=COMPILED"
                  <<" pending_steps=2"
                  <<" relaunches=0"
                  <<" exit_status=NOT_OBSERVED"
