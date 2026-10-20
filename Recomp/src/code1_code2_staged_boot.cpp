@@ -13,12 +13,15 @@
 #include <vector>
 #include "original_media_identity.hpp"
 #include "original_r_exe_supervisor.hpp"
+#include "original_r_exe_native_session.hpp"
+#include "original_code2_guest_session.hpp"
+#include <memory>
 #include <fstream>
 #include <iterator>
 #include <cstdint>
 
 int original_code1_startup_main(int argc,char** argv);
-int original_code2_resource_main(int argc,char** argv);
+// The CODE.2 guest is now a persistent module port, not a disposable CLI stage.
 
 namespace {
 int run_stage(int (*entry)(int,char**),std::vector<std::string> text) {
@@ -61,14 +64,64 @@ int main(int argc,char** argv) {
         std::cout<<"RLOFT_ORIGINAL_SUPERVISOR_R_EXE_SHA256=AUTHENTIC"
                  <<" INITIAL_CHILD=CODE2\n";
         std::cout<<"RLOFT_STAGED_BOOT_STAGE=CODE2_ORIGINAL_INIT_INFO_11_RES_PALETTE\n";
-        if(run_stage(&original_code2_resource_main,
-                     {"rloft_original_code2_init_resources","--root",
-                      root.string(),"--cd-root",cd.string(),
-                      "--palette-level","5"})!=0)
-            throw std::runtime_error("Original CODE.2 source INIT/RES/palette checkpoint failed");
-        // The CODE.2 source initializer has not reached an authentic DOS
-        // process-exit instruction or status 10/12. STOP the R.EXE
-        // supervisor here; do NOT invoke CODE.1 as its next child.
+        // Genuine CODE2 guest memory, original INIT+INFO+11 RES archives
+        // and palette remain alive on the same source session across
+        // consecutive host dispatcher iterations. No synthetic DOS exit.
+        namespace runtime=rloft::native_module_runtime;
+        namespace owner=rloft::original_code2_session;
+        struct PersistentCode2 final:runtime::ModulePort {
+            std::unique_ptr<owner::Opaque,void(*)(owner::Opaque*)> game;
+            owner::Evidence initial{};
+            explicit PersistentCode2(const std::filesystem::path& r,
+                                     const std::filesystem::path& d)
+                :game(owner::create(r,d,5u),&owner::destroy) {
+                initial=owner::inspect(game.get());
+                if(!initial.initialized || initial.resource_archives!=11u ||
+                   initial.selected_palette!=3u || initial.vga_port_writes!=769u ||
+                   initial.original_game_loop_connected)
+                    throw std::runtime_error("Original CODE.2 persistent guest startup differs");
+            }
+            runtime::ChildStep step() override {
+                owner::dispatch_pending(game.get());
+                const auto now=owner::inspect(game.get());
+                if(now.memory_address!=initial.memory_address ||
+                   now.source_state_fingerprint!=initial.source_state_fingerprint ||
+                   now.resource_cache_base!=initial.resource_cache_base ||
+                   now.resource_archives!=11u ||
+                   now.selected_palette!=3u || now.vga_port_writes!=769u ||
+                   now.dispatch_calls==0u || now.original_game_loop_connected)
+                    throw std::runtime_error("CODE.2 resource/palette guest state lost on Pending");
+                return {runtime::Progress::Pending,0};
+            }
+        };
+        runtime::SupervisorSession session(
+            [&](rloft::original_supervisor::Module which,
+                const runtime::CharsHandoff& chars)
+                ->std::unique_ptr<runtime::ModulePort>{
+                if(which!=rloft::original_supervisor::Module::Code2 ||
+                   chars.available())return nullptr;
+                return std::make_unique<PersistentCode2>(root,cd);
+            });
+        const auto first=session.step_once();
+        const auto second=session.step_once();
+        if(first.current!=rloft::original_supervisor::Module::Code2 ||
+           first.launches!=1u || first.transitions!=0u ||
+           second.launches!=1u || second.transitions!=0u ||
+           second.steps!=2u || !second.running ||
+           second.chars_available || second.stopped)
+            throw std::runtime_error("Original R.EXE invented CODE2 exit or relaunched guest");
+        std::cout<<"RLOFT_CODE2_SAME_GUEST_PERSISTENCE_PASS"
+                 <<" source_init=16D04"
+                 <<" source_archives=11"
+                 <<" palette_bank=3"
+                 <<" DAC_writes=769"
+                 <<" pending_steps=2"
+                 <<" relaunches=0"
+                 <<" exit_status=NOT_OBSERVED"
+                 <<" game_loop=NOT_CONNECTED\n";
+        // No genuine CODE2 status10: CODE1 cannot be launched as an
+        // actual supervisor child. The independent constructor probe
+        // below is a separate diagnostic only.
         std::cout<<"RLOFT_ORIGINAL_SUPERVISOR_STOP="
                  <<"CODE2_PROCESS_EXIT_STATUS_NOT_OBSERVED"
                  <<" NEXT_CODE1_CHILD=NOT_AUTHORIZED\n";
