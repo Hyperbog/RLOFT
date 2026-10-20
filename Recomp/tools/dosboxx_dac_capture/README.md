@@ -209,8 +209,9 @@ port events from a saved DAC to make them pass.
 
 ## Fixed launcher for the owner-provided GOG installation (2026-10-20)
 
-The one-click launcher now uses **exact, verified-by-user Windows paths**, with
-**no folder picker**:
+The one-click launcher now uses **exact, owner-provided Windows paths**, with
+**no folder picker**. It avoids PowerShell/DOSBox-X nested `-c` quoting by
+writing a private `[autoexec]` config and supplying its filename with `-conf`:
 
 ```text
 C: = D:\GOG Games\Ravenloft - Strahd's Possession\RLOFT
@@ -220,13 +221,15 @@ D: = D:\GOG Games\Ravenloft - Strahd's Possession\game.gog
 Double-click `Play-Ravenloft-With-DAC.cmd` from beside the instrumented
 `dosbox-x.exe`. The new launcher verifies `R.EXE`, `RLOFT.BAT`,
 `CODE.1`, `CODE.2`, `INFO.DAT`, `COLORS`, and the `game.gog` disc image,
-unmounts any stale `C:`/`D:` mappings, mounts the game as DOS `C:` and
-the ISO-format `.gog` as DOS `D:`, switches to `C:`, then runs `R.EXE`
+switches to DOS `Z:`, unmounts stale `C:`/`D:` mappings, mounts the game
+as DOS `C:` and the ISO-format `.gog` as DOS `D:`, switches to `C:`, then runs `R.EXE`
 directly. The original `RLOFT.BAT` ends in `EXIT`; running `R.EXE` avoids
 masking startup errors by exiting the emulator.
 
-A fresh timestamped port-write log is created in
-`Documents\RLOFT-DAC-private`. No original game files are modified.
+A fresh timestamped port-write log and its companion DOSBox-X `.conf` file
+are created in `Documents\RLOFT-DAC-private`. The config also sets
+`[dosbox] saveremark=false` to avoid opening the save-remark dialog.
+No original game files are modified.
 This launcher has passed the static/syntax CI gate but has **not** been
 executed on the owner's Windows installation. If its DOSBox-X `-c`
 commands fail, inspect the emulator's DOS prompt and report the exact error.
