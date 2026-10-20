@@ -65,6 +65,9 @@ Item record(const char* p,unsigned limit){
         if(ch<32u||ch>126u)throw std::runtime_error("Unsupported ISO filename");
         v.name+=static_cast<char>((ch>='a'&&ch<='z')?ch-32:ch);
     }
+    // ISO9660 8.3 files with no extension often encode the DOS name
+    // with a trailing dot before the ;1 version, e.g. RES9.;1.
+    while(!v.name.empty() && v.name.back()=='.')v.name.pop_back();
     return v;
 }
 std::vector<Item> entries(Disc& d,const Item& dir) {
