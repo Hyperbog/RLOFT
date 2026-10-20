@@ -1,0 +1,57 @@
+name: RLOFT DOSBox-X 2026.10.01 DAC hook static/synthetic regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/tools/dosboxx_dac_capture/**'
+      - '.github/workflows/recomp-dosboxx-dac-hook.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recomp-dosboxx-dac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dosboxx-hook-synthetic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile and exercise byte-level DAC capture header
+        run: |
+          set -euo pipefail
+          python3 Recomp/tools/dosboxx_dac_capture/test_capture.py
+          python3 Recomp/tools/verify_dosboxx_palette_port_trace.py --self-test
+      - name: Validate exact DOSBox-X 2026.10.01 upstream hook anchors
+        run: |
+          set -euo pipefail
+          source_tree=$(mktemp -d)
+          trap 'rm -rf "$source_tree"' EXIT
+          mkdir -p "$source_tree/src/hardware"
+          curl --fail --location --silent --show-error --retry 2 \
+            https://raw.githubusercontent.com/joncampbell123/dosbox-x/dosbox-x-v2026.10.01/src/hardware/vga_dac.cpp \
+            --output "$source_tree/src/hardware/vga_dac.cpp"
+          actual_blob=$(git hash-object "$source_tree/src/hardware/vga_dac.cpp")
+          test "$actual_blob" = 509d42fbead67a56594e49cec55549bc6fcc6d7c
+          python3 Recomp/tools/dosboxx_dac_capture/apply_dosboxx_dac_capture.py \
+            --dosbox-root "$source_tree" \
+            --header Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp \
+            --check-only
+          python3 Recomp/tools/dosboxx_dac_capture/apply_dosboxx_dac_capture.py \
+            --dosbox-root "$source_tree" \
+            --header Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp
+          test "$(grep -Fc 'rloft_dac_capture::record(' "$source_tree/src/hardware/vga_dac.cpp")" = 2
+          test -s "$source_tree/src/hardware/rloft_dac_port_capture.hpp"
+          if python3 Recomp/tools/dosboxx_dac_capture/apply_dosboxx_dac_capture.py \
+            --dosbox-root "$source_tree" \
+            --header Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp; then
+            echo 'ERROR: patcher accepted a modified source'
+            exit 1
+          fi
+          echo 'DOSBOXX_PINNED_SOURCE_CAPTURE_PATCH_PASS original_git_blob=509d42f'
+          echo 'SOURCE_ONLY_AND_SYNTHETIC_TESTS_DO_NOT_ESTABLISH_ORIGINAL_GAME_DAC_RUNTIME_PROVENANCE'
