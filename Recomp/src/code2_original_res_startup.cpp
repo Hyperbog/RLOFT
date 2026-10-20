@@ -480,6 +480,10 @@ Evidence inspect(const Opaque* s) {
     e.vga_port_writes=s->guest.video_port_writes;
     e.dispatch_calls=s->dispatches;
     e.initialized=s->initialized;
+    e.original_20608_executed_to_host_dependency=
+        s->guest.original_main_reached_environment;
+    e.original_352ee_getenv_calls=
+        s->guest.original_game_getenv_callbacks;
     e.original_game_loop_connected=false;
     return e;
 }
