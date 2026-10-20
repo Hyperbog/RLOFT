@@ -394,6 +394,25 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# Local owner GOG game.gog ISO9660 CD data extraction. The binary can
+# extract only RES9 and RES10 to private scratch; never ships game media.
+add_executable(rloft_gog_cd_extract src/gog_cd_iso_extract.cpp)
+set_target_properties(rloft_gog_cd_extract PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_gog_cd_extract PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_gog_cd_extract PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING AND Python3_Interpreter_FOUND)
+    add_test(NAME original_gog_iso9660_private_cd_extract_synthetic
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_gog_cd_iso_extract.py"
+            "$<TARGET_FILE:rloft_gog_cd_extract>")
+    set_tests_properties(original_gog_iso9660_private_cd_extract_synthetic
+        PROPERTIES TIMEOUT 35)
+endif()
+
 # Original LEVELS.DAT -> CODE.2 334C4 view preparation; stop before 32954 rays.
 # This is real input plumbing into original source, not a world frame.
 add_executable(rloft_original_code2_level_view src/code2_original_level_view.cpp)
