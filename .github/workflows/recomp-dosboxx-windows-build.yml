@@ -21,7 +21,11 @@ jobs:
       - uses: microsoft/setup-msbuild@v2
       - name: Pin exact upstream emulator
         run: |
-          git clone --depth 1 --branch dosbox-x-v2026.10.01 https://github.com/joncampbell123/dosbox-x.git "$env:RUNNER_TEMP\dosbox-x"
+          git -c core.autocrlf=false clone --depth 1 --branch dosbox-x-v2026.10.01 https://github.com/joncampbell123/dosbox-x.git "$env:RUNNER_TEMP\dosbox-x"
+          git -C "$env:RUNNER_TEMP\dosbox-x" config core.autocrlf false
+          git -C "$env:RUNNER_TEMP\dosbox-x" checkout HEAD -- src/hardware/vga_dac.cpp
+          $originalBlob = (git -C "$env:RUNNER_TEMP\dosbox-x" hash-object src/hardware/vga_dac.cpp).Trim()
+          if ($originalBlob -ne '509d42fbead67a56594e49cec55549bc6fcc6d7c') {throw "Original VGA source bytes differ: $originalBlob"}
           if ($LASTEXITCODE -ne 0) {throw "DOSBox-X clone failed"}
           $head = (git -C "$env:RUNNER_TEMP\dosbox-x" rev-parse HEAD).Trim()
           if ($head -ne "b6abbd5980a885f5f310a4088c59a8688d1b116c") {throw "DOSBox-X upstream mismatch: $head"}
