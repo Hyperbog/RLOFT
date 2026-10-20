@@ -47,6 +47,7 @@ jobs:
             --header Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp
           test "$(grep -Fc 'rloft_dac_capture::record(' "$source_tree/src/hardware/vga_dac.cpp")" = 2
           test -s "$source_tree/src/hardware/rloft_dac_port_capture.hpp"
+          python3 Recomp/tools/dosboxx_dac_capture/test_patched_handlers.py --patched-cpp "$source_tree/src/hardware/vga_dac.cpp"
           if python3 Recomp/tools/dosboxx_dac_capture/apply_dosboxx_dac_capture.py \
             --dosbox-root "$source_tree" \
             --header Recomp/tools/dosboxx_dac_capture/rloft_dac_port_capture.hpp; then
