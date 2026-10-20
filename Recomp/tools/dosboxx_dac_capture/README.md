@@ -43,14 +43,6 @@ build helper; this operation builds a new emulator, **not** a game release.
 
 ```powershell
 git clone --branch Recomp https://github.com/Hyperbog/RLOFT.git C:\RLOFT-source
-& C:\RLOFT-source\Recomp\tools\dosboxx_dac_capture\build_windows_capture.ps1 \
-  -RloftRoot C:\RLOFT-source -DosboxSourceRoot C:\dosbox-x-RLOFT
-```
-
-In the above PowerShell example, put the helper command on **one line**;
-the `\\` is only a visual line wrap in this document:
-
-```powershell
 & "C:\RLOFT-source\Recomp\tools\dosboxx_dac_capture\build_windows_capture.ps1" -RloftRoot "C:\RLOFT-source" -DosboxSourceRoot "C:\dosbox-x-RLOFT"
 ```
 
