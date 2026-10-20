@@ -8,6 +8,7 @@ on:
       - 'Recomp/tools/trace_original_palette_write_chain.py'
       - 'Recomp/tools/audit_original_palette_indirect_candidates.py'
       - 'Recomp/tools/audit_original_le_palette_fixups.py'
+      - 'Recomp/tools/audit_original_colors_scene_palette.py'
       - 'Recomp/tools/verify_dosboxx_palette_port_trace.py'
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/code2_compiled_graphics_frame.cpp'
@@ -79,6 +80,10 @@ jobs:
           python3 Recomp/tools/audit_original_le_palette_fixups.py --self-test
           python3 Recomp/tools/audit_original_le_palette_fixups.py --code2 "$scratch/CODE.2" --report "$scratch/retail-le-fixups.json" | tee "$scratch/retail-le-fixups.log"
           grep -q 'ORIGINAL_LE_PALETTE_FIXUP_PASS records=9813 target_object1=794 candidate_palette_function_relocations=0 buffer_sources=89 dynamic_palette_provenance=NOT_VERIFIED' "$scratch/retail-le-fixups.log"
+          python3 Recomp/tools/audit_original_colors_scene_palette.py --self-test
+          python3 Recomp/tools/audit_original_colors_scene_palette.py --code2 "$scratch/CODE.2" --colors "$scratch/COLORS" --report "$scratch/retail-colors-scene-bank3.json" | tee "$scratch/retail-colors-scene-bank3.log"
+          grep -q 'ORIGINAL_COLORS_SCENE_BANK3_SOURCE_PASS source_LEVEL5_81AC=3 palette_C034=3 bank0_to_3_changed_indices=246..253 RGB6_components=24' "$scratch/retail-colors-scene-bank3.log"
+          # This is authenticated static retail source/data evidence, NOT original DOS caller execution.
           python3 Recomp/tools/verify_dosboxx_palette_port_trace.py --self-test
           # Never construct a fake retail port-event trace from native frames, SAV, or COLORS.
           # A separately captured original DOSBox-X I/O trace is NOT present in CI.
