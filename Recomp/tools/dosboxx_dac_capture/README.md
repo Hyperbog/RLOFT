@@ -1,5 +1,58 @@
 # Part 24: DOSBox-X 2026.10.01 retail palette-port capture
 
+## IMPORTANT: save-state freeze workaround (preferred on affected DOSBox-X)
+
+Some DOSBox-X sessions become unresponsive when **Pause emulation** is invoked
+*before* opening **Save state**. The original tagged
+`src/misc/savestates.cpp` contains a remark dialog on the save path (when
+`saveremark=true`), so avoid mixing a halted emulation/menu with that dialog.
+Do not represent this observed hang as proven to originate at that call site.
+
+**Do not rebuild the capture emulator to try this:**
+
+1. Run the original retail game using the instrumented DOSBox-X recorder.
+   Stay in a stable first-person scene. Do **not** pause.
+2. Before saving, in **Capture → Save/load options**, enable
+   **No remark when saving state** if possible. Alternatively use the
+   DOSBox-X config setting `[dosbox] saveremark=false` on the next launch.
+3. Press **F11 + S** on Windows **while the game is running**.
+   Wait until the save finishes. No prior Pause emulation or modal
+   Save-state interaction is needed.
+4. If you can safely pause *after* the save, do so, but **do not touch
+   Save state again while paused**. Otherwise leave the game running.
+   Copy the newly generated DOSBox-X `.sav` and the instrumented
+   `active-dac-*.jsonl` (or `active-dac.jsonl`) separately to a
+   private folder. Preserve the originals.
+5. Use the independent *running-save analyzer* below; **do not use**
+   the strict `--owner-confirms-paused-copy` verifier. A post-save log
+   copy may contain palette writes that occurred **after** the save.
+
+```powershell
+python "C:\RLOFT-source\Recomp\tools\dosboxx_dac_capture\analyze_running_dac_capture.py" --raw-jsonl "C:\RLOFT-DAC-private\copied-events.jsonl" --state "C:\RLOFT-DAC-private\copied-original.sav" --report "C:\RLOFT-DAC-private\running-save-analysis.json"
+```
+
+The original DOSBox-X save implementation uses the `save` subdirectory
+of the emulator working directory by default, naming save slots
+`1.sav`, `2.sav`, etc.; custom save directories and `savefile`
+configuration may override this. Find the **newest .sav** created at
+the moment you pressed F11+S, rather than guessing a path or uploading
+the Ravenloft in-game SAVE.DAT.
+
+The analyzer authenticates hook format, refuses truncated/overflowed
+logs, preserves raw guest CS/EIP hints, reconstructs RGB6 writes, and
+reports the write history for palette entries 246..253. If an optional
+same-run SAV is supplied it compares the final observed DAC against
+the snapshot, but reports `UNSYNCHRONIZED` even for exact equality.
+No same-instant I/O save marker exists in the v1 capture hook; original
+CODE.2 caller and full pixel parity remain **NOT VERIFIED**.
+
+If F11+S also hangs, **stop trying save states**; the running DAC
+JSONL from a genuine gameplay session still gives independent port-write
+observations. Supply that file alone to analyze original palette writers.
+Any matching SAV can be collected later.
+
+---
+
 **Owner branch:** `Recomp`. **Purpose:** independent original-game VGA DAC I/O
 provenance. **Status:** patch/hook/trace converter tested on a pinned upstream
 source file and synthetic captures; **actual DOSBox-X Windows executable and
