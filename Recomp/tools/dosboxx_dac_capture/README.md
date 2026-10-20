@@ -153,3 +153,48 @@ of synchronization: the receipt retains `UNATTESTED` status. If the validator
 fails, preserve both original files locally for diagnosis; never manufacture
 port events from a saved DAC to make them pass.
 
+
+## Easy game startup: one-click original Ravenloft launcher
+
+**DOSBox-X by itself does not automatically launch Ravenloft.** The captured
+port log will otherwise contain emulator BIOS palette writes, not the game's
+runtime palette history. For example, a startup-only log with all event
+`guest_cs_hint=61440` (`F000h`) is consistent with BIOS startup.
+
+The Windows capture bundle now includes two files alongside
+`dosbox-x.exe`:
+
+- `Play-Ravenloft-With-DAC.cmd`: double-click this; it runs the PowerShell
+  launcher with the correct Windows UI mode.
+- `Launch-Ravenloft-DAC.ps1`: folder picker, source-game validation,
+  private log path, and DOSBox-X command-line auto-start of `RLOFT.BAT`.
+
+Double-click `Play-Ravenloft-With-DAC.cmd`, then select **the folder that
+actually contains `R.EXE`, `RLOFT.BAT`, `CODE.1`, `CODE.2` and `COLORS`**.
+For the immutable historical repository layout that is the final nested
+`MASTER\Ravenloft - Strahd's Possession\RLOFT` directory, not the outer
+`MASTER` directory. Use a writable owner-owned installed copy of the game.
+
+The launcher mounts that folder as DOS drive `C:`, switches to `C:`, then
+runs `RLOFT.BAT` (the authentic shipped BAT starts `R.EXE`). It creates
+a fresh timestamped trace in Windows Documents under
+`RLOFT-DAC-private\active-dac-YYYYMMDDTHHMMSSfffZ.jsonl`.
+The file is not made public or committed. The launcher does not modify or
+synthesize the original game binaries or port values.
+
+Manual equivalent, from an existing DOSBox-X `Z:\>` shell (substitute your
+actual owner game installation path):
+
+```dos
+mount c "C:\Games\RLOFT"
+c:
+dir
+rloft
+```
+
+If the game does not launch, confirm that `dir` lists `R.EXE` and
+`RLOFT.BAT`. If it does and `rloft` fails, preserve the exact error
+screen instead of assuming DOSBox-X is recording original gameplay.
+The scripted launcher is source-built and has not yet been GUI-tested on
+an owner's Windows machine; its DOSBox-X `-c` commands use the upstream
+supported command-line option.
