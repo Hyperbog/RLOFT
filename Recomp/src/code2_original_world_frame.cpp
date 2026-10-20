@@ -22,6 +22,7 @@ using OriginalLevelGuest=WorldRaySource;
 #undef main
 #undef Session
 #undef RLOFT_CANONICAL_CODE2_INCLUDED
+#include "original_code2_scene_palette.hpp"
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_columns.hpp"
 #include "original_code2_36cec_scene.hpp"
@@ -1490,22 +1491,23 @@ int main(int argc,char** argv) {
                   code2::load_le32(ray->guest.data()+0xFD0Cu)==grid.cells.size());
             auto gfx=std::make_unique<WorldGraphicsSource>();
             gfx->mode(3u);
-            // The independently saved retail VGA DAC has bank-3
-            // grayscale entries 246..253, while the remaining 248
-            // entries are from COLORS bank 0. Only composed saved-
-            // gameplay frames use this measured, source-asset-backed
-            // provisional palette overlay; it is not yet proof of the
-            // retail palette-update caller's instruction order.
-            const bool retail_dac_observed=complete_saved_frame ||
-                                            status_text_fixture;
-            gfx->owned_colors_palette(
-                colors_file.string(),0u,0u,retail_dac_observed);
-            if(retail_dac_observed)
-                std::cout<<"CODE2_ORIGINAL_DOSBOXX_DAC_RECONCILIATION"
-                         <<" source_COLORS_base_bank=0"
-                         <<" source_COLORS_slice_bank=3"
-                         <<" first_index=246 entries=8"
-                         <<" retail_palette_caller_parity=NOT_VERIFIED\\n";
+            // The retail CODE.2 scene descriptor (object2:81AC +
+            // 3*level) selects the complete COLORS palette bank. Level
+            // 5 selects bank 3. This is source-driven selection for ALL
+            // saved views (not a per-sprite grayscale palette overlay).
+            // The original CPU caller timing relative to the saved
+            // animation frame is still not independently observed.
+            const unsigned scene_bank=rloft::original_scene_palette::
+                select_bank(ray->guest,level);
+            gfx->owned_colors_palette(colors_file.string(),scene_bank,0u);
+            std::cout<<"CODE2_ORIGINAL_SCENE_COLORS_FULL_BANK"
+                     <<" scene_level="<<level
+                     <<" selected_bank="<<scene_bank
+                     <<" selector_table=CODE2_81AC"
+                     <<" staging_buffer=C054"
+                     <<" source_loader_contract=325B0"
+                     <<" eight_color_overlay=NONE"
+                     <<" DOS_CALL_ANCESTRY=NOT_VERIFIED\\n";
             gfx->open_readonly_resource(res4_file.string(),0u,4u);
             u32 full_frame_calls=0u,full_frame_sprite_writes=0u;
             u32 world_off_aperture_writes=0u;
@@ -1720,7 +1722,19 @@ int main(int argc,char** argv) {
         }
         auto gfx=std::make_unique<WorldGraphicsSource>();
         gfx->mode(3u);
-        gfx->owned_colors_palette(colors.string(),0u,0u);
+        // Saved-world variants carry the authenticated CODE.2 data
+        // object (including original per-level palette descriptors).
+        // The unsaved --world diagnostic has no CODE.2 input and keeps
+        // its explicit bank-0 visual fallback; it cannot claim a scene
+        // palette selection without the source descriptor table.
+        const unsigned scene_bank=saved_outdoor ?
+            rloft::original_scene_palette::select_bank(ray->guest,5u) : 0u;
+        gfx->owned_colors_palette(colors.string(),scene_bank,0u);
+        std::cout<<"CODE2_WORLD_COLORS_FULL_BANK"
+                 <<" selector_source="<<(saved_outdoor ? "CODE2_81AC":"EXPLICIT_DIAGNOSTIC_BANK0")
+                 <<" palette_bank="<<scene_bank
+                 <<" eight_color_overlay=NONE"
+                 <<" DOS_CALL_ANCESTRY=NOT_VERIFIED\\n";
         gfx->open_readonly_resource(res4.string(),0u,4u);
         {
             WorldFrame world(*ray,*gfx);
