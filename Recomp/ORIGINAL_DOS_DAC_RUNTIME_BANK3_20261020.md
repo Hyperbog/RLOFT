@@ -113,3 +113,22 @@ this bank switch; it belongs to a separate sprite rendering investigation.
 
 See tools/audit_original_colors_scene_palette.py for SHA-pinned reproduction;
 its optional --trace/--sav inputs are owner-private, never committed to Git.
+
+## Part 27 — Native renderer integration and retirement of eight-color splice
+
+The palette-source investigation has now been integrated into the native
+saved-world renderer. See
+[SOURCE_SCENE_PALETTE_NATIVE_INTEGRATION_20261020.md](SOURCE_SCENE_PALETTE_NATIVE_INTEGRATION_20261020.md).
+
+The previous bank-0-plus-246..253-bank-3 overlay is **retired** in source.
+The native saved-world renderer selects a complete original COLORS bank
+from the CODE.2 scene descriptor table, validates it, stages all 768
+components into C054, invokes compiled 32150 and 29CA0, and emits a
+full-bank DAC palette. For the original Level-5 data the bank is 3.
+[Original-media regression #39419812617](https://github.com/Hyperbog/RLOFT/actions/runs/39419812617)
+passed exact full RGB6 palette equality, complete frame/sprite/HUD and
+malformed-input checks. No prior static/dynamic provenance boundary has
+changed: exact original DOS caller timing and synchronized DOS/native pixel
+parity are still NOT VERIFIED. Older references in this historical log to a
+*provisional native slice* describe the superseded implementation, not the
+current saved-world renderer.
