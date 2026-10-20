@@ -37,18 +37,32 @@ if (Test-Path -LiteralPath $log) {
     throw "Refusing to overwrite an existing DAC capture: $log"
 }
 
-# DOSBox-X -c arguments are individual DOS commands (not Windows shell commands).
-# Unmount stale C:/D: mappings from the user's DOSBox-X autoexec settings.
-# The original game's INFO.DAT may resolve CD resources as D:\RES9/RES10
-# or D:\RLOFT\RES9/RES10 depending on installation; mount the *disc* as D:.
-$commands = @(
-    '-c', 'mount -u c',
-    '-c', 'mount -u d',
-    '-c', ('mount c "' + $gameDir + '"'),
-    '-c', ('imgmount d "' + $cdImage + '" -t iso -fs iso'),
-    '-c', 'c:',
-    '-c', 'r.exe'
+# Put startup commands in a real DOSBox-X [autoexec] configuration file.
+# DO NOT use nested quotes through PowerShell's -c argument; Windows native
+# argument marshalling can silently strip quotes in paths containing spaces.
+# Requiring an explicit -conf avoids ambiguity in long GOG installation paths.
+$conf = Join-Path $privateDir "RLOFT-DAC-AutoLaunch-$utc-$PID.conf"
+if (Test-Path -LiteralPath $conf) {
+    throw "Refusing to overwrite a DOSBox-X launch configuration: $conf"
+}
+$cfg = @(
+    '[dosbox]',
+    'saveremark=false',
+    '',
+    '[autoexec]',
+    'z:',
+    'mount -u c',
+    'mount -u d',
+    ('mount c "' + $gameDir + '"'),
+    ('imgmount d "' + $cdImage + '" -t iso -fs iso'),
+    'c:',
+    'r.exe'
 )
+Set-Content -LiteralPath $conf -Value $cfg -Encoding ASCII
+
+# The entire launch config is one file path argument to DOSBox-X.
+# No nested quoting or command splitting is required.
+$commands = @('-conf', $conf)
 if ($CompatibilityMode) {
     $commands = @('-set', 'cpu core=normal', '-set', 'cpu cycles=5000',
                   '-set', 'dos ems=false') + $commands
@@ -59,6 +73,7 @@ Write-Host 'ORIGINAL RAVENLOFT LAUNCH' -ForegroundColor Cyan
 Write-Host "C: Game:  $gameDir"
 Write-Host "D: CD:    $cdImage"
 Write-Host "DAC log:  $log"
+Write-Host "Config:   $conf"
 Write-Host 'Game:     R.EXE (not RLOFT.BAT, which ends with EXIT)'
 Write-Host ''
 
