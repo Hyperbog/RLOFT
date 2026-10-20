@@ -171,12 +171,18 @@ The Windows capture bundle now includes two files alongside
 
 Double-click `Play-Ravenloft-With-DAC.cmd`, then select **the folder that
 actually contains `R.EXE`, `RLOFT.BAT`, `CODE.1`, `CODE.2` and `COLORS`**.
+The corrected launcher also verifies and mounts the original GOG disc image
+`game.gog` located in that game's **parent installation directory** as DOS drive
+`D:` with `imgmount ... -t iso -fs iso`. For the user's example installation,
+this is `D:\GOG Games\Ravenloft - Strahd's Possession\game.gog`.
 For the immutable historical repository layout that is the final nested
 `MASTER\Ravenloft - Strahd's Possession\RLOFT` directory, not the outer
 `MASTER` directory. Use a writable owner-owned installed copy of the game.
 
-The launcher mounts that folder as DOS drive `C:`, switches to `C:`, then
-runs `RLOFT.BAT` (the authentic shipped BAT starts `R.EXE`). It creates
+The launcher mounts the selected folder as DOS drive `C:`, mounts the GOG
+CD image as DOS drive `D:`, switches to `C:`, then runs `R.EXE`
+**directly**. The shipped `RLOFT.BAT` ends with `EXIT`; directly running
+`R.EXE` preserves startup error messages. It creates
 a fresh timestamped trace in Windows Documents under
 `RLOFT-DAC-private\active-dac-YYYYMMDDTHHMMSSfffZ.jsonl`.
 The file is not made public or committed. The launcher does not modify or
@@ -186,10 +192,11 @@ Manual equivalent, from an existing DOSBox-X `Z:\>` shell (substitute your
 actual owner game installation path):
 
 ```dos
-mount c "C:\Games\RLOFT"
+mount c "D:\GOG Games\Ravenloft - Strahd's Possession\RLOFT"
+imgmount d "D:\GOG Games\Ravenloft - Strahd's Possession\game.gog" -t iso -fs iso
 c:
-dir
-rloft
+dir d:\rloft
+r.exe
 ```
 
 If the game does not launch, confirm that `dir` lists `R.EXE` and
