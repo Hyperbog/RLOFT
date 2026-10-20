@@ -23,9 +23,13 @@ if (!(Get-Command git -ErrorAction SilentlyContinue)) {
     throw 'Git is needed to authenticate the exact DOSBox-X source release.'
 }
 if (!(Test-Path -LiteralPath $DosboxSourceRoot)) {
-    & git clone --depth 1 --branch $tag 'https://github.com/joncampbell123/dosbox-x.git' $DosboxSourceRoot
+    & git -c core.autocrlf=false clone --depth 1 --branch $tag 'https://github.com/joncampbell123/dosbox-x.git' $DosboxSourceRoot
     if ($LASTEXITCODE -ne 0) {throw 'Failed to clone upstream DOSBox-X.'}
 }
+& git -C $DosboxSourceRoot config core.autocrlf false
+& git -C $DosboxSourceRoot checkout HEAD -- src/hardware/vga_dac.cpp
+$blob = (& git -C $DosboxSourceRoot hash-object src/hardware/vga_dac.cpp).Trim()
+if ($blob -ne '509d42fbead67a56594e49cec55549bc6fcc6d7c') { throw "Unexpected original VGA source after Windows checkout: $blob" }
 $actual = (& git -C $DosboxSourceRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $actual -ne $commit) {
     throw "Expected exact DOSBox-X source commit $commit, obtained $actual"
