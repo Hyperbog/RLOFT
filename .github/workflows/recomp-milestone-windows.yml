@@ -182,7 +182,7 @@ jobs:
           $source = "build/windows-milestone/Debug"
           $dir = "build/windows-milestone/package"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
+          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_code1_code2_staged_boot.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
             Copy-Item (Join-Path $source $exe) $dir -ErrorAction Stop
           }
           # Ship the owner-local frame runner with its matching executable;
@@ -205,6 +205,9 @@ jobs:
             'code2-compiled-frame.idx is 320x400 raw palette indices; code2-compiled-frame.bmp is a palettized Windows BMP.'
             "Milestone probe: $env:MILESTONE"
             "Source commit: ${{ steps.source.outputs.sha }}"
+            'Owner-media startup probe: rloft_code1_code2_staged_boot.exe --root C:\RLOFT --cd-root D:\RLOFT (CD-root requires extracted RES9/RES10; this executable does not mount game.gog).'
+            'The boot probe runs original CODE.1 constructors then CODE.2 INIT, INFO, 11 RES archives, source-derived 325B0 COLORS file reader, compiled 32150 brightness, and compiled 29CA0 DAC writer.'
+            'The inter-module handoff is HOST_ORDERED_NOT_DOS_GUEST: no playable boot, original DOS caller ancestry, or guest-contiguous CODE.1->CODE.2 state transfer is proven.'
             'Run from a Windows terminal. See milestone-report.json for accepted-vs-tested.'
           ) | Set-Content -Encoding utf8 (Join-Path $dir README.txt)
           $checksums = Get-ChildItem $dir -File | ForEach-Object {
