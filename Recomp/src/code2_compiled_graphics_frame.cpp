@@ -5,6 +5,7 @@
 #include "../../Code2/Code2.cpp"
 #endif
 #include "original_vga_host.hpp"
+#include "original_code2_palette_loader.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "../../Code2/graphics/original_37700_control.hpp"
 #include "../../Code2/graphics/original_res_type6.hpp"
@@ -531,31 +532,49 @@ struct Session {
         memory[profile+0x6Cu]=0u;
     }
     void owned_colors_palette(const std::string& path,unsigned bank,unsigned strength) {
-        // Original 325B0 COLORS contract: read the COMPLETE selected
-        // 256*RGB6 bank at file offset 1 + 768*bank into staging 0xC054.
-        // The original 32150 brightness function and 29CA0 port writer
-        // execute as compiled CODE.2. No fixed eight-color copy/overlay.
-        //
-        // Source bank is supplied by the caller (scene-table selection for
-        // real saved-world frames, explicit CLI bank for archive probes).
-        // No forced retail checksum here: future owner-created COLORS
-        // replacements can preserve this validated 15-bank file format.
+        // Execute the source-derived CODE.2 325B0 file seek/read contract
+        // through a READ-ONLY DOS file transport. The method calls actual
+        // compiled CODE.2 32150 and 29CA0; no byte splice or host copy.
         CHECK(bank<15u && strength<=63u);
-        std::ifstream f(path,std::ios::binary);
-        if (!f) throw std::runtime_error("Cannot open owner-provided COLORS file");
-        const std::vector<u8> content{std::istreambuf_iterator<char>(f),
-                                      std::istreambuf_iterator<char>()};
-        if (content.size()!=11521u || content[0]!=15u)
-            throw std::runtime_error("Unsupported COLORS bank structure");
+        struct FileContext {
+            const std::string& path;
+            std::ifstream in;
+        } source{path,{}};
+        rloft::original_code2_palette::ReadOnlyFile file{};
+        file.opaque=&source;
+        file.open=+[](void* opaque,const char* name)->bool {
+            auto& f=*static_cast<FileContext*>(opaque);
+            if(std::string(name)!="COLORS")return false;
+            f.in.open(f.path,std::ios::binary|std::ios::ate);
+            if(!f.in || f.in.tellg()!=std::streamoff(11521))return false;
+            f.in.seekg(0,std::ios::beg);
+            char first=0;
+            f.in.read(&first,1);
+            return bool(f.in) && static_cast<u8>(first)==15u;
+        };
+        file.seek_absolute=+[](void* opaque,u32 offset)->bool {
+            auto& f=*static_cast<FileContext*>(opaque);
+            f.in.seekg(static_cast<std::streamoff>(offset),std::ios::beg);
+            return bool(f.in);
+        };
+        file.read_exact=+[](void* opaque,u8* dst,u32 bytes)->bool {
+            auto& f=*static_cast<FileContext*>(opaque);
+            f.in.read(reinterpret_cast<char*>(dst),
+                      static_cast<std::streamsize>(bytes));
+            return bool(f.in) &&
+                   std::all_of(dst,dst+bytes,[](u8 rgb6){return rgb6<=63u;});
+        };
+        file.close=+[](void* opaque) {
+            static_cast<FileContext*>(opaque)->in.close();
+        };
         constexpr u32 destination=0xC054u,profile=0x1C000u;
-        CHECK(std::uint64_t(destination)+768u<=memory.size());
-        const auto start=content.begin()+1+static_cast<std::ptrdiff_t>(bank*768u);
-        if (!std::all_of(start,start+768u,[](u8 v){return v<=63u;}))
-            throw std::runtime_error("Selected COLORS bank has non-RGB6 channel");
-        std::copy_n(start,768u,memory.begin()+destination);
         code2::store_le32(memory.data()+0xF050u,profile);
         memory[profile+0x6Cu]=static_cast<u8>(strength);
-        code2::function_32150(machine,destination);
+        const auto witness=rloft::original_code2_palette::function_325b0(
+            machine,file,destination,0u,bank,256u,
+            static_cast<u32>(memory.size()));
+        CHECK(witness.offset==1u+768u*bank &&
+              witness.count==256u && witness.brightness_source_executed);
         code2::function_29ca0(gfx,destination,0u,768u);
         CHECK(!unsupported && !video.unsupported_read());
     }
