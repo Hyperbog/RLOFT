@@ -24,6 +24,9 @@ on:
       - 'Recomp/tools/verify_owned_res_render.py'
       - 'Recomp/tools/test_compiled_res4.py'
       - 'Recomp/src/code2_original_res_startup.cpp'
+      - 'Recomp/src/code1_code2_staged_boot.cpp'
+      - 'Recomp/src/original_r_exe_supervisor.hpp'
+      - 'Recomp/tests/original_r_exe_supervisor_test.cpp'
       - 'Recomp/src/gog_cd_iso_extract.cpp'
       - 'Recomp/tools/test_gog_cd_iso_extract.py'
       - 'Recomp/tools/Launch-RLOFT-Recomp-Preview.ps1'
@@ -126,6 +129,11 @@ jobs:
         run: |
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $supervisorLog = & "build/windows-milestone/Debug/rloft_original_supervisor_test.exe" (Join-Path $media "R.EXE")
+          if ($LASTEXITCODE -ne 0) { throw "Original R.EXE supervisor SHA/protocol failed" }
+          if (($supervisorLog -join "`n") -notmatch 'ORIGINAL_R_EXE_SUPERVISOR_PROTOCOL_PASS.*startup=CODE2.*status10=CODE1.*status12=DELETE_CHARS_RESTART.*original_media=SHA256_AUTHENTIC') {
+            throw "Authenticated supervisor source-order evidence missing"
+          }
           $paletteLog = & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media" --cd-root "$cdMedia" --palette-level 5
           if ($LASTEXITCODE -ne 0) { throw "Same-session original INIT/INFO/RES and palette loader failed" }
           if (($paletteLog -join "`n") -notmatch 'CODE2_REAL_STARTUP_RES_TO_SCENE_PALETTE_PASS level=5 bank=3 source_palette_loader=325B0_RECONSTRUCTED compiled_brightness=32150 compiled_DAC_writer=29CA0 DAC_port_writes=769') {
@@ -200,7 +208,7 @@ jobs:
           $source = "build/windows-milestone/Debug"
           $dir = "build/windows-milestone/package"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_code1_code2_staged_boot.exe", "rloft_gog_cd_extract.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
+          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_code1_code2_staged_boot.exe", "rloft_original_supervisor_test.exe", "rloft_gog_cd_extract.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
             Copy-Item (Join-Path $source $exe) $dir -ErrorAction Stop
           }
           # Ship the owner-local frame runner with its matching executable;
@@ -219,6 +227,7 @@ jobs:
             "Built-in game folder: D:\GOG Games\Ravenloft - Strahd's Possession\RLOFT"
             'The preview script reads game.gog locally, extracts RES9/RES10 to private scratch and deletes the scratch resources, executes the source-staged startup checkpoint, then renders a private original-save Level 5 frame when SAVE.DAT plus LEV005.DAT are available.'
             'The preview BMP is a static native reconstructed source frame, not an actual booted gameplay screen. It is generated locally from owner-original installed files.'
+            'Original binary R.EXE is a 16-bit DOS supervisor, starts CODE.2 first, runs CODE.1 only on CODE.2 child exit status 10, and handles status 12 restart/CHARS deletion. This preview does not impersonate the missing child-process return status.'
             'If there is no Level-5 saved-game pair, the script prompts to choose one. A DOSBox-X 1.sav is not a substitute for original Ravenloft SAVE.DAT.'
 
             'NOT A PLAYABLE GAME; no original commercial game files included.'
