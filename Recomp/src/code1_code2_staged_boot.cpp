@@ -34,7 +34,10 @@ int run_stage(int (*entry)(int,char**),std::vector<std::string> text) {
 
 int main(int argc,char** argv) {
     try {
-        if(argc!=5 || std::string(argv[1])!="--root" ||
+        const bool advance_second_init=
+            argc==6 && std::string(argv[5])=="--advance-original-16d04";
+        if((argc!=5 && !advance_second_init) ||
+           std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root")
             throw std::invalid_argument(
                 "usage: rloft_code1_code2_staged_boot --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT");
@@ -72,9 +75,12 @@ int main(int argc,char** argv) {
         struct PersistentCode2 final:runtime::ModulePort {
             std::unique_ptr<owner::Opaque,void(*)(owner::Opaque*)> game;
             owner::Evidence initial{};
+            bool advance_second_source_init=false;
             explicit PersistentCode2(const std::filesystem::path& r,
-                                     const std::filesystem::path& d)
-                :game(owner::create(r,d,5u),&owner::destroy) {
+                                     const std::filesystem::path& d,
+                                     bool advance_init)
+                :game(owner::create(r,d,5u),&owner::destroy),
+                 advance_second_source_init(advance_init) {
                 std::cerr<<"RLOFT_STAGED_TRACE=CANONICAL_RESOURCE_GUEST_CONSTRUCTED\n"<<std::flush;
                 initial=owner::inspect(game.get());
                 if(!initial.initialized || initial.resource_archives!=0u ||
@@ -103,6 +109,12 @@ int main(int argc,char** argv) {
                     // then stop at the next 20294 / 2E590 dependency.
                     if(owner::test_advance_through_original_video_mode(game.get())!=10u)
                         throw std::runtime_error("CODE2 did not run source VGA initializer");
+                    if(advance_second_source_init) {
+                        std::cerr<<"RLOFT_STAGED_TRACE=REAL_SECOND_INIT_CONTINUATION_BEGIN\n"<<std::flush;
+                        const auto next=owner::test_advance_past_original_second_init(game.get());
+                        std::cerr<<"RLOFT_STAGED_TRACE=REAL_SECOND_INIT_NEXT_SERVICE_"
+                                 <<next<<"\n"<<std::flush;
+                    }
                     const auto progressed=owner::inspect(game.get());
                     if(progressed.memory_address!=initial.memory_address ||
                        progressed.resource_archives!=11u ||
@@ -121,7 +133,7 @@ int main(int argc,char** argv) {
                 ->std::unique_ptr<runtime::ModulePort>{
                 if(which!=rloft::original_supervisor::Module::Code2 ||
                    chars.available())return nullptr;
-                return std::make_unique<PersistentCode2>(root,cd);
+                return std::make_unique<PersistentCode2>(root,cd,advance_second_init);
             });
         std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_FIRST_STEP_BEGIN\n"<<std::flush;
         const auto first=session.step_once();
