@@ -269,6 +269,11 @@ jobs:
             throw "Host-staged original CODE.1 -> CODE.2 pipeline proof missing"
           }
           Write-Host "ORIGINAL_CODE1_CODE2_STAGED_BOOT_PALETTE_PASS source_only=YES full_game_boot=NO"
+      - name: Inspect original CODE2 20440 and 1FC14 source call order
+        shell: pwsh
+        run: |
+          python Recomp/tools/inspect_original_source_callmap.py Code2/Code2.cpp --functions 20440 1fc14 20294 20608
+          if ($LASTEXITCODE -ne 0) { throw "Original CODE2 call-map source extraction failed" }
       - name: Explore genuine CODE2 second 16D04 INIT execution and next dependency
         shell: pwsh
         timeout-minutes: 2
