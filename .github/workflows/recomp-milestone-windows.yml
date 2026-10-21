@@ -34,6 +34,8 @@ on:
       - 'Recomp/tests/original_r_exe_supervisor_test.cpp'
       - 'Recomp/src/original_guest_continuation.hpp'
       - 'Recomp/src/original_dpmi_real_mode_mouse.hpp'
+      - 'Recomp/src/host_dos_disk_space.hpp'
+      - 'Recomp/tests/host_dos_disk_space_test.cpp'
       - 'Recomp/tests/original_dpmi_real_mode_mouse_test.cpp'
       - 'Recomp/src/canonical_code2_runtime_owner.hpp'
       - 'Recomp/tests/original_guest_continuation_test.cpp'
@@ -153,6 +155,36 @@ jobs:
           if (($lines -join "`n") -notmatch 'ORIGINAL_CODE2_SOURCE_MOUSE_RANGE_TO_DISK_PASS.*original_INT33_range7=EXECUTED.*original_INT33_range8=EXECUTED.*next_unsupported=DOS_INT21_AH36') {
             throw "Original CODE.2 mouse ranges did not reach next authentic DOS AH36 service"
           }
+      - name: Discover next original CODE.2 source dependency after host AH36
+        shell: pwsh
+        run: |
+          $original = [IO.Path]::GetFullPath("original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2")
+          $exe = [IO.Path]::GetFullPath("build/windows-milestone/Debug/rloft_original_code2_stackful_mouse_gate.exe")
+          $psi = [Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName = $exe
+          [void]$psi.ArgumentList.Add($original)
+          [void]$psi.ArgumentList.Add("--through-host-disk")
+          $psi.WorkingDirectory = [IO.Path]::GetDirectoryName($original)
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          $child = [Diagnostics.Process]::Start($psi)
+          if (-not $child.WaitForExit(20000)) {
+            $child.Kill($true)
+            $child.WaitForExit()
+            Write-Host "RLOFT_AH36_NEXT_SOURCE=EXECUTION_DID_NOT_PAUSE_WITHIN_20S"
+          } else {
+            $stdout = $child.StandardOutput.ReadToEnd()
+            $stderr = $child.StandardError.ReadToEnd()
+            foreach ($line in (($stdout + "`n" + $stderr) -split "`r?`n")) {
+              if ($line -match 'ORIGINAL_CODE2_|LIVE_CODE2_SOURCE_STOP|GUEST_CONTINUATION') {
+                Write-Host "RLOFT_AH36_SOURCE: $line"
+              }
+            }
+            Write-Host "RLOFT_AH36_NEXT_SOURCE_EXIT=$($child.ExitCode)"
+          }
+          # Exploratory original-source boundary enumeration; do NOT
+          # relabel an observed missing callback as gameplay success.
       - name: Execute source-staged CODE.1 → CODE.2 boot and original palette bank
         shell: pwsh
         run: |
