@@ -419,6 +419,21 @@ if(BUILD_TESTING)
         COMMAND rloft_original_dpmi_real_mode_mouse_test)
 endif()
 
+# Execute the original 290F4 -> 29930 VGA mode implementation on the
+# existing planar VGA host; source CRTC, page and DAC callbacks are real.
+add_executable(rloft_original_code2_vga_boot_test
+    tests/original_code2_vga_boot_test.cpp)
+target_compile_features(rloft_original_code2_vga_boot_test PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(rloft_original_code2_vga_boot_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_vga_boot_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_290f4_vga_full_mode_and_palette
+        COMMAND rloft_original_code2_vga_boot_test)
+endif()
+
 # Original CODE.2 source entry + true stackful DOS mouse host boundary,
 # executed against owner-original CODE.2 and SOUND.CFG in Windows CI.
 add_executable(rloft_original_code2_stackful_mouse_gate
