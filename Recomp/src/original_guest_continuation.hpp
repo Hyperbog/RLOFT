@@ -22,7 +22,8 @@ enum class Service : std::uint8_t {
     Original2F468ResourceSelection = 5,
     Original290F4VideoMode = 6,
     Original2E590PresentationReset = 7, // superseded: 2E590 is source-backed page push
-    Original5E38PostDoublePageClear = 8
+    Original5E38PostDoublePageClear = 8, // superseded by reconstructed 5E38 source
+    Original312A0CharacterPath = 9
 };
 struct Request {
     Service service=Service::DosMouseReset;
