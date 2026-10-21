@@ -20,7 +20,8 @@ enum class Service : std::uint8_t {
     DpmiRealModeInt33 = 3,
     DosDiskFree = 4,
     Original2F468ResourceSelection = 5,
-    Original290F4VideoMode = 6
+    Original290F4VideoMode = 6,
+    Original2E590PresentationReset = 7
 };
 struct Request {
     Service service=Service::DosMouseReset;
