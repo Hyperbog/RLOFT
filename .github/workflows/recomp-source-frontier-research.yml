@@ -22,13 +22,13 @@ jobs:
           import pathlib, re
           source=pathlib.Path("Code2/Code2.cpp").read_text(encoding="utf-8", errors="replace")
           print("CODE2_SOURCE_LENGTH",len(source))
-          for needle in ["function_291b0", "function_29b40", "function_2e5d4",
-                         "function_2e590", "function_20294", "function_2f580"]:
+          for needle in ["struct Application58Boundary", "struct App58Map", "app58_map(",
+                         "function_29b40", "function_2e5d4", "function_20294"]:
               hits=[m.start() for m in re.finditer(re.escape(needle), source,flags=re.I)]
               print("\n=== SOURCE TARGET:",needle,"occurrences:",len(hits)," ===",flush=True)
               for pos in hits[:4]:
                   start=max(0,pos-250)
                   stop=min(len(source),pos+(7500 if needle.lower() in
-                    ["function_2e590","function_20294","function_291b0","function_29b40","function_2e5d4"] else 2100))
+                    ["struct application58boundary","struct app58map","app58_map(","function_29b40","function_20294"] else 2100))
                   print(source[start:stop],flush=True)
           PY
