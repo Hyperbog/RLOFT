@@ -1218,7 +1218,8 @@ void original_28f58_volume(u32 value) noexcept {
     ++current->original_28f58_calls;
     std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=28F58_SOURCE_VOLUME_RETURN\n"<<std::flush;
 }
-u32 original_31218_host_access(u32 path,u16 mode) noexcept {
+u32 original_31218_host_access(u32 path,u32 raw_mode) noexcept {
+    const u16 mode=static_cast<u16>(raw_mode);
     ++current->original_31218_checks;
     if(path!=0x1140u || mode!=0u ||
        std::memcmp(current->data.data()+path,"CHARS",6u)!=0 ||
