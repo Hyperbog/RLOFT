@@ -8,6 +8,7 @@
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
+#include "host_dos_disk_space.hpp"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
@@ -1997,6 +1998,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
 }
 namespace rloft { namespace canonical_code2_runtime {
 struct Opaque {
+    std::filesystem::path installation_root{};
     std::unique_ptr<Session> session;
     std::unique_ptr<rloft::guest_continuation::Worker> live_worker;
     Session* live_session=nullptr; // owned by the worker while suspended
@@ -2024,6 +2026,7 @@ Opaque* start(const std::filesystem::path& original_code2) {
         throw std::runtime_error("Original CODE.2 identity mismatch");
     const auto image=rloft_recomp::OriginalLeImage::parse(bytes);
     auto result=std::make_unique<Opaque>();
+    result->installation_root=original_code2.parent_path();
     const auto sound_path=original_code2.parent_path()/"SOUND.CFG";
     const auto sound_name=sound_path.string();
     const auto sound=read_file(sound_name.c_str());
@@ -2046,6 +2049,7 @@ Opaque* start(const std::filesystem::path& original_code2) {
 // DOS INT33 request. The C++ call stack is retained by the waiting thread.
 Opaque* start_stackful(const std::filesystem::path& original_code2) {
     auto result=std::make_unique<Opaque>();
+    result->installation_root=original_code2.parent_path();
     result->live_worker=std::make_unique<rloft::guest_continuation::Worker>();
     Opaque* const out=result.get();
     result->live_worker->start([out,original_code2]() {
@@ -2122,6 +2126,19 @@ std::uint32_t answer_mouse_range(Opaque* owner,std::uint32_t command) {
         throw std::logic_error("Original CODE.2 INT33 mouse range mismatch");
     const auto q=owner->pending;
     owner->live_worker->resume(q,{0xFFFFu,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+std::uint32_t answer_host_disk_free(Opaque* owner) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=rloft::guest_continuation::Service::DosDiskFree ||
+       owner->pending.ax!=0u || !std::filesystem::is_directory(owner->installation_root))
+        throw std::logic_error("Original CODE.2 is not waiting for default-drive AH36");
+    const auto host=rloft::host_dos_disk::from_host_path(owner->installation_root);
+    const auto request=owner->pending;
+    owner->live_worker->resume(request,{
+        host.sectors_per_cluster,host.free_clusters,
+        host.bytes_per_sector,host.total_clusters});
     if(!owner->live_worker->await_pause(owner->pending))return 0u;
     return static_cast<std::uint32_t>(owner->pending.service);
 }
