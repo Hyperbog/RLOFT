@@ -194,8 +194,10 @@ jobs:
           $needle = 'function_2f468('
           $pos = $source.IndexOf($needle, [System.StringComparison]::Ordinal)
           if ($pos -lt 0) { throw "Canonical CODE.2 2F468 source routine not found" }
-          $start = [Math]::Max(0, $pos - 120)
-          $count = [Math]::Min(11500, $source.Length - $start)
+          # Include the preceding source 2ECB4 materializer and its
+          # archive-table helpers, not merely the 2F468 caller.
+          $start = [Math]::Max(0, $pos - 19000)
+          $count = [Math]::Min(24000, $source.Length - $start)
           Write-Host "ORIGINAL_2F468_TRANSLATED_SOURCE_BEGIN"
           Write-Host $source.Substring($start, $count)
           Write-Host "ORIGINAL_2F468_TRANSLATED_SOURCE_END"
