@@ -1945,7 +1945,7 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
 }
 void destroy(Opaque* owner) noexcept {delete owner;}
 }} // namespace rloft::canonical_code2_runtime
-#ifndef RLOFT_BUNDLE_NO_MAIN
+#if !defined(RLOFT_BUNDLE_NO_MAIN) && !defined(RLOFT_STARTUP_GATE_NO_MAIN)
 int main(int argc,char**argv) {
     try {
         bool extended=false,termination=false,arena_probe=false,failure_probe=false,vector_matrix=false;
