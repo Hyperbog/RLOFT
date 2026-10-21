@@ -472,7 +472,8 @@ struct Session {
 };
 Session* Session::current=nullptr;
 }} // namespace rloft_code2_resource_internal::{anonymous}
-using rloft_code2_resource_internal::Session;
+// Reference the source-resource Session explicitly: the canonical
+// startup owner also has an independent internal Session type.
 
 namespace rloft { namespace original_code2_session {
 struct Opaque {
@@ -481,14 +482,14 @@ struct Opaque {
     // machine/RAM instead of constructing a second guest.
     std::unique_ptr<rloft::canonical_code2_runtime::Opaque,
                     void(*)(rloft::canonical_code2_runtime::Opaque*)> canonical;
-    std::unique_ptr<Session> guest;
+    std::unique_ptr<rloft_code2_resource_internal::Session> guest;
     std::uint64_t dispatches=0;
     bool initialized=false;
     explicit Opaque(const std::filesystem::path& root,
                     const std::filesystem::path& cd,unsigned level)
         :canonical(rloft::canonical_code2_runtime::start(root/"CODE.2"),
                    &rloft::canonical_code2_runtime::destroy),
-         guest(std::make_unique<Session>(
+         guest(std::make_unique<rloft_code2_resource_internal::Session>(
              root.string(),cd.string(),
              &rloft::canonical_code2_runtime::guest_memory(canonical.get()),
              static_cast<code2::Machine*>(
@@ -573,7 +574,7 @@ int original_code2_resource_main(int argc,char** argv) {
             static_cast<unsigned>(std::stoul(argv[6])):0u;
         if(palette && (level>=32u || argv[6][0]=='-'))
             throw std::invalid_argument("Palette scene level must be 0..31");
-        Session s(argc==1?"":argv[2],argc>=5?argv[4]:"");
+        rloft_code2_resource_internal::Session s(argc==1?"":argv[2],argc>=5?argv[4]:"");
         if(palette)s.seed_authenticated_code2(std::filesystem::path(argv[2])/"CODE.2");
         s.boot();
         if(palette)s.source_palette_from_scene(argv[2],level);
