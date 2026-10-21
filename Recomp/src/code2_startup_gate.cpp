@@ -2183,6 +2183,35 @@ std::uint32_t answer_host_disk_free(Opaque* owner) {
     if(!owner->live_worker->await_pause(owner->pending))return 0u;
     return static_cast<std::uint32_t>(owner->pending.service);
 }
+void attach_original_resource_callbacks(Opaque* owner,void* original_app68) {
+    if(!owner || !original_app68 || !owner->live_worker ||
+       !owner->live_worker->paused())
+        throw std::invalid_argument("Original CODE2 resource callback owner unavailable");
+    auto& source=held(owner);
+    if(source.game_audio.app68!=nullptr)
+        throw std::logic_error("Original CODE2 resource callbacks already installed");
+    if(code2::load_le32(source.data.data()+0xF0B4u)!=11u ||
+       code2::load_le32(source.data.data()+0xF0B8u)==0u)
+        throw std::logic_error("Original CODE2 archive cache is not initialized");
+    source.game_audio.app68=
+        static_cast<code2::Application68Boundary*>(original_app68);
+}
+std::uint32_t answer_source_resource_selection(Opaque* owner) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::Original2F468ResourceSelection ||
+       owner->pending.ax!=0x1134u || owner->pending.bx!=1u ||
+       owner->pending.cx!=0x3Cu)
+        throw std::logic_error("Original CODE2 not waiting at source 2F468");
+    const auto& source=held(owner);
+    if(!source.game_audio.app68 ||
+       code2::load_le32(source.data.data()+0xF0B4u)!=11u)
+        throw std::logic_error("Source 2F468 cannot run without original archives");
+    const auto q=owner->pending;
+    owner->live_worker->resume(q,{1u,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
 Evidence inspect(const Opaque* owner) {
     const auto& s=held(const_cast<Opaque*>(owner));
     if(s.data.data()!=s.machine.data || !s.dpmi_linear_memory ||
