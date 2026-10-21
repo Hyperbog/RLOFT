@@ -14,7 +14,11 @@ int main(){
         gc::Worker engine;
         int entry_count=0,return_count=0;
         std::uint64_t observed_stack=0;
+        check(!engine.calling_from_guest_thread(),
+              "Host must never impersonate original CODE.2 worker");
         engine.start([&]() {
+            check(engine.calling_from_guest_thread(),
+                  "Original CODE.2 callback must own running worker thread");
             ++entry_count;
             std::array<std::uint32_t,8> locals{11,22,33,44,55,66,77,88};
             auto nested=[&](std::uint32_t marker) {
@@ -44,8 +48,9 @@ int main(){
               first.service==gc::Service::DosMouseReset &&
               first.ax==0x1234u && first.sequence==1u,
               "First original host service not exposed");
-        check(engine.paused() && engine.request_count()==1u,
-              "Host service suspension not persistent");
+        check(engine.paused() && engine.request_count()==1u &&
+              !engine.calling_from_guest_thread(),
+              "Paused worker must not make its host a guest thread");
         bool wrong_rejected=false;
         try{auto wrong=first;wrong.sequence++;
             engine.resume(wrong,{0xFFFFu,3u,0u,0u});}
