@@ -996,10 +996,12 @@ void original_audio_init(u32 base,u32 count) noexcept {
     if(base!=0x1130u || count!=0x0Bu)
         stop("ORIGINAL_GAME_RESOURCE_INITIALIZER_ABI_CHANGED");
     code2::function_2f2ec(current->machine,current->game_audio,base,count);
-    // After the original 33B44 and both source 33D18/33D38 calls
-    // actually return, only the explicitly named disk-query probe may
-    // proceed into the canonical 20440 -> 202F0 -> 35286 call chain.
-    if(current->mouse_branch==MouseResetBranch::DiskSpace)return;
+    // The canonical 2F2EC source has now actually returned through
+    // 33B44, 33D18 and 33D38. Retain the historical bounded fixture
+    // stop, but allow the genuine suspended CODE2 source call stack
+    // to execute the following 20440 -> 202F0 -> 35286 chain.
+    if(current->live_continuation ||
+       current->mouse_branch==MouseResetBranch::DiskSpace)return;
     stop("ORIGINAL_AUDIO_INITIALIZER_RETURNED_UNEXPECTEDLY");
 }
 u32 enter_game(u32 argc,u32 argv) noexcept {
