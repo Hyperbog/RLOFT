@@ -256,8 +256,8 @@ jobs:
           $process.Dispose()
           if (-not $exited) { throw "Original CODE2 staged runtime timed out after 90s; last emitted source callback is above" }
           if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
-          if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS.*retained_archive_slots=11.*CRTC_320x400=ORIGINAL_SOURCE.*DAC_clear=29234_29CA0.*original_20294_double_clear=2E590_291B0_29B40_2E5D4.*next_original_dependency=20440_5E38.*original_1FC14_loop=NOT_REACHED') {
-            throw "Original CODE2 source VGA/29234 DAC and original 20294 two-page clear did not reach 5E38"
+          if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS.*retained_archive_slots=11.*CRTC_320x400=ORIGINAL_SOURCE.*DAC_clear=29234_29CA0.*original_20294_double_clear=2E590_291B0_29B40_2E5D4.*original_5E38_game_options=ABSENT_SOURCE_RETURN.*original_28F58_volume=COMPILED.*original_31218_CHARS_check=SOURCE.*next_original_dependency=20440_312A0.*original_1FC14_loop=NOT_REACHED') {
+            throw "Original CODE2 20294 source page clear / 5E38 game options / 28F58 audio / 31218 CHARS check did not reach 312A0"
           }
           if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_BOOTSTRAP_TO_VGA_PASS.*original_resource_selection=EXECUTED.*next_original_dependency=290F4_VIDEO_MODE.*original_1FC14_loop=NOT_REACHED') {
             throw "Original CODE2 resources, DPMI, DOS disk and 2F468 did not execute in same guest before source 290F4 VGA"
