@@ -399,6 +399,26 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# Keep the ACTUAL native C++ source guest call stack suspended while
+# a host DOS/4GW dependency is handled. This avoids replaying 353A0
+# after a bounded longjmp and enables exact service-by-service progress.
+find_package(Threads REQUIRED)
+add_executable(rloft_original_guest_continuation_test
+    tests/original_guest_continuation_test.cpp)
+target_compile_features(rloft_original_guest_continuation_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_guest_continuation_test PRIVATE Threads::Threads)
+if(MSVC)
+    target_compile_options(rloft_original_guest_continuation_test PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_original_guest_continuation_test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_guest_native_stackful_two_DOS_service_calls
+        COMMAND rloft_original_guest_continuation_test)
+    set_tests_properties(original_guest_native_stackful_two_DOS_service_calls
+        PROPERTIES TIMEOUT 20)
+endif()
+
 # Authenticated 16-bit R.EXE child-process supervisor state machine.
 # It is a typed host-side control boundary, never an invented guest jump.
 # Persistent native supervisor lifecycle: CODE.2 child stays live across
