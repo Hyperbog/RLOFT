@@ -6,6 +6,7 @@
 #include "original_le_image.h"
 #include "original_media_identity.hpp"
 #include "canonical_code2_runtime_owner.hpp"
+#include "original_guest_continuation.hpp"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
@@ -33,6 +34,7 @@ enum class GameConfig { Unset, Overrides, SignedWrap };
 enum class MouseResetBranch { Stop, Present, Absent, MemoryHandoff, FreeBoundary, RangeX, RangeY, DiskSpace };
 struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
+    rloft::guest_continuation::Worker* live_continuation=nullptr;
     std::jmp_buf escape;
     std::vector<u8> data, code;
     std::array<u8,256> psp{};
@@ -669,6 +671,18 @@ u32 original_source_descriptor_close(u32 handle) noexcept {
 }
 code2::Runtime100MouseResetResult controlled_mouse_reset() noexcept {
     ++current->mouse_reset_calls;
+    if(current->live_continuation) {
+        rloft::guest_continuation::Reply answer{};
+        const rloft::guest_continuation::Request request{
+            rloft::guest_continuation::Service::DosMouseReset,0,0,0,0,0};
+        if(!current->live_continuation->suspend(request,answer))
+            stop("LIVE_ORIGINAL_CODE2_GUEST_SHUTDOWN");
+        // Response originates exclusively from an explicit owner-host
+        // DOS Int33 reset implementation; no synthetic success here.
+        if(answer.ax!=0u && answer.ax!=0xFFFFu)
+            stop("LIVE_ORIGINAL_MOUSE_RESET_INVALID_AX");
+        return {answer.ax,answer.bx};
+    }
     if(current->mouse_branch==MouseResetBranch::Stop)
         stop("STOP_BEFORE_DOS_INT33_MOUSE_RESET");
     if(current->mouse_branch!=MouseResetBranch::Absent)
@@ -1169,7 +1183,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool use_host_dpmi=false,bool multi_resource_probe=false,
          bool source_host_heap=false,bool source_dos_fallback=false,
          bool source_break_growth=false,
-         std::unique_ptr<Session>* retained_owner=nullptr) {
+         std::unique_ptr<Session>* retained_owner=nullptr,
+         rloft::guest_continuation::Worker* stackful_worker=nullptr,
+         Session** suspended_guest=nullptr) {
     require(img.objects.size()==2 && img.entry_object==1 &&
             img.entry_offset==0x353A0u && img.stack_object==2 &&
             img.stack_offset==0x2DD10u &&
@@ -1177,6 +1193,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
             img.objects[1].raw.size()==0x2DD10u,"CODE.2 LE geometry mismatch");
     auto owner=std::make_unique<Session>();
     Session& state=*owner;
+    state.live_continuation=stackful_worker;
     state.extended=extended;
     state.source_host_heap=source_host_heap;
     state.source_dos_fallback=source_dos_fallback;
@@ -1401,6 +1418,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         state.post.call_20608=&enter_game;
         state.post.call_352be=&unexpected_exit;
     }
+    if(suspended_guest)*suspended_guest=&state;
     current=&state;
     if(setjmp(state.escape)==0) {
         code2::function_353a0(state.machine,state.entry);
