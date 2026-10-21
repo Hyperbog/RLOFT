@@ -5,6 +5,8 @@
 #include "original_code2_palette_loader.hpp"
 #include "original_code2_scene_palette.hpp"
 #include "original_code2_guest_session.hpp"
+#include "canonical_code2_runtime_owner.hpp"
+#include <memory>
 #include "original_media_identity.hpp"
 #include "original_vga_host.hpp"
 #include <algorithm>
@@ -90,8 +92,15 @@ struct Fixture {
 };
 struct Session {
     Fixture fixture;
-    std::vector<u8> memory=std::vector<u8>(16u*1024u*1024u);
-    code2::Machine m{};
+    // In standalone tests this Session owns its guest. In the integrated
+    // runtime, BOTH CODE.2 source resource routines and canonical
+    // 353A0/20608/heap callbacks operate on the same referenced memory
+    // vector and exact same CPU Machine; neither copies the guest state.
+    std::vector<u8> local_memory;
+    std::vector<u8>& memory;
+    code2::Machine local_machine{};
+    code2::Machine& m;
+    rloft::canonical_code2_runtime::Opaque* canonical_owner=nullptr;
     code2::Application30Boundary init_callbacks{};
     code2::Application67Boundary info_callbacks{};
     code2::Application68Boundary res_callbacks{};
@@ -221,6 +230,15 @@ struct Session {
     }
     static u32 alloc_guest(u32 bytes) {
         auto& t=state();
+        if(t.canonical_owner) {
+            const auto ptr=rloft::canonical_code2_runtime::allocate_source_heap(
+                t.canonical_owner,bytes);
+            if(std::uint64_t(ptr)+bytes>t.memory.size()){
+                t.error=true;return 0;
+            }
+            std::fill_n(t.memory.begin()+ptr,bytes,0);
+            return ptr;
+        }
         const auto aligned=(std::uint64_t(t.heap_cursor)+7u)&~std::uint64_t(7);
         if(!bytes || aligned+bytes>t.memory.size()){t.error=true;return 0;}
         t.heap_cursor=static_cast<u32>(aligned+bytes);
@@ -318,7 +336,18 @@ struct Session {
         t.memory[dst+number.size()]=0;
     }
     static void record_music(u32 v){state().music_base=v;}
-    Session(std::string root,std::string cd_root):fixture(root,cd_root) {
+    Session(std::string root,std::string cd_root,
+            std::vector<u8>* borrowed_memory=nullptr,
+            code2::Machine* borrowed_machine=nullptr,
+            rloft::canonical_code2_runtime::Opaque* heap_owner=nullptr)
+        :fixture(root,cd_root),
+         local_memory(borrowed_memory?std::vector<u8>{}:
+                                 std::vector<u8>(16u*1024u*1024u)),
+         memory(borrowed_memory?*borrowed_memory:local_memory),
+         m(borrowed_machine?*borrowed_machine:local_machine),
+         canonical_owner(heap_owner) {
+        REQUIRE((borrowed_memory==nullptr)==(borrowed_machine==nullptr));
+        REQUIRE((borrowed_memory!=nullptr)==(heap_owner!=nullptr));
         REQUIRE(current==nullptr);current=this;m.data=memory.data();
         guest_string(0x718u,"INIT");
         guest_string(0x1384u,"INFO.DAT");
