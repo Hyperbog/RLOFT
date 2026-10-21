@@ -537,6 +537,12 @@ struct Opaque {
             throw;
         }
         guest->m.cpu=interrupted_cpu;
+        // Complete the real CODE2 2F468 dependency using the source
+        // resource callback table that loaded the eleven original
+        // archives into this SAME canonical CODE2 guest. Do not advance
+        // the suspended CPU stack until the source table is attached.
+        rloft::canonical_code2_runtime::attach_original_resource_callbacks(
+            canonical.get(),static_cast<void*>(&guest->res_callbacks));
         initialized=true;
     }
 };
