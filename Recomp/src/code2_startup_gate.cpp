@@ -52,6 +52,10 @@ struct Session {
     rloft::graphics::OriginalVgaHost* original_vga=nullptr;
     unsigned original_source_video_modes=0;
     unsigned original_source_dac_streams=0;
+    unsigned original_source_page_pushes=0;
+    unsigned original_source_page_pops=0;
+    unsigned original_source_page_selects=0;
+    unsigned original_source_planar_fills=0;
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
     code2::Application71Boundary keyboard_irq{};
@@ -1089,19 +1093,103 @@ void original_video_palette_29234(u32 palette_buffer) noexcept {
         stop("ORIGINAL_29234_FULL_PALETTE_DAC_FAILED");
     }
 }
-void original_2e590_presentation_reset(u32 code) noexcept {
-    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_2E590_ENTRY\n"<<std::flush;
-    if(code!=0u || !current->live_continuation ||
+// Source 20294 calls 2E590 (push output-page stack), 291B0 (select
+// page), two original 29B40 rectangular planar fills, then 2E5D4 (pop).
+// These are original CODE.2 functions on the SAME running CODE.2 stack.
+void original_291b0_source_page(u32 page) noexcept {
+    if(page>1u || !current->original_vga ||
+       current->original_source_video_modes!=1u)
+        stop("ORIGINAL_291B0_PAGE_UNSUPPORTED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_291b0(page);
+        if(bridge.source_page_select_calls!=1u)
+            stop("ORIGINAL_291B0_SOURCE_PAGE_NOT_EXECUTED");
+        ++current->original_source_page_selects;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_291B0_SOURCE_PAGE_VGA_IO_FAILED");
+    }
+}
+void original_2e590_presentation_reset(u32 page) noexcept {
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_2E590_SOURCE_PAGE_PUSH\n"<<std::flush;
+    if(page!=0u || !current->live_continuation ||
        !current->original_vga || current->original_source_video_modes!=1u ||
-       current->original_source_dac_streams!=1u)
-        stop("ORIGINAL_20294_PRESENTATION_RESET_PREREQUISITES");
+       current->original_source_dac_streams!=1u ||
+       current->original_source_page_pushes!=0u ||
+       current->data[0xF0D0u]!=0u)
+        stop("ORIGINAL_20294_PAGE_STACK_PUSH_PREREQUISITES");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e590(page);
+        if(bridge.source_page_push_calls!=1u ||
+           bridge.source_page_select_calls!=1u ||
+           current->data[0xF0D0u]!=1u)
+            stop("ORIGINAL_20294_PAGE_STACK_PUSH_INCOMPLETE");
+        ++current->original_source_page_pushes;
+        ++current->original_source_page_selects;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_20294_PAGE_STACK_SOURCE_VGA_FAILED");
+    }
+}
+void original_29b40_source_rectangle(u32 row,u32 x,u32 rows,u32 pixels,
+                                    u32 color) noexcept {
+    if(row!=0u || x!=0u || rows!=400u || pixels!=320u ||
+       color!=0u || !current->original_vga ||
+       current->original_source_page_pushes!=1u ||
+       current->original_source_planar_fills>=2u)
+        stop("ORIGINAL_20294_29B40_CLEAR_PARAMETERS_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_29b40(row,x,rows,pixels,color);
+        if(bridge.source_rectangle_fill_calls!=1u)
+            stop("ORIGINAL_20294_29B40_SOURCE_FILL_MISSING");
+        ++current->original_source_planar_fills;
+        std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_29B40_PAGE_CLEARED number="
+                 <<current->original_source_planar_fills<<"\n"<<std::flush;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_20294_29B40_PLANAR_DEVICE_FAILED");
+    }
+}
+void original_2e5d4_source_page_pop() noexcept {
+    if(!current->original_vga || current->original_source_page_pops!=0u ||
+       current->original_source_planar_fills!=2u ||
+       current->data[0xF0D0u]!=1u)
+        stop("ORIGINAL_20294_2E5D4_PAGE_STACK_IMBALANCED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e5d4();
+        if(bridge.source_page_pop_calls!=1u ||
+           bridge.source_page_select_calls!=1u ||
+           current->data[0xF0D0u]!=0u)
+            stop("ORIGINAL_20294_2E5D4_SOURCE_POP_INCOMPLETE");
+        ++current->original_source_page_pops;
+        ++current->original_source_page_selects;
+        std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_TWO_PAGES_SOURCE_CLEARED\n"<<std::flush;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_20294_2E5D4_SOURCE_POP_FAILED");
+    }
+}
+void original_5e38_post_video_init() noexcept {
+    if(!current->live_continuation ||
+       current->original_source_page_pushes!=1u ||
+       current->original_source_page_pops!=1u ||
+       current->original_source_page_selects!=4u ||
+       current->original_source_planar_fills!=2u ||
+       current->data[0xF0D0u]!=0u)
+        stop("ORIGINAL_5E38_PRECEDING_VIDEO_PAGE_CLEAR_NOT_EXECUTED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=NEXT_20440_5E38_SOURCE_DEPENDENCY\n"<<std::flush;
     rloft::guest_continuation::Reply response{};
     const rloft::guest_continuation::Request request{
-        rloft::guest_continuation::Service::Original2E590PresentationReset,
-        code,0u,0u,0u,0u};
+        rloft::guest_continuation::Service::Original5E38PostDoublePageClear,
+        0u,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
-        stop("ORIGINAL_20294_PRESENTATION_RESET_SHUTDOWN");
-    stop("ORIGINAL_2E590_RESOURCE_PRESENTATION_NOT_YET_IMPLEMENTED");
+        stop("ORIGINAL_5E38_HOST_SHUTDOWN");
+    // No invented graphics/event result after the first real page clear.
+    stop("ORIGINAL_5E38_NEXT_SOURCE_DEPENDENCY_UNIMPLEMENTED");
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -2284,6 +2372,10 @@ void attach_original_vga(
         throw std::logic_error("CODE2 VGA requires original RES cache");
     source.original_vga=original_video;
     source.presentation.call_2e590=&original_2e590_presentation_reset;
+    source.presentation.call_291b0=&original_291b0_source_page;
+    source.presentation.call_29b40=&original_29b40_source_rectangle;
+    source.presentation.call_2e5d4=&original_2e5d4_source_page_pop;
+    source.game.call_5e38=&original_5e38_post_video_init;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
@@ -2302,12 +2394,17 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
     if(!owner->live_worker->await_pause(owner->pending))
         throw std::runtime_error("Original CODE2 startup returned before 20294");
     if(owner->pending.service!=
-           rloft::guest_continuation::Service::Original2E590PresentationReset)
+           rloft::guest_continuation::Service::Original5E38PostDoublePageClear)
         throw std::runtime_error(
-            "Original CODE2 failed to advance through source VGA and DAC to 20294");
+            "Original CODE2 failed source 20294 page clear before 5E38");
     const auto& after=held(owner);
     if(after.original_source_video_modes!=1u ||
        after.original_source_dac_streams!=1u ||
+       after.original_source_page_pushes!=1u ||
+       after.original_source_page_pops!=1u ||
+       after.original_source_page_selects!=4u ||
+       after.original_source_planar_fills!=2u ||
+       after.data[0xF0D0u]!=0u ||
        after.original_vga->bios_mode()!=0x13u ||
        after.data[0xEF3Cu]!=3u ||
        code2::load_le16(after.data.data()+0xEF3Fu)!=400u ||
