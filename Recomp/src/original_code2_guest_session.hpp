@@ -34,5 +34,10 @@ std::uint32_t test_advance_to_original_video_mode(Opaque*);
 /* Original-media only: execute certified 290F4 video bootstrap on the
    SAME VGA device, then stop at the first original 20294/2E590 call. */
 std::uint32_t test_advance_through_original_video_mode(Opaque*);
+// Owner-original source experiment: resume the authentic second 16D04
+// call with the SAME borrowed original Application30 INIT callback
+// table, then report the next observed service or real child completion.
+// Zero indicates no next resumable host-service request was observed.
+std::uint32_t test_advance_past_original_second_init(Opaque*);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::original_code2_session
