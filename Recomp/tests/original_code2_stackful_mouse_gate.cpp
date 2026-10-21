@@ -37,6 +37,48 @@ int main(int argc,char** argv){
            !after.source_cpu_stack_resumable)
             throw std::runtime_error(
                 "Original mouse reset did not advance to tracked DPMI 0300 INT33");
+        // A virtual DOS mouse's explicit 33h response is written back
+        // to the source real-mode frame, then original source 33B44
+        // should release tracked 0101 memory and request INT33
+        // horizontal mouse range (function 7), then vertical (8).
+        const auto rangeX=owner::answer_real_mode_mouse(
+            guest.get(),1u,3u,0u,0u);
+        const auto after0300=owner::inspect(guest.get());
+        if(rangeX!=2u || owner::pending_host_service(guest.get())!=2u ||
+           after0300.host_dpmi_dos_blocks!=0u ||
+           after0300.original_dpmi_0101_releases!=1u ||
+           after0300.original_mouse_range_calls!=1u ||
+           after0300.pending_DOS_service_sequence!=3u ||
+           after0300.memory_address!=first.memory_address)
+            throw std::runtime_error(
+                "Original DPMI 0300 did not release 0101 and request mouse X range");
+        std::cout<<"ORIGINAL_CODE2_DPMI_0300_RESUMED_PASS"
+                 <<" original_DPMI_0101_release=1"
+                 <<" source_INT33_range7=PENDING"
+                 <<" source_stack=RETAINED\\n";
+        const auto rangeY=owner::answer_mouse_range(guest.get(),7u);
+        const auto afterRangeX=owner::inspect(guest.get());
+        if(rangeY!=2u || owner::pending_host_service(guest.get())!=2u ||
+           afterRangeX.original_mouse_range_calls!=2u ||
+           afterRangeX.pending_DOS_service_sequence!=4u)
+            throw std::runtime_error("Original source mouse Y range not reached");
+        const auto disk=owner::answer_mouse_range(guest.get(),8u);
+        const auto afterRangeY=owner::inspect(guest.get());
+        if(disk!=4u || owner::pending_host_service(guest.get())!=4u ||
+           afterRangeY.pending_DOS_service_sequence!=5u ||
+           afterRangeY.host_dpmi_dos_blocks!=0u ||
+           afterRangeY.memory_address!=first.memory_address ||
+           !afterRangeY.source_cpu_stack_resumable)
+            throw std::runtime_error(
+                "Original startup did not reach DOS 21h AH36 after range X/Y");
+        std::cout<<"ORIGINAL_CODE2_SOURCE_MOUSE_RANGE_TO_DISK_PASS"
+                 <<" DPMI0300=EXPLICIT_FRAME_WRITEBACK"
+                 <<" original_DPMI0101=RELEASED"
+                 <<" original_INT33_range7=EXECUTED"
+                 <<" original_INT33_range8=EXECUTED"
+                 <<" next_unsupported=DOS_INT21_AH36"
+                 <<" source_stack=PRESERVED"
+                 <<" original_game_loop=NOT_REACHED\\n";
         std::cout<<"ORIGINAL_CODE2_LIVE_STACKFUL_MOUSE_ADVANCE_PASS"
                  <<" source_entry=353A0_20608"
                  <<" mouse_reset_service=ACTUAL_SOURCE_INT33"
