@@ -300,7 +300,7 @@ jobs:
           }
           $combined = @($out.GetAwaiter().GetResult(), $err.GetAwaiter().GetResult()) -join "`n"
           foreach ($line in ($combined -split "`r?`n")) {
-            if ($line -match 'ORIGINAL_CODE2_SECOND_16D04|SECOND_16D04_SOURCE|CODE2_ORIGINAL_LIVE_INIT|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL|REAL_SECOND_INIT_') {
+            if ($line -match 'ORIGINAL_CODE2_SECOND_16D04|SECOND_16D04_SOURCE|CODE2_ORIGINAL_LIVE_INIT|CODE2_ORIGINAL_LIVE_VGA_TRACE|CODE2_SOURCE_CHAIN_STAGE|RLOFT_STAGED_TRACE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL|REAL_SECOND_INIT_') {
               Write-Host "SOURCE_SECOND_INIT: $line"
             }
           }
