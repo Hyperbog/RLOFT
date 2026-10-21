@@ -116,6 +116,8 @@ struct Session {
     unsigned init_opens=0,info_opens=0,res_opens=0;
     u32 music_base=0;
     bool error=false;
+    bool trace_materialize=false;
+    unsigned traced_allocs=0,traced_reads=0,traced_opens=0,traced_seeks=0;
     // Bounded execution of canonical 20608 on THIS resource guest. No
     // substitute getenv/atoi result or reset of the shared memory.
     std::jmp_buf original_game_escape{};
@@ -237,6 +239,8 @@ struct Session {
     }
     static u32 alloc_guest(u32 bytes) {
         auto& t=state();
+        if(t.trace_materialize && ++t.traced_allocs<=8u)
+            std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=ALLOC bytes="<<bytes<<"\n"<<std::flush;
         if(t.canonical_owner) {
             const auto ptr=rloft::canonical_code2_runtime::allocate_source_heap(
                 t.canonical_owner,bytes);
@@ -277,6 +281,8 @@ struct Session {
     }
     static code2::s32 open_resource(const u8* name) {
         auto& t=state();
+        if(t.trace_materialize && ++t.traced_opens<=8u)
+            std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=OPEN\n"<<std::flush;
         std::size_t n=0;
         while(n<84 && name[n]!=0)++n;
         if(n==0 || n==84){std::cerr<<"OPEN_RES_INVALID_LENGTH="<<n<<'\n';t.error=true;return -1;}
@@ -304,6 +310,9 @@ struct Session {
     }
     static u32 position(u32 offset,u32 origin,u32 handle) {
         auto& t=state();
+        if(t.trace_materialize && ++t.traced_seeks<=8u)
+            std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=SEEK handle="<<handle
+                     <<" offset="<<offset<<" origin="<<origin<<"\n"<<std::flush;
         const auto it=t.files.find(handle);
         if(it==t.files.end() || origin!=0 || offset>t.fixture.data[it->second.file].size()){
             t.error=true;return 0u;
@@ -312,6 +321,9 @@ struct Session {
     }
     static u32 copy_handle(u8* destination,u32 size,u32 handle) {
         auto& t=state();
+        if(t.trace_materialize && ++t.traced_reads<=8u)
+            std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=READ handle="<<handle
+                     <<" size="<<size<<"\n"<<std::flush;
         const auto it=t.files.find(handle);
         if(it==t.files.end()){t.error=true;return 0;}
         auto& h=it->second;
@@ -639,7 +651,9 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
     // The 2F468 source callback is now connected to the actual
     // original eleven-archive Application68 table in THIS guest.
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_BEGIN\n"<<std::flush;
+    s->guest->trace_materialize=true;
     REQUIRE(c::answer_source_resource_selection(owner)==6u);
+    s->guest->trace_materialize=false;
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_DONE_AT_VIDEO_290F4\n"<<std::flush;
     const auto after=inspect(s);
     REQUIRE(after.memory_address==first.memory_address &&
