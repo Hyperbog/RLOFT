@@ -61,6 +61,8 @@ struct Session {
     unsigned original_5e38_absent=0;
     unsigned original_28f58_calls=0;
     unsigned original_31218_checks=0;
+    unsigned original_312a0_calls=0;
+    unsigned original_16d04_entries=0;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
@@ -1240,16 +1242,30 @@ u32 original_31218_chars_probe(u32 path,u32 mode) noexcept {
 }
 u32 original_312a0_next_dos_open(u32 path) noexcept {
     if(path!=0x1148u || current->original_28f58_calls!=1u ||
-       current->original_31218_checks!=1u)
+       current->original_31218_checks!=1u || !current->host_files)
         stop("ORIGINAL_312A0_NEXT_SOURCE_FILE_PATH_CHANGED");
-    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=312A0_NEXT_DOS_OPEN_BOUNDARY\n"<<std::flush;
+    // Run genuine reconstructed 312A0 -> 37E77 (DOS 21h/3D00)
+    // through the same case-insensitive bounded read-only host transport
+    // used by SOUND.CFG. Never invent a handle or success status.
+    const auto handle=code2::function_312a0(current->dos_file_io,path);
+    ++current->original_312a0_calls;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=312A0_SOURCE_DOS_READONLY_OPEN_RETURN status="
+             <<handle<<"\n"<<std::flush;
+    return handle;
+}
+void original_16d04_after_dos_open() noexcept {
+    if(current->original_312a0_calls!=1u ||
+       current->original_31218_checks!=1u)
+        stop("ORIGINAL_16D04_INIT_PRECONDITION_NOT_MET");
+    ++current->original_16d04_entries;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=16D04_SECOND_INIT_SOURCE_BOUNDARY\n"<<std::flush;
     rloft::guest_continuation::Reply response{};
     const rloft::guest_continuation::Request request{
-        rloft::guest_continuation::Service::Original312A0CharacterPath,
-        path,0u,0u,0u,0u};
+        rloft::guest_continuation::Service::Original16D04SecondInit,
+        0u,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
-        stop("ORIGINAL_312A0_FILE_SERVICE_SHUTDOWN");
-    stop("ORIGINAL_312A0_NEXT_DOS_FILE_OPEN_UNIMPLEMENTED");
+        stop("ORIGINAL_16D04_SOURCE_SHUTDOWN");
+    stop("ORIGINAL_16D04_NEXT_INIT_CALLBACKS_NOT_CONNECTED");
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -2440,6 +2456,7 @@ void attach_original_vga(
     source.game.call_28f58=&original_28f58_volume;
     source.game.call_31218=&original_31218_chars_probe;
     source.game.call_312a0=&original_312a0_next_dos_open;
+    source.game.call_16d04=&original_16d04_after_dos_open;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
@@ -2458,9 +2475,9 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
     if(!owner->live_worker->await_pause(owner->pending))
         throw std::runtime_error("Original CODE2 startup returned before 20294");
     if(owner->pending.service!=
-           rloft::guest_continuation::Service::Original312A0CharacterPath)
+           rloft::guest_continuation::Service::Original16D04SecondInit)
         throw std::runtime_error(
-            "Original CODE2 failed source 5E38/28F58/31218 before 312A0");
+            "Original CODE2 failed source 312A0 read-only DOS open before 16D04");
     const auto& after=held(owner);
     if(after.original_source_video_modes!=1u ||
        after.original_source_dac_streams!=1u ||
@@ -2472,6 +2489,8 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
        after.original_5e38_absent!=1u ||
        after.original_28f58_calls!=1u ||
        after.original_31218_checks!=1u ||
+       after.original_312a0_calls!=1u ||
+       after.original_16d04_entries!=1u ||
        after.data[0xF0D0u]!=0u ||
        after.original_vga->bios_mode()!=0x13u ||
        after.data[0xEF3Cu]!=3u ||
