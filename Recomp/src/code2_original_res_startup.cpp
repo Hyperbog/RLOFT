@@ -356,7 +356,11 @@ struct Session {
         if(t.trace_materialize) {
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=31334_INDEXED_SEEK"
                      <<" item="<<item<<" handle="<<handle
-                     <<" absolute_offset="<<entry<<"\n"<<std::flush;
+                     <<" absolute_offset="<<entry
+                     <<" header_type="<<unsigned(file[entry+2u])
+                     <<" encoded_length="<<static_cast<std::int16_t>(
+                         code2::load_le16(file.data()+entry+3u))
+                     <<"\n"<<std::flush;
         }
     }
     static u32 copy_handle(u8* destination,u32 size,u32 handle) {
@@ -500,6 +504,34 @@ struct Session {
                  <<" guest_palette=C054"
                  <<" source_COLOR_file=READ_ONLY"
                  <<" DOS_CPU_CALL_ORDER=NOT_VERIFIED\n";
+    }
+    void verify_synthetic_first_indexed_record() {
+        REQUIRE(canonical_owner==nullptr && init_opens==1u &&
+                res_opens==11u && !error);
+        // The synthetic RES0 has two directory entries, both pointing
+        // at offset 12: original EH header, type1, 3 payload bytes.
+        // This executes canonical 2ECB4 -> 2EB60 -> 31334 and observes
+        // the final cursor after the 5+3 byte materialization read.
+        const u32 rec=code2::load_le32(memory.data()+0xF0B8u);
+        REQUIRE(code2::load_le32(memory.data()+rec)==0x100u);
+        REQUIRE(files.at(0x100u).cursor==4u);
+        trace_materialize=true;
+        code2::function_2ecb4(m,res_callbacks,0u,0u);
+        trace_materialize=false;
+        const u32 items=code2::load_le32(memory.data()+rec+12u);
+        REQUIRE(!error && files.at(0x100u).cursor==20u &&
+                code2::load_le16(memory.data()+0x2B670u)==0x4845u &&
+                memory[0x2B672u]==1u &&
+                code2::load_le16(memory.data()+0x2B673u)==3u &&
+                memory[items+2u]==1u &&
+                traced_allocs==1u && traced_reads==2u &&
+                traced_seeks==0u);
+        std::cout<<"ORIGINAL_CODE2_2ECB4_2EB60_31334_INDEXED_RES_SEEK_PASS"
+                 <<" source_calls=2ECB4_2EB60"
+                 <<" original_offset=12"
+                 <<" header=EH"
+                 <<" payload_bytes=3"
+                 <<" decoder=NOT_CONNECTED\n";
     }
     void boot() {
         REQUIRE(init_opens==0u && info_opens==0u && res_opens==0u);
@@ -764,6 +796,12 @@ void destroy(Opaque* s) noexcept {delete s;}
 
 int original_code2_resource_main(int argc,char** argv) {
     try {
+        if(argc==2 && std::string(argv[1])=="--test-indexed-31334") {
+            rloft_code2_resource_internal::Session fixture("","");
+            fixture.boot();
+            fixture.verify_synthetic_first_indexed_record();
+            return 0;
+        }
         const bool palette=(argc==7 && std::string(argv[1])=="--root" &&
             std::string(argv[3])=="--cd-root" &&
             std::string(argv[5])=="--palette-level");
