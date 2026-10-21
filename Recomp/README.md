@@ -210,3 +210,23 @@ no original gameplay tick, real window, or playable build is claimed.
 
 Next: connect a real native window/mouse INT33 host service and
 continue the original CODE.2 20608 path toward 1FC14..20293.
+
+## Part 31 - original CODE.2 stackful service-by-service execution
+
+[Original retail CODE.2 execution checkpoint](ORIGINAL_CODE2_STACKFUL_MOUSE_CONTINUATION_20261020.md):
+the canonical 353A0 -> 20608 startup now has a stack-preserving native
+worker that suspends at actual DOS INT33 mouse reset. The persistent
+INIT/RES/palette session borrows its authentic machine/heap/RAM while
+the source CPU stack remains suspended. A test-only explicit mouse
+response lets actual compiled CODE.2 execute its tracked DPMI
+INT31 AX=0100 DOS-memory allocation and reach the NEXT original DOS
+service, INT31 AX=0300 / 33AA0 real-mode mouse simulation. That second
+service waits for a real host register-frame implementation, without
+inventing a return value or restarting original CODE.2 startup.
+
+[Passed Windows original-media stackful / DPMI regression](https://github.com/Hyperbog/RLOFT/actions/runs/39523067077).
+The virtual-mouse response is test-only; live Win32 input, the DPMI
+0300 register exchange, further DOS services, original gameplay loop
+1FC14..20293 and frame presentation are NOT yet connected. This
+checkpoint is not a playable game.
+
