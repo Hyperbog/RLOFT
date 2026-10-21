@@ -1,0 +1,34 @@
+name: Recomp source callback frontier inspection
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - '.github/workflows/recomp-source-frontier-research.yml'
+
+jobs:
+  inspect-compiled-code2-next-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect original CODE2 reconstructed 2E590, 20294 and gameplay call edges
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          source=pathlib.Path("Code2/Code2.cpp").read_text(encoding="utf-8", errors="replace")
+          print("CODE2_SOURCE_LENGTH",len(source))
+          for needle in ["function_2e590", "function_20294", "function_1fc14",
+                         "Application45Boundary", "call_2e590", "function_2e5"]:
+              hits=[m.start() for m in re.finditer(re.escape(needle), source,flags=re.I)]
+              print("\n=== SOURCE TARGET:",needle,"occurrences:",len(hits)," ===",flush=True)
+              for pos in hits[:4]:
+                  start=max(0,pos-250)
+                  stop=min(len(source),pos+(7500 if needle.lower() in
+                    ["function_2e590","function_20294","application45boundary"] else 2100))
+                  print(source[start:stop],flush=True)
+          PY
