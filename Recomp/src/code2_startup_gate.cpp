@@ -1012,8 +1012,12 @@ void original_source_resource_selection(u32 context,u32 item,u32 display_byte) n
        code2::load_le32(current->data.data()+0xF0B8u)==0u)
         stop("LIVE_ORIGINAL_2F468_RESOURCE_CACHE_NOT_CONNECTED");
     // The original source selector, not an invented table/index update.
+    std::cerr<<"CODE2_ORIGINAL_2F468_STAGE=SOURCE_BODY_BEGIN"
+             <<" context="<<context<<" item="<<item
+             <<" display_byte="<<display_byte<<"\n"<<std::flush;
     code2::function_2f468(current->machine,current->game_audio,
                            context,item,display_byte);
+    std::cerr<<"CODE2_ORIGINAL_2F468_STAGE=SOURCE_BODY_RETURNED\n"<<std::flush;
 }
 void original_video_mode_290f4(u32 mode) noexcept {
     std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=290F4_ENTRY\n"<<std::flush;
