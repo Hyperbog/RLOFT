@@ -7,6 +7,7 @@
 #include "original_media_identity.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
+#include "original_dpmi_real_mode_mouse.hpp"
 #include "dos_readonly_files.hpp"
 #include "dpmi_dos_memory.hpp"
 #include "dpmi_linear_memory.hpp"
@@ -787,20 +788,30 @@ u32 stop_at_original_int31_real_mode_mouse(u32 interrupt,u32* in,
        code2::load_le16(segment(0x30u,0x2B770u+0x22u,2))!=0x2D60u)
         stop("ORIGINAL_33AA0_DPMI_0300_FRAME_CHANGED");
     if(current->live_continuation) {
-        // The original C++ guest stack remains alive at the NEXT
-        // unimplemented DOS service. INT31 AX=0300 simulates INT33
-        // from the original 33AA0 real-mode register frame. Await
-        // an explicit host response, never manufacture an installed
-        // DOS mouse device by silently returning success.
+        // DPMI 0300 passes the original 33AA0 real-mode register
+        // image by offset. Honor the tracked DOS AX=0100 segment,
+        // and update EAX/EBX/ECX/EDX at the actual DPMI frame slots.
+        // A host must explicitly answer this INT33 service; the
+        // execution is paused here until it does.
+        const auto* block=current->dpmi_dos_memory?
+            current->dpmi_dos_memory->block(0x0060u):nullptr;
+        if(!block || block->segment!=
+           code2::load_le16(segment(0x30u,0x2B770u+0x22u,2)))
+            stop("LIVE_ORIGINAL_DPMI_0300_TRACKED_SEGMENT_MISMATCH");
+        const auto before=rloft::dpmi_real_mode_mouse::before(
+            current->data.data(),current->data.size(),0x2B770u,block->segment);
+        if(before.eax!=0x53C1u)
+            stop("LIVE_ORIGINAL_DPMI_0300_SOURCE_MOUSE_FUNCTION_CHANGED");
         rloft::guest_continuation::Reply response{};
         const rloft::guest_continuation::Request request{
             rloft::guest_continuation::Service::DpmiRealModeInt33,
-            in[0],in[1],in[5],0u,0u};
+            in[0],in[1],in[5],before.eax,0u};
         if(!current->live_continuation->suspend(request,response))
             stop("LIVE_ORIGINAL_DPMI_MOUSE_SHUTDOWN");
-        // The host must separately implement the register-frame
-        // transformation before this callback can return.
-        stop("LIVE_ORIGINAL_DPMI_0300_RESPONSE_NOT_YET_IMPLEMENTED");
+        rloft::dpmi_real_mode_mouse::apply(
+            current->data.data(),current->data.size(),0x2B770u,
+            block->segment,{response.ax,response.bx,response.cx,response.dx});
+        return 0u; // DPMI itself succeeded; 33B44 checks returned EAX.
     }
     if(current->mouse_branch==MouseResetBranch::MemoryHandoff)
         stop("STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION");
@@ -835,6 +846,21 @@ code2::Runtime101MouseRegs source_mouse_present_2e340() noexcept {
 code2::Runtime101MouseRegs interrupt_mouse_range_boundary(
     u32 command,u32 ebx,u32 ecx,u32 edx) noexcept {
     ++current->mouse_range_calls;
+    if(current->live_continuation) {
+        if((command!=7u && command!=8u) || ebx!=0u || ecx!=0u ||
+           (command==7u && edx!=0x027Eu) ||
+           (command==8u && edx!=0x00C7u))
+            stop("LIVE_ORIGINAL_INT33_MOUSE_RANGE_ARGUMENTS_CHANGED");
+        // DOS INT33 0007/0008: set mouse horizontal/vertical range.
+        // The virtual host must acknowledge each actual source call.
+        rloft::guest_continuation::Reply response{};
+        const rloft::guest_continuation::Request request{
+            rloft::guest_continuation::Service::DosMouseRange,
+            command,ebx,ecx,edx,0u};
+        if(!current->live_continuation->suspend(request,response))
+            stop("LIVE_ORIGINAL_INT33_MOUSE_RANGE_SHUTDOWN");
+        return {response.ax,response.bx,response.cx,response.dx};
+    }
     if(ebx!=0u || ecx!=0u ||
        (command==7u && edx!=0x027Eu) ||
        (command==8u && edx!=0x00C7u) ||
