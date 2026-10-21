@@ -1876,9 +1876,9 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     if(retained_owner) {
         require(state.machine.data==state.data.data() &&
                 source_host_heap && execute_application &&
-                !advance_to_mouse &&
+                advance_to_mouse && advance_to_sound_file &&
                 state.stop_reason==std::string(
-                    "STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"),
+                    "STOP_BEFORE_DOS_INT33_MOUSE_RESET"),
                 "Cannot retain incomplete original startup/heap guest");
         *retained_owner=std::move(owner);
     }
@@ -1895,9 +1895,19 @@ Opaque* start(const std::filesystem::path& original_code2) {
         throw std::runtime_error("Original CODE.2 identity mismatch");
     const auto image=rloft_recomp::OriginalLeImage::parse(bytes);
     auto result=std::make_unique<Opaque>();
+    const auto sound_path=original_code2.parent_path()/"SOUND.CFG";
+    const auto sound_name=sound_path.string();
+    const auto sound=read_file(sound_name.c_str());
+    if(sound.size()!=59u)
+        throw std::runtime_error("Original SOUND.CFG is not 59 bytes");
+    const auto root=original_code2.parent_path();
+    // Execute real canonical CODE.2 startup and application main across
+    // source 375FE vector install, 30BB4 keyboard IVT, and 59-byte
+    // SOUND.CFG host read, STOPPING at the actual unimplemented INT33
+    // mouse reset. No made-up driver-present response is supplied.
     run(image,true,true,true,GameConfig::Unset,
-        false,false,false,nullptr,MouseResetBranch::Stop,
-        nullptr,false,false,true,false,false,&result->session);
+        true,true,true,&sound,MouseResetBranch::Stop,
+        &root,false,false,true,false,false,&result->session);
     if(!result->session)
         throw std::runtime_error("Canonical CODE.2 startup was not retained");
     return result.release();
@@ -1907,7 +1917,7 @@ Evidence inspect(const Opaque* owner) {
         throw std::invalid_argument("Missing canonical CODE.2 source runtime");
     const auto& s=*owner->session;
     if(s.data.data()!=s.machine.data || !s.dpmi_linear_memory ||
-       s.stop_reason!=std::string("STOP_BEFORE_ORIGINAL_DOS_VECTOR_INSTALL_375FE"))
+       s.stop_reason!=std::string("STOP_BEFORE_DOS_INT33_MOUSE_RESET"))
         throw std::runtime_error("Canonical source heap/guest identity changed");
     Evidence out{};
     out.memory_address=s.data.data();
@@ -1915,6 +1925,11 @@ Evidence inspect(const Opaque* owner) {
     out.heap_arena_header=code2::load_le32(s.data.data()+0x12624u);
     out.source_353a0_executed=s.completed_initializers==4u;
     out.source_20608_executed=s.audio_init_calls==1u;
+    out.source_keyboard_vectors_installed=
+        s.irq_vector_sets==3u && s.irq_vector_reads==3u;
+    out.source_sound_config_read=
+        s.dos_file_reads==1u && s.dos_file_closes==1u &&
+        s.mouse_reset_calls==1u;
     out.original_getenv_calls=s.getenv_calls;
     out.source_heap_provider_retained=true;
     out.source_cpu_stack_resumable=false;
