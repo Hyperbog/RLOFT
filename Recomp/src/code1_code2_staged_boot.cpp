@@ -93,6 +93,13 @@ int main(int argc,char** argv) {
                    now.selected_palette!=3u || now.vga_port_writes!=769u ||
                    now.dispatch_calls==0u || now.original_game_loop_connected)
                     throw std::runtime_error("CODE.2 resource/palette guest state lost on Pending");
+                if(now.dispatch_calls==3u) {
+                    // Execute original source from suspended CODE2 mouse
+                    // through the attached 11 RES table and authentic
+                    // 2F468, stopping before unconnected 290F4 video.
+                    if(owner::test_advance_to_original_video_mode(game.get())!=6u)
+                        throw std::runtime_error("CODE2 did not reach source VGA initialization");
+                }
                 return {runtime::Progress::Pending,0};
             }
         };
@@ -112,6 +119,11 @@ int main(int argc,char** argv) {
            second.steps!=2u || !second.running ||
            second.chars_available || second.stopped)
             throw std::runtime_error("Original R.EXE invented CODE2 exit or relaunched guest");
+        const auto third=session.step_once();
+        if(third.current!=rloft::original_supervisor::Module::Code2 ||
+           third.launches!=1u || third.transitions!=0u ||
+           third.steps!=3u || third.stopped || !third.running)
+            throw std::runtime_error("CODE2 virtual host-service progress restarted the DOS child");
         std::cout<<"RLOFT_CODE2_SAME_GUEST_PERSISTENCE_PASS"
                  <<" source_init=16D04"
                  <<" source_archives=11"
