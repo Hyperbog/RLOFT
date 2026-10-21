@@ -104,6 +104,11 @@ struct Bridge {
         auto b=app61();
         code2::function_2ac10(self().machine,b,count);
     }
+    static u32 source_29a84() noexcept {
+        auto gfx=graphics();
+        code2::function_29a84(gfx);
+        return 0;
+    }
     static u32 source_29930(u32 mode,u32 descriptor) noexcept {
         auto b=graphics();
         return code2::function_29930(self().machine,b,mode,descriptor);
@@ -159,6 +164,7 @@ struct Bridge {
     }
     static code2::Application56Boundary app56() noexcept {
         code2::Application56Boundary b{};
+        b.call_29a84=&source_29a84;
         b.call_29930=&source_29930;
         b.call_2a104=&source_2a104;
         b.call_29fec=&source_29fec;
