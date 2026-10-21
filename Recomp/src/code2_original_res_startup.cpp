@@ -656,6 +656,10 @@ struct Opaque {
                 guest->video_port_writes==769u);
         c::attach_original_resource_callbacks(
             canonical.get(),static_cast<void*>(&guest->res_callbacks));
+        // Keep the SAME original Application30 INIT file reader available
+        // when original CODE2 20440 later calls 16D04 a second time.
+        c::attach_original_init_callbacks(
+            canonical.get(),static_cast<void*>(&guest->init_callbacks));
         c::attach_original_vga(canonical.get(),&guest->video);
         resources_loaded=true;
         std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=ORIGINAL_2F468_LAZY_RES_INIT_DONE\n"<<std::flush;
