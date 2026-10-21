@@ -360,12 +360,12 @@ endif()
 
 # Real CODE.2 INIT/INFO.DAT/RES archive 0..10 source path:
 # separate, bounded subsystem startup (not a game executable).
+# The resource source includes the canonical startup implementation in
+# a single source translation unit. CODE2.cpp is non-inline; compiling
+# both independently produces duplicate original game-code symbols.
 add_executable(rloft_original_code2_init_resources
     src/code2_original_res_startup.cpp
-    src/code2_startup_gate.cpp
     src/original_le_image.cpp)
-target_compile_definitions(rloft_original_code2_init_resources
-    PRIVATE RLOFT_STARTUP_GATE_NO_MAIN)
 set_target_properties(rloft_original_code2_init_resources PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
@@ -387,7 +387,6 @@ add_executable(rloft_code1_code2_staged_boot
     src/code1_code2_staged_boot.cpp
     src/code1_startup_gate.cpp
     src/code2_original_res_startup.cpp
-    src/code2_startup_gate.cpp
     src/original_le_image.cpp)
 target_compile_definitions(rloft_code1_code2_staged_boot PRIVATE RLOFT_BUNDLE_NO_MAIN)
 set_target_properties(rloft_code1_code2_staged_boot PROPERTIES
