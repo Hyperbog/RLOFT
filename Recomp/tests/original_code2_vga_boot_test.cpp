@@ -60,6 +60,20 @@ int main(){
               !bridge.invalid_access &&
               !video.unsupported_read(),
               "Original 20294 double-page planar source clear diverged");
+        // The actual CODE.2 20440 path may invoke 20294 AGAIN after a
+        // second 16D04 INIT. Test one more original-source page push,
+        // two clears and balanced pop against the SAME guest/VGA state.
+        rloft::source_video_boot::Bridge repeat(machine,video,memory.size());
+        repeat.run_original_20294();
+        check(repeat.source_page_push_calls==1u &&
+              repeat.source_page_pop_calls==1u &&
+              repeat.source_rectangle_fill_calls==2u &&
+              repeat.source_page_select_calls==4u &&
+              memory[0xF0D0u]==0u &&
+              memory[0xEF4Du]==prior_page &&
+              video.bios_mode()==0x13u &&
+              !repeat.invalid_access && !video.unsupported_read(),
+              "Repeated original 20294 failed to retain balanced source VGA pages");
         // Original source video shutdown route requests the DOS text mode.
         bridge.run_original_290f4(0xFFu);
         check(video.bios_mode()==3u && memory[0xEF3Cu]==0xFFu,
@@ -70,6 +84,7 @@ int main(){
                  <<" BIOS_mode_13=EXECUTED"
                  <<" original_29234_DAC=768_RGB6"
                  <<" original_20294_two_page_clear=2E590_291B0_29B40_2E5D4"
+                 <<" repeated_20294_source_cycles=2"
                  <<" text_mode_exit=EXECUTED"
                  <<" original_1FC14_loop=NOT_REACHED\n";
         return 0;
