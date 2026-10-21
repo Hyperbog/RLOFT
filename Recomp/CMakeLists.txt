@@ -399,6 +399,16 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# Portably encode observed host volume stats into bounded DOS AH36
+# AX/BX/CX/DX registers. This never depends on original game media.
+add_executable(rloft_host_dos_disk_space_test
+    tests/host_dos_disk_space_test.cpp)
+target_compile_features(rloft_host_dos_disk_space_test PRIVATE cxx_std_17)
+if(BUILD_TESTING)
+    add_test(NAME host_dos_int21_ah36_cluster_geometry
+        COMMAND rloft_host_dos_disk_space_test)
+endif()
+
 # DPMI 0300 0x32-byte real-mode register frame is validated without
 # commercial media, including EAX/EBX/ECX/EDX writeback and ES/flags.
 add_executable(rloft_original_dpmi_real_mode_mouse_test
