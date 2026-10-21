@@ -25,6 +25,10 @@ struct Bridge {
     u32 bios_changes=0;
     u32 source_mode_calls=0;
     u32 source_palette_stream_calls=0;
+    u32 source_page_push_calls=0;
+    u32 source_page_pop_calls=0;
+    u32 source_page_select_calls=0;
+    u32 source_rectangle_fill_calls=0;
     explicit Bridge(code2::Machine& guest,
                     rloft::graphics::OriginalVgaHost& v,
                     std::size_t memory_bytes)
@@ -183,6 +187,111 @@ struct Bridge {
         b.call_296c0=&source_296c0;
         b.call_29ca0=&source_29ca0;
         return b;
+    }
+    // Original 20294 is a page-stack push, two source 29B40 planar
+    // rectangles, and a page-stack pop. Do not replace with a memset
+    // or a host-only acknowledgement: this path must keep both the
+    // source memory globals and real VGA plane registers synchronized.
+    static code2::Application58Boundary app58() noexcept {
+        code2::Application58Boundary b{};
+        b.in8=&in8;
+        b.out8=&out8;
+        b.out16=&out16;
+        b.vga_read8=&vga_read;
+        b.vga_write8=&vga_write;
+        return b;
+    }
+    static void source_page_select(u32 page) noexcept {
+        auto cb=app56();
+        code2::function_291b0(self().machine,cb,page);
+        ++self().source_page_select_calls;
+    }
+    static void source_page_stack_error(u32) noexcept {
+        self().invalid_access=true; // original 2F580 error branch
+    }
+    static code2::Application67Boundary app67() noexcept {
+        code2::Application67Boundary b{};
+        b.call_291b0=&source_page_select;
+        b.call_2f580=&source_page_stack_error;
+        return b;
+    }
+    static void source_page_push(u32 page) noexcept {
+        const u8 depth=self().machine.data[0xF0D0u];
+        if(depth>=10u){self().invalid_access=true;return;}
+        auto cb=app67();
+        code2::function_2e590(self().machine,cb,page);
+        ++self().source_page_push_calls;
+    }
+    static void source_page_pop() noexcept {
+        if(self().machine.data[0xF0D0u]==0u) {
+            self().invalid_access=true;return;
+        }
+        auto cb=app67();
+        code2::function_2e5d4(self().machine,cb);
+        ++self().source_page_pop_calls;
+    }
+    static void source_planar_rectangle(u32 row,u32 x,u32 rows,
+                                        u32 pixels,u32 color) noexcept {
+        // Source 29B40 expects row, horizontal offset, number of
+        // rows, horizontal pixels and VGA color in that order.
+        auto cb=app58();
+        code2::function_29b40(self().machine,cb,
+            static_cast<code2::s32>(row),static_cast<code2::s32>(x),
+            static_cast<code2::s32>(rows),
+            static_cast<code2::s32>(pixels),color);
+        ++self().source_rectangle_fill_calls;
+    }
+    void run_original_2e590(u32 page) {
+        if(page>1u || machine.data[0xF0D0u]>=10u)
+            throw std::invalid_argument("Original 2E590 page-stack push bounds");
+        Scope scope(*this);
+        source_page_push(page);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2E590 page push VGA failure");
+    }
+    void run_original_291b0(u32 page) {
+        if(page>1u)throw std::invalid_argument("Original 291B0 page outside double buffer");
+        Scope scope(*this);
+        source_page_select(page);
+        if(invalid_access || video.unsupported_read() ||
+           machine.data[0xEF4Du]!=page)
+            throw std::runtime_error("Original 291B0 source page selection failed");
+    }
+    void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
+        if(row+rows>400u || x+pixels>320u ||
+           rows==0u || pixels==0u || color>255u)
+            throw std::invalid_argument("Original 29B40 rect outside 320x400");
+        Scope scope(*this);
+        source_planar_rectangle(row,x,rows,pixels,color);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 29B40 source planar VGA write failed");
+    }
+    void run_original_2e5d4() {
+        if(machine.data[0xF0D0u]==0u)
+            throw std::invalid_argument("Original 2E5D4 empty page stack");
+        Scope scope(*this);
+        source_page_pop();
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2E5D4 page pop VGA failure");
+    }
+    void run_original_20294() {
+        if(machine.data[0xF0D0u]!=0u ||
+           code2::load_le16(machine.data+0xEF3Fu)!=400u)
+            throw std::runtime_error("Original 20294 source initial page state invalid");
+        const u8 saved=machine.data[0xEF4Du];
+        Scope scope(*this);
+        code2::Application45Boundary b{};
+        b.call_2e590=&source_page_push;
+        b.call_291b0=&source_page_select;
+        b.call_29b40=&source_planar_rectangle;
+        b.call_2e5d4=&source_page_pop;
+        code2::function_20294(machine,b);
+        if(invalid_access || video.unsupported_read() ||
+           machine.data[0xF0D0u]!=0u ||
+           machine.data[0xEF4Du]!=saved ||
+           source_page_push_calls!=1u || source_page_pop_calls!=1u ||
+           source_rectangle_fill_calls!=2u)
+            throw std::runtime_error("Original 20294 did not clear two source pages");
     }
     void run_original_290f4(u32 mode) {
         if(mode!=3u && mode!=0xFFu)
