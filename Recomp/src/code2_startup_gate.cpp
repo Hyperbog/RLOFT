@@ -892,8 +892,34 @@ void original_mouse_range_x(u32 lo,u32 hi) noexcept {
 void original_mouse_range_y(u32 lo,u32 hi) noexcept {
     (void)code2::function_33d38(current->mouse_range,lo,hi);
 }
-bool stop_at_dos_disk_free(u8 drive,u16&,u16&,u16&,u16&) noexcept {
+bool stop_at_dos_disk_free(u8 drive,u16& sectors_per_cluster,
+                           u16& free_clusters,u16& bytes_per_sector,
+                           u16& total_clusters) noexcept {
     ++current->disk_space_calls;
+    if(current->live_continuation) {
+        if(drive!=0u || current->mouse_range_calls!=2u ||
+           current->dpmi_mouse_free_calls!=1u ||
+           current->dpmi_dos_memory->allocation_count()!=0u)
+            stop("LIVE_ORIGINAL_DOS_AH36_SERVICE_ORDER_CHANGED");
+        // DOS INT21 AH36 is the next original startup dependency.
+        // Do not assume disk geometry/available clusters from a modern
+        // host filesystem. Stop at the exact service and demand a
+        // separately implemented DOS response from the host.
+        rloft::guest_continuation::Reply reply{};
+        const rloft::guest_continuation::Request request{
+            rloft::guest_continuation::Service::DosDiskFree,
+            drive,0u,0u,0u,0u};
+        if(!current->live_continuation->suspend(request,reply))
+            stop("LIVE_ORIGINAL_DOS_AH36_SHUTDOWN");
+        if(reply.ax==0u || reply.ax==0xFFFFu || reply.cx==0u ||
+           reply.bx>0xFFFFu || reply.dx>0xFFFFu)
+            stop("LIVE_ORIGINAL_DOS_AH36_INVALID_GEOMETRY");
+        sectors_per_cluster=static_cast<u16>(reply.ax);
+        free_clusters=static_cast<u16>(reply.bx);
+        bytes_per_sector=static_cast<u16>(reply.cx);
+        total_clusters=static_cast<u16>(reply.dx);
+        return true;
+    }
     if(drive!=0u || current->mouse_branch!=MouseResetBranch::DiskSpace ||
        current->mouse_range_calls!=2u)
         stop("ORIGINAL_DOS_DISK_FREE_SERVICE_ORDER_CHANGED");
