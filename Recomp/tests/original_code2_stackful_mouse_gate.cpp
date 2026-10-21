@@ -6,9 +6,11 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 int main(int argc,char** argv){
     try{
-        if(argc!=2)throw std::invalid_argument("usage: stackful_mouse_gate ORIGINAL_CODE.2");
+        if(argc!=2 && !(argc==3 && std::string(argv[2])=="--through-host-disk"))
+            throw std::invalid_argument("usage: stackful_mouse_gate ORIGINAL_CODE.2 [--through-host-disk]");
         namespace owner=rloft::canonical_code2_runtime;
         std::unique_ptr<owner::Opaque,void(*)(owner::Opaque*)> guest(
             owner::start_stackful(argv[1]),&owner::destroy);
@@ -88,6 +90,24 @@ int main(int argc,char** argv){
                  <<" next_unsupported=ORIGINAL_33AA0_INT31_0300_MOUSE"
                  <<" suspended_guest_stack=PRESERVED"
                  <<" native_gameplay_frame=NOT_REACHED\n";
+        if(argc==3) {
+            // Deliberately execute actual original CODE2 beyond the
+            // previously unsupported AH36 callback using OBSERVED host
+            // volume capacity and available space, converted to DOS 16-
+            // bit FAT-style geometry. This MAY encounter another real
+            // unavailable host callback. Never mark gameplay ready.
+            std::cout<<"ORIGINAL_CODE2_AH36_HOST_ADVANCE_BEGIN"
+                     <<" input_volume=OWNER_ORIGINAL_INSTALL"
+                     <<" source_35286=ORIGINAL_CODE2"<<std::endl;
+            const auto nextService=owner::answer_host_disk_free(guest.get());
+            if(!nextService)
+                throw std::runtime_error(
+                    "Original CODE2 source returned after AH36 without gameplay acceptance");
+            std::cout<<"ORIGINAL_CODE2_AFTER_AH36_NEW_SERVICE"
+                     <<" service="<<nextService
+                     <<" source_stack=PRESERVED"
+                     <<" original_game_loop=NOT_VERIFIED\n";
+        }
         return 0;
     }catch(const std::exception& ex) {
         std::cerr<<"ORIGINAL_CODE2_STACKFUL_MOUSE_GATE_FAIL: "<<ex.what()<<'\n';
