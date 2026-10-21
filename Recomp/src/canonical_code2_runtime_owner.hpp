@@ -16,6 +16,7 @@ struct Evidence {
     std::uint32_t heap_arena_header=0;
     bool source_353a0_executed=false;
     bool source_20608_executed=false;
+    std::uint32_t original_getenv_calls=0;
     bool source_heap_provider_retained=false;
     bool source_cpu_stack_resumable=false;
 };
@@ -23,5 +24,6 @@ Opaque* start(const std::filesystem::path& original_code2);
 Evidence inspect(const Opaque*);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
+std::uint32_t allocate_source_heap(Opaque*,std::uint32_t bytes);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::canonical_code2_runtime
