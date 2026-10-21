@@ -31,5 +31,8 @@ void dispatch_pending(Opaque*);
 // from DOS startup through source 2F468 resource selection, then stop at
 // the next 290F4 graphics/VGA dependency. No production device is claimed.
 std::uint32_t test_advance_to_original_video_mode(Opaque*);
+/* Original-media only: execute certified 290F4 video bootstrap on the
+   SAME VGA device, then stop at the first original 20294/2E590 call. */
+std::uint32_t test_advance_through_original_video_mode(Opaque*);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::original_code2_session
