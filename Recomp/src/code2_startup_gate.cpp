@@ -128,6 +128,7 @@ struct Session {
     unsigned version_calls=0, ff00_calls=0, dpmi_calls=0, completed_initializers=0;
 };
 thread_local Session* current=nullptr;
+thread_local bool tracing_original_136_byte_heap=false;
 [[noreturn]] void stop(const char* reason) noexcept {
     current->stop_reason=reason;
     std::longjmp(*current->active_escape,1);
@@ -334,15 +335,15 @@ bool host_heap_owned(u32 linear,std::size_t size) noexcept {
     return host_heap_owned(*current,linear,size);
 }
 u32 host_heap_39c7b(u32 n) noexcept {
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_ENTER requested="<<n<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_ENTER requested="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39c7b(current->machine,current->heap_provider,n);
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_RETURN ptr="<<result<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_RETURN ptr="<<result<<"\n"<<std::flush;
     return result;
 }
 u32 host_heap_39bbc(u32 n) noexcept {
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39BBC_ENTER offset="<<n<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39BBC_ENTER offset="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39bbc(current->machine,n);
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39BBC_RETURN value="<<result<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39BBC_RETURN value="<<result<<"\n"<<std::flush;
     return result;
 }
 void host_heap_free(u32 root,u32 payload) noexcept {
@@ -379,23 +380,23 @@ u32 host_break_extend(u32 target) noexcept {
 }
 u32 host_heap_39e1c(u32 n) noexcept {
     ++current->host_heap_growths;
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39E1C_GROW_ENTER bytes="<<n<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39E1C_GROW_ENTER bytes="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39e1c(current->machine,current->heap_growth,n);
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39E1C_GROW_RETURN ptr="<<result<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39E1C_GROW_RETURN ptr="<<result<<"\n"<<std::flush;
     return result;
 }
 u32 host_heap_39d4d(u32 n) noexcept {
     ++current->host_heap_growths;
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_ENTER bytes="<<n<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_ENTER bytes="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39d4d(current->machine,current->heap_growth,n);
-    if(n<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_RETURN ptr="<<result<<"\n"<<std::flush;
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_RETURN ptr="<<result<<"\n"<<std::flush;
     return result;
 }
 u32 host_heap_alloc(u32 root,u32 req) noexcept {
     auto& s=*current;
     if(root!=0x12624u || !req || req>0xFFFFFFD4u)
         stop("SOURCE_HEAP_ALLOC_ABI_CHANGED");
-    if(req<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=ARENA_ALLOC_ENTER bytes="<<req
+    if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=ARENA_ALLOC_ENTER bytes="<<req
                          <<" arena_head="<<code2::load_le32(s.data.data()+root)<<"\n"<<std::flush;
     unsigned visited=0u;
     for(u32 node=code2::load_le32(s.data.data()+root);node;) {
@@ -404,10 +405,10 @@ u32 host_heap_alloc(u32 root,u32 req) noexcept {
         if(++visited>4096u)
             stop("SOURCE_HEAP_ARENA_CHAIN_CYCLE_OR_EXCESSIVE_LENGTH");
         const u32 next=code2::load_le32(segment(0x30u,node+8u,4u));
-        if(req<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_ENTER node="<<node
+        if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_ENTER node="<<node
                              <<" next="<<next<<"\n"<<std::flush;
         const u32 p=code2::function_39838(s.machine,node,req);
-        if(req<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_RETURN ptr="<<p<<"\n"<<std::flush;
+        if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_RETURN ptr="<<p<<"\n"<<std::flush;
         if(p) {
             if(!host_heap_owned(p,req))
                 stop("SOURCE_HEAP_ALLOC_OUTSIDE_TRACKED_GUEST_PAGES");
@@ -2396,6 +2397,8 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
         throw std::runtime_error("Canonical source heap lost its guest aperture");
     Session* const previous=current;
     current=&s;
+    const bool previous_heap_trace=tracing_original_136_byte_heap;
+    tracing_original_136_byte_heap=(bytes==136u);
     std::jmp_buf host_escape;
     auto* const previous_escape=s.active_escape;
     s.active_escape=&host_escape;
@@ -2407,21 +2410,24 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     const int boundary=setjmp(host_escape);
     if(boundary!=0) {
         s.active_escape=previous_escape;
+        tracing_original_136_byte_heap=previous_heap_trace;
         current=previous;
         throw std::runtime_error(std::string(
             "Original CODE.2 37B42 host heap stopped: ")+s.stop_reason);
     }
     try {
-        if(bytes<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=37B42_ENTER bytes="<<bytes
+        if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=37B42_ENTER bytes="<<bytes
                                 <<" heap_root="<<code2::load_le32(s.data.data()+0x12624u)<<"\n"<<std::flush;
         value=code2::function_37b42(s.heap,bytes);
-        if(bytes<=512u)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=37B42_RETURN ptr="<<value<<"\n"<<std::flush;
+        if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=37B42_RETURN ptr="<<value<<"\n"<<std::flush;
     }catch(...) {
         s.active_escape=previous_escape;
+        tracing_original_136_byte_heap=previous_heap_trace;
         current=previous;
         throw;
     }
     s.active_escape=previous_escape;
+    tracing_original_136_byte_heap=previous_heap_trace;
     current=previous;
     if(!value || std::uint64_t(value)+bytes>s.data.size())
         throw std::runtime_error("Canonical CODE.2 37B42 heap exhausted");
