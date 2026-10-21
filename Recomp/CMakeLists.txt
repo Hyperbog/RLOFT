@@ -423,6 +423,21 @@ if(BUILD_TESTING)
         COMMAND rloft_original_dpmi_real_mode_mouse_test)
 endif()
 
+# Retail CODE.2 source object1 5E38 missing/present GAME.OPT branches:
+# read exactly 0Eh bytes, apply original actor flag, palette and sound calls.
+add_executable(rloft_original_code2_game_options_test
+    tests/original_code2_game_options_test.cpp)
+target_compile_features(rloft_original_code2_game_options_test PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(rloft_original_code2_game_options_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_game_options_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_5e38_game_opt_exact_optional_file_branches
+        COMMAND rloft_original_code2_game_options_test)
+endif()
+
 # Execute the original 290F4 -> 29930 VGA mode implementation on the
 # existing planar VGA host; source CRTC, page and DAC callbacks are real.
 add_executable(rloft_original_code2_vga_boot_test
