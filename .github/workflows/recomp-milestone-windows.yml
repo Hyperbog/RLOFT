@@ -33,6 +33,8 @@ on:
       - 'Recomp/tests/original_r_exe_native_session_test.cpp'
       - 'Recomp/tests/original_r_exe_supervisor_test.cpp'
       - 'Recomp/src/original_guest_continuation.hpp'
+      - 'Recomp/src/original_code2_video_boot.hpp'
+      - 'Recomp/tests/original_code2_vga_boot_test.cpp'
       - 'Recomp/src/original_dpmi_real_mode_mouse.hpp'
       - 'Recomp/src/host_dos_disk_space.hpp'
       - 'Recomp/tests/host_dos_disk_space_test.cpp'
@@ -206,6 +208,9 @@ jobs:
           # never original resource payloads or game-file bytes.
           $stagedLog | ForEach-Object { Write-Host "RLOFT_SOURCE_STAGE: $_" }
           if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
+          if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS.*retained_archive_slots=11.*CRTC_320x400=ORIGINAL_SOURCE.*DAC_clear=29234_29CA0.*next_original_dependency=20294_2E590.*original_1FC14_loop=NOT_REACHED') {
+            throw "Original CODE2 290F4/29930 VGA execution or 29234 DAC did not reach 20294/2E590"
+          }
           if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_BOOTSTRAP_TO_VGA_PASS.*original_resource_selection=EXECUTED.*next_original_dependency=290F4_VIDEO_MODE.*original_1FC14_loop=NOT_REACHED') {
             throw "Original CODE2 resources, DPMI, DOS disk and 2F468 did not execute in same guest before source 290F4 VGA"
           }
