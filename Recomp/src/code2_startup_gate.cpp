@@ -8,6 +8,7 @@
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
 #include "original_code2_video_boot.hpp"
+#include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
 #include "host_dos_disk_space.hpp"
 #include "dos_readonly_files.hpp"
@@ -56,6 +57,11 @@ struct Session {
     unsigned original_source_page_pops=0;
     unsigned original_source_page_selects=0;
     unsigned original_source_planar_fills=0;
+    unsigned original_5e38_calls=0;
+    unsigned original_5e38_absent=0;
+    unsigned original_28f58_calls=0;
+    unsigned original_31218_checks=0;
+    std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
     code2::Application71Boundary keyboard_irq{};
@@ -1173,23 +1179,76 @@ void original_2e5d4_source_page_pop() noexcept {
         stop("ORIGINAL_20294_2E5D4_SOURCE_POP_FAILED");
     }
 }
-void original_5e38_post_video_init() noexcept {
-    if(!current->live_continuation ||
-       current->original_source_page_pushes!=1u ||
+std::int32_t original_5e38_open_game_opt(u32 path) noexcept {
+    if(path!=0x374u ||
+       std::memcmp(current->data.data()+path,"GAME.OPT",9u)!=0 ||
+       current->original_installation_root.empty())
+        stop("ORIGINAL_5E38_GAME_OPT_SOURCE_PATH_CHANGED");
+    std::error_code ec;
+    const bool present=std::filesystem::exists(
+        current->original_installation_root/"GAME.OPT",ec);
+    if(ec)stop("ORIGINAL_5E38_GAME_OPT_FILE_STAT_FAILED");
+    if(present)stop("ORIGINAL_5E38_PRESENT_GAME_OPT_REQUIRES_ORIGINAL_DOS_READER");
+    return -1; // original 312A0 DOS open: file missing, AX=FFFFh
+}
+void original_5e38_boot_options() noexcept {
+    if(!current->live_continuation || current->original_source_page_pushes!=1u ||
        current->original_source_page_pops!=1u ||
-       current->original_source_page_selects!=4u ||
-       current->original_source_planar_fills!=2u ||
-       current->data[0xF0D0u]!=0u)
-        stop("ORIGINAL_5E38_PRECEDING_VIDEO_PAGE_CLEAR_NOT_EXECUTED");
-    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=NEXT_20440_5E38_SOURCE_DEPENDENCY\n"<<std::flush;
+       current->original_source_planar_fills!=2u)
+        stop("ORIGINAL_5E38_BOOT_OPTION_PREREQUISITES_CHANGED");
+    rloft::original_code2_options::Boundary b{};
+    b.open_read=&original_5e38_open_game_opt;
+    const auto result=rloft::original_code2_options::function_5e38(
+        current->machine,b);
+    ++current->original_5e38_calls;
+    if(result.found)stop("ORIGINAL_5E38_UNEXPECTED_FILE_OPEN");
+    ++current->original_5e38_absent;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=5E38_GAME_OPT_ABSENT_SOURCE_RETURN\n"<<std::flush;
+}
+void original_28f58_volume(u32 value) noexcept {
+    if(value!=0x5Au || current->original_5e38_calls!=1u)
+        stop("ORIGINAL_28F58_AUDIO_ENTRY_CHANGED");
+    // Do not silently claim active audio hardware. The original
+    // source 28F58 returns after updating EF30 when EE78==0
+    // or EF2C is FFFFFFFF; both are observed retail branches.
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u &&
+       code2::load_le32(current->data.data()+0xEF2Cu)!=0xFFFFFFFFu)
+        stop("ORIGINAL_28F58_REAL_AUDIO_DRIVER_PENDING");
+    code2::function_28f58(current->machine,current->audio_seed,value);
+    ++current->original_28f58_calls;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=28F58_SOURCE_VOLUME_RETURN\n"<<std::flush;
+}
+u32 original_31218_host_access(u32 path,u16 mode) noexcept {
+    ++current->original_31218_checks;
+    if(path!=0x1140u || mode!=0u ||
+       std::memcmp(current->data.data()+path,"CHARS",6u)!=0 ||
+       current->original_installation_root.empty())
+        stop("ORIGINAL_31218_CHARS_FILENAME_OR_MODE_CHANGED");
+    std::error_code ec;
+    const bool exists=std::filesystem::is_regular_file(
+        current->original_installation_root/"CHARS",ec);
+    if(ec)stop("ORIGINAL_31218_DOS_FILE_ACCESS_FAILED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=31218_SOURCE_CHARS_FOUND_"
+             <<(exists?"YES":"NO")<<"\n"<<std::flush;
+    return exists?0u:1u; // original 37E39 OS status, 0=exists
+}
+u32 original_31218_chars_probe(u32 path,u32 mode) noexcept {
+    code2::Application72Boundary b{};
+    b.call_37e39=&original_31218_host_access;
+    return code2::function_31218(b,path,mode);
+}
+u32 original_312a0_next_dos_open(u32 path) noexcept {
+    if(path!=0x1148u || current->original_28f58_calls!=1u ||
+       current->original_31218_checks!=1u)
+        stop("ORIGINAL_312A0_NEXT_SOURCE_FILE_PATH_CHANGED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=312A0_NEXT_DOS_OPEN_BOUNDARY\n"<<std::flush;
     rloft::guest_continuation::Reply response{};
     const rloft::guest_continuation::Request request{
-        rloft::guest_continuation::Service::Original5E38PostDoublePageClear,
-        0u,0u,0u,0u,0u};
+        rloft::guest_continuation::Service::Original312A0CharacterPath,
+        path,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
-        stop("ORIGINAL_5E38_HOST_SHUTDOWN");
-    // No invented graphics/event result after the first real page clear.
-    stop("ORIGINAL_5E38_NEXT_SOURCE_DEPENDENCY_UNIMPLEMENTED");
+        stop("ORIGINAL_312A0_FILE_SERVICE_SHUTDOWN");
+    stop("ORIGINAL_312A0_NEXT_DOS_FILE_OPEN_UNIMPLEMENTED");
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -1476,6 +1535,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     auto owner=std::make_unique<Session>();
     Session& state=*owner;
     state.live_continuation=stackful_worker;
+    if(host_root)state.original_installation_root=*host_root;
     state.extended=extended;
     state.source_host_heap=source_host_heap;
     state.source_dos_fallback=source_dos_fallback;
@@ -2375,7 +2435,10 @@ void attach_original_vga(
     source.presentation.call_291b0=&original_291b0_source_page;
     source.presentation.call_29b40=&original_29b40_source_rectangle;
     source.presentation.call_2e5d4=&original_2e5d4_source_page_pop;
-    source.game.call_5e38=&original_5e38_post_video_init;
+    source.game.call_5e38=&original_5e38_boot_options;
+    source.game.call_28f58=&original_28f58_volume;
+    source.game.call_31218=&original_31218_chars_probe;
+    source.game.call_312a0=&original_312a0_next_dos_open;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
@@ -2394,9 +2457,9 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
     if(!owner->live_worker->await_pause(owner->pending))
         throw std::runtime_error("Original CODE2 startup returned before 20294");
     if(owner->pending.service!=
-           rloft::guest_continuation::Service::Original5E38PostDoublePageClear)
+           rloft::guest_continuation::Service::Original312A0CharacterPath)
         throw std::runtime_error(
-            "Original CODE2 failed source 20294 page clear before 5E38");
+            "Original CODE2 failed source 5E38/28F58/31218 before 312A0");
     const auto& after=held(owner);
     if(after.original_source_video_modes!=1u ||
        after.original_source_dac_streams!=1u ||
@@ -2404,6 +2467,10 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
        after.original_source_page_pops!=1u ||
        after.original_source_page_selects!=4u ||
        after.original_source_planar_fills!=2u ||
+       after.original_5e38_calls!=1u ||
+       after.original_5e38_absent!=1u ||
+       after.original_28f58_calls!=1u ||
+       after.original_31218_checks!=1u ||
        after.data[0xF0D0u]!=0u ||
        after.original_vga->bios_mode()!=0x13u ||
        after.data[0xEF3Cu]!=3u ||
