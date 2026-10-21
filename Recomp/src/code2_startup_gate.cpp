@@ -725,7 +725,11 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
     if(ax==0x0100u) {
         if(in==out || code2::load_le32(in+4u)!=5u)
             stop("ORIGINAL_DPMI_0100_REQUEST_CHANGED");
-        if(!wants_synthetic_mouse_dpmi_allocation())
+        // The same tracked real DPMI DOS memory service used in our
+        // original-source tests serves a live guest. No fixed segment
+        // or selector is returned to the suspended source execution.
+        if(!wants_synthetic_mouse_dpmi_allocation() &&
+           !current->live_continuation)
             stop("STOP_BEFORE_DOS_INT31_0100_ALLOCATION");
 
         if(current->dpmi_dos_memory) {
@@ -748,14 +752,16 @@ u32 stop_at_original_dpmi31(u32 n,u8* in,u8* out,u8* ctx) noexcept {
     if(ax==0x0101u) {
         ++current->dpmi_mouse_free_calls;
         if(in!=out || code2::load_le16(in+0x0Cu)!=0x0060u ||
-           !wants_synthetic_mouse_dpmi_allocation() ||
+           (!wants_synthetic_mouse_dpmi_allocation() &&
+            !current->live_continuation) ||
            current->dpmi_mouse_simulation_calls!=1u)
             stop("ORIGINAL_DPMI_0101_RELEASE_CHANGED");
         if(current->mouse_branch==MouseResetBranch::FreeBoundary)
             stop("STOP_BEFORE_DOS_INT31_0101_MOUSE_FREE");
         if(current->mouse_branch!=MouseResetBranch::RangeX &&
            current->mouse_branch!=MouseResetBranch::RangeY &&
-           current->mouse_branch!=MouseResetBranch::DiskSpace)
+           current->mouse_branch!=MouseResetBranch::DiskSpace &&
+           !current->live_continuation)
             stop("ORIGINAL_DPMI_0101_UNEXPECTED_RELEASE");
 
         if(current->dpmi_dos_memory) {
@@ -780,6 +786,22 @@ u32 stop_at_original_int31_real_mode_mouse(u32 interrupt,u32* in,
        code2::load_le32(segment(0x30u,0x2B770u+0x1Cu,4))!=0x53C1u ||
        code2::load_le16(segment(0x30u,0x2B770u+0x22u,2))!=0x2D60u)
         stop("ORIGINAL_33AA0_DPMI_0300_FRAME_CHANGED");
+    if(current->live_continuation) {
+        // The original C++ guest stack remains alive at the NEXT
+        // unimplemented DOS service. INT31 AX=0300 simulates INT33
+        // from the original 33AA0 real-mode register frame. Await
+        // an explicit host response, never manufacture an installed
+        // DOS mouse device by silently returning success.
+        rloft::guest_continuation::Reply response{};
+        const rloft::guest_continuation::Request request{
+            rloft::guest_continuation::Service::DpmiRealModeInt33,
+            in[0],in[1],in[5],0u,0u};
+        if(!current->live_continuation->suspend(request,response))
+            stop("LIVE_ORIGINAL_DPMI_MOUSE_SHUTDOWN");
+        // The host must separately implement the register-frame
+        // transformation before this callback can return.
+        stop("LIVE_ORIGINAL_DPMI_0300_RESPONSE_NOT_YET_IMPLEMENTED");
+    }
     if(current->mouse_branch==MouseResetBranch::MemoryHandoff)
         stop("STOP_BEFORE_DOS_INT31_0300_MOUSE_SIMULATION");
     if(current->mouse_branch!=MouseResetBranch::FreeBoundary &&
@@ -792,7 +814,9 @@ u32 stop_at_original_int31_real_mode_mouse(u32 interrupt,u32* in,
     return 0u;
 }
 u32 original_mouse_33aa0(u32 frame) noexcept {
-    if(frame!=0x2B770u || !wants_synthetic_mouse_dpmi_allocation())
+    if(frame!=0x2B770u ||
+       (!wants_synthetic_mouse_dpmi_allocation() &&
+        !current->live_continuation))
         stop("ORIGINAL_33AA0_FRAME_OR_MODE_CHANGED");
     code2::Runtime99Boundary b{};
     b.ds_selector=current->machine.cpu.ds;
