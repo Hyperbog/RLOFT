@@ -593,15 +593,23 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
     auto* const owner=s->canonical.get();
     // Every call resumes the actual waiting source thread, rather than
     // replaying 353A0, 20608 or 20440. Device replies are TEST-ONLY.
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=START_MOUSE_RESET\n"<<std::flush;
     REQUIRE(c::pending_host_service(owner)==1u);
     REQUIRE(c::answer_mouse_reset(owner,true,3u)==3u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=MOUSE_RESET_RETURNED\n"<<std::flush;
     REQUIRE(c::answer_real_mode_mouse(owner,1u,3u,0u,0u)==2u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=INT31_0300_RETURNED\n"<<std::flush;
     REQUIRE(c::answer_mouse_range(owner,7u)==2u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=MOUSE_RANGE_X_DONE\n"<<std::flush;
     REQUIRE(c::answer_mouse_range(owner,8u)==4u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=MOUSE_RANGE_Y_DONE\n"<<std::flush;
     REQUIRE(c::answer_host_disk_free(owner)==5u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=AH36_DISK_DONE\n"<<std::flush;
     // The 2F468 source callback is now connected to the actual
     // original eleven-archive Application68 table in THIS guest.
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_BEGIN\n"<<std::flush;
     REQUIRE(c::answer_source_resource_selection(owner)==6u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_DONE_AT_VIDEO_290F4\n"<<std::flush;
     const auto after=inspect(s);
     REQUIRE(after.memory_address==first.memory_address &&
             after.resource_archives==11u &&
@@ -628,7 +636,9 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
     const auto* const original_machine=s->guest->m.data;
     const auto* const source_before=s->guest->memory.data();
     REQUIRE(test_advance_to_original_video_mode(s)==6u);
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=VIDEO_290F4_HANDOFF_BEGIN\n"<<std::flush;
     const auto source_mode=c::answer_source_video_mode(s->canonical.get());
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=VIDEO_290F4_HANDOFF_RETURNED\n"<<std::flush;
     const auto evidence=c::inspect(s->canonical.get());
     REQUIRE(source_mode==7u &&
             original_machine==source_before &&
