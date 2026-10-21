@@ -363,9 +363,14 @@ struct Session {
         REQUIRE((borrowed_memory==nullptr)==(borrowed_machine==nullptr));
         REQUIRE((borrowed_memory!=nullptr)==(heap_owner!=nullptr));
         REQUIRE(current==nullptr);current=this;m.data=memory.data();
-        guest_string(0x718u,"INIT");
-        guest_string(0x1384u,"INFO.DAT");
-        guest_string(0x26000u,"RES");
+        // The canonical guest is still executing its original startup.
+        // Do NOT overwrite DGROUP pathname scratch until the actual
+        // original 2F468 resource-selection callback is suspended.
+        if(!canonical_owner) {
+            guest_string(0x718u,"INIT");
+            guest_string(0x1384u,"INFO.DAT");
+            guest_string(0x26000u,"RES");
+        }
         init_callbacks.call_312a0=&open_init;
         init_callbacks.call_3131c=&position;
         init_callbacks.call_312ec_local=&init_local_read;
@@ -444,6 +449,13 @@ struct Session {
                  <<" DOS_CPU_CALL_ORDER=NOT_VERIFIED\n";
     }
     void boot() {
+        REQUIRE(init_opens==0u && info_opens==0u && res_opens==0u);
+        // The standalone fixture already carries these strings; for
+        // borrowed real CODE2 startup they are staged only HERE, at
+        // the observed original resource-selection host boundary.
+        guest_string(0x718u,"INIT");
+        guest_string(0x1384u,"INFO.DAT");
+        guest_string(0x26000u,"RES");
         code2::function_16d04(m,init_callbacks);
         REQUIRE(init_opens==1u && music_base==49u);
         REQUIRE(code2::load_le32(memory.data()+0x258DCu)==15u);
@@ -490,11 +502,15 @@ struct Opaque {
     std::unique_ptr<rloft::canonical_code2_runtime::Opaque,
                     void(*)(rloft::canonical_code2_runtime::Opaque*)> canonical;
     std::unique_ptr<rloft_code2_resource_internal::Session> guest;
+    std::filesystem::path original_root;
+    unsigned pending_scene_level=0;
+    bool resources_loaded=false;
     std::uint64_t dispatches=0;
     bool initialized=false;
     explicit Opaque(const std::filesystem::path& root,
                     const std::filesystem::path& cd,unsigned level)
-        :canonical(rloft::canonical_code2_runtime::start_stackful(root/"CODE.2"),
+        :original_root(root),pending_scene_level(level),
+         canonical(rloft::canonical_code2_runtime::start_stackful(root/"CODE.2"),
                    &rloft::canonical_code2_runtime::destroy),
          guest(std::make_unique<rloft_code2_resource_internal::Session>(
              root.string(),cd.string(),
@@ -519,35 +535,45 @@ struct Opaque {
         // The original main has now executed the original 375FE
         // keyboard vector path and read SOUND.CFG before stopping at
         // the actual external DOS INT33 mouse reset dependency.
-        // Its original C++ call stack remains suspended here at the
-        // INT33 request, without a synthetic reply or CPU instruction
-        // replay. Resource setup is still HOST-ORDERED on the SAME heap
-        // and RAM, not yet invoked by the original CODE2 scheduler.
-        //
-        // Source resource routines use the same Machine and may clobber
-        // its CPU registers; they are a host-ordered operation while
-        // the genuine CODE2 20608 stack is suspended. Preserve the
-        // interrupted CPU register image across these temporary calls.
+        // DO NOT initialize RES/INFO, scene palette, VGA or their
+        // guest globals at the mouse-reset boundary. On original
+        // startup this state is not yet needed. Preloading here
+        // changed execution after the Y mouse-range callback and
+        // prevented the expected DOS AH36 request from completing.
+        // Keep the canonical source state untouched until it reaches
+        // its actual 2F468 resource dependency.
+        REQUIRE(guest->init_opens==0u && guest->res_opens==0u &&
+                code2::load_le32(guest->memory.data()+0xF0B4u)==0u);
+        initialized=true;
+    }
+    void load_resources_at_original_selection() {
+        REQUIRE(initialized && !resources_loaded && pending_scene_level<32u);
+        namespace c=rloft::canonical_code2_runtime;
+        REQUIRE(c::pending_host_service(canonical.get())==5u);
+        const auto before=c::inspect(canonical.get());
+        REQUIRE(before.memory_address==guest->memory.data() &&
+                before.source_cpu_stack_resumable);
+        std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=ORIGINAL_2F468_LAZY_RES_INIT_BEGIN\n"<<std::flush;
         const auto interrupted_cpu=guest->m.cpu;
         try {
+            // Exact same canonical DOS/4GW heap and guest memory, but
+            // now at the real suspended 2F468 dependency, after
+            // both mouse ranges and original disk-space request.
             guest->boot();
-            guest->source_palette_from_scene(root,level);
+            guest->source_palette_from_scene(original_root,pending_scene_level);
         }catch(...) {
             guest->m.cpu=interrupted_cpu;
             throw;
         }
         guest->m.cpu=interrupted_cpu;
-        // Complete the real CODE2 2F468 dependency using the source
-        // resource callback table that loaded the eleven original
-        // archives into this SAME canonical CODE2 guest. Do not advance
-        // the suspended CPU stack until the source table is attached.
-        rloft::canonical_code2_runtime::attach_original_resource_callbacks(
+        REQUIRE(guest->init_opens==1u && guest->res_opens==11u &&
+                code2::load_le32(guest->memory.data()+0xF0B4u)==11u &&
+                guest->video_port_writes==769u);
+        c::attach_original_resource_callbacks(
             canonical.get(),static_cast<void*>(&guest->res_callbacks));
-        // The original 290F4 path must use the same hardware palette/VGA
-        // device that source 325B0->32150->29CA0 initialized above.
-        rloft::canonical_code2_runtime::attach_original_vga(
-            canonical.get(),&guest->video);
-        initialized=true;
+        c::attach_original_vga(canonical.get(),&guest->video);
+        resources_loaded=true;
+        std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=ORIGINAL_2F468_LAZY_RES_INIT_DONE\n"<<std::flush;
     }
 };
 static std::uint64_t guest_source_fingerprint(const Opaque& s) {
@@ -589,7 +615,8 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
         throw std::invalid_argument("Original CODE.2 RES guest unavailable");
     namespace c=rloft::canonical_code2_runtime;
     const auto first=inspect(s);
-    REQUIRE(first.resource_archives==11u && first.vga_port_writes==769u);
+    REQUIRE(first.resource_archives==0u && first.vga_port_writes==0u &&
+            !s->resources_loaded);
     auto* const owner=s->canonical.get();
     // Every call resumes the actual waiting source thread, rather than
     // replaying 353A0, 20608 or 20440. Device replies are TEST-ONLY.
@@ -605,6 +632,10 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=MOUSE_RANGE_Y_DONE\n"<<std::flush;
     REQUIRE(c::answer_host_disk_free(owner)==5u);
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=AH36_DISK_DONE\n"<<std::flush;
+    // The original guest has NOW reached resource selection; only
+    // at this boundary may the same-guest archive tables and palette
+    // be initialized by our still host-ordered reconstruction.
+    s->load_resources_at_original_selection();
     // The 2F468 source callback is now connected to the actual
     // original eleven-archive Application68 table in THIS guest.
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_BEGIN\n"<<std::flush;
@@ -613,9 +644,10 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
     const auto after=inspect(s);
     REQUIRE(after.memory_address==first.memory_address &&
             after.resource_archives==11u &&
-            after.resource_cache_base==first.resource_cache_base &&
-            after.selected_palette==first.selected_palette &&
-            after.vga_port_writes==first.vga_port_writes &&
+            after.resource_cache_base!=0u &&
+            after.selected_palette==3u &&
+            after.vga_port_writes==769u &&
+            s->resources_loaded &&
             !after.original_game_loop_connected);
     std::cout<<"ORIGINAL_CODE2_SAME_GUEST_BOOTSTRAP_TO_VGA_PASS"
              <<" original_source=353A0_20608_20440_2F468"
