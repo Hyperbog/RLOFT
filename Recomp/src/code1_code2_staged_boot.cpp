@@ -94,11 +94,12 @@ int main(int argc,char** argv) {
                    now.dispatch_calls==0u || now.original_game_loop_connected)
                     throw std::runtime_error("CODE.2 resource/palette guest state lost on Pending");
                 if(now.dispatch_calls==3u) {
-                    // Execute original source from suspended CODE2 mouse
-                    // through the attached 11 RES table and authentic
-                    // 2F468, stopping before unconnected 290F4 video.
-                    if(owner::test_advance_to_original_video_mode(game.get())!=6u)
-                        throw std::runtime_error("CODE2 did not reach source VGA initialization");
+                    // After two unchanged Pending dispatches, resume
+                    // the SAME source stack through 2F468 and ACTUAL
+                    // original 290F4 / 29930 planar VGA configuration,
+                    // then stop at the next 20294 / 2E590 dependency.
+                    if(owner::test_advance_through_original_video_mode(game.get())!=7u)
+                        throw std::runtime_error("CODE2 did not run source VGA initializer");
                 }
                 return {runtime::Progress::Pending,0};
             }
