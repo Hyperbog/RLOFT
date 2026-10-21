@@ -7,6 +7,7 @@
 #include "original_media_identity.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
+#include "original_code2_video_boot.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
 #include "host_dos_disk_space.hpp"
 #include "dos_readonly_files.hpp"
@@ -47,6 +48,10 @@ struct Session {
     code2::Machine machine{};
     code2::Runtime111Boundary entry{};
     code2::Application46Boundary game{};
+    code2::Application45Boundary presentation{};
+    rloft::graphics::OriginalVgaHost* original_vga=nullptr;
+    unsigned original_source_video_modes=0;
+    unsigned original_source_dac_streams=0;
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
     code2::Application71Boundary keyboard_irq{};
@@ -1020,10 +1025,50 @@ void original_video_mode_290f4(u32 mode) noexcept {
         mode,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
         stop("LIVE_ORIGINAL_290F4_DISPLAY_SHUTDOWN");
-    // To advance, implement actual original 290F4 source VGA setup
-    // against this guest's existing display; an arbitrary response
-    // alone is insufficient.
-    stop("LIVE_ORIGINAL_290F4_SOURCE_VIDEO_NOT_YET_CONNECTED");
+    if(response.ax!=1u || !current->original_vga)
+        stop("LIVE_ORIGINAL_290F4_DISPLAY_DEVICE_NOT_ATTACHED");
+    // Execute the ORIGINAL canonical CODE.2 mode initializer, including
+    // 29930 VGA mode/BIOS, 2AB98 planar clear, 2ABF4/2AC10 CRTC,
+    // 29FEC/29FFC pages and 296C0 clipping on the same guest and VGA
+    // device that already carries its earlier source COLORS palette.
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_290f4(mode);
+        if(bridge.source_mode_calls!=1u)
+            stop("LIVE_ORIGINAL_290F4_SOURCE_NOT_EXECUTED");
+        ++current->original_source_video_modes;
+    }catch(const std::exception&) {
+        stop("LIVE_ORIGINAL_290F4_VGA_BACKEND_REJECTED_SOURCE_IO");
+    }
+}
+void original_video_palette_29234(u32 palette_buffer) noexcept {
+    if(palette_buffer!=0xC054u || !current->original_vga ||
+       current->original_source_video_modes!=1u)
+        stop("ORIGINAL_29234_VGA_SOURCE_PREREQUISITES_MISSING");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.stream_original_29234(palette_buffer);
+        if(bridge.source_palette_stream_calls!=1u)
+            stop("ORIGINAL_29234_FULL_PALETTE_DAC_NOT_EXECUTED");
+        ++current->original_source_dac_streams;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_29234_FULL_PALETTE_DAC_FAILED");
+    }
+}
+void original_2e590_presentation_reset(u32 code) noexcept {
+    if(code!=0u || !current->live_continuation ||
+       !current->original_vga || current->original_source_video_modes!=1u ||
+       current->original_source_dac_streams!=1u)
+        stop("ORIGINAL_20294_PRESENTATION_RESET_PREREQUISITES");
+    rloft::guest_continuation::Reply response{};
+    const rloft::guest_continuation::Request request{
+        rloft::guest_continuation::Service::Original2E590PresentationReset,
+        code,0u,0u,0u,0u};
+    if(!current->live_continuation->suspend(request,response))
+        stop("ORIGINAL_20294_PRESENTATION_RESET_SHUTDOWN");
+    stop("ORIGINAL_2E590_RESOURCE_PRESENTATION_NOT_YET_IMPLEMENTED");
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -1457,6 +1502,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         // return without ever reaching its 1FC14 game loop.
         state.game.call_2f468=&original_source_resource_selection;
         state.game.call_290f4=&original_video_mode_290f4;
+        state.game.call_30d30=&original_checked_memset;
+        state.game.call_29234=&original_video_palette_29234;
     }
     state.entry.int21_36=&stop_at_dos_disk_free;
     state.game_audio.call_375fe_far=&original_far_install;
