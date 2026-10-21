@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <vector>
+#include "original_vga_host.hpp"
 
 namespace rloft { namespace canonical_code2_runtime {
 struct Opaque;
@@ -27,6 +28,9 @@ struct Evidence {
     std::uint32_t host_dpmi_dos_blocks=0;
     std::uint32_t original_dpmi_0101_releases=0;
     std::uint32_t original_mouse_range_calls=0;
+    std::uint32_t original_source_video_mode_calls=0;
+    std::uint32_t original_source_palette_streams=0;
+    bool source_290f4_320x400_video_initialized=false;
 };
 Opaque* start(const std::filesystem::path& original_code2);
 Opaque* start_stackful(const std::filesystem::path& original_code2);
@@ -53,6 +57,13 @@ std::uint32_t answer_host_disk_free(Opaque*);
 // is paused. This pointer must refer to a live original Application68
 // callback table and is NOT a memory copy.
 void attach_original_resource_callbacks(Opaque*,void* original_app68);
+// Attach exactly the original persistent guest's VGA device while the
+// CODE2 source stack is paused at 290F4. Do not create another VGA page.
+void attach_original_vga(Opaque*,rloft::graphics::OriginalVgaHost*);
+// Reply only after the VIDEO device is attached and source-mode contract
+// is validated. Calls full original 290F4, 29930, CRTC and 29234 DAC.
+// Returns the next original-code dependency, not an invented frame.
+std::uint32_t answer_source_video_mode(Opaque*);
 // Continue through authenticated source 2F468 only after the 11-RES
 // callback context is attached; then expose next original dependency.
 std::uint32_t answer_source_resource_selection(Opaque*);
