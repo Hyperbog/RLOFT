@@ -13,6 +13,10 @@ int main(){
         machine.data=memory.data();
         code2::store_le16(memory.data()+0xEF47u,0u);
         rloft::graphics::OriginalVgaHost video{};
+        // Test an actual BIOS text->mode13 transition. The production
+        // VGA host normally already starts in mode13, and original
+        // CODE2 correctly skips the redundant BIOS call in that case.
+        video.bios_set_mode(3u);
         rloft::source_video_boot::Bridge bridge(machine,video,memory.size());
         bridge.run_original_290f4(3u);
         auto check=[&](bool ok,const char* why){
