@@ -49,6 +49,13 @@ std::uint32_t answer_mouse_range(Opaque*,std::uint32_t command);
 // install volume. 16-bit DOS cluster geometry is bounded/saturated;
 // this is a host filesystem adaptation, not retail DOS disk parity.
 std::uint32_t answer_host_disk_free(Opaque*);
+// Called by the persistent CODE.2 resource owner while the source stack
+// is paused. This pointer must refer to a live original Application68
+// callback table and is NOT a memory copy.
+void attach_original_resource_callbacks(Opaque*,void* original_app68);
+// Continue through authenticated source 2F468 only after the 11-RES
+// callback context is attached; then expose next original dependency.
+std::uint32_t answer_source_resource_selection(Opaque*);
 Evidence inspect(const Opaque*);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
