@@ -1294,9 +1294,18 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                     state.env.begin());
     }
     state.machine.data=state.data.data();
-    if(source_host_heap)
-        require(code2::function_3a395(state.machine,1u)==0u,
-                "original 3A395 Watcom heap enable prior-state changed");
+    if(source_host_heap) {
+        // Original retail CODE.2 object-2 byte 0x12708 is initially 1,
+        // whereas the deliberately zeroed synthetic fixture starts at 0.
+        // Canonical 3A395 returns the PRIOR value. The prior-state check
+        // must follow authenticated loaded DGROUP bytes, not assume 0.
+        const u32 prior=code2::load_le32(state.data.data()+0x12708u);
+        require(prior==(original?1u:0u),
+                "CODE.2 heap-enable initial value differs from source image");
+        require(code2::function_3a395(state.machine,1u)==prior &&
+                code2::load_le32(state.data.data()+0x12708u)==1u,
+                "original 3A395 heap enable previous-state contract changed");
+    }
     state.machine.cpu.ds=0x30;state.machine.cpu.ss=0x30;
     if(source_host_heap)state.machine.cpu.es=0x24u;
     state.machine.cpu.cs=0x17;state.machine.cpu.esp=0x2DD10;
