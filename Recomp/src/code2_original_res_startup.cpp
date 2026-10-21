@@ -501,14 +501,17 @@ struct Opaque {
                 source.source_20608_executed &&
                 source.source_heap_provider_retained &&
                 source.original_getenv_calls>=1u &&
+                source.source_keyboard_vectors_installed &&
+                source.source_sound_config_read &&
                 !source.source_cpu_stack_resumable &&
                 source.heap_arena_header!=0u &&
                 source.memory_address==guest->memory.data() &&
                 guest->m.data==source.memory_address);
-        // The original main has reached the unsupported DOS interrupt
-        // vector host dependency at 375FE. Its C++ call stack CANNOT be
-        // resumed after the bounded stop. Source resource setup below
-        // is HOST-ORDERED on the SAME retained original heap/RAM only.
+        // The original main has now executed the original 375FE
+        // keyboard vector path and read SOUND.CFG before stopping at
+        // the actual external DOS INT33 mouse reset dependency.
+        // Its C++ call stack CANNOT be resumed after the bounded stop.
+        // Resource setup is still HOST-ORDERED on the SAME heap/RAM.
         guest->boot();
         guest->source_palette_from_scene(root,level);
         initialized=true;
