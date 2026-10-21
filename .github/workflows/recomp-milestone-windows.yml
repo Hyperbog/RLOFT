@@ -142,8 +142,12 @@ jobs:
           if (($paletteLog -join "`n") -notmatch 'CODE2_REAL_STARTUP_RES_TO_SCENE_PALETTE_PASS level=5 bank=3 source_palette_loader=325B0_RECONSTRUCTED compiled_brightness=32150 compiled_DAC_writer=29CA0 DAC_port_writes=769') {
             throw "Original scene palette 325B0/32150/29CA0 execution proof missing"
           }
-          $stagedLog = & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia"
-          if ($LASTEXITCODE -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed" }
+          $stagedLog = & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia" 2>&1
+          $stagedExit = $LASTEXITCODE
+          # Emit only the existing original-source stage diagnostic lines,
+          # never original resource payloads or game-file bytes.
+          $stagedLog | ForEach-Object { Write-Host "RLOFT_SOURCE_STAGE: $_" }
+          if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
           if (($stagedLog -join "`n") -notmatch 'RLOFT_CODE2_SAME_GUEST_PERSISTENCE_PASS.*source_archives=11.*palette_bank=3.*DAC_writes=769.*pending_steps=2.*relaunches=0.*game_loop=NOT_CONNECTED') {
             throw "Original CODE.2 resources/palette were not retained in one guest across two Pending steps"
           }
