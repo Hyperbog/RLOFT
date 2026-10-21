@@ -468,25 +468,46 @@ Session* Session::current=nullptr;
 
 namespace rloft { namespace original_code2_session {
 struct Opaque {
-    Session guest;
+    // The canonical 353A0 runtime (source heap, selectors, machine and RAM)
+    // is the lifetime owner. The resource Session BORROWS that exact
+    // machine/RAM instead of constructing a second guest.
+    std::unique_ptr<rloft::canonical_code2_runtime::Opaque,
+                    void(*)(rloft::canonical_code2_runtime::Opaque*)> canonical;
+    std::unique_ptr<Session> guest;
     std::uint64_t dispatches=0;
     bool initialized=false;
     explicit Opaque(const std::filesystem::path& root,
                     const std::filesystem::path& cd,unsigned level)
-        :guest(root.string(),cd.string()) {
+        :canonical(rloft::canonical_code2_runtime::start(root/"CODE.2"),
+                   &rloft::canonical_code2_runtime::destroy),
+         guest(std::make_unique<Session>(
+             root.string(),cd.string(),
+             &rloft::canonical_code2_runtime::guest_memory(canonical.get()),
+             static_cast<code2::Machine*>(
+                rloft::canonical_code2_runtime::canonical_machine(canonical.get())),
+             canonical.get())) {
         if(level>=32u)throw std::out_of_range("CODE.2 scene level out of range");
-        guest.seed_authenticated_code2(root/"CODE.2");
-        guest.execute_real_20608_to_first_dependency();
-        guest.boot();
-        guest.source_palette_from_scene(root,level);
+        const auto source=rloft::canonical_code2_runtime::inspect(canonical.get());
+        REQUIRE(source.source_353a0_executed &&
+                source.source_20608_executed &&
+                source.source_heap_provider_retained &&
+                source.original_getenv_calls>=1u &&
+                !source.source_cpu_stack_resumable &&
+                source.heap_arena_header!=0u &&
+                source.memory_address==guest->memory.data() &&
+                guest->m.data==source.memory_address);
+        // The original main has reached the unsupported DOS interrupt
+        // vector host dependency at 375FE. Its C++ call stack CANNOT be
+        // resumed after the bounded stop. Source resource setup below
+        // is HOST-ORDERED on the SAME retained original heap/RAM only.
+        guest->boot();
+        guest->source_palette_from_scene(root,level);
         initialized=true;
     }
 };
 static std::uint64_t guest_source_fingerprint(const Opaque& s) {
-    // FNV-1a over source guest memory is an in-process state continuity
-    // fingerprint, NOT a cryptographic content authenticator or DOS trace.
     std::uint64_t hash=14695981039346656037ULL;
-    for(const auto b:s.guest.memory) {
+    for(const auto b:s.guest->memory) {
         hash^=b;
         hash*=1099511628211ULL;
     }
@@ -497,34 +518,36 @@ Opaque* create(const std::filesystem::path& root,
     return new Opaque(root,cd,level);
 }
 Evidence inspect(const Opaque* s) {
-    if(!s)throw std::invalid_argument("Null original CODE2 guest");
-    if(s->guest.m.data!=s->guest.memory.data())
-        throw std::runtime_error("CODE2 guest memory base changed");
+    if(!s || !s->guest)throw std::invalid_argument("Null original CODE2 guest");
+    const auto canonical=rloft::canonical_code2_runtime::inspect(s->canonical.get());
+    if(s->guest->m.data!=s->guest->memory.data() ||
+       canonical.memory_address!=s->guest->memory.data())
+        throw std::runtime_error("Canonical CODE.2 startup/resource RAM diverged");
     Evidence e{};
-    e.memory_address=s->guest.memory.data();
+    e.memory_address=s->guest->memory.data();
     e.source_state_fingerprint=guest_source_fingerprint(*s);
-    e.resource_cache_base=code2::load_le32(s->guest.memory.data()+0xF0B8u);
-    e.resource_archives=code2::load_le32(s->guest.memory.data()+0xF0B4u);
-    e.selected_palette=code2::load_le32(s->guest.memory.data()+0xC034u);
-    e.vga_port_writes=s->guest.video_port_writes;
+    e.resource_cache_base=code2::load_le32(s->guest->memory.data()+0xF0B8u);
+    e.resource_archives=code2::load_le32(s->guest->memory.data()+0xF0B4u);
+    e.selected_palette=code2::load_le32(s->guest->memory.data()+0xC034u);
+    e.vga_port_writes=s->guest->video_port_writes;
     e.dispatch_calls=s->dispatches;
     e.initialized=s->initialized;
-    e.original_20608_executed_to_host_dependency=
-        s->guest.original_main_reached_environment;
-    e.original_352ee_getenv_calls=
-        s->guest.original_game_getenv_callbacks;
+    e.original_20608_executed_to_host_dependency=canonical.source_20608_executed;
+    e.original_352ee_getenv_calls=canonical.original_getenv_calls;
     e.original_game_loop_connected=false;
     return e;
 }
 void dispatch_pending(Opaque* s) {
     if(!s || !s->initialized)
         throw std::invalid_argument("CODE2 startup guest is not initialized");
-    if(s->guest.m.data!=s->guest.memory.data())
-        throw std::runtime_error("CODE2 guest lost its original state");
+    if(s->guest->m.data!=s->guest->memory.data() ||
+       rloft::canonical_code2_runtime::inspect(s->canonical.get()).memory_address
+           !=s->guest->memory.data())
+        throw std::runtime_error("CODE2 source runtime lost its guest memory");
     ++s->dispatches;
-    // The original CODE.2 20608 -> 1FC14 world loop is not yet
-    // connected to the source INIT/RES guest; do NOT execute a guessed
-    // frame, reset memory, send artificial keys, or claim process exit.
+    // 353A0/20608 has executed to the first unimplemented DOS 375FE
+    // vector-install callback. There is no resumable original C++ stack
+    // after the bounded longjmp stop, so NO fake original 1FC14 tick.
 }
 void destroy(Opaque* s) noexcept {delete s;}
 }} // namespace rloft::original_code2_session
