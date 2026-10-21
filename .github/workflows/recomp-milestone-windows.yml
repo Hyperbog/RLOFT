@@ -187,6 +187,18 @@ jobs:
           }
           # Exploratory original-source boundary enumeration; do NOT
           # relabel an observed missing callback as gameplay success.
+      - name: Inspect canonical 2F468 compiled-source translation at current hang
+        shell: pwsh
+        run: |
+          $source = [System.IO.File]::ReadAllText("Code2/Code2.cpp")
+          $needle = 'function_2f468('
+          $pos = $source.IndexOf($needle, [System.StringComparison]::Ordinal)
+          if ($pos -lt 0) { throw "Canonical CODE.2 2F468 source routine not found" }
+          $start = [Math]::Max(0, $pos - 120)
+          $count = [Math]::Min(11500, $source.Length - $start)
+          Write-Host "ORIGINAL_2F468_TRANSLATED_SOURCE_BEGIN"
+          Write-Host $source.Substring($start, $count)
+          Write-Host "ORIGINAL_2F468_TRANSLATED_SOURCE_END"
       - name: Execute source-staged CODE.1 → CODE.2 boot and original palette bank
         shell: pwsh
         timeout-minutes: 3
