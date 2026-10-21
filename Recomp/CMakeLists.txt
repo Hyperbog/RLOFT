@@ -403,6 +403,10 @@ endif()
 # a host DOS/4GW dependency is handled. This avoids replaying 353A0
 # after a bounded longjmp and enables exact service-by-service progress.
 find_package(Threads REQUIRED)
+# These translation units now expose a stackful worker-backed CODE2 owner,
+# even when an individual regression still uses legacy bounded startup.
+target_link_libraries(rloft_code2_startup_gate PRIVATE Threads::Threads)
+target_link_libraries(rloft_code1_code2_staged_boot PRIVATE Threads::Threads)
 add_executable(rloft_original_guest_continuation_test
     tests/original_guest_continuation_test.cpp)
 target_compile_features(rloft_original_guest_continuation_test PRIVATE cxx_std_17)
