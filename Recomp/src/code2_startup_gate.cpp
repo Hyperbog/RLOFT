@@ -2471,6 +2471,10 @@ Evidence inspect(const Opaque* owner) {
         static_cast<std::uint32_t>(s.dpmi_dos_memory->allocation_count()):0u;
     out.original_dpmi_0101_releases=s.dpmi_mouse_free_calls;
     out.original_mouse_range_calls=s.mouse_range_calls;
+    out.original_source_page_pushes=s.original_source_page_pushes;
+    out.original_source_page_pops=s.original_source_page_pops;
+    out.original_source_page_selects=s.original_source_page_selects;
+    out.original_source_planar_fills=s.original_source_planar_fills;
     out.original_source_video_mode_calls=s.original_source_video_modes;
     out.original_source_palette_streams=s.original_source_dac_streams;
     out.source_290f4_320x400_video_initialized=
