@@ -399,6 +399,23 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# Original CODE.2 source entry + true stackful DOS mouse host boundary,
+# executed against owner-original CODE.2 and SOUND.CFG in Windows CI.
+add_executable(rloft_original_code2_stackful_mouse_gate
+    tests/original_code2_stackful_mouse_gate.cpp
+    src/code2_startup_gate.cpp
+    src/original_le_image.cpp)
+target_compile_definitions(rloft_original_code2_stackful_mouse_gate PRIVATE
+    RLOFT_BUNDLE_NO_MAIN)
+target_compile_features(rloft_original_code2_stackful_mouse_gate PRIVATE cxx_std_17)
+if(MSVC)
+    target_compile_options(rloft_original_code2_stackful_mouse_gate PRIVATE
+        /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_stackful_mouse_gate PRIVATE
+        -O0 -Wall -Wextra -Wpedantic)
+endif()
+
 # Keep the ACTUAL native C++ source guest call stack suspended while
 # a host DOS/4GW dependency is handled. This avoids replaying 353A0
 # after a bounded longjmp and enables exact service-by-service progress.
@@ -407,6 +424,7 @@ find_package(Threads REQUIRED)
 # even when an individual regression still uses legacy bounded startup.
 target_link_libraries(rloft_code2_startup_gate PRIVATE Threads::Threads)
 target_link_libraries(rloft_code1_code2_staged_boot PRIVATE Threads::Threads)
+target_link_libraries(rloft_original_code2_stackful_mouse_gate PRIVATE Threads::Threads)
 add_executable(rloft_original_guest_continuation_test
     tests/original_guest_continuation_test.cpp)
 target_compile_features(rloft_original_guest_continuation_test PRIVATE cxx_std_17)
