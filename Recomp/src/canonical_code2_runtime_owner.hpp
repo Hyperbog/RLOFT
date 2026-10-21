@@ -1,8 +1,9 @@
 #pragma once
 // Canonical CODE.2 353A0 startup OWNER. Keeps the original Watcom heap,
 // DPMI selector services and source-initialized guest RAM alive after the
-// first bounded host dependency. No C++ call stack is resumable after
-// the intentional source startup longjmp stop.
+// first bounded host dependency. The new stackful owner can preserve the
+// original application call stack at the actual DOS mouse service; the
+// legacy bounded owner still unwinds at its explicit stop.
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -21,8 +22,18 @@ struct Evidence {
     bool source_sound_config_read=false;
     bool source_heap_provider_retained=false;
     bool source_cpu_stack_resumable=false;
+    bool paused_at_original_mouse_reset=false;
+    std::uint64_t pending_DOS_service_sequence=0;
 };
 Opaque* start(const std::filesystem::path& original_code2);
+Opaque* start_stackful(const std::filesystem::path& original_code2);
+// Returns the exact outstanding host service; no implicit response.
+// Service 1 = original DOS INT33 reset, service 3 = DPMI 0300 INT33.
+std::uint32_t pending_host_service(const Opaque*);
+// Host-confirmed mouse driver availability, not inferred from screenshots.
+// Requires the exact pending INT33 reset and waits for the next stop.
+std::uint32_t answer_mouse_reset(Opaque*, bool driver_present,
+                                 std::uint32_t button_count);
 Evidence inspect(const Opaque*);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
