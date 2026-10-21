@@ -32,6 +32,10 @@ on:
       - 'Recomp/src/original_code2_guest_session.hpp'
       - 'Recomp/tests/original_r_exe_native_session_test.cpp'
       - 'Recomp/tests/original_r_exe_supervisor_test.cpp'
+      - 'Recomp/src/original_guest_continuation.hpp'
+      - 'Recomp/src/canonical_code2_runtime_owner.hpp'
+      - 'Recomp/tests/original_guest_continuation_test.cpp'
+      - 'Recomp/tests/original_code2_stackful_mouse_gate.cpp'
       - 'Recomp/src/gog_cd_iso_extract.cpp'
       - 'Recomp/tools/test_gog_cd_iso_extract.py'
       - 'Recomp/tools/Launch-RLOFT-Recomp-Preview.ps1'
@@ -129,6 +133,18 @@ jobs:
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
           & "build/windows-milestone/Debug/rloft_original_code2_init_resources.exe" --root "$media" --cd-root "$cdMedia"
           if ($LASTEXITCODE -ne 0) { throw "Original INIT/INFO.DAT/RES0..RES10 resource startup failed" }
+      - name: Advance original CODE.2 stack through mouse reset and tracked DPMI 0100
+        shell: pwsh
+        run: |
+          $root = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $original = Join-Path $root "CODE.2"
+          $lines = & "build/windows-milestone/Debug/rloft_original_code2_stackful_mouse_gate.exe" "$original" 2>&1
+          $returnCode = $LASTEXITCODE
+          $lines | ForEach-Object { Write-Host "RLOFT_STACKFUL: $_" }
+          if ($returnCode -ne 0) { throw "Original CODE.2 stackful mouse/DPMI execution failed" }
+          if (($lines -join "`n") -notmatch 'ORIGINAL_CODE2_LIVE_STACKFUL_MOUSE_ADVANCE_PASS.*source_entry=353A0_20608.*original_DPMI_0100_allocations=1.*next_unsupported=ORIGINAL_33AA0_INT31_0300_MOUSE.*native_gameplay_frame=NOT_REACHED') {
+            throw "Original CODE.2 did not retain stack and advance to DPMI 0300 as tested"
+          }
       - name: Execute source-staged CODE.1 → CODE.2 boot and original palette bank
         shell: pwsh
         run: |
