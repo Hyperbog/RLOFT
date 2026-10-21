@@ -101,7 +101,7 @@ int main(int argc,char** argv) {
                     // the SAME source stack through 2F468 and ACTUAL
                     // original 290F4 / 29930 planar VGA configuration,
                     // then stop at the next 20294 / 2E590 dependency.
-                    if(owner::test_advance_through_original_video_mode(game.get())!=9u)
+                    if(owner::test_advance_through_original_video_mode(game.get())!=10u)
                         throw std::runtime_error("CODE2 did not run source VGA initializer");
                     const auto progressed=owner::inspect(game.get());
                     if(progressed.memory_address!=initial.memory_address ||
