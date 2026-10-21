@@ -2055,6 +2055,8 @@ Evidence inspect(const Opaque* owner) {
           rloft::guest_continuation::Service::DosMouseReset;
     out.pending_DOS_service_sequence=owner->live_worker?
         owner->pending.sequence:0u;
+    out.host_dpmi_dos_blocks=s.dpmi_dos_memory?
+        static_cast<std::uint32_t>(s.dpmi_dos_memory->allocation_count()):0u;
     return out;
 }
 std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
