@@ -792,6 +792,29 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
              <<" original_1FC14_loop=NOT_REACHED\n";
     return source_mode;
 }
+std::uint32_t test_advance_past_original_second_init(Opaque* s) {
+    if(!s || !s->initialized || !s->resources_loaded ||
+       s->guest->init_opens!=1u || s->guest->res_opens!=11u)
+        throw std::invalid_argument("Original 16D04 second INIT prerequisite invalid");
+    namespace c=rloft::canonical_code2_runtime;
+    auto* const owner=s->canonical.get();
+    REQUIRE(c::pending_host_service(owner)==10u);
+    auto* const base=s->guest->memory.data();
+    std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=SECOND_16D04_SOURCE_RESUME_BEGIN\n"<<std::flush;
+    const auto next=c::advance_original_second_init(owner);
+    // A full original 16D04 must reopen the unchanged original INIT
+    // resource through the retained original Application30 callbacks.
+    REQUIRE(s->guest->memory.data()==base && s->guest->m.data==base &&
+            s->guest->init_opens==2u && !s->guest->error);
+    std::cout<<"ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS"
+             <<" entry=20440_16D04"
+             <<" INIT_reopens=2"
+             <<" original_app30_file_callbacks=YES"
+             <<" source_guest_memory=PRESERVED"
+             <<" next_host_service="<<next
+             <<" gameplay_loop=NOT_VERIFIED\n"<<std::flush;
+    return next;
+}
 void dispatch_pending(Opaque* s) {
     if(!s || !s->initialized)
         throw std::invalid_argument("CODE2 startup guest is not initialized");
