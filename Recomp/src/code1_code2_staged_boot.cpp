@@ -75,6 +75,7 @@ int main(int argc,char** argv) {
             explicit PersistentCode2(const std::filesystem::path& r,
                                      const std::filesystem::path& d)
                 :game(owner::create(r,d,5u),&owner::destroy) {
+                std::cerr<<"RLOFT_STAGED_TRACE=CANONICAL_RESOURCE_GUEST_CONSTRUCTED\n"<<std::flush;
                 initial=owner::inspect(game.get());
                 if(!initial.initialized || initial.resource_archives!=11u ||
                    initial.selected_palette!=3u || initial.vga_port_writes!=769u ||
@@ -94,6 +95,7 @@ int main(int argc,char** argv) {
                    now.dispatch_calls==0u || now.original_game_loop_connected)
                     throw std::runtime_error("CODE.2 resource/palette guest state lost on Pending");
                 if(now.dispatch_calls==3u) {
+                    std::cerr<<"RLOFT_STAGED_TRACE=THIRD_STEP_ORIGINAL_SOURCE_ADVANCE_BEGIN\n"<<std::flush;
                     // After two unchanged Pending dispatches, resume
                     // the SAME source stack through 2F468 and ACTUAL
                     // original 290F4 / 29930 planar VGA configuration,
@@ -112,15 +114,20 @@ int main(int argc,char** argv) {
                    chars.available())return nullptr;
                 return std::make_unique<PersistentCode2>(root,cd);
             });
+        std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_FIRST_STEP_BEGIN\n"<<std::flush;
         const auto first=session.step_once();
+        std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_FIRST_STEP_DONE\n"<<std::flush;
         const auto second=session.step_once();
+        std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_SECOND_STEP_DONE\n"<<std::flush;
         if(first.current!=rloft::original_supervisor::Module::Code2 ||
            first.launches!=1u || first.transitions!=0u ||
            second.launches!=1u || second.transitions!=0u ||
            second.steps!=2u || !second.running ||
            second.chars_available || second.stopped)
             throw std::runtime_error("Original R.EXE invented CODE2 exit or relaunched guest");
+        std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_THIRD_STEP_BEGIN\n"<<std::flush;
         const auto third=session.step_once();
+        std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_THIRD_STEP_DONE\n"<<std::flush;
         if(third.current!=rloft::original_supervisor::Module::Code2 ||
            third.launches!=1u || third.transitions!=0u ||
            third.steps!=3u || third.stopped || !third.running)
