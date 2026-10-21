@@ -190,3 +190,23 @@ delivered as a playable milestone. The next user-facing game build
 requires actual original startup and at least one live event-driven
 gameplay frame.
 
+
+## Part 31 - canonical CODE.2 main and shared original heap/RES/VGA (2026-10-20)
+
+[Original CODE.2 single-owner source integration](CANONICAL_CODE2_SINGLE_GUEST_TO_MOUSE_20261020.md)
+replaces the separate canonical startup/resource guests. Source CODE.2
+353A0 startup and 20608 main retain the same RAM, original Watcom
+37B42/37C37 allocator and DPMI heap, 11 RES archive descriptors,
+COLORS selected bank and VGA palette. This source execution continues
+past original 375FE keyboard vector installation and owner SOUND.CFG
+read. It then stops at original DOS INT33 mouse reset, a remaining
+native input service boundary.
+
+[Original-media Windows regression](https://github.com/Hyperbog/RLOFT/actions/runs/39520936708)
+passed integrated original startup, source resource loading, palette
+and heap-release changes. The bounded CPU call stack was unwound on
+host stop and cannot be resumed by the supervisor Pending dispatcher;
+no original gameplay tick, real window, or playable build is claimed.
+
+Next: connect a real native window/mouse INT33 host service and
+continue the original CODE.2 20608 path toward 1FC14..20293.
