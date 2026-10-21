@@ -24,6 +24,7 @@ struct Evidence {
     bool source_cpu_stack_resumable=false;
     bool paused_at_original_mouse_reset=false;
     std::uint64_t pending_DOS_service_sequence=0;
+    std::uint32_t host_dpmi_dos_blocks=0;
 };
 Opaque* start(const std::filesystem::path& original_code2);
 Opaque* start_stackful(const std::filesystem::path& original_code2);
