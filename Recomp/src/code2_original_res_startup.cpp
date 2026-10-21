@@ -252,7 +252,14 @@ struct Session {
         std::fill_n(t.memory.begin()+static_cast<std::ptrdiff_t>(aligned),bytes,0);
         return static_cast<u32>(aligned);
     }
-    static void free_guest(u32) {}
+    static void free_guest(u32 payload) {
+        auto& t=state();
+        if(t.canonical_owner && payload)
+            rloft::canonical_code2_runtime::release_source_heap(
+                t.canonical_owner,payload);
+        // The standalone synthetic source fixture does not represent a
+        // Watcom heap, and keeps its historic bounded no-op release.
+    }
     static u32 open_init(u32 pointer) {
         auto& t=state();
         if(pointer!=0x718u || std::string(reinterpret_cast<const char*>(t.memory.data()+pointer))!="INIT"){
