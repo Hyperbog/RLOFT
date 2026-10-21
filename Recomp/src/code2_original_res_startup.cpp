@@ -170,7 +170,8 @@ struct Session {
                  <<" first_unavailable_dependency=ORIGINAL_2F2EC_AUDIO_CALLBACK"
                  <<" source_game_entry=20608"
                  <<" original_guest_memory=RETAINED"
-                 <<" compiled_getenv=352EE"\n                 <<" synthetic_environment_answer=NO"
+                 <<" compiled_getenv=352EE"
+                 <<" synthetic_environment_answer=NO"
                  <<" game_loop_1FC14=NOT_REACHED\n";
     }
     rloft::graphics::OriginalVgaHost video{};
