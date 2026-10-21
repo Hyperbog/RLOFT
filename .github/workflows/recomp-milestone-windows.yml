@@ -206,6 +206,9 @@ jobs:
           # never original resource payloads or game-file bytes.
           $stagedLog | ForEach-Object { Write-Host "RLOFT_SOURCE_STAGE: $_" }
           if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
+          if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_BOOTSTRAP_TO_VGA_PASS.*original_resource_selection=EXECUTED.*next_original_dependency=290F4_VIDEO_MODE.*original_1FC14_loop=NOT_REACHED') {
+            throw "Original CODE2 resources, DPMI, DOS disk and 2F468 did not execute in same guest before source 290F4 VGA"
+          }
           if (($stagedLog -join "`n") -notmatch 'RLOFT_CODE2_SAME_GUEST_PERSISTENCE_PASS.*source_archives=11.*palette_bank=3.*DAC_writes=769.*pending_steps=2.*relaunches=0.*game_loop=NOT_CONNECTED') {
             throw "Original CODE.2 resources/palette were not retained in one guest across two Pending steps"
           }
