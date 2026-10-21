@@ -25,6 +25,8 @@ struct Evidence {
     bool paused_at_original_mouse_reset=false;
     std::uint64_t pending_DOS_service_sequence=0;
     std::uint32_t host_dpmi_dos_blocks=0;
+    std::uint32_t original_dpmi_0101_releases=0;
+    std::uint32_t original_mouse_range_calls=0;
 };
 Opaque* start(const std::filesystem::path& original_code2);
 Opaque* start_stackful(const std::filesystem::path& original_code2);
@@ -35,6 +37,14 @@ std::uint32_t pending_host_service(const Opaque*);
 // Requires the exact pending INT33 reset and waits for the next stop.
 std::uint32_t answer_mouse_reset(Opaque*, bool driver_present,
                                  std::uint32_t button_count);
+// Explicit host reply to DPMI AX=0300 / original 33AA0 INT33.
+// Writes actual real-mode register-frame bytes before resuming 33B44.
+std::uint32_t answer_real_mode_mouse(Opaque*,std::uint32_t eax,
+                                     std::uint32_t ebx=0u,
+                                     std::uint32_t ecx=0u,
+                                     std::uint32_t edx=0u);
+// Acknowledge the source INT33 function 7 or 8 range request.
+std::uint32_t answer_mouse_range(Opaque*,std::uint32_t command);
 Evidence inspect(const Opaque*);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
