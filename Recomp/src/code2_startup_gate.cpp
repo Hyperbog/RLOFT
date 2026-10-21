@@ -1505,6 +1505,17 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
         stop("ORIGINAL_ENTRY_RETURNED_WITHOUT_RUNTIME");
     }
     current=nullptr;
+    // Stackful source resumed beyond the original bounded stop; legacy
+    // fixture counter expectations apply only to the historical single-
+    // boundary checks. Report the actual original callback that stopped,
+    // not the unrelated fixture-service count mismatch.
+    if(stackful_worker)
+        throw std::runtime_error(
+            std::string("LIVE_CODE2_SOURCE_STOP=")+state.stop_reason+
+            " dpmi_calls="+std::to_string(state.dpmi_calls)+
+            " range_calls="+std::to_string(state.mouse_range_calls)+
+            " free_calls="+std::to_string(state.dpmi_mouse_free_calls)+
+            " disk_calls="+std::to_string(state.disk_space_calls));
     require(state.version_calls==1 &&
             state.ff00_calls==(source_break_growth?0u:1u) &&
             state.dpmi_calls==(source_host_heap&&!source_break_growth?1u:0u)+
