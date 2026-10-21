@@ -27,5 +27,6 @@ Evidence inspect(const Opaque*);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
 std::uint32_t allocate_source_heap(Opaque*,std::uint32_t bytes);
+void release_source_heap(Opaque*,std::uint32_t guest_payload);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::canonical_code2_runtime
