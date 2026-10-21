@@ -17,7 +17,8 @@ namespace rloft { namespace guest_continuation {
 enum class Service : std::uint8_t {
     DosMouseReset = 1,
     DosMouseRange = 2,
-    DpmiRealModeInt33 = 3
+    DpmiRealModeInt33 = 3,
+    DosDiskFree = 4
 };
 struct Request {
     Service service=Service::DosMouseReset;
