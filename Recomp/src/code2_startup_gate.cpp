@@ -36,6 +36,9 @@ struct GuestVector final { u32 offset{}; u16 selector{}; };
 struct Session {
     rloft::guest_continuation::Worker* live_continuation=nullptr;
     std::jmp_buf escape;
+    // A borrowed host heap call uses its own live setjmp frame; it must
+    // never overwrite the suspended CODE2 worker's escape target.
+    std::jmp_buf* active_escape=&escape;
     std::vector<u8> data, code;
     std::array<u8,256> psp{};
     std::array<u8,512> env{};
@@ -120,7 +123,7 @@ struct Session {
 thread_local Session* current=nullptr;
 [[noreturn]] void stop(const char* reason) noexcept {
     current->stop_reason=reason;
-    std::longjmp(current->escape,1);
+    std::longjmp(*current->active_escape,1);
 }
 u8* segment(u16 selector,u32 off,unsigned size) noexcept {
     Session& s=*current;
@@ -1905,7 +1908,25 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
 namespace rloft { namespace canonical_code2_runtime {
 struct Opaque {
     std::unique_ptr<Session> session;
+    std::unique_ptr<rloft::guest_continuation::Worker> live_worker;
+    Session* live_session=nullptr; // owned by the worker while suspended
+    rloft::guest_continuation::Request pending{};
+    ~Opaque() {
+        // Shutdown first, before any memory owner is destroyed.
+        if(live_worker)live_worker->stop();
+    }
 };
+static Session& held(Opaque* owner) {
+    if(!owner)throw std::invalid_argument("Missing canonical CODE.2 owner");
+    if(owner->live_worker) {
+        if(!owner->live_worker->paused() || !owner->live_session)
+            throw std::logic_error("Cannot access a running original guest");
+        return *owner->live_session;
+    }
+    if(!owner->session)
+        throw std::invalid_argument("Missing canonical CODE.2 guest");
+    return *owner->session;
+}
 Opaque* start(const std::filesystem::path& original_code2) {
     const auto filename=original_code2.string();
     const auto bytes=read_file(filename.c_str());
@@ -1930,12 +1951,66 @@ Opaque* start(const std::filesystem::path& original_code2) {
         throw std::runtime_error("Canonical CODE.2 startup was not retained");
     return result.release();
 }
+// This variant really executes original 353A0 -> 20608 on its own
+// persistent native thread and suspends at the first genuine unprovided
+// DOS INT33 request. The C++ call stack is retained by the waiting thread.
+Opaque* start_stackful(const std::filesystem::path& original_code2) {
+    auto result=std::make_unique<Opaque>();
+    result->live_worker=std::make_unique<rloft::guest_continuation::Worker>();
+    Opaque* const out=result.get();
+    result->live_worker->start([out,original_code2]() {
+        const auto filename=original_code2.string();
+        const auto bytes=read_file(filename.c_str());
+        if(!rloft_recomp::is_original_code2(bytes))
+            throw std::runtime_error("Original CODE.2 identity mismatch");
+        const auto image=rloft_recomp::OriginalLeImage::parse(bytes);
+        const auto root=original_code2.parent_path();
+        const auto sound=read_file((root/"SOUND.CFG").string().c_str());
+        if(sound.size()!=59u)
+            throw std::runtime_error("Original SOUND.CFG size changed");
+        // Original source heap + original IRQ and mouse startup, one
+        // uninterrupted native C++ call stack until a real DOS service.
+        run(image,true,true,true,GameConfig::Unset,
+            true,true,true,&sound,MouseResetBranch::Stop,
+            &root,true,false,true,false,false,
+            nullptr,out->live_worker.get(),&out->live_session);
+    });
+    if(!result->live_worker->await_pause(result->pending) ||
+       result->pending.service!=
+            rloft::guest_continuation::Service::DosMouseReset ||
+       !result->live_session) {
+        throw std::runtime_error(
+            "Original CODE.2 did not suspend at DOS INT33 reset");
+    }
+    return result.release();
+}
+std::uint32_t pending_host_service(const Opaque* owner) {
+    if(!owner || !owner->live_worker ||
+       !owner->live_worker->paused())
+        throw std::logic_error("No pending live DOS callback");
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+std::uint32_t answer_mouse_reset(Opaque* owner,bool present,
+                                  std::uint32_t buttons) {
+    if(!owner || !owner->live_worker ||
+       !owner->live_worker->paused() ||
+       owner->pending.service!=
+         rloft::guest_continuation::Service::DosMouseReset)
+        throw std::logic_error("Guest is not waiting for DOS INT33 reset");
+    if(buttons>3u || (!present && buttons!=0u))
+        throw std::invalid_argument("Invalid original DOS mouse reset reply");
+    const auto request=owner->pending;
+    owner->live_worker->resume(request,
+        {present?0xFFFFu:0u,buttons,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))
+        return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
 Evidence inspect(const Opaque* owner) {
-    if(!owner || !owner->session)
-        throw std::invalid_argument("Missing canonical CODE.2 source runtime");
-    const auto& s=*owner->session;
+    const auto& s=held(const_cast<Opaque*>(owner));
     if(s.data.data()!=s.machine.data || !s.dpmi_linear_memory ||
-       s.stop_reason!=std::string("STOP_BEFORE_DOS_INT33_MOUSE_RESET"))
+       (owner->live_worker?(!owner->live_worker->paused()):
+        s.stop_reason!=std::string("STOP_BEFORE_DOS_INT33_MOUSE_RESET")))
         throw std::runtime_error("Canonical source heap/guest identity changed");
     Evidence out{};
     out.memory_address=s.data.data();
@@ -1950,34 +2025,38 @@ Evidence inspect(const Opaque* owner) {
         s.mouse_reset_calls==1u;
     out.original_getenv_calls=s.getenv_calls;
     out.source_heap_provider_retained=true;
-    out.source_cpu_stack_resumable=false;
+    out.source_cpu_stack_resumable=bool(owner->live_worker);
+    out.paused_at_original_mouse_reset=bool(owner->live_worker) &&
+        owner->pending.service==
+          rloft::guest_continuation::Service::DosMouseReset;
+    out.pending_DOS_service_sequence=owner->live_worker?
+        owner->pending.sequence:0u;
     return out;
 }
 std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
-    if(!owner || !owner->session)
-        throw std::invalid_argument("Missing canonical CODE.2 memory owner");
-    return owner->session->data;
+    return held(owner).data;
 }
 void* canonical_machine(Opaque* owner) {
-    if(!owner || !owner->session)
-        throw std::invalid_argument("Missing canonical CODE.2 machine");
-    return &owner->session->machine;
+    return &held(owner).machine;
 }
 std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
-    if(!owner || !owner->session || !bytes)
-        throw std::invalid_argument("Invalid canonical CODE.2 heap allocation request");
-    auto& s=*owner->session;
+    if(!bytes)throw std::invalid_argument("Zero byte CODE.2 heap request");
+    auto& s=held(owner);
     if(s.machine.data!=s.data.data() || !s.dpmi_linear_memory)
         throw std::runtime_error("Canonical source heap lost its guest aperture");
     Session* const previous=current;
     current=&s;
+    std::jmp_buf host_escape;
+    auto* const previous_escape=s.active_escape;
+    s.active_escape=&host_escape;
     std::uint32_t value=0;
     // The initial DOS startup probe has returned; its setjmp frame
     // no longer exists. Establish a NEW valid escape frame for the
     // retained canonical heap before invoking any original allocator
     // callback that might hit an unsupported DOS/4GW host service.
-    const int boundary=setjmp(s.escape);
+    const int boundary=setjmp(host_escape);
     if(boundary!=0) {
+        s.active_escape=previous_escape;
         current=previous;
         throw std::runtime_error(std::string(
             "Original CODE.2 37B42 host heap stopped: ")+s.stop_reason);
@@ -1985,9 +2064,11 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     try {
         value=code2::function_37b42(s.heap,bytes);
     }catch(...) {
+        s.active_escape=previous_escape;
         current=previous;
         throw;
     }
+    s.active_escape=previous_escape;
     current=previous;
     if(!value || std::uint64_t(value)+bytes>s.data.size())
         throw std::runtime_error("Canonical CODE.2 37B42 heap exhausted");
@@ -1995,15 +2076,17 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
 }
 void release_source_heap(Opaque* owner,std::uint32_t payload) {
     if(!payload)return;
-    if(!owner || !owner->session)
-        throw std::invalid_argument("Missing original CODE.2 heap release owner");
-    auto& s=*owner->session;
+    auto& s=held(owner);
     if(s.machine.data!=s.data.data() || !s.dpmi_linear_memory)
         throw std::runtime_error("Original CODE.2 heap release lost guest aperture");
     Session* const previous=current;
     current=&s;
-    const int boundary=setjmp(s.escape);
+    std::jmp_buf host_escape;
+    auto* const previous_escape=s.active_escape;
+    s.active_escape=&host_escape;
+    const int boundary=setjmp(host_escape);
     if(boundary!=0) {
+        s.active_escape=previous_escape;
         current=previous;
         throw std::runtime_error(std::string(
             "Original CODE.2 37C37 heap free stopped: ")+s.stop_reason);
@@ -2011,9 +2094,11 @@ void release_source_heap(Opaque* owner,std::uint32_t payload) {
     try {
         code2::function_37c37(s.heap,payload);
     }catch(...) {
+        s.active_escape=previous_escape;
         current=previous;
         throw;
     }
+    s.active_escape=previous_escape;
     current=previous;
 }
 void destroy(Opaque* owner) noexcept {delete owner;}
