@@ -28,6 +28,10 @@ struct Evidence {
     std::uint32_t host_dpmi_dos_blocks=0;
     std::uint32_t original_dpmi_0101_releases=0;
     std::uint32_t original_mouse_range_calls=0;
+    std::uint32_t original_source_page_pushes=0;
+    std::uint32_t original_source_page_pops=0;
+    std::uint32_t original_source_page_selects=0;
+    std::uint32_t original_source_planar_fills=0;
     std::uint32_t original_source_video_mode_calls=0;
     std::uint32_t original_source_palette_streams=0;
     bool source_290f4_320x400_video_initialized=false;
