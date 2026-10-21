@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <iostream>
 
 namespace rloft { namespace source_video_boot {
 using u8=std::uint8_t;
@@ -93,8 +94,10 @@ struct Bridge {
         return b;
     }
     static void source_clear_planes() noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=2AB98_BEGIN\n"<<std::flush;
         auto b=app61();
         code2::function_2ab98(self().machine,b);
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=2AB98_END\n"<<std::flush;
     }
     static void source_set_crtc_start(u32 position) noexcept {
         auto b=app61();
@@ -105,30 +108,37 @@ struct Bridge {
         code2::function_2ac10(self().machine,b,count);
     }
     static u32 source_29a84() noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29A84_BEGIN\n"<<std::flush;
         auto gfx=graphics();
         code2::function_29a84(gfx);
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29A84_END\n"<<std::flush;
         return 0;
     }
     static u32 source_29930(u32 mode,u32 descriptor) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29930_ENTRY mode="<<mode<<" desc="<<descriptor<<"\n"<<std::flush;
         auto b=graphics();
         return code2::function_29930(self().machine,b,mode,descriptor);
     }
     static u32 source_2a104(u32 count) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=2A104_ENTRY count="<<count<<"\n"<<std::flush;
         code2::Application59Boundary b{};
         b.call_2ac10=&source_line_compare;
         code2::function_2a104(b,count);
         return 0;
     }
     static u32 source_29fec(u32 page) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29FEC_ENTRY page="<<page<<"\n"<<std::flush;
         return code2::function_29fec(self().machine,page);
     }
     static u32 source_29ffc(u32 page) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29FFC_ENTRY page="<<page<<"\n"<<std::flush;
         code2::Application59Boundary b{};
         b.call_2abf4=&source_set_crtc_start;
         code2::function_29ffc(self().machine,b,page);
         return 0;
     }
     static u32 source_296c0(u32 y0,u32 x0,u32 y1,u32 x1) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=296C0_ENTRY\n"<<std::flush;
         code2::function_296c0(self().machine,
             static_cast<code2::s32>(y0),static_cast<code2::s32>(x0),
             static_cast<code2::s32>(y1),static_cast<code2::s32>(x1));
@@ -157,6 +167,7 @@ struct Bridge {
         return b;
     }
     static u32 source_29ca0(u32 src,u32 first,u32 count) noexcept {
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=29CA0_ENTRY count="<<count<<"\n"<<std::flush;
         ++self().source_palette_stream_calls;
         auto gfx=graphics();
         code2::function_29ca0(gfx,src,first,count);
@@ -178,7 +189,9 @@ struct Bridge {
             throw std::invalid_argument("Only source-observed startup and exit video modes");
         Scope scope(*this);
         auto callbacks=app56();
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=290F4_BEGIN\n"<<std::flush;
         code2::function_290f4(machine,callbacks,mode);
+        std::cerr<<"CODE2_VGA_SOURCE_STAGE=290F4_END\n"<<std::flush;
         ++source_mode_calls;
         if(invalid_access || video.unsupported_read())
             throw std::runtime_error("Original CODE2 290F4 made unsupported VGA I/O");
