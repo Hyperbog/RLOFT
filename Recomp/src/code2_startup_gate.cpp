@@ -2109,8 +2109,16 @@ struct Opaque {
 static Session& held(Opaque* owner) {
     if(!owner)throw std::invalid_argument("Missing canonical CODE.2 owner");
     if(owner->live_worker) {
-        if(!owner->live_worker->paused() || !owner->live_session)
-            throw std::logic_error("Cannot access a running original guest");
+        // The authenticated guest's OWN source callback may borrow the
+        // Watcom heap while running, e.g. 2ECB4 -> 2EB60 -> 3104C ->
+        // original 37B42. Host-origin calls require a suspended guest.
+        // Requiring Paused unconditionally deadlocked/aborted the worker
+        // as soon as genuine 2F468 materialization requested a heap block.
+        if(!owner->live_session ||
+           (!owner->live_worker->paused() &&
+            !owner->live_worker->calling_from_guest_thread()))
+            throw std::logic_error(
+                "Concurrent host access to a running original guest");
         return *owner->live_session;
     }
     if(!owner->session)
