@@ -1975,6 +1975,29 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
         throw std::runtime_error("Canonical CODE.2 37B42 heap exhausted");
     return value;
 }
+void release_source_heap(Opaque* owner,std::uint32_t payload) {
+    if(!payload)return;
+    if(!owner || !owner->session)
+        throw std::invalid_argument("Missing original CODE.2 heap release owner");
+    auto& s=*owner->session;
+    if(s.machine.data!=s.data.data() || !s.dpmi_linear_memory)
+        throw std::runtime_error("Original CODE.2 heap release lost guest aperture");
+    Session* const previous=current;
+    current=&s;
+    const int boundary=setjmp(s.escape);
+    if(boundary!=0) {
+        current=previous;
+        throw std::runtime_error(std::string(
+            "Original CODE.2 37C37 heap free stopped: ")+s.stop_reason);
+    }
+    try {
+        code2::function_37c37(s.heap,payload);
+    }catch(...) {
+        current=previous;
+        throw;
+    }
+    current=previous;
+}
 void destroy(Opaque* owner) noexcept {delete owner;}
 }} // namespace rloft::canonical_code2_runtime
 #if !defined(RLOFT_BUNDLE_NO_MAIN) && !defined(RLOFT_STARTUP_GATE_NO_MAIN)
