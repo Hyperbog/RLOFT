@@ -523,8 +523,20 @@ struct Opaque {
         // INT33 request, without a synthetic reply or CPU instruction
         // replay. Resource setup is still HOST-ORDERED on the SAME heap
         // and RAM, not yet invoked by the original CODE2 scheduler.
-        guest->boot();
-        guest->source_palette_from_scene(root,level);
+        //
+        // Source resource routines use the same Machine and may clobber
+        // its CPU registers; they are a host-ordered operation while
+        // the genuine CODE2 20608 stack is suspended. Preserve the
+        // interrupted CPU register image across these temporary calls.
+        const auto interrupted_cpu=guest->m.cpu;
+        try {
+            guest->boot();
+            guest->source_palette_from_scene(root,level);
+        }catch(...) {
+            guest->m.cpu=interrupted_cpu;
+            throw;
+        }
+        guest->m.cpu=interrupted_cpu;
         initialized=true;
     }
 };
