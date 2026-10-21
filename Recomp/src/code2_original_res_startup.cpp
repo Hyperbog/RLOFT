@@ -783,7 +783,8 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
              <<" original_5E38_game_options=ABSENT_SOURCE_RETURN"
              <<" original_28F58_volume=COMPILED"
              <<" original_31218_CHARS_check=SOURCE"
-             <<" original_312A0_readonly_open=SOURCE_37E77"\n             <<" next_original_dependency=20440_16D04"
+             <<" original_312A0_readonly_open=SOURCE_37E77"
+             <<" next_original_dependency=20440_16D04"
              <<" original_1FC14_loop=NOT_REACHED\n";
     return source_mode;
 }
