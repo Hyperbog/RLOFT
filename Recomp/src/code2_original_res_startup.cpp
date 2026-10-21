@@ -1,7 +1,13 @@
 // Source-backed startup checkpoint: CODE.2 16D04 INIT header and 2E768/2E7F0
 // INFO.DAT -> eleven original RES0..RES10 archive slot tables.
 // This executable is an isolated CODE.2 subsystem gate, NOT CODE.1->game boot.
-#include "../../Code2/Code2.cpp"
+// Canonical startup and resources share one compiled CODE.2 source TU.
+// The original non-inline CODE.2 function definitions must NOT be linked
+// in two object files (duplicate symbols and disconnected source state).
+// Disable only the standalone startup CLI; this resource file retains
+// its own CLI when built independently.
+#define RLOFT_STARTUP_GATE_NO_MAIN
+#include "code2_startup_gate.cpp"
 #include "original_code2_palette_loader.hpp"
 #include "original_code2_scene_palette.hpp"
 #include "original_code2_guest_session.hpp"
@@ -21,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace {
+namespace rloft_code2_resource_internal { namespace {
 using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 #define REQUIRE(c) do {if(!(c))throw std::runtime_error("INIT/RES source: " #c);}while(false)
 std::vector<u8> disk_read(const std::filesystem::path& p) {
@@ -465,7 +471,8 @@ struct Session {
     }
 };
 Session* Session::current=nullptr;
-}
+}} // namespace rloft_code2_resource_internal::{anonymous}
+using rloft_code2_resource_internal::Session;
 
 namespace rloft { namespace original_code2_session {
 struct Opaque {
