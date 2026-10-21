@@ -17,6 +17,8 @@ struct Evidence {
     bool source_353a0_executed=false;
     bool source_20608_executed=false;
     std::uint32_t original_getenv_calls=0;
+    bool source_keyboard_vectors_installed=false;
+    bool source_sound_config_read=false;
     bool source_heap_provider_retained=false;
     bool source_cpu_stack_resumable=false;
 };
