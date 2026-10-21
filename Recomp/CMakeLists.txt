@@ -378,6 +378,10 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_init_resources)
     set_tests_properties(original_code2_16d04_init_2e768_info_all_11_res_startup
         PROPERTIES TIMEOUT 25)
+    add_test(NAME original_code2_2eb60_31334_indexed_archive_record_seek
+        COMMAND rloft_original_code2_init_resources --test-indexed-31334)
+    set_tests_properties(original_code2_2eb60_31334_indexed_archive_record_seek
+        PROPERTIES TIMEOUT 25)
 endif()
 
 # Original SOURCE-STAGED CODE.1 constructors -> CODE.2 INIT/INFO/RES
