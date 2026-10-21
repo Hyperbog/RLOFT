@@ -494,7 +494,7 @@ struct Opaque {
     bool initialized=false;
     explicit Opaque(const std::filesystem::path& root,
                     const std::filesystem::path& cd,unsigned level)
-        :canonical(rloft::canonical_code2_runtime::start(root/"CODE.2"),
+        :canonical(rloft::canonical_code2_runtime::start_stackful(root/"CODE.2"),
                    &rloft::canonical_code2_runtime::destroy),
          guest(std::make_unique<rloft_code2_resource_internal::Session>(
              root.string(),cd.string(),
@@ -510,15 +510,19 @@ struct Opaque {
                 source.original_getenv_calls>=1u &&
                 source.source_keyboard_vectors_installed &&
                 source.source_sound_config_read &&
-                !source.source_cpu_stack_resumable &&
+                source.source_cpu_stack_resumable &&
+                source.paused_at_original_mouse_reset &&
+                source.pending_DOS_service_sequence==1u &&
                 source.heap_arena_header!=0u &&
                 source.memory_address==guest->memory.data() &&
                 guest->m.data==source.memory_address);
         // The original main has now executed the original 375FE
         // keyboard vector path and read SOUND.CFG before stopping at
         // the actual external DOS INT33 mouse reset dependency.
-        // Its C++ call stack CANNOT be resumed after the bounded stop.
-        // Resource setup is still HOST-ORDERED on the SAME heap/RAM.
+        // Its original C++ call stack remains suspended here at the
+        // INT33 request, without a synthetic reply or CPU instruction
+        // replay. Resource setup is still HOST-ORDERED on the SAME heap
+        // and RAM, not yet invoked by the original CODE2 scheduler.
         guest->boot();
         guest->source_palette_from_scene(root,level);
         initialized=true;
@@ -554,6 +558,8 @@ Evidence inspect(const Opaque* s) {
     e.original_20608_executed_to_host_dependency=canonical.source_20608_executed;
     e.original_352ee_getenv_calls=canonical.original_getenv_calls;
     e.original_game_loop_connected=false;
+    // The canonical runtime has a real suspended source call stack;
+    // this resource guest borrows its RAM while no instruction runs.
     return e;
 }
 void dispatch_pending(Opaque* s) {
