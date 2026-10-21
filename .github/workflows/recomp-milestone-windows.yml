@@ -189,6 +189,7 @@ jobs:
           # relabel an observed missing callback as gameplay success.
       - name: Execute source-staged CODE.1 → CODE.2 boot and original palette bank
         shell: pwsh
+        timeout-minutes: 3
         run: |
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
@@ -202,11 +203,17 @@ jobs:
           if (($paletteLog -join "`n") -notmatch 'CODE2_REAL_STARTUP_RES_TO_SCENE_PALETTE_PASS level=5 bank=3 source_palette_loader=325B0_RECONSTRUCTED compiled_brightness=32150 compiled_DAC_writer=29CA0 DAC_port_writes=769') {
             throw "Original scene palette 325B0/32150/29CA0 execution proof missing"
           }
-          $stagedLog = & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia" 2>&1
+          # Stream source callback markers AS THEY OCCUR instead of
+          # buffering process output until a potentially blocked guest exits.
+          # This stage is bounded to three minutes above. Log does not
+          # include original media payloads, only named source checkpoints.
+          $stagedLog = [System.Collections.Generic.List[string]]::new()
+          & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia" 2>&1 | ForEach-Object {
+            $line = $_.ToString()
+            Write-Host "RLOFT_SOURCE_STAGE: $line"
+            $stagedLog.Add($line)
+          }
           $stagedExit = $LASTEXITCODE
-          # Emit only the existing original-source stage diagnostic lines,
-          # never original resource payloads or game-file bytes.
-          $stagedLog | ForEach-Object { Write-Host "RLOFT_SOURCE_STAGE: $_" }
           if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
           if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS.*retained_archive_slots=11.*CRTC_320x400=ORIGINAL_SOURCE.*DAC_clear=29234_29CA0.*next_original_dependency=20294_2E590.*original_1FC14_loop=NOT_REACHED') {
             throw "Original CODE2 290F4/29930 VGA execution or 29234 DAC did not reach 20294/2E590"
