@@ -61,6 +61,15 @@ std::uint32_t answer_host_disk_free(Opaque*);
 // is paused. This pointer must refer to a live original Application68
 // callback table and is NOT a memory copy.
 void attach_original_resource_callbacks(Opaque*,void* original_app68);
+ // Borrow the same original Application30 INIT file callback table that
+ // bootstrapped the source resource archive. The guest owner and this
+ // table must both remain alive until actual CODE.2 child termination.
+void attach_original_init_callbacks(Opaque*,void* original_app30);
+// Answer only the actual compiled 20440 -> 16D04 entry request.
+// Executes compiled 16D04 on the suspended original CODE.2 worker
+// using its retained heap/RAM and the borrowed original INIT callbacks.
+// Returns the subsequent service ID or zero on genuine child completion.
+std::uint32_t advance_original_second_init(Opaque*);
 // Attach exactly the original persistent guest's VGA device while the
 // CODE2 source stack is paused at 290F4. Do not create another VGA page.
 void attach_original_vga(Opaque*,rloft::graphics::OriginalVgaHost*);
