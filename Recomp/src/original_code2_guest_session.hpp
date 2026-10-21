@@ -26,5 +26,10 @@ Opaque* create(const std::filesystem::path& original_game_directory,
                unsigned scene_level);
 Evidence inspect(const Opaque*);
 void dispatch_pending(Opaque*);
+// Original-media CI driver only: deliberately provides test virtual
+// mouse replies and a real host disk query to execute the ACTUAL source
+// from DOS startup through source 2F468 resource selection, then stop at
+// the next 290F4 graphics/VGA dependency. No production device is claimed.
+std::uint32_t test_advance_to_original_video_mode(Opaque*);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::original_code2_session
