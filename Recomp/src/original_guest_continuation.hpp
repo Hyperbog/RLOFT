@@ -107,6 +107,15 @@ public:
         state_=State::Running;
         signal_.notify_all();
     }
+    // Source callbacks can legitimately request heap services WHILE
+    // their original guest thread is running, not only when it is
+    // paused at an external DOS request. Do not grant a parallel host
+    // thread access to mutable guest RAM in the Running state.
+    bool calling_from_guest_thread() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return thread_.joinable() &&
+               std::this_thread::get_id()==thread_.get_id();
+    }
     bool paused() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return state_==State::Paused;
