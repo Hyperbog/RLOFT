@@ -543,6 +543,10 @@ struct Opaque {
         // the suspended CPU stack until the source table is attached.
         rloft::canonical_code2_runtime::attach_original_resource_callbacks(
             canonical.get(),static_cast<void*>(&guest->res_callbacks));
+        // The original 290F4 path must use the same hardware palette/VGA
+        // device that source 325B0->32150->29CA0 initialized above.
+        rloft::canonical_code2_runtime::attach_original_vga(
+            canonical.get(),&guest->video);
         initialized=true;
     }
 };
@@ -616,6 +620,35 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
              <<" next_original_dependency=290F4_VIDEO_MODE"
              <<" original_1FC14_loop=NOT_REACHED\n";
     return c::pending_host_service(owner);
+}
+std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
+    if(!s || !s->initialized)
+        throw std::invalid_argument("CODE2 original video guest missing");
+    namespace c=rloft::canonical_code2_runtime;
+    const auto* const original_machine=s->guest->m.data;
+    const auto* const source_before=s->guest->memory.data();
+    REQUIRE(test_advance_to_original_video_mode(s)==6u);
+    const auto source_mode=c::answer_source_video_mode(s->canonical.get());
+    const auto evidence=c::inspect(s->canonical.get());
+    REQUIRE(source_mode==7u &&
+            original_machine==source_before &&
+            evidence.memory_address==source_before &&
+            evidence.original_source_video_mode_calls==1u &&
+            evidence.original_source_palette_streams==1u &&
+            evidence.source_290f4_320x400_video_initialized &&
+            evidence.source_cpu_stack_resumable &&
+            c::pending_host_service(s->canonical.get())==7u &&
+            s->guest->video.bios_mode()==0x13u &&
+            s->guest->video.repeat_scanlines()==1u);
+    std::cout<<"ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS"
+             <<" source=20440_290F4_29930_2AB98_2ABF4_2AC10"
+             <<" retained_archive_slots=11"
+             <<" CRTC_320x400=ORIGINAL_SOURCE"
+             <<" DAC_clear=29234_29CA0"
+             <<" original_game_stack=PRESERVED"
+             <<" next_original_dependency=20294_2E590"
+             <<" original_1FC14_loop=NOT_REACHED\n";
+    return source_mode;
 }
 void dispatch_pending(Opaque* s) {
     if(!s || !s->initialized)
