@@ -1237,7 +1237,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     if(use_host_dpmi) {
         require(advance_to_mouse &&
                 (mouse_branch==MouseResetBranch::MemoryHandoff ||
-                 mouse_branch==MouseResetBranch::DiskSpace),
+                 mouse_branch==MouseResetBranch::DiskSpace ||
+                 stackful_worker!=nullptr),
                 "host DPMI 0100/0101 requires original mouse source path");
         state.dpmi_dos_memory=std::make_unique<rloft_recomp::DpmiDosMemory>(
             &state.host_startup_descriptors);
