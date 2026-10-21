@@ -1906,6 +1906,7 @@ Evidence inspect(const Opaque* owner) {
     out.heap_arena_header=code2::load_le32(s.data.data()+0x12624u);
     out.source_353a0_executed=s.completed_initializers==4u;
     out.source_20608_executed=s.audio_init_calls==1u;
+    out.original_getenv_calls=s.getenv_calls;
     out.source_heap_provider_retained=true;
     out.source_cpu_stack_resumable=false;
     return out;
@@ -1919,6 +1920,28 @@ void* canonical_machine(Opaque* owner) {
     if(!owner || !owner->session)
         throw std::invalid_argument("Missing canonical CODE.2 machine");
     return &owner->session->machine;
+}
+std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
+    if(!owner || !owner->session || !bytes)
+        throw std::invalid_argument("Invalid canonical CODE.2 heap allocation request");
+    auto& s=*owner->session;
+    if(s.machine.data!=s.data.data() || !s.dpmi_linear_memory)
+        throw std::runtime_error("Canonical source heap lost its guest aperture");
+    Session* const previous=current;
+    current=&s;
+    std::uint32_t value=0;
+    try {
+        // Execute the same canonical original CODE.2 37B42 allocator and
+        // its retained 39D4D DPMI-backed heap-growth callbacks.
+        value=code2::function_37b42(s.heap,bytes);
+    }catch(...) {
+        current=previous;
+        throw;
+    }
+    current=previous;
+    if(!value || std::uint64_t(value)+bytes>s.data.size())
+        throw std::runtime_error("Canonical CODE.2 37B42 heap exhausted");
+    return value;
 }
 void destroy(Opaque* owner) noexcept {delete owner;}
 }} // namespace rloft::canonical_code2_runtime
