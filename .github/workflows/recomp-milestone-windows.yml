@@ -269,6 +269,49 @@ jobs:
             throw "Host-staged original CODE.1 -> CODE.2 pipeline proof missing"
           }
           Write-Host "ORIGINAL_CODE1_CODE2_STAGED_BOOT_PALETTE_PASS source_only=YES full_game_boot=NO"
+      - name: Explore genuine CODE2 second 16D04 INIT execution and next dependency
+        shell: pwsh
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          # An explicit exploratory original-media source test, NOT an
+          # acceptance claim until the following dependency is mapped.
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $cmd = [System.Diagnostics.ProcessStartInfo]::new()
+          $cmd.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $cmd.UseShellExecute = $false
+          $cmd.RedirectStandardOutput = $true
+          $cmd.RedirectStandardError = $true
+          [void]$cmd.ArgumentList.Add("--root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $media).Path)
+          [void]$cmd.ArgumentList.Add("--cd-root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
+          [void]$cmd.ArgumentList.Add("--advance-original-16d04")
+          $child = [System.Diagnostics.Process]::new()
+          $child.StartInfo = $cmd
+          if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
+          $out = $child.StandardOutput.ReadToEndAsync()
+          $err = $child.StandardError.ReadToEndAsync()
+          $completed = $child.WaitForExit(45000)
+          if (-not $completed) {
+            $child.Kill($true)
+            $child.WaitForExit()
+          }
+          $combined = @($out.GetAwaiter().GetResult(), $err.GetAwaiter().GetResult()) -join "`n"
+          foreach ($line in ($combined -split "`r?`n")) {
+            if ($line -match 'ORIGINAL_CODE2_SECOND_16D04|SECOND_16D04_SOURCE|CODE2_ORIGINAL_LIVE_INIT|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL|REAL_SECOND_INIT_') {
+              Write-Host "SOURCE_SECOND_INIT: $line"
+            }
+          }
+          $result = $child.ExitCode
+          $child.Dispose()
+          if (-not $completed) { throw "Original 16D04 continuation timed out after 45 seconds" }
+          if ($result -ne 0) { throw "Original second INIT source experiment exited $result" }
+          if ($combined -notmatch 'ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS.*INIT_reopens=2') {
+            throw "Original second INIT did not prove a second authentic INIT read"
+          }
+          Write-Host "ORIGINAL_CODE2_16D04_SOURCE_EXPERIMENT_PASS original_stack=RETAINED"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
