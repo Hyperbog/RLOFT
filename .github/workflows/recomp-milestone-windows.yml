@@ -207,13 +207,40 @@ jobs:
           # buffering process output until a potentially blocked guest exits.
           # This stage is bounded to three minutes above. Log does not
           # include original media payloads, only named source checkpoints.
+          # Capture both native pipes concurrently, independently of the
+          # waiting source guest. If it hangs, stop its process tree and
+          # print flushed checkpoints rather than losing all child output
+          # when the GitHub step-level watchdog terminates PowerShell.
           $stagedLog = [System.Collections.Generic.List[string]]::new()
-          & "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe" --root "$media" --cd-root "$cdMedia" 2>&1 | ForEach-Object {
-            $line = $_.ToString()
-            Write-Host "RLOFT_SOURCE_STAGE: $line"
-            $stagedLog.Add($line)
+          $launch = [System.Diagnostics.ProcessStartInfo]::new()
+          $launch.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $launch.UseShellExecute = $false
+          $launch.RedirectStandardOutput = $true
+          $launch.RedirectStandardError = $true
+          [void]$launch.ArgumentList.Add("--root")
+          [void]$launch.ArgumentList.Add((Resolve-Path $media).Path)
+          [void]$launch.ArgumentList.Add("--cd-root")
+          [void]$launch.ArgumentList.Add((Resolve-Path $cdMedia).Path)
+          $process = [System.Diagnostics.Process]::new()
+          $process.StartInfo = $launch
+          if (-not $process.Start()) { throw "Could not execute canonical CODE2 original-media source gate" }
+          $stdoutRead = $process.StandardOutput.ReadToEndAsync()
+          $stderrRead = $process.StandardError.ReadToEndAsync()
+          $exited = $process.WaitForExit(90000)
+          if (-not $exited) {
+            $process.Kill($true)
+            $process.WaitForExit()
           }
-          $stagedExit = $LASTEXITCODE
+          foreach ($output in @($stdoutRead.GetAwaiter().GetResult(), $stderrRead.GetAwaiter().GetResult())) {
+            foreach ($line in ($output -split "`r?`n")) {
+              if ($line.Length -eq 0) { continue }
+              Write-Host "RLOFT_SOURCE_STAGE: $line"
+              $stagedLog.Add($line)
+            }
+          }
+          $stagedExit = if ($exited) { $process.ExitCode } else { -1 }
+          $process.Dispose()
+          if (-not $exited) { throw "Original CODE2 staged runtime timed out after 90s; last emitted source callback is above" }
           if ($stagedExit -ne 0) { throw "CODE.1 source constructors to CODE.2 source-resource pipeline failed, exit $stagedExit" }
           if (($stagedLog -join "`n") -notmatch 'ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS.*retained_archive_slots=11.*CRTC_320x400=ORIGINAL_SOURCE.*DAC_clear=29234_29CA0.*next_original_dependency=20294_2E590.*original_1FC14_loop=NOT_REACHED') {
             throw "Original CODE2 290F4/29930 VGA execution or 29234 DAC did not reach 20294/2E590"
