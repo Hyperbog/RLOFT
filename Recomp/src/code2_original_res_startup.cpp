@@ -759,7 +759,7 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
     const auto source_mode=c::answer_source_video_mode(s->canonical.get());
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=VIDEO_290F4_HANDOFF_RETURNED\n"<<std::flush;
     const auto evidence=c::inspect(s->canonical.get());
-    REQUIRE(source_mode==8u &&
+    REQUIRE(source_mode==9u &&
             original_machine==source_before &&
             evidence.memory_address==source_before &&
             evidence.original_source_video_mode_calls==1u &&
@@ -770,7 +770,7 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
             evidence.original_source_planar_fills==2u &&
             evidence.source_290f4_320x400_video_initialized &&
             evidence.source_cpu_stack_resumable &&
-            c::pending_host_service(s->canonical.get())==8u &&
+            c::pending_host_service(s->canonical.get())==9u &&
             s->guest->video.bios_mode()==0x13u &&
             s->guest->video.repeat_scanlines()==1u);
     std::cout<<"ORIGINAL_CODE2_SAME_GUEST_FULL_VGA_MODE_PASS"
@@ -780,7 +780,10 @@ std::uint32_t test_advance_through_original_video_mode(Opaque* s) {
              <<" DAC_clear=29234_29CA0"
              <<" original_game_stack=PRESERVED"
              <<" original_20294_double_clear=2E590_291B0_29B40_2E5D4"
-             <<" next_original_dependency=20440_5E38"
+             <<" original_5E38_game_options=ABSENT_SOURCE_RETURN"
+             <<" original_28F58_volume=COMPILED"
+             <<" original_31218_CHARS_check=SOURCE"
+             <<" next_original_dependency=20440_312A0"
              <<" original_1FC14_loop=NOT_REACHED\n";
     return source_mode;
 }
