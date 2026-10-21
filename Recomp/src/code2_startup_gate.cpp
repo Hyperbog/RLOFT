@@ -1954,9 +1954,17 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     Session* const previous=current;
     current=&s;
     std::uint32_t value=0;
+    // The initial DOS startup probe has returned; its setjmp frame
+    // no longer exists. Establish a NEW valid escape frame for the
+    // retained canonical heap before invoking any original allocator
+    // callback that might hit an unsupported DOS/4GW host service.
+    const int boundary=setjmp(s.escape);
+    if(boundary!=0) {
+        current=previous;
+        throw std::runtime_error(std::string(
+            "Original CODE.2 37B42 host heap stopped: ")+s.stop_reason);
+    }
     try {
-        // Execute the same canonical original CODE.2 37B42 allocator and
-        // its retained 39D4D DPMI-backed heap-growth callbacks.
         value=code2::function_37b42(s.heap,bytes);
     }catch(...) {
         current=previous;
