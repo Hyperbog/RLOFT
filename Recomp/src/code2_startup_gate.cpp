@@ -1016,6 +1016,7 @@ void original_source_resource_selection(u32 context,u32 item,u32 display_byte) n
                            context,item,display_byte);
 }
 void original_video_mode_290f4(u32 mode) noexcept {
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=290F4_ENTRY\n"<<std::flush;
     if(mode!=3u)stop("ORIGINAL_290F4_VIDEO_MODE_CHANGED");
     if(!current->live_continuation)
         stop("STOP_BEFORE_ORIGINAL_290F4_DISPLAY_BACKEND");
@@ -1027,6 +1028,7 @@ void original_video_mode_290f4(u32 mode) noexcept {
         stop("LIVE_ORIGINAL_290F4_DISPLAY_SHUTDOWN");
     if(response.ax!=1u || !current->original_vga)
         stop("LIVE_ORIGINAL_290F4_DISPLAY_DEVICE_NOT_ATTACHED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=290F4_RESUMED\n"<<std::flush;
     // Execute the ORIGINAL canonical CODE.2 mode initializer, including
     // 29930 VGA mode/BIOS, 2AB98 planar clear, 2ABF4/2AC10 CRTC,
     // 29FEC/29FFC pages and 296C0 clipping on the same guest and VGA
@@ -1035,6 +1037,7 @@ void original_video_mode_290f4(u32 mode) noexcept {
         rloft::source_video_boot::Bridge bridge(
             current->machine,*current->original_vga,current->data.size());
         bridge.run_original_290f4(mode);
+        std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=290F4_SOURCE_RETURNED\n"<<std::flush;
         if(bridge.source_mode_calls!=1u)
             stop("LIVE_ORIGINAL_290F4_SOURCE_NOT_EXECUTED");
         ++current->original_source_video_modes;
@@ -1043,6 +1046,7 @@ void original_video_mode_290f4(u32 mode) noexcept {
     }
 }
 void original_video_palette_29234(u32 palette_buffer) noexcept {
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=29234_ENTRY\n"<<std::flush;
     if(palette_buffer!=0xC054u || !current->original_vga ||
        current->original_source_video_modes!=1u)
         stop("ORIGINAL_29234_VGA_SOURCE_PREREQUISITES_MISSING");
@@ -1050,6 +1054,7 @@ void original_video_palette_29234(u32 palette_buffer) noexcept {
         rloft::source_video_boot::Bridge bridge(
             current->machine,*current->original_vga,current->data.size());
         bridge.stream_original_29234(palette_buffer);
+        std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=29234_SOURCE_RETURNED\n"<<std::flush;
         if(bridge.source_palette_stream_calls!=1u)
             stop("ORIGINAL_29234_FULL_PALETTE_DAC_NOT_EXECUTED");
         ++current->original_source_dac_streams;
@@ -1058,6 +1063,7 @@ void original_video_palette_29234(u32 palette_buffer) noexcept {
     }
 }
 void original_2e590_presentation_reset(u32 code) noexcept {
+    std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_2E590_ENTRY\n"<<std::flush;
     if(code!=0u || !current->live_continuation ||
        !current->original_vga || current->original_source_video_modes!=1u ||
        current->original_source_dac_streams!=1u)
