@@ -991,6 +991,40 @@ u32 original_sound_pointer_from_argv(u32 text) noexcept {
         stop("ORIGINAL_AUDIO_ARGV_TEXT_OUT_OF_BOUNDS");
     return code2::function_35349(current->machine,text);
 }
+void original_source_resource_selection(u32 context,u32 item,u32 display_byte) noexcept {
+    if(context!=0x1134u || item!=1u || display_byte!=0x3Cu)
+        stop("ORIGINAL_2F468_RESOURCE_SELECTION_ARGUMENTS_CHANGED");
+    if(!current->live_continuation)
+        stop("STOP_BEFORE_ORIGINAL_2F468_RESOURCE_SELECTION");
+    rloft::guest_continuation::Reply response{};
+    const rloft::guest_continuation::Request request{
+        rloft::guest_continuation::Service::Original2F468ResourceSelection,
+        context,item,display_byte,0u,0u};
+    if(!current->live_continuation->suspend(request,response))
+        stop("LIVE_ORIGINAL_2F468_RESOURCE_SELECTION_SHUTDOWN");
+    if(response.ax!=1u || !current->game_audio.app68 ||
+       code2::load_le32(current->data.data()+0xF0B4u)!=11u ||
+       code2::load_le32(current->data.data()+0xF0B8u)==0u)
+        stop("LIVE_ORIGINAL_2F468_RESOURCE_CACHE_NOT_CONNECTED");
+    // The original source selector, not an invented table/index update.
+    code2::function_2f468(current->machine,current->game_audio,
+                           context,item,display_byte);
+}
+void original_video_mode_290f4(u32 mode) noexcept {
+    if(mode!=3u)stop("ORIGINAL_290F4_VIDEO_MODE_CHANGED");
+    if(!current->live_continuation)
+        stop("STOP_BEFORE_ORIGINAL_290F4_DISPLAY_BACKEND");
+    rloft::guest_continuation::Reply response{};
+    const rloft::guest_continuation::Request request{
+        rloft::guest_continuation::Service::Original290F4VideoMode,
+        mode,0u,0u,0u,0u};
+    if(!current->live_continuation->suspend(request,response))
+        stop("LIVE_ORIGINAL_290F4_DISPLAY_SHUTDOWN");
+    // To advance, implement actual original 290F4 source VGA setup
+    // against this guest's existing display; an arbitrary response
+    // alone is insufficient.
+    stop("LIVE_ORIGINAL_290F4_SOURCE_VIDEO_NOT_YET_CONNECTED");
+}
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
     current->active_sound_base=base; current->active_sound_count=count;
@@ -1417,6 +1451,13 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.game.call_35349=&original_atoi;
     state.game.call_2f2ec=&original_audio_init;
     state.game.call_35286=&original_disk_free_from_35286;
+    if(stackful_worker) {
+        // Explicitly represent source 20440 dependencies; the older
+        // null callbacks silently skipped 2F468/290F4 and made 20608
+        // return without ever reaching its 1FC14 game loop.
+        state.game.call_2f468=&original_source_resource_selection;
+        state.game.call_290f4=&original_video_mode_290f4;
+    }
     state.entry.int21_36=&stop_at_dos_disk_free;
     state.game_audio.call_375fe_far=&original_far_install;
     state.dos_irq.install_interrupt=&original_vector_install;
