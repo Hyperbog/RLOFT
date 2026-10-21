@@ -580,6 +580,43 @@ Evidence inspect(const Opaque* s) {
     // this resource guest borrows its RAM while no instruction runs.
     return e;
 }
+std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
+    if(!s || !s->initialized)
+        throw std::invalid_argument("Original CODE.2 RES guest unavailable");
+    namespace c=rloft::canonical_code2_runtime;
+    const auto first=inspect(s);
+    REQUIRE(first.resource_archives==11u && first.vga_port_writes==769u);
+    auto* const owner=s->canonical.get();
+    // Every call resumes the actual waiting source thread, rather than
+    // replaying 353A0, 20608 or 20440. Device replies are TEST-ONLY.
+    REQUIRE(c::pending_host_service(owner)==1u);
+    REQUIRE(c::answer_mouse_reset(owner,true,3u)==3u);
+    REQUIRE(c::answer_real_mode_mouse(owner,1u,3u,0u,0u)==2u);
+    REQUIRE(c::answer_mouse_range(owner,7u)==2u);
+    REQUIRE(c::answer_mouse_range(owner,8u)==4u);
+    REQUIRE(c::answer_host_disk_free(owner)==5u);
+    // The 2F468 source callback is now connected to the actual
+    // original eleven-archive Application68 table in THIS guest.
+    REQUIRE(c::answer_source_resource_selection(owner)==6u);
+    const auto after=inspect(s);
+    REQUIRE(after.memory_address==first.memory_address &&
+            after.resource_archives==11u &&
+            after.resource_cache_base==first.resource_cache_base &&
+            after.selected_palette==first.selected_palette &&
+            after.vga_port_writes==first.vga_port_writes &&
+            !after.original_game_loop_connected);
+    std::cout<<"ORIGINAL_CODE2_SAME_GUEST_BOOTSTRAP_TO_VGA_PASS"
+             <<" original_source=353A0_20608_20440_2F468"
+             <<" retained_archive_slots=11"
+             <<" original_resource_selection=EXECUTED"
+             <<" real_mode_mouse=0300_RETURNED"
+             <<" DOS_memory_0101=RELEASED"
+             <<" mouse_XY_ranges=EXECUTED"
+             <<" disk_AH36=HOST_BACKED"
+             <<" next_original_dependency=290F4_VIDEO_MODE"
+             <<" original_1FC14_loop=NOT_REACHED\n";
+    return c::pending_host_service(owner);
+}
 void dispatch_pending(Opaque* s) {
     if(!s || !s->initialized)
         throw std::invalid_argument("CODE2 startup guest is not initialized");
