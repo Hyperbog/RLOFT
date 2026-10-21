@@ -68,7 +68,8 @@ int main(){
                  <<" original_functions=290F4_29930_2AB98_2ABF4_2AC10_29FEC_29FFC_296C0"
                  <<" original_320x400_source=YES"
                  <<" BIOS_mode_13=EXECUTED"
-                 <<" original_29234_DAC=768_RGB6"\n                 <<" original_20294_two_page_clear=2E590_291B0_29B40_2E5D4"
+                 <<" original_29234_DAC=768_RGB6"
+                 <<" original_20294_two_page_clear=2E590_291B0_29B40_2E5D4"
                  <<" text_mode_exit=EXECUTED"
                  <<" original_1FC14_loop=NOT_REACHED\n";
         return 0;
