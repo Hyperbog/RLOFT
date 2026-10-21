@@ -399,6 +399,16 @@ endif()
 # Original-media acceptance is run by recomp-milestone-windows.yml with
 # read-only sparse-checkout files, not a self-contained synthetic CTest.
 
+# DPMI 0300 0x32-byte real-mode register frame is validated without
+# commercial media, including EAX/EBX/ECX/EDX writeback and ES/flags.
+add_executable(rloft_original_dpmi_real_mode_mouse_test
+    tests/original_dpmi_real_mode_mouse_test.cpp)
+target_compile_features(rloft_original_dpmi_real_mode_mouse_test PRIVATE cxx_std_17)
+if(BUILD_TESTING)
+    add_test(NAME original_dpmi_0300_real_mode_mouse_frame_semantics
+        COMMAND rloft_original_dpmi_real_mode_mouse_test)
+endif()
+
 # Original CODE.2 source entry + true stackful DOS mouse host boundary,
 # executed against owner-original CODE.2 and SOUND.CFG in Windows CI.
 add_executable(rloft_original_code2_stackful_mouse_gate
