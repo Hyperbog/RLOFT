@@ -241,6 +241,15 @@ struct Session {
         auto& t=state();
         if(t.trace_materialize && ++t.traced_allocs<=8u)
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=ALLOC bytes="<<bytes<<"\n"<<std::flush;
+        // Original 2EB60 sign-extends a 16-bit encoded resource length.
+        // If 31334 was not called, the RES offset table is mistaken for
+        // a header and produces an impossible almost-4GB allocation.
+        // Reject that before handing it to original Watcom 37B42 heap.
+        if(bytes==0u || bytes>t.memory.size()) {
+            t.error=true;
+            std::cerr<<"CODE2_2ECB4_INVALID_SOURCE_ALLOCATION bytes="<<bytes<<"\n"<<std::flush;
+            return 0u;
+        }
         if(t.canonical_owner) {
             const auto ptr=rloft::canonical_code2_runtime::allocate_source_heap(
                 t.canonical_owner,bytes);
@@ -318,6 +327,37 @@ struct Session {
             t.error=true;return 0u;
         }
         it->second.cursor=offset;return offset;
+    }
+    static void resource_record_seek(u32 item,u32 handle) {
+        auto& t=state();
+        const auto it=t.files.find(handle);
+        if(it==t.files.end() || it->second.file<2u ||
+           it->second.file>=t.fixture.data.size()) {
+            t.error=true;
+            return;
+        }
+        const auto& file=t.fixture.data[it->second.file];
+        const u32 count=code2::load_le32(file.data());
+        const std::uint64_t table_end=4u+std::uint64_t(count)*4u;
+        if(item>=count || table_end>file.size() ||
+           4u+std::uint64_t(item)*4u+4u>table_end) {
+            t.error=true;
+            return;
+        }
+        // Original RES directory: count:u32, then count absolute
+        // u32 record offsets. 2EB60 expects 31334(index,stream)
+        // to set the stream cursor BEFORE reading its 5-byte header.
+        const u32 entry=code2::load_le32(file.data()+4u+item*4u);
+        if(entry<table_end || std::uint64_t(entry)+5u>file.size()) {
+            t.error=true;
+            return;
+        }
+        it->second.cursor=entry;
+        if(t.trace_materialize) {
+            std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=31334_INDEXED_SEEK"
+                     <<" item="<<item<<" handle="<<handle
+                     <<" absolute_offset="<<entry<<"\n"<<std::flush;
+        }
     }
     static u32 copy_handle(u8* destination,u32 size,u32 handle) {
         auto& t=state();
@@ -399,6 +439,7 @@ struct Session {
         res_callbacks.call_310b0=&free_guest;
         res_callbacks.call_312a0_stack=&open_resource;
         res_callbacks.call_312ec=&read_guest_void;
+        res_callbacks.call_31334=&resource_record_seek;
     }
     ~Session(){current=nullptr;}
     void seed_authenticated_code2(const std::filesystem::path& code_file) {
