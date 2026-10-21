@@ -2057,6 +2057,35 @@ std::uint32_t answer_mouse_reset(Opaque* owner,bool present,
         return 0u;
     return static_cast<std::uint32_t>(owner->pending.service);
 }
+std::uint32_t answer_real_mode_mouse(Opaque* owner,std::uint32_t eax,
+                                     std::uint32_t ebx,
+                                     std::uint32_t ecx,
+                                     std::uint32_t edx) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::DpmiRealModeInt33 ||
+       owner->pending.ax!=0x0300u || owner->pending.bx!=0x33u ||
+       owner->pending.cx!=0x2B770u || owner->pending.dx!=0x53C1u)
+        throw std::logic_error("Original CODE.2 not waiting at 33AA0 DPMI 0300");
+    // This is a caller-selected DOS virtual-mouse result, never
+    // incorrectly labeled a detected physical input device.
+    const auto q=owner->pending;
+    owner->live_worker->resume(q,{eax,ebx,ecx,edx});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+std::uint32_t answer_mouse_range(Opaque* owner,std::uint32_t command) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=rloft::guest_continuation::Service::DosMouseRange ||
+       (command!=7u && command!=8u) || owner->pending.ax!=command ||
+       owner->pending.bx!=0u || owner->pending.cx!=0u ||
+       owner->pending.dx!=(command==7u?0x27Eu:0xC7u))
+        throw std::logic_error("Original CODE.2 INT33 mouse range mismatch");
+    const auto q=owner->pending;
+    owner->live_worker->resume(q,{0xFFFFu,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
 Evidence inspect(const Opaque* owner) {
     const auto& s=held(const_cast<Opaque*>(owner));
     if(s.data.data()!=s.machine.data || !s.dpmi_linear_memory ||
@@ -2084,6 +2113,8 @@ Evidence inspect(const Opaque* owner) {
         owner->pending.sequence:0u;
     out.host_dpmi_dos_blocks=s.dpmi_dos_memory?
         static_cast<std::uint32_t>(s.dpmi_dos_memory->allocation_count()):0u;
+    out.original_dpmi_0101_releases=s.dpmi_mouse_free_calls;
+    out.original_mouse_range_calls=s.mouse_range_calls;
     return out;
 }
 std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
