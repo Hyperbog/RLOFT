@@ -63,6 +63,8 @@ struct Session {
     unsigned original_31218_checks=0;
     unsigned original_312a0_calls=0;
     unsigned original_16d04_entries=0;
+    unsigned original_16d04_completed=0;
+    code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
     code2::Runtime126Boundary dos_irq{};
@@ -1265,7 +1267,16 @@ void original_16d04_after_dos_open() noexcept {
         0u,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
         stop("ORIGINAL_16D04_SOURCE_SHUTDOWN");
-    stop("ORIGINAL_16D04_NEXT_INIT_CALLBACKS_NOT_CONNECTED");
+    if(response.ax!=1u || !current->original_16d04_callbacks)
+        stop("ORIGINAL_16D04_SOURCE_CALLBACKS_NOT_CONNECTED");
+    // Execute the CERTIFIED original source on its actual 20440
+    // application call path, using the SAME Watcom heap and DGROUP.
+    // The original file/seek/read callbacks are the exact initialized
+    // resource-owner Application30 table, not another guest or stub.
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=16D04_SOURCE_ENTRY_AFTER_DOS_OPEN\n"<<std::flush;
+    code2::function_16d04(current->machine,*current->original_16d04_callbacks);
+    ++current->original_16d04_completed;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=16D04_SOURCE_COMPLETED_ON_GUEST_STACK\n"<<std::flush;
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
@@ -2498,6 +2509,38 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
        code2::load_le16(after.data.data()+0xEF41u)!=320u)
         throw std::runtime_error(
             "Original CODE2 VGA 290F4/29234 source did not establish 320x400");
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+void attach_original_init_callbacks(Opaque* owner,void* original_app30) {
+    if(!owner || !original_app30 || !owner->live_worker ||
+       !owner->live_worker->paused())
+        throw std::invalid_argument("Original CODE2 16D04 INIT owner unavailable");
+    auto& source=held(owner);
+    if(source.original_16d04_callbacks)
+        throw std::logic_error("Original CODE2 INIT callbacks already attached");
+    source.original_16d04_callbacks=
+        static_cast<code2::Application30Boundary*>(original_app30);
+}
+std::uint32_t advance_original_second_init(Opaque* owner) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::Original16D04SecondInit ||
+       owner->pending.ax!=0u || owner->pending.bx!=0u)
+        throw std::logic_error("Original CODE2 is not waiting at source 16D04");
+    const auto& before=held(owner);
+    if(!before.original_16d04_callbacks ||
+       before.original_16d04_entries!=1u ||
+       before.original_16d04_completed!=0u)
+        throw std::logic_error("Original 16D04 source callback state invalid");
+    const auto guest_base=before.machine.data;
+    const auto guest_extent=before.data.size();
+    const auto request=owner->pending;
+    owner->live_worker->resume(request,{1u,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    const auto& after=held(owner);
+    if(after.machine.data!=guest_base || after.data.size()!=guest_extent ||
+       after.original_16d04_completed!=1u)
+        throw std::runtime_error("Original CODE2 second INIT did not complete in original guest");
     return static_cast<std::uint32_t>(owner->pending.service);
 }
 void attach_original_resource_callbacks(Opaque* owner,void* original_app68) {
