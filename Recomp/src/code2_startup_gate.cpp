@@ -2230,6 +2230,51 @@ std::uint32_t answer_host_disk_free(Opaque* owner) {
     if(!owner->live_worker->await_pause(owner->pending))return 0u;
     return static_cast<std::uint32_t>(owner->pending.service);
 }
+void attach_original_vga(
+    Opaque* owner,rloft::graphics::OriginalVgaHost* original_video) {
+    if(!owner || !original_video || !owner->live_worker ||
+       !owner->live_worker->paused())
+        throw std::invalid_argument("CODE2 original source VGA owner not paused");
+    auto& source=held(owner);
+    if(source.original_vga || source.game.app45)
+        throw std::logic_error("CODE2 source VGA device already attached");
+    if(code2::load_le32(source.data.data()+0xF0B4u)!=11u ||
+       code2::load_le32(source.data.data()+0xF0B8u)==0u)
+        throw std::logic_error("CODE2 VGA requires original RES cache");
+    source.original_vga=original_video;
+    source.presentation.call_2e590=&original_2e590_presentation_reset;
+    source.game.app45=&source.presentation;
+}
+std::uint32_t answer_source_video_mode(Opaque* owner) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+         rloft::guest_continuation::Service::Original290F4VideoMode ||
+       owner->pending.ax!=3u)
+        throw std::logic_error("Original CODE2 not waiting at VGA 290F4");
+    const auto& s=held(owner);
+    if(!s.original_vga || s.game.app45!=&s.presentation ||
+       !s.game.call_30d30 || !s.game.call_29234 ||
+       code2::load_le32(s.data.data()+0xF0B4u)!=11u)
+        throw std::logic_error("Original CODE2 VGA callbacks not attached");
+    const auto q=owner->pending;
+    owner->live_worker->resume(q,{1u,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))
+        throw std::runtime_error("Original CODE2 startup returned before 20294");
+    if(owner->pending.service!=
+           rloft::guest_continuation::Service::Original2E590PresentationReset)
+        throw std::runtime_error(
+            "Original CODE2 failed to advance through source VGA and DAC to 20294");
+    const auto& after=held(owner);
+    if(after.original_source_video_modes!=1u ||
+       after.original_source_dac_streams!=1u ||
+       after.original_vga->bios_mode()!=0x13u ||
+       after.data[0xEF3Cu]!=3u ||
+       code2::load_le16(after.data.data()+0xEF3Fu)!=400u ||
+       code2::load_le16(after.data.data()+0xEF41u)!=320u)
+        throw std::runtime_error(
+            "Original CODE2 VGA 290F4/29234 source did not establish 320x400");
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
 void attach_original_resource_callbacks(Opaque* owner,void* original_app68) {
     if(!owner || !original_app68 || !owner->live_worker ||
        !owner->live_worker->paused())
@@ -2288,6 +2333,14 @@ Evidence inspect(const Opaque* owner) {
         static_cast<std::uint32_t>(s.dpmi_dos_memory->allocation_count()):0u;
     out.original_dpmi_0101_releases=s.dpmi_mouse_free_calls;
     out.original_mouse_range_calls=s.mouse_range_calls;
+    out.original_source_video_mode_calls=s.original_source_video_modes;
+    out.original_source_palette_streams=s.original_source_dac_streams;
+    out.source_290f4_320x400_video_initialized=
+       s.original_source_video_modes==1u && s.original_vga &&
+       s.original_vga->bios_mode()==0x13u &&
+       s.data[0xEF3Cu]==3u &&
+       code2::load_le16(s.data.data()+0xEF3Fu)==400u &&
+       code2::load_le16(s.data.data()+0xEF41u)==320u;
     return out;
 }
 std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
