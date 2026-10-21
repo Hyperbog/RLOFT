@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <vector>
 namespace opts=rloft::original_code2_options;
+using u32=std::uint32_t;
 namespace {
 std::vector<std::uint8_t>* mem=nullptr;
 bool present=false;
