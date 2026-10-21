@@ -77,8 +77,8 @@ int main(int argc,char** argv) {
                 :game(owner::create(r,d,5u),&owner::destroy) {
                 std::cerr<<"RLOFT_STAGED_TRACE=CANONICAL_RESOURCE_GUEST_CONSTRUCTED\n"<<std::flush;
                 initial=owner::inspect(game.get());
-                if(!initial.initialized || initial.resource_archives!=11u ||
-                   initial.selected_palette!=3u || initial.vga_port_writes!=769u ||
+                if(!initial.initialized || initial.resource_archives!=0u ||
+                   initial.vga_port_writes!=0u ||
                    !initial.original_20608_executed_to_host_dependency ||
                    initial.original_352ee_getenv_calls==0u ||
                    initial.original_game_loop_connected)
@@ -90,8 +90,9 @@ int main(int argc,char** argv) {
                 if(now.memory_address!=initial.memory_address ||
                    now.source_state_fingerprint!=initial.source_state_fingerprint ||
                    now.resource_cache_base!=initial.resource_cache_base ||
-                   now.resource_archives!=11u ||
-                   now.selected_palette!=3u || now.vga_port_writes!=769u ||
+                   now.resource_archives!=initial.resource_archives ||
+                   now.selected_palette!=initial.selected_palette ||
+                   now.vga_port_writes!=initial.vga_port_writes ||
                    now.dispatch_calls==0u || now.original_game_loop_connected)
                     throw std::runtime_error("CODE.2 resource/palette guest state lost on Pending");
                 if(now.dispatch_calls==3u) {
@@ -102,6 +103,14 @@ int main(int argc,char** argv) {
                     // then stop at the next 20294 / 2E590 dependency.
                     if(owner::test_advance_through_original_video_mode(game.get())!=7u)
                         throw std::runtime_error("CODE2 did not run source VGA initializer");
+                    const auto progressed=owner::inspect(game.get());
+                    if(progressed.memory_address!=initial.memory_address ||
+                       progressed.resource_archives!=11u ||
+                       progressed.selected_palette!=3u ||
+                       progressed.vga_port_writes!=769u ||
+                       progressed.original_game_loop_connected)
+                        throw std::runtime_error(
+                            "Original CODE2 lazy RES and VGA state diverged");
                 }
                 return {runtime::Progress::Pending,0};
             }
