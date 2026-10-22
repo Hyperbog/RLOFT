@@ -1932,6 +1932,7 @@ void original_scene_frame_base(u32 row,u32 x,u32 resource,u32 slot) noexcept {
     b.call_2939c=&original_scene_res_blit;
     code2::function_2e510(current->machine,b,row,x,resource,slot);
 }
+#include "original_code2_live_party_hud.inc"
 void original_scene_res_release(u32 resource,u32 slot) noexcept {
     if(!current->game_audio.app68 || slot!=0u)
         stop("ORIGINAL_1F8FC_RES_CACHE_NOT_RETAINED");
@@ -2635,6 +2636,9 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" original_guest=PRESERVED"
              <<" frame_status=PREVIEW_ONLY_NOT_ORIGINAL_1F8FC\\n"
              <<std::flush;
+    // Source HUD rendering is a separate pre-transition guest probe.
+    // Full 1F8FC and exterior 1F1C8 remain disabled.
+    original_live_1f494_party_probe();
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
