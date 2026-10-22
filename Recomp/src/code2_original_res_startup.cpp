@@ -1254,6 +1254,55 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" next_service=11"
              <<" guest_memory=PRESERVED"
              <<" game_rendering=NOT_CONNECTED\n"<<std::flush;
+    // Original keyboard scan codes, delivered as explicit virtual-host
+    // replies to the SAME suspended 1FC14 thread. Unlike zero-key polls,
+    // these execute the original movement/turning branches and their
+    // source velocity accumulator updates. World transform and raster
+    // callbacks remain unconnected; do not call these displayed frames.
+    const u16 start_forward=code2::load_le16(memory.data()+0xC000u);
+    const u16 start_turn=code2::load_le16(memory.data()+0xC004u);
+    const u16 forward_gain=code2::load_le16(memory.data()+0xBFF4u);
+    const u16 turn_gain=code2::load_le16(memory.data()+0xBFF8u);
+    const u16 forward_limit=code2::load_le16(memory.data()+0x14570u);
+    const u16 turn_limit=code2::load_le16(memory.data()+0x14574u);
+    const u32 pose_heading=code2::load_le32(memory.data()+0xC658u);
+    const u32 pose_x=code2::load_le16(memory.data()+0x255D2u);
+    const u32 pose_y=code2::load_le16(memory.data()+0x255D6u);
+    const u8 starting_page=memory[0xC050u];
+    REQUIRE(c::answer_original_keyboard_event(owner,0x148u)==11u);
+    const u16 after_forward=code2::load_le16(memory.data()+0xC000u);
+    REQUIRE(c::inspect(owner).memory_address==base &&
+            memory[0xC050u]==static_cast<u8>(starting_page^1u) &&
+            code2::load_le16(memory.data()+0x258FCu)==0xFFFFu);
+    REQUIRE(c::answer_original_keyboard_event(owner,0x14Bu)==11u);
+    const u16 after_turn=code2::load_le16(memory.data()+0xC004u);
+    REQUIRE(c::inspect(owner).memory_address==base &&
+            memory[0xC050u]==starting_page &&
+            code2::load_le16(memory.data()+0x258FCu)==0xFFFFu &&
+            c::inspect(owner).pending_DOS_service_sequence==
+                entry.pending_DOS_service_sequence+4u);
+    // The input keys are accepted and executed as original source.
+    // No actor/world update callback (20B40) is yet present, so guest
+    // camera x/y/heading must not be claimed to have changed.
+    REQUIRE(code2::load_le32(memory.data()+0xC658u)==pose_heading &&
+            code2::load_le16(memory.data()+0x255D2u)==pose_x &&
+            code2::load_le16(memory.data()+0x255D6u)==pose_y);
+    std::cout<<"ORIGINAL_CODE2_1FC14_VIRTUAL_KEY_SOURCE_DISPATCH_PASS"
+             <<" source_keys=0148_FORWARD_014B_TURN_LEFT"
+             <<" keyboard_service=30B40"
+             <<" source_accumulator_forward_before="<<start_forward
+             <<" source_accumulator_forward_after="<<after_forward
+             <<" original_gain_forward="<<forward_gain
+             <<" original_limit_forward="<<forward_limit
+             <<" source_accumulator_turn_before="<<start_turn
+             <<" source_accumulator_turn_after="<<after_turn
+             <<" original_gain_turn="<<turn_gain
+             <<" original_limit_turn="<<turn_limit
+             <<" original_guest=PRESERVED"
+             <<" source_page_toggles=2"
+             <<" physical_input=NOT_CONNECTED"
+             <<" world_position_change=NOT_VERIFIED"
+             <<" original_scene_rendering=NOT_CONNECTED\\n"<<std::flush;
     std::cout<<"ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS"
              <<" entry=20440_16D04"
              <<" INIT_reopens=2"
