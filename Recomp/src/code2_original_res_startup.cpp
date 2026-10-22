@@ -1123,7 +1123,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
-            entry.original_source_page_pops==2u &&
+            entry.original_source_page_pops==3u &&
             entry.original_source_planar_fills==4u &&
             entry.original_source_palette_streams==2u &&
             entry.original_source_325b0_loads==1u &&
@@ -1162,7 +1162,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         REQUIRE(frame.memory_address==base &&
                 frame.pending_DOS_service_sequence==
                     entry.pending_DOS_service_sequence+i &&
-                frame.original_source_page_pops==2u);
+                frame.original_source_page_pops==3u);
     }
     std::cout<<"ORIGINAL_CODE2_1FC14_TWO_SOURCE_LOOP_ITERATIONS_PASS"
              <<" original_keyboard_poll=30B40"
