@@ -2120,6 +2120,40 @@ void original_181b4_level_load(u32 requested) noexcept {
        code2::load_le16(current->data.data()+0x2561Bu)==0u ||
        code2::load_le32(current->data.data()+0xCF44u)==0u)
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
+    // Read-only original-media witness for the next HUD/world callback
+    // integration. Do not execute 1F494/1F1C8 against missing callbacks:
+    // the saved party flags determine whether it requests portraits,
+    // translucent inventory sprites, or the terminal-party branch.
+    unsigned portrait_slots=0u,terminal_slots=0u;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_1F1C8_LEVEL22_GUEST_PROFILE"
+             <<" art_mode="<<art_mode
+             <<" frame_RES0_0="<<(code2::load_le32(current->data.data()+0x258DCu)+1u+art_mode*3u)
+             <<" frame_RES0_1="<<(code2::load_le32(current->data.data()+0x258DCu)+2u+art_mode*3u)
+             <<" facing="<<code2::load_le32(current->data.data()+0xC658u)
+             <<" exterior_flags="<<unsigned(current->data[0xC026u])
+             <<","<<unsigned(current->data[0xC027u])
+             <<" world_kind="<<unsigned(current->data[0x258B0u])
+             <<" active_world_cell="<<unsigned(current->data[0x258A8u]);
+    for(u32 slot=0u;slot<4u;++slot) {
+        const u32 actor=0x218F0u+slot*0x248u;
+        const u16 flags=code2::load_le16(current->data.data()+actor);
+        const bool terminal=(flags&0x8000u)!=0u;
+        const bool normal=current->data[0xD681u+slot/2u]==0u;
+        terminal_slots+=terminal?1u:0u;
+        portrait_slots+=!terminal && normal?1u:0u;
+        const code2::s32 portrait=
+            static_cast<code2::s32>(code2::load_le32(current->data.data()+0x258E4u))+
+            static_cast<code2::s32>(current->data[actor+3u])*0x17+
+            static_cast<code2::s32>(static_cast<code2::s8>(current->data[actor+2u]))+
+            ((flags&0x0100u)!=0u?0x2E:0);
+        std::cerr<<" slot"<<slot<<"_flags="<<flags
+                 <<" slot"<<slot<<"_portrait_RES1="<<portrait
+                 <<" slot"<<slot<<"_normal="<<normal;
+    }
+    std::cerr<<" portrait_slots="<<portrait_slots
+             <<" terminal_slots="<<terminal_slots
+             <<" HUD_DRAW=NOT_CONNECTED WORLD_334C4=NOT_CONNECTED\\n"
+             <<std::flush;
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
        current->original_level_scene_mode_calls!=0u ||
