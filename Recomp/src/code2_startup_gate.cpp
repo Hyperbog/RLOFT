@@ -1855,8 +1855,25 @@ u32 original_scene_hud_res_image(u32 item,u32 slot) noexcept {
        code2::load_le32(current->data.data()+offset+5u)!=image ||
        !code2::load_le16(current->data.data()+image) ||
        !code2::load_le16(current->data.data()+image+2u) ||
-       !code2::load_le16(current->data.data()+image+4u))
+       !code2::load_le16(current->data.data()+image+4u)) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=RES1_PORTRAIT_DECODE_FRONTIER"
+                 <<" res1_id="<<item<<" entries="<<entries
+                 <<" type_before="<<unsigned(type_before)
+                 <<" type_after="<<unsigned(current->data[offset+2u])
+                 <<" record_flags="<<unsigned(current->data[offset])
+                 <<" decoded_ptr="<<image
+                 <<" record_ptr="<<code2::load_le32(current->data.data()+offset+5u)
+                 <<" guest_length="<<current->data.size()
+                 <<" image_stride="<<(image&&std::uint64_t(image)+8u<=current->data.size()?
+                    code2::load_le16(current->data.data()+image):0u)
+                 <<" image_frames="<<(image&&std::uint64_t(image)+8u<=current->data.size()?
+                    code2::load_le16(current->data.data()+image+2u):0u)
+                 <<" image_rows="<<(image&&std::uint64_t(image)+8u<=current->data.size()?
+                    code2::load_le16(current->data.data()+image+4u):0u)
+                 <<" source=2F29C_2ECB4_2FD9C"
+                 <<" full_frame=NOT_CONNECTED\\n"<<std::flush;
         stop("ORIGINAL_1F494_RES1_TYPE1_DECODE_INVALID");
+    }
     if(type_before==0u)++current->original_scene_res1_portrait_decodes;
     return image;
 }
