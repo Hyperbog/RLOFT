@@ -70,6 +70,10 @@ void attach_original_init_callbacks(Opaque*,void* original_app30);
 // using its retained heap/RAM and the borrowed original INIT callbacks.
 // Returns the subsequent service ID or zero on genuine child completion.
 std::uint32_t advance_original_second_init(Opaque*);
+// Deliver an explicit original BIOS-style 16-bit key code (zero means
+// no key) at the source 1FC14 -> 30B40 poll. The original C++ guest
+// runs until its NEXT host service, never restarting 20608.
+std::uint32_t answer_original_keyboard_event(Opaque*,std::uint32_t key_code);
 // Attach exactly the original persistent guest's VGA device while the
 // CODE2 source stack is paused at 290F4. Do not create another VGA page.
 void attach_original_vga(Opaque*,rloft::graphics::OriginalVgaHost*);
