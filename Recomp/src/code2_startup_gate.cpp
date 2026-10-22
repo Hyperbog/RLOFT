@@ -72,6 +72,15 @@ struct Session {
     unsigned original_boot_scanout_page_selects=0;
     unsigned original_20440_res_image_loads=0;
     unsigned original_20440_res_image_retains=0;
+    unsigned original_20440_mouse_inits=0;
+    unsigned original_20440_mouse_cursor_loads=0;
+    unsigned original_20440_mouse_capture_calls=0;
+    unsigned original_20440_mouse_callback_installs=0;
+    unsigned original_20440_mouse_draws=0;
+    bool original_20440_mouse_started=false;
+    code2::Application33Boundary original_mouse_resources{};
+    code2::Application34Boundary original_mouse_init_callbacks{};
+    code2::Application35Boundary original_mouse_draw_callbacks{};
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -896,6 +905,30 @@ code2::Runtime101MouseRegs source_mouse_present_2e340() noexcept {
 }
 code2::Runtime101MouseRegs interrupt_mouse_range_boundary(
     u32 command,u32 ebx,u32 ecx,u32 edx) noexcept {
+    if(current->live_continuation && current->original_20440_mouse_started) {
+        const bool new_y=(command==8u && ebx==0u &&
+                          ecx==0u && edx==0x18Fu);
+        const bool new_x=(command==7u && ebx==0u &&
+                          ecx==0u && edx==0x27Eu);
+        const bool set_pos=(command==4u && ebx==0u &&
+                            ecx==0x140u && edx==0xC8u);
+        const bool read_pos=(command==3u && ebx==0u &&
+                             ecx==0u && edx==0u);
+        if(!new_y && !new_x && !set_pos && !read_pos)
+            stop("ORIGINAL_20440_INT33_MOUSE_COMMAND_UNEXPECTED");
+        if((new_x||new_y) && current->original_20440_mouse_inits!=0u)
+            stop("ORIGINAL_20440_INT33_MOUSE_RANGE_AFTER_INIT");
+        rloft::guest_continuation::Reply reply{};
+        const rloft::guest_continuation::Request request{
+            (new_y||new_x)?
+                 rloft::guest_continuation::Service::DosMouseRange:
+                 rloft::guest_continuation::Service::Original20440MousePointer,
+            command,ebx,ecx,edx,0u};
+        if(!current->live_continuation->suspend(request,reply))
+            stop("ORIGINAL_20440_INT33_MOUSE_HOST_SHUTDOWN");
+        if(new_y||new_x)++current->mouse_range_calls;
+        return {reply.ax,reply.bx,reply.cx,reply.dx};
+    }
     ++current->mouse_range_calls;
     if(current->live_continuation) {
         if((command!=7u && command!=8u) || ebx!=0u || ecx!=0u ||
@@ -1305,6 +1338,10 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_boot_scanout_page_selects!=1u ||
        current->original_20440_res_image_loads!=1u ||
        current->original_20440_res_image_retains!=1u ||
+       current->original_20440_mouse_inits!=1u ||
+       current->original_20440_mouse_cursor_loads!=1u ||
+       current->original_20440_mouse_callback_installs!=1u ||
+       current->original_20440_mouse_draws!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1527,6 +1564,170 @@ void original_20440_res0_image_retain(u32 item,u32 slot) noexcept {
     ++current->original_20440_res_image_retains;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=2F184_RES0_RESOURCE_PINNED"
              <<" entry="<<item<<" retained_bit=0x10\n"<<std::flush;
+}
+// Original 20440 runs 1A0B0 and, after switching 9E39 to the
+// opposite page, runs 1A288. Retain canonical INT33 host suspension
+// instead of inferring real mouse movement from static test fixtures.
+u32 original_20440_mouse_probe() noexcept {
+    return static_cast<u32>(code2::function_2e340(current->machine));
+}
+void original_20440_mouse_set_y(u32 lo,u32 hi) noexcept {
+    if(lo!=0u || hi!=0x18Fu)stop("ORIGINAL_1A0B0_MOUSE_Y_RANGE_CHANGED");
+    (void)code2::function_33d38(current->mouse_range,lo,hi);
+}
+void original_20440_mouse_set_x(u32 lo,u32 hi) noexcept {
+    if(lo!=0u || hi!=0x27Eu)stop("ORIGINAL_1A0B0_MOUSE_X_RANGE_CHANGED");
+    (void)code2::function_33d18(current->mouse_range,lo,hi);
+}
+void original_20440_mouse_set_position(u32 x,u32 y) noexcept {
+    if(x!=0xC8u || y!=0xA0u)
+        stop("ORIGINAL_1A0B0_CENTER_MOUSE_POSITION_CHANGED");
+    (void)code2::function_33c90(current->mouse_range,x,y);
+}
+u32 original_20440_mouse_get_position() noexcept {
+    return code2::function_33cb0(current->machine,current->mouse_range);
+}
+u32 original_20440_mouse_image(u32 item,u32 slot) noexcept {
+    if(!current->game_audio.app68 || slot!=0u ||
+       item!=code2::load_le32(current->data.data()+0x258DCu)+0x2Fu ||
+       current->original_20440_mouse_cursor_loads!=0u)
+        stop("ORIGINAL_1A0B0_CURSOR_SOURCE_ID_CHANGED");
+    const u32 image=code2::function_2f29c(
+        current->machine,current->game_audio,item,slot);
+    if(!image || std::uint64_t(image)+0x1614u>current->data.size() ||
+       code2::load_le16(current->data.data()+image+2u)==0u)
+        stop("ORIGINAL_1A0B0_RES0_CURSOR_IMAGE_NOT_DECODED");
+    ++current->original_20440_mouse_cursor_loads;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A0B0_RES0_CURSOR_SOURCE_DECODED"
+             <<" entry="<<item<<" image="<<image<<"\n"<<std::flush;
+    return image;
+}
+void original_20440_mouse_copy(u32 dest,u32 src,u32 count) noexcept {
+    if(dest!=0x880Du || count!=0x1614u ||
+       current->original_20440_mouse_cursor_loads!=1u ||
+       src==0u || std::uint64_t(src)+count>current->data.size())
+        stop("ORIGINAL_1A0B0_CURSOR_FRAME_COPY_CHANGED");
+    (void)code2::function_30cd4(current->machine,dest,src,count);
+}
+void original_20440_mouse_clip(u32 y0,u32 x0,u32 y1,u32 x1) noexcept {
+    if(y0!=0u || x0!=0u || y1!=0x18Fu || x1!=0x13Fu)
+        stop("ORIGINAL_1A0B0_CLIPPING_BOUNDS_CHANGED");
+    code2::function_296c0(current->machine,static_cast<code2::s32>(y0),
+        static_cast<code2::s32>(x0),static_cast<code2::s32>(y1),
+        static_cast<code2::s32>(x1));
+}
+void original_20440_mouse_interrupt_39148(u32 intr,u32 regs,
+                                           u32 output,u32 segments) noexcept {
+    if(intr!=0x33u || regs!=0xA7ACu || output!=0xA7C8u ||
+       segments!=0xA79Eu ||
+       code2::load_le16(current->data.data()+regs)!=0x000Cu ||
+       code2::load_le16(current->data.data()+regs+8u)!=0xFFFFu ||
+       code2::load_le32(current->data.data()+regs+12u)!=0x27894u)
+        stop("ORIGINAL_1A064_INT33_CALLBACK_FRAME_CHANGED");
+    rloft::guest_continuation::Reply reply{};
+    const rloft::guest_continuation::Request request{
+        rloft::guest_continuation::Service::Original20440MouseCallback,
+        intr,regs,output,segments,0u};
+    if(!current->live_continuation->suspend(request,reply))
+        stop("ORIGINAL_1A064_INT33_CALLBACK_SHUTDOWN");
+    if(reply.ax!=0u)stop("ORIGINAL_1A064_INT33_CALLBACK_HOST_FAILED");
+    code2::store_le32(current->data.data()+output,reply.ax);
+    ++current->original_20440_mouse_callback_installs;
+}
+u32 original_20440_mouse_interrupt_result(u32 out) noexcept {
+    if(out!=0xA7C8u)stop("ORIGINAL_1A064_INT33_RESPONSE_POINTER_CHANGED");
+    return code2::load_le32(current->data.data()+out);
+}
+void original_20440_mouse_irq(u32 intr,u32 in,u32 out,u32 seg) noexcept {
+    code2::Runtime98Boundary boundary{};
+    boundary.call_39148=&original_20440_mouse_interrupt_39148;
+    boundary.read_output_eax=&original_20440_mouse_interrupt_result;
+    (void)code2::function_33a7c(boundary,intr,in,out,seg);
+}
+void original_20440_mouse_init() noexcept {
+    if(!current->live_continuation ||
+       current->original_20440_res_image_retains!=1u ||
+       current->original_20440_mouse_started ||
+       current->original_20440_mouse_inits!=0u ||
+       code2::function_2e340(current->machine)!=-1)
+        stop("ORIGINAL_20440_1A0B0_MOUSE_PRECONDITIONS_CHANGED");
+    current->original_20440_mouse_started=true;
+    code2::function_1a0b0(
+        current->machine,current->original_mouse_init_callbacks);
+    if(current->original_20440_mouse_cursor_loads!=1u ||
+       current->original_20440_mouse_callback_installs!=1u ||
+       code2::load_le16(current->data.data()+0x85FCu)!=0xFFFFu ||
+       code2::load_le16(current->data.data()+0x9E31u)!=160u ||
+       code2::load_le16(current->data.data()+0x9E33u)!=200u)
+        stop("ORIGINAL_20440_1A0B0_MOUSE_GUEST_STATE_WRONG");
+    ++current->original_20440_mouse_inits;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A0B0_MOUSE_SOURCE_COMPLETED"
+             <<" virtual_host_position=160_200 cursor=RES0_62"
+             <<" int33_0C=HOST_ACKNOWLEDGED\n"<<std::flush;
+}
+void original_20440_mouse_page_push(u32 page) noexcept {
+    if(page>1u || current->original_20440_mouse_inits!=1u)
+        stop("ORIGINAL_1A288_SOURCE_PAGE_PUSH_ORDER");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e590(page);
+        ++current->original_source_page_pushes;
+        ++current->original_source_page_selects;
+    }catch(const std::exception&){
+        stop("ORIGINAL_1A288_CURSOR_PAGE_PUSH_FAILED");
+    }
+}
+void original_20440_mouse_page_pop() noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e5d4();
+        ++current->original_source_page_pops;
+        ++current->original_source_page_selects;
+    }catch(const std::exception&){
+        stop("ORIGINAL_1A288_CURSOR_PAGE_POP_FAILED");
+    }
+}
+void original_20440_mouse_capture(u32 dst,code2::s32 x,code2::s32 y,
+                                   u32 width,u32 height) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_292bc_cursor_capture(dst,x,y,width,height);
+        ++current->original_20440_mouse_capture_calls;
+    }catch(const std::exception&){
+        stop("ORIGINAL_1A288_SOURCE_CURSOR_VGA_CAPTURE_FAILED");
+    }
+}
+u32 original_20440_mouse_hit(code2::s32 x,code2::s32 y) noexcept {
+    code2::Application62Boundary b{};
+    const u32 hit=code2::function_2ae30(current->machine,b,
+                         static_cast<u32>(x),static_cast<u32>(y));
+    if(hit!=0u)stop("ORIGINAL_1A288_HIT_HANDLER_NOT_CONNECTED");
+    return hit;
+}
+void original_20440_mouse_draw(u32,code2::s32,code2::s32,u32) noexcept {
+    stop("ORIGINAL_1A288_MASKED_CURSOR_DRAW_NOT_CONNECTED");
+}
+void original_20440_mouse_render() noexcept {
+    if(current->original_20440_mouse_inits!=1u ||
+       current->original_20440_mouse_draws!=0u ||
+       !current->original_vga)
+        stop("ORIGINAL_1A288_SOURCE_CURSOR_PREREQUISITES");
+    if(code2::load_le16(current->data.data()+0xA6C0u)!=0u)
+        stop("ORIGINAL_1A288_VISIBLE_CURSOR_SPRITE_NOT_CONNECTED");
+    code2::function_1a288(
+        current->machine,current->original_mouse_draw_callbacks);
+    if(current->original_20440_mouse_capture_calls!=1u ||
+       current->original_source_page_pushes!=3u ||
+       current->original_source_page_pops!=3u ||
+       code2::load_le16(current->data.data()+0x9E37u)!=1u)
+        stop("ORIGINAL_1A288_SOURCE_CURSOR_CAPTURE_INCOMPLETE");
+    ++current->original_20440_mouse_draws;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A288_CURSOR_SOURCE_CAPTURE_COMPLETED"
+             <<" source=292BC_2A114"
+             <<" sprite_visibility=ORIGINAL_DISABLED\n"<<std::flush;
 }
 void original_181b4_level_load(u32 requested) noexcept {
     if(requested!=0x16u || current->original_16cd0_completed!=1u ||
@@ -2857,6 +3058,24 @@ void attach_original_vga(
     source.game.call_291c8=&original_291c8_boot_scanout;
     source.game.call_2ecb4=&original_20440_res0_image_load;
     source.game.call_2f184=&original_20440_res0_image_retain;
+    source.game.call_1a0b0=&original_20440_mouse_init;
+    source.game.call_1a288=&original_20440_mouse_render;
+    source.original_mouse_resources.call_2f29c=&original_20440_mouse_image;
+    source.original_mouse_resources.call_30cd4=&original_20440_mouse_copy;
+    source.original_mouse_init_callbacks.app33=&source.original_mouse_resources;
+    source.original_mouse_init_callbacks.call_2e340=&original_20440_mouse_probe;
+    source.original_mouse_init_callbacks.call_33d38=&original_20440_mouse_set_y;
+    source.original_mouse_init_callbacks.call_33d18=&original_20440_mouse_set_x;
+    source.original_mouse_init_callbacks.call_33c90=&original_20440_mouse_set_position;
+    source.original_mouse_init_callbacks.call_33cb0=&original_20440_mouse_get_position;
+    source.original_mouse_init_callbacks.call_296c0=&original_20440_mouse_clip;
+    source.original_mouse_init_callbacks.call_33a7c=&original_20440_mouse_irq;
+    source.original_mouse_draw_callbacks.app34=&source.original_mouse_init_callbacks;
+    source.original_mouse_draw_callbacks.call_2e590=&original_20440_mouse_page_push;
+    source.original_mouse_draw_callbacks.call_2e5d4=&original_20440_mouse_page_pop;
+    source.original_mouse_draw_callbacks.call_292bc=&original_20440_mouse_capture;
+    source.original_mouse_draw_callbacks.call_2ae30=&original_20440_mouse_hit;
+    source.original_mouse_draw_callbacks.call_29804=&original_20440_mouse_draw;
     source.game.call_2f844=&original_2f844_source_enable;
     source.game.call_181b4=&original_181b4_level_load;
     source.game.app45=&source.presentation;
