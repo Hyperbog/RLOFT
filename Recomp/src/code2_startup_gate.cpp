@@ -2517,11 +2517,33 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" columns=256"
              <<" heading=270"
              <<" world_cells=450"
+             <<" ray_last_slot="<<code2::load_le32(current->data.data()+0xC6FCu)
+             <<" first_record_depth="
+             <<code2::load_le32(current->data.data()+0x15A18u)
+             <<" first_record_front="
+             <<code2::load_le32(current->data.data()+0x15A1Cu)
+             <<" first_record_back="
+             <<code2::load_le32(current->data.data()+0x15A20u)
              <<" first_pass_flags="<<visible_rays
              <<" nonempty_ray_columns="<<solid_rays
              <<" original_guest=PRESERVED"
-             <<" source_raycast=COMPLETE"
-             <<" original_335DC_3263C_VGA=NOT_YET_CONNECTED\\n"<<std::flush;
+             <<" source_raycast=CALLBACK_EXECUTED"
+             <<" original_335DC_3263C_VGA=PREPARED_NOT_YET_EXECUTED\\n"
+             <<std::flush;
+    // Original source has now materialized 256 ray records. Invoke
+    // genuine 335DC record traversal, RES4 cache and source 3263C
+    // SINTAB VGA generation as a bounded PREVIEW, not a complete
+    // 1F8FC frame (HUD/outdoor/scene presentation remain pending).
+    original_world_sweep_335dc();
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=335DC_3263C_RETAINED_VGA_RASTER"
+             <<" callbacks="<<current->original_world_source_flushes
+             <<" sintab_runs="<<current->original_world_source_sintab_calls
+             <<" legacy_sampler_runs="<<current->original_world_legacy_sampler_calls
+             <<" planar_pixels="<<current->original_world_source_pixels
+             <<" decoded_materials="<<current->original_world_materials.size()
+             <<" original_guest=PRESERVED"
+             <<" frame_status=PREVIEW_ONLY_NOT_ORIGINAL_1F8FC\\n"
+             <<std::flush;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
