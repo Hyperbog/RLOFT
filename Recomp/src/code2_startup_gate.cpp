@@ -68,6 +68,8 @@ struct Session {
     unsigned original_16cd0_completed=0;
     unsigned original_181b4_completed=0;
     unsigned original_325b0_completed=0;
+    unsigned original_boot_output_page_selects=0;
+    unsigned original_boot_scanout_page_selects=0;
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -1297,6 +1299,8 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_16cd0_completed!=1u ||
        current->original_181b4_completed!=1u ||
        current->original_325b0_completed!=1u ||
+       current->original_boot_output_page_selects!=1u ||
+       current->original_boot_scanout_page_selects!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1559,6 +1563,39 @@ void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=325B0_SOURCE_COLORS_COMPLETED"
              <<" bank="<<bank<<" RGB6=768 original_guest=PRESERVED\n"
              <<std::flush;
+}
+// Source 20440 calls the render-page and scanout-page selectors in
+// sequence. Both update original DGROUP globals on the same VGA device.
+void original_291b0_boot_page(u32 page) noexcept {
+    if(!current->live_continuation ||
+       current->original_325b0_completed!=1u ||
+       current->original_boot_output_page_selects!=0u ||
+       current->data[0xF0D0u]!=0u ||
+       page!=current->data[0xC050u])
+        stop("ORIGINAL_20440_291B0_PAGE_ORDER_CHANGED");
+    original_291b0_source_page(page);
+    ++current->original_boot_output_page_selects;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=291B0_OUTPUT_PAGE_SOURCE_COMPLETED page="
+             <<page<<"\n"<<std::flush;
+}
+void original_291c8_boot_scanout(u32 page) noexcept {
+    if(!current->live_continuation || !current->original_vga ||
+       current->original_325b0_completed!=1u ||
+       current->original_boot_output_page_selects!=1u ||
+       current->original_boot_scanout_page_selects!=0u ||
+       page>1u || page!=(static_cast<u32>(current->data[0xC050u])^1u))
+        stop("ORIGINAL_20440_291C8_SCANOUT_PAGE_ORDER_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_291c8(page);
+        ++current->original_boot_scanout_page_selects;
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=291C8_SCANOUT_PAGE_SOURCE_COMPLETED page="
+                 <<page<<" CRTC_start="<<current->original_vga->crtc_start()
+                 <<"\n"<<std::flush;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_20440_291C8_SCANOUT_VGA_REJECTED");
+    }
 }
 void original_2f844_source_enable() noexcept {
     code2::function_2f844(current->machine);
@@ -2759,6 +2796,8 @@ void attach_original_vga(
     source.game.call_3838=&original_03838_sintab_load;
     source.game.call_16cd0=&original_16cd0_chars_load;
     source.game.call_325b0=&original_325b0_live_palette;
+    source.game.call_291b0=&original_291b0_boot_page;
+    source.game.call_291c8=&original_291c8_boot_scanout;
     source.game.call_2f844=&original_2f844_source_enable;
     source.game.call_181b4=&original_181b4_level_load;
     source.game.app45=&source.presentation;
