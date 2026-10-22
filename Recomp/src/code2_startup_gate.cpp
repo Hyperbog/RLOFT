@@ -1657,12 +1657,15 @@ void original_20440_mouse_init() noexcept {
     if(current->original_20440_mouse_cursor_loads!=1u ||
        current->original_20440_mouse_callback_installs!=1u ||
        code2::load_le16(current->data.data()+0x85FCu)!=0xFFFFu ||
-       code2::load_le16(current->data.data()+0x9E31u)!=160u ||
-       code2::load_le16(current->data.data()+0x9E33u)!=200u)
+       // Compiled 33CB0 writes half-X at 2B7AC and Y at 2B7AE;
+       // compiled 1A0B0 then reads +6 as the first coordinate, +4
+       // as the second. Preserve this authentic (non-obvious) order.
+       code2::load_le16(current->data.data()+0x9E31u)!=200u ||
+       code2::load_le16(current->data.data()+0x9E33u)!=160u)
         stop("ORIGINAL_20440_1A0B0_MOUSE_GUEST_STATE_WRONG");
     ++current->original_20440_mouse_inits;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A0B0_MOUSE_SOURCE_COMPLETED"
-             <<" virtual_host_position=160_200 cursor=RES0_62"
+             <<" source_cursor_coordinates=200_160 cursor=RES0_62"
              <<" int33_0C=HOST_ACKNOWLEDGED\n"<<std::flush;
 }
 void original_20440_mouse_page_push(u32 page) noexcept {
