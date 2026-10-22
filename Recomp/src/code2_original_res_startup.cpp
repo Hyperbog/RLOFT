@@ -364,6 +364,34 @@ struct Session {
             return;
         }
         it->second.cursor=entry;
+        if(t.canonical_owner && it->second.file==2u &&
+           item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Cu) {
+            const u32 next=(item+1u<count)?
+                code2::load_le32(file.data()+4u+(item+1u)*4u):
+                static_cast<u32>(file.size());
+            if(next<=entry+13u || next>file.size() ||
+               file[entry]!='E' || file[entry+1u]!='H' ||
+               file[entry+2u]!=1u ||
+               code2::load_le16(file.data()+entry+3u)!=8u ||
+               (file[entry+11u]!=0u && file[entry+11u]!=3u) ||
+               code2::load_le16(file.data()+entry+5u)==0u ||
+               code2::load_le16(file.data()+entry+7u)==0u ||
+               file[entry+9u]==0u) {
+                t.original_image_invalid=true;t.error=true;return;
+            }
+            t.original_image_record=item;
+            t.original_image_handle=handle;
+            t.original_image_start=entry;
+            t.original_image_end=next;
+            t.original_image_invalid=false;
+            std::cerr<<"CODE2_ORIGINAL_20440_TYPED_IMAGE_METADATA"
+                     <<" entry="<<item
+                     <<" mode="<<unsigned(file[entry+11u])
+                     <<" frames="<<code2::load_le16(file.data()+entry+5u)
+                     <<" rows="<<code2::load_le16(file.data()+entry+7u)
+                     <<" width_units="<<unsigned(file[entry+9u])
+                     <<" end="<<next<<"\n"<<std::flush;
+        }
         if(t.trace_materialize) {
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=31334_INDEXED_SEEK"
                      <<" item="<<item<<" handle="<<handle
