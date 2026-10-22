@@ -997,6 +997,51 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" prior_loaded="<<static_cast<unsigned>(memory[slot+2u])
              <<" metadata_offset="<<at
              <<" decoded=NOT_YET_CONNECTED\n"<<std::flush;
+    // Independent source-vs-original-image proof: the standalone media
+    // reader decodes RES0:59 but never writes to the canonical guest.
+    const auto expected=rloft::original_res::decode_type1(archive0,target);
+    REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
+            s->guest->original_type1_decodes==1u &&
+            !s->guest->original_image_invalid && !s->guest->error);
+    const u32 loaded=code2::load_le32(memory.data()+slot+5u);
+    REQUIRE(memory[slot+2u]==1u &&
+            (memory[slot]&0x10u)!=0u &&
+            loaded>=8u && std::uint64_t(loaded)+8u<memory.size());
+    const u32 decoded_frame_bytes=expected.frame_size();
+    const u32 frame_stride=decoded_frame_bytes+
+        (expected.tag==0xFFu?0u:1u);
+    REQUIRE(std::uint64_t(loaded)+8u+
+                std::uint64_t(frame_stride)*expected.frames<=memory.size());
+    // The original 37810 permutation changes frame layout; accept only
+    // the nonpermuted startup record until independent permutation parity
+    // is added. Never confuse an unverified image with a decoded one.
+    REQUIRE(expected.reorder==0u &&
+            code2::load_le16(memory.data()+loaded)==frame_stride &&
+            code2::load_le16(memory.data()+loaded+2u)==expected.frames &&
+            code2::load_le16(memory.data()+loaded+4u)==expected.rows &&
+            memory[loaded+6u]==expected.width_units);
+    const u32 plane_bytes=decoded_frame_bytes/4u;
+    REQUIRE(decoded_frame_bytes!=0u && decoded_frame_bytes%4u==0u &&
+            expected.decoded.size()==
+                std::uint64_t(decoded_frame_bytes)*expected.frames);
+    for(u32 frame=0;frame<expected.frames;++frame) {
+        const u32 out=loaded+8u+frame*frame_stride;
+        const u32 data=out+(expected.tag==0xFFu?0u:1u);
+        if(expected.tag!=0xFFu)REQUIRE(memory[out]==expected.tag);
+        for(u32 i=0;i<plane_bytes;++i)
+            for(u32 plane=0;plane<4u;++plane)
+                REQUIRE(memory[data+plane*plane_bytes+i]==
+                    expected.decoded[frame*decoded_frame_bytes+4u*i+plane]);
+    }
+    std::cout<<"ORIGINAL_CODE2_20440_RES0_TYPE1_DECODE_PARITY_PASS"
+             <<" entry="<<target
+             <<" source=2ECB4_2FD9C"
+             <<" byte_count="<<expected.decoded.size()
+             <<" frames="<<expected.frames
+             <<" method="<<unsigned(expected.method)
+             <<" all_source_planar_bytes=MATCH"
+             <<" retention_2F184=YES"
+             <<" guest_memory=PRESERVED\n"<<std::flush;
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
