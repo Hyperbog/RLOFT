@@ -64,6 +64,8 @@ struct Session {
     unsigned original_312a0_calls=0;
     unsigned original_16d04_entries=0;
     unsigned original_16d04_completed=0;
+    unsigned original_03838_completed=0;
+    unsigned original_16cd0_completed=0;
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -1289,6 +1291,8 @@ void original_16d04_after_dos_open() noexcept {
 u32 original_30b40_keyboard_poll() noexcept {
     if(!current->live_continuation ||
        current->original_16d04_completed!=1u ||
+       current->original_03838_completed!=1u ||
+       current->original_16cd0_completed!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1356,7 +1360,8 @@ void original_03838_sintab_load() noexcept {
        code2::load_le32(current->data.data()+0xC660u)==0u ||
        code2::load_le32(current->data.data()+0x608Cu)==0u)
         stop("ORIGINAL_03838_AUTHENTIC_SINTAB_SOURCE_MISMATCH");
-    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=03838_SINTAB_SOURCE_COMPLETED\\n"<<std::flush;
+    ++current->original_03838_completed;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=03838_SINTAB_SOURCE_COMPLETED\n"<<std::flush;
 }
 void original_boot_divide_error() noexcept {
     stop("ORIGINAL_16ADC_CHARACTER_DIVIDE_BY_ZERO");
@@ -1373,7 +1378,7 @@ void original_boot_03de4(u32 slot,code2::s32 level) noexcept {
     code2::function_03de4(current->machine,slot,static_cast<u32>(level));
 }
 void original_16cd0_chars_load() noexcept {
-    if(!current->live_continuation ||
+    if(!current->live_continuation || current->original_03838_completed!=1u ||
        code2::load_le32(current->data.data()+0xC65Cu)==0u ||
        std::memcmp(current->data.data()+0x710u,"CHARS",6u)!=0)
         stop("ORIGINAL_16CD0_CHARACTERS_SOURCE_PRECONDITION");
@@ -1386,7 +1391,8 @@ void original_16cd0_chars_load() noexcept {
     b.call_03ea4=&original_boot_03ea4;
     b.call_03de4=&original_boot_03de4;
     code2::function_16cd0(current->machine,b);
-    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=16CD0_CHARS_16ADC_SOURCE_COMPLETED\\n"<<std::flush;
+    ++current->original_16cd0_completed;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=16CD0_CHARS_16ADC_SOURCE_COMPLETED\n"<<std::flush;
 }
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
