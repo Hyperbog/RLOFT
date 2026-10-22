@@ -2081,6 +2081,81 @@ void original_scene_poll_source_events() noexcept {
     code2::Application70Boundary b{};
     code2::function_2f868(current->machine,b);
 }
+// Original world ray reconstruction, attached to the *retained*
+// CODE.2 Machine rather than a second WorldRaySource fixture. All
+// geometry, SINTAB tables, and material IDs remain guest-owned.
+void original_world_ray_patch(u32 pc,u8 opcode) noexcept {
+    if((pc!=0x32C1Au && pc!=0x32D04u) ||
+       (opcode!=0x8Du && opcode!=0x8Eu))
+        stop("ORIGINAL_32954_CODE_PATCH_ABI_CHANGED");
+    // Canonical reconstructed 32954 has its two x86 patched branches
+    // expressed as typed C++ decisions. No executable guest code is
+    // writable here; the decoded branch effects are not fabricated.
+}
+u32 original_world_ray_depth() noexcept {
+    return code2::function_35730(current->machine);
+}
+u32 original_world_ray_left_optional(u32 index) noexcept {
+    code2::Application43Boundary a{};
+    return code2::function_1e9a0(current->machine,a,index);
+}
+u32 original_world_ray_right_optional(u32 index) noexcept {
+    code2::Application43Boundary a{};
+    return code2::function_1e930(current->machine,a,index);
+}
+void original_world_ray_empty() noexcept {
+    code2::function_32f4c(current->machine);
+}
+code2::Application86Boundary original_world_ray_wall_callbacks() noexcept {
+    code2::Application86Boundary b{};
+    b.call_35730=&original_world_ray_depth;
+    b.call_1e9a0=&original_world_ray_left_optional;
+    return b;
+}
+void original_world_ray_left_wall() noexcept {
+    auto b=original_world_ray_wall_callbacks();
+    code2::function_32f8c(current->machine,b);
+}
+void original_world_ray_right_wall() noexcept {
+    auto b=original_world_ray_wall_callbacks();
+    code2::function_33124(current->machine,b);
+}
+void original_world_ray_left_companion() noexcept {
+    auto b=original_world_ray_wall_callbacks();
+    code2::function_332b4(current->machine,b);
+}
+void original_world_ray_right_companion() noexcept {
+    auto b=original_world_ray_wall_callbacks();
+    code2::function_333bc(current->machine,b);
+}
+void original_world_rays_32954() noexcept {
+    if(current->original_03838_completed!=1u ||
+       current->original_181b4_completed!=1u ||
+       code2::load_le32(current->data.data()+0xC6D8u)!=256u ||
+       code2::load_le32(current->data.data()+0xC660u)==0u)
+        stop("ORIGINAL_32954_RETAINED_WORLD_SOURCE_PREREQUISITES");
+    code2::Application84Boundary b{};
+    b.code_store8=&original_world_ray_patch;
+    b.call_356d8=&code2::function_356d8;
+    b.call_32f4c=&original_world_ray_empty;
+    b.call_32f8c=&original_world_ray_left_wall;
+    b.call_33124=&original_world_ray_right_wall;
+    b.call_332b4=&original_world_ray_left_companion;
+    b.call_333bc=&original_world_ray_right_companion;
+    b.call_1e930=&original_world_ray_right_optional;
+    code2::function_32954(current->machine,b);
+}
+void original_world_camera_334c4() noexcept {
+    if(!current->original_vga || !current->game_audio.app68 ||
+       current->original_181b4_completed!=1u ||
+       code2::load_le16(current->data.data()+0x25619u)==0u ||
+       code2::load_le16(current->data.data()+0x2561Bu)==0u)
+        stop("ORIGINAL_334C4_LIVE_WORLD_PREPASS_UNAVAILABLE");
+    code2::Application90Boundary b{};
+    b.call_35680=&code2::function_35680;
+    b.call_32954=&original_world_rays_32954;
+    code2::function_334c4(current->machine,b);
+}
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
     // Execute the authentic unchanged-scene source path only while
