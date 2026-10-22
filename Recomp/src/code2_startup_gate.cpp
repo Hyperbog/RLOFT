@@ -1342,8 +1342,8 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_20440_mouse_cursor_loads!=1u ||
        current->original_20440_mouse_callback_installs!=1u ||
        current->original_20440_mouse_draws!=1u ||
-       current->original_source_page_pushes!=2u ||
-       current->original_source_page_pops!=2u ||
+       current->original_source_page_pushes!=3u ||
+       current->original_source_page_pops!=3u ||
        current->original_source_dac_streams!=2u ||
        code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
