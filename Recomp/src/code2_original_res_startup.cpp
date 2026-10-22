@@ -1195,8 +1195,38 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" source_1A288=NOT_YET_CONNECTED\n"<<std::flush;
     const auto expected=rloft::original_res::decode_type1(archive0,target);
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
-            s->guest->original_type1_decodes==2u &&
+            s->guest->original_type1_decodes==4u &&
             !s->guest->original_image_invalid && !s->guest->error);
+    // After the original 181B4 postload the two normal-party RES1
+    // portraits were authentically 2F29C->2ECB4->2FD9C decoded in
+    // addition to startup RES0:59/62. Verify their cache records
+    // against original RES1's independent archive directory.
+    const auto& res1=s->guest->fixture.data[3u];
+    const u32 res1_count=code2::load_le32(res1.data());
+    const u32 res1_slot=catalog+16u;
+    const u32 res1_table=code2::load_le32(memory.data()+res1_slot+12u);
+    REQUIRE(res1_count>362u &&
+            code2::load_le32(memory.data()+res1_slot+8u)==res1_count &&
+            std::uint64_t(res1_table)+std::uint64_t(res1_count)*9u<=memory.size());
+    for(const u32 id:{338u,362u}) {
+        const u32 image_record=res1_table+9u*id;
+        const u32 image=code2::load_le32(memory.data()+image_record+5u);
+        const u32 res_offset=code2::load_le32(res1.data()+4u+id*4u);
+        const auto independent_portrait=rloft::original_res::decode_type1(res1,id);
+        REQUIRE(std::uint64_t(res_offset)+13u<=res1.size() &&
+                res1[res_offset]=='E' && res1[res_offset+1u]=='H' &&
+                res1[res_offset+2u]==1u &&
+                memory[image_record+2u]==1u &&
+                std::uint64_t(image)+8u<=memory.size() &&
+                code2::load_le16(memory.data()+image+2u)==independent_portrait.frames &&
+                code2::load_le16(memory.data()+image+4u)==independent_portrait.rows &&
+                memory[image+6u]==independent_portrait.width_units);
+        std::cout<<"ORIGINAL_CODE2_1F494_RES1_SOURCE_PORTRAIT_HEADER_PASS"
+                 <<" item="<<id<<" image="<<image
+                 <<" original_archive=RES1"
+                 <<" decode=2FD9C"
+                 <<" source_cache=RETAINED\\n";
+    }
     const u32 loaded=code2::load_le32(memory.data()+slot+5u);
     REQUIRE(memory[slot+2u]==1u &&
             (memory[slot]&0x10u)!=0u &&
