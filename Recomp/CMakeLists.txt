@@ -650,3 +650,21 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_373bf_30508_status_text_vga_glyphs
         COMMAND rloft_original_code2_status_text_test)
 endif()
+
+
+# Part 26: actual original 1F8E0/1F8FC and 17A68 source control flow,
+# with explicitly synthetic callback receipts. No original game assets,
+# rendered pixels, or live-gameplay acceptance is asserted by this test.
+add_executable(rloft_original_code2_scene_actor_source_test
+    src/test_original_code2_1f8fc_17a68.cpp)
+set_target_properties(rloft_original_code2_scene_actor_source_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_scene_actor_source_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_scene_actor_source_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_1f8fc_scene_and_17a68_postload_source
+        COMMAND rloft_original_code2_scene_actor_source_test)
+endif()
