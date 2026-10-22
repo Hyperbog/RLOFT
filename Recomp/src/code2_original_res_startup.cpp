@@ -1050,9 +1050,25 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         grid.header.data()+0x29Au);
     REQUIRE(code2::load_le16(memory.data()+0x258B2u)==
             (scale?scale:1u));
-    for(std::size_t i=0;i<grid.cells.size();++i)
-        REQUIRE(code2::load_le16(memory.data()+0x198E0u+2u*i)==
-                grid.cells[i]);
+    // The retained guest now executes original 334C4 -> 32954 after
+    // 181B4 (but before first complete scene). 334C4 explicitly clears
+    // per-cell 0x0040 and 32954 marks its visibility/visited flags
+    // 0x0440. Those transient ray flags may legitimately differ from
+    // the untouched LEVELS.DAT bytes; all OTHER original grid bits
+    // must still match the authenticated archive exactly.
+    u32 transient_ray_cells=0u;
+    for(std::size_t i=0;i<grid.cells.size();++i) {
+        const u16 actual=code2::load_le16(memory.data()+0x198E0u+2u*i);
+        const u16 disk=grid.cells[i];
+        REQUIRE((actual&0xFBBFu)==(disk&0xFBBFu));
+        transient_ray_cells+=actual!=disk;
+    }
+    std::cout<<"ORIGINAL_CODE2_LEVEL22_POST_RAY_GRID_INVARIANTS_PASS"
+             <<" cells="<<grid.cells.size()
+             <<" transient_visibility_cells="<<transient_ray_cells
+             <<" original_nontransient_grid_bits=MATCH"
+             <<" source=334C4_32954"
+             <<" raw_archive_grid=VERIFIED_WITH_TRANSIENT_MASK\\n";
     // Independently trace original LEVELS.DAT's packed column-event
     // lists and 11-byte moving/primary/alternate actor records. This
     // checks the *actual* original 181B4 deserialization on retained
