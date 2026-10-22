@@ -257,6 +257,18 @@ struct Bridge {
            machine.data[0xEF4Du]!=page)
             throw std::runtime_error("Original 291B0 source page selection failed");
     }
+    // Original 291C8 changes the display CRTC start through 29FFC and
+    // independently records the selected scanout page in EF4E.
+    void run_original_291c8(u32 page) {
+        if(page>1u)
+            throw std::invalid_argument("Original 291C8 scanout page outside double buffer");
+        Scope scope(*this);
+        auto callbacks=app56();
+        code2::function_291c8(machine,callbacks,page);
+        if(invalid_access || video.unsupported_read() ||
+           machine.data[0xEF4Eu]!=page)
+            throw std::runtime_error("Original 291C8 source scanout selection failed");
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
