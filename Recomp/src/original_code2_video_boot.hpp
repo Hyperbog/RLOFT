@@ -275,7 +275,10 @@ struct Bridge {
     // before drawing a cursor. Preserve VGA read-map sequencing.
     static u32 source_cursor_2a114(u32 dst,u32 row,u32 x,u32 rows,u32 pixels) noexcept {
         auto& b=self();
-        if(rows!=16u || pixels!=32u || row>384u || x>288u ||
+        // Original 292BC forwards (x,y,width,height) as the 2A114
+        // (row,column,row_count,pixel_count) argument order: the cursor
+        // 32x16 rectangle arrives as 32 source rows of 16 pixels.
+        if(rows!=32u || pixels!=16u || row>368u || x>304u ||
            dst<0x9E3Au || std::uint64_t(dst)+768u>b.guest_extent) {
             b.invalid_access=true;return 0u;
         }
