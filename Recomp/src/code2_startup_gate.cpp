@@ -2229,6 +2229,35 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" actor_terminal=SOURCE_CHECK"
              <<" world_rendering=NOT_CONNECTED\n"<<std::flush;
     ++current->original_181b4_completed;
+    // Load the *real* Level22 normal-party RES1 portraits by original
+    // 2F29C -> 2ECB4 -> 2FD9C, on the same guest and Watcom heap.
+    // Preserve resource-catalog and image type verification, and allow
+    // the original cache to satisfy a second lookup without allocation.
+    for(u32 slot=0u;slot<4u;++slot) {
+        const u32 actor=0x218F0u+slot*0x248u;
+        if((code2::load_le16(current->data.data()+actor)&0x8000u)!=0u ||
+           current->data[0xD681u+slot/2u]!=0u)
+            continue;  // Only source 1F494 normal-party portrait branch.
+        u32 id=code2::load_le32(current->data.data()+0x258E4u)+
+            static_cast<u32>(current->data[actor+3u])*0x17u+
+            static_cast<u32>(static_cast<code2::s32>(
+                static_cast<code2::s8>(current->data[actor+2u])));
+        if((code2::load_le16(current->data.data()+actor)&0x0100u)!=0u)
+            id+=0x2Eu;
+        const u32 image=original_scene_hud_res_image(id,1u);
+        if(original_scene_hud_res_image(id,1u)!=image)
+            stop("ORIGINAL_1F494_RES1_PORTRAIT_CACHE_NOT_STABLE");
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_RES1_RETAIL_PORTRAIT_SOURCE_DECODE"
+                 <<" actor_slot="<<slot<<" res1_id="<<id
+                 <<" decoded_ptr="<<image
+                 <<" frame_count="
+                 <<code2::load_le16(current->data.data()+image+2u)
+                 <<" pixel_rows="
+                 <<code2::load_le16(current->data.data()+image+4u)
+                 <<" guest_memory=PRESERVED"
+                 <<" original_source=2F29C_2ECB4_2FD9C"
+                 <<" portrait_VGA=NOT_YET_DRAWN\n"<<std::flush;
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
