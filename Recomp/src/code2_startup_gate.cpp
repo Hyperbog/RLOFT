@@ -3293,7 +3293,7 @@ std::uint32_t answer_original_keyboard_event(
         throw std::logic_error("Original CODE2 not at live 1FC14 keyboard poll");
     const auto& before=held(owner);
     if(before.original_16d04_completed!=1u || !before.original_vga ||
-       before.original_source_page_pops!=2u)
+       before.original_source_page_pops!=3u)
         throw std::logic_error("Original CODE2 game entry state not retained");
     const auto* const guest_base=before.machine.data;
     const auto request=owner->pending;
