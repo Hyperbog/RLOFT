@@ -426,6 +426,53 @@ struct NormalHudProbe {
     }
     static void flip(u32,u32) {}
 };
+// Original HUD image raster source paths with a synthetic decoded
+// planar image. RES identity resolution is a test callback; pixel
+// transfers execute unmodified 2975C/2A380 and 298F0/2A584 source.
+u32 synthetic_hud_image=0u,synthetic_hud_expected_id=0u,
+    synthetic_hud_expected_slot=0u,synthetic_hud_lookups=0u;
+u32 synthetic_hud_lookup(u32 id,u32 slot) noexcept {
+    if(id!=synthetic_hud_expected_id || slot!=synthetic_hud_expected_slot)
+        return 0u;
+    ++synthetic_hud_lookups;
+    return synthetic_hud_image;
+}
+void test_original_source_hud_vga_pixels() {
+    std::vector<code2::u8> mem(0x50000u,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    rloft::graphics::OriginalVgaHost vga;
+    rloft::source_video_boot::Bridge bridge(machine,vga,mem.size());
+    bridge.run_original_290f4(3u);
+    synthetic_hud_image=0x20100u;synthetic_hud_lookups=0u;
+    code2::store_le16(mem.data()+synthetic_hud_image,1024u);
+    code2::store_le16(mem.data()+synthetic_hud_image+2u,1u);
+    code2::store_le16(mem.data()+synthetic_hud_image+4u,16u);
+    mem[synthetic_hud_image+6u]=2u;
+    mem[synthetic_hud_image+7u]=0u;
+    std::fill(mem.begin()+synthetic_hud_image+8u,
+              mem.begin()+synthetic_hud_image+8u+1024u,77u);
+    for(u32 i=0u;i<256u;++i)
+        mem[0xCF70u+i]=static_cast<code2::u8>((i+1u)&255u);
+    synthetic_hud_expected_id=55u;synthetic_hud_expected_slot=0u;
+    bridge.run_original_2975c_hud_frame(
+        0u,200u,160u,55u,0u,synthetic_hud_image,&synthetic_hud_lookup);
+    require(synthetic_hud_lookups==1u &&
+            vga.indexed_scanout(160u,200u)==77u,
+            "Original 2975C source image did not raster to VGA plane");
+    synthetic_hud_expected_id=79u;synthetic_hud_expected_slot=1u;
+    bridge.run_original_298f0_hud_portrait(
+        0u,200u,180u,79u,1u,0xCF70u,
+        synthetic_hud_image,&synthetic_hud_lookup);
+    require(synthetic_hud_lookups==2u &&
+            vga.indexed_scanout(180u,200u)==78u &&
+            vga.indexed_scanout(160u,200u)==77u,
+            "Original 298F0/2A584 table translated wrong VGA color");
+    std::cout<<"ORIGINAL_CODE2_2975C_298F0_HUD_SOURCE_RASTER_PASS"
+             <<" normal_frame_pixel=77 palette_portrait_pixel=78"
+             <<" original_2A380_2A584=EXECUTED"
+             <<" source_art=SYNTHETIC_IMAGE"
+             <<" real_RES1_portrait=NOT_CONNECTED\\n";
+}
 void test_original_source_normal_hud_requests() {
     std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=mem.data();
@@ -570,6 +617,7 @@ int main() {
         test_original_source_present_active_mouse();
         test_original_source_hud_and_world_entry();
         test_original_source_normal_hud_requests();
+        test_original_source_hud_vga_pixels();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
