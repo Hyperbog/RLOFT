@@ -1213,6 +1213,20 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         const u32 image=code2::load_le32(memory.data()+image_record+5u);
         const u32 res_offset=code2::load_le32(res1.data()+4u+id*4u);
         const auto independent_portrait=rloft::original_res::decode_type1(res1,id);
+        std::cerr<<"CODE2_RETAIL_RES1_PARITY_DIAGNOSTIC"
+                 <<" id="<<id
+                 <<" record_offset="<<res_offset
+                 <<" archive_size="<<res1.size()
+                 <<" archive_type="<<unsigned(res1[res_offset+2u])
+                 <<" cache_loaded="<<unsigned(memory[image_record+2u])
+                 <<" image_ptr="<<image
+                 <<" decoded_frames="<<code2::load_le16(memory.data()+image+2u)
+                 <<" decoded_rows="<<code2::load_le16(memory.data()+image+4u)
+                 <<" decoded_units="<<unsigned(memory[image+6u])
+                 <<" independent_frames="<<independent_portrait.frames
+                 <<" independent_rows="<<independent_portrait.rows
+                 <<" independent_units="<<unsigned(independent_portrait.width_units)
+                 <<" SOURCE=2FD9C\\n"<<std::flush;
         REQUIRE(std::uint64_t(res_offset)+13u<=res1.size() &&
                 res1[res_offset]=='E' && res1[res_offset+1u]=='H' &&
                 res1[res_offset+2u]==1u &&
