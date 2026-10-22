@@ -1400,8 +1400,13 @@ void original_16cd0_chars_load() noexcept {
 u32 original_level_missing_standalone(u32 name) noexcept {
     if(name!=0x819Cu || !current->host_files)
         stop("ORIGINAL_181B4_STANDALONE_FILENAME_POINTER");
-    const std::string guest=guest_dos_basename(name);
-    if(guest!="work\\lev022.dat" && guest!="WORK\\LEV022.DAT")
+    // Original WORK\\LEVnnn.DAT contains a directory component and is
+    // longer than a DOS 8.3 basename; do not use guest_dos_basename.
+    // The original source itself already filled the three level digits.
+    const char* const guest=reinterpret_cast<const char*>(
+        segment(0x30u,name,16u));
+    if(std::memcmp(guest,"work\\lev022.dat",16u)!=0 &&
+       std::memcmp(guest,"WORK\\LEV022.DAT",16u)!=0)
         stop("ORIGINAL_181B4_STANDALONE_NAME_UNEXPECTED");
     // The default original installation has no mutable WORK level.
     // If one exists, this read-only archive gate cannot skip that branch.
