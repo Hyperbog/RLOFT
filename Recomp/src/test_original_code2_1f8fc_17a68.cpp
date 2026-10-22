@@ -247,6 +247,101 @@ void test_original_source_present_fallback() {
              <<" original_page_stack=2E590_2E5D4"
              <<" retained_gameplay=NOT_CONNECTED\\n";
 }
+// Original 1F494 is the party HUD dispatcher. Exercise a concrete
+// source-backed status branch with the original actor flags and array
+// strides. The callbacks here OBSERVE requests only; their existence
+// never constitutes RES0 portrait pixel parity.
+struct SceneEntryProbe {
+    static SceneEntryProbe*& active() {
+        static thread_local SceneEntryProbe* p=nullptr;return p;
+    }
+    std::vector<std::string> calls{};
+    bool valid=true;
+    static void page(u32 p) {
+        active()->valid &= p==0u;
+        active()->calls.push_back("291B0");
+    }
+    static void hud_image(u32 y,u32 x,u32 res,u32 archive) {
+        auto* self=active();
+        const u32 i=static_cast<u32>(self->calls.size()-1u);
+        const u32 expected_x=(i%2u)*0x35u+(i/2u)*0xD3u+2u;
+        self->valid &= y==0x113u && x==expected_x &&
+                       res==35u && archive==0u && i<4u;
+        self->calls.push_back("HUD_RES0");
+    }
+    static void ray() {active()->calls.push_back("334C4_RAY_REQUEST");}
+    static void background(u32 p) {
+        active()->valid &= p==3u;
+        active()->calls.push_back("33E28_REQUEST");
+    }
+    static void ground(u32 p) {
+        active()->valid &= p==4u;
+        active()->calls.push_back("33DE0_REQUEST");
+    }
+    static void prepare() {active()->calls.push_back("34DE8_REQUEST");}
+    static void actors() {active()->calls.push_back("1BDAC_REQUEST");}
+    static void scene() {active()->calls.push_back("2C294_REQUEST");}
+    static void effects() {active()->calls.push_back("274A4_REQUEST");}
+    static void resource() {active()->calls.push_back("2F868_REQUEST");}
+};
+void test_original_source_hud_and_world_entry() {
+    std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    code2::store_le32(mem.data()+0x258DCu,15u);
+    code2::store_le32(mem.data()+0xC034u,4u);
+    mem[0xC050u]=0u;
+    for(u32 slot=0u;slot<4u;++slot) {
+        mem[0xCF5Au+slot]=1u;
+        code2::store_le16(mem.data()+0x218F0u+slot*0x248u,0x8000u);
+    }
+    SceneEntryProbe check{};
+    SceneEntryProbe::active()=&check;
+    code2::Application44Boundary hud{};
+    hud.call_291b0=&SceneEntryProbe::page;
+    hud.call_2e510=&SceneEntryProbe::hud_image;
+    code2::function_1f494(machine,hud,0u);
+    require(check.valid && check.calls==
+            std::vector<std::string>({"291B0","HUD_RES0","HUD_RES0",
+                                      "HUD_RES0","HUD_RES0"}),
+            "Original 1F494 did not visit four authentic party HUD status images");
+    for(u32 slot=0u;slot<4u;++slot)
+        require(mem[0xCF5Au+slot]==0u,
+                "Original 1F494 did not clear party redraw dirty bit");
+    check.calls.clear();
+    code2::store_le16(mem.data()+0x255D4u,0x1234u);
+    code2::store_le16(mem.data()+0x255D0u,0x5678u);
+    code2::store_le32(mem.data()+0x22220u,0x800u);
+    mem[0x258A8u]=0xFFu;
+    mem[0x258B0u]=3u;
+    mem[0x258B1u]=4u;
+    code2::Application44Boundary world{};
+    world.call_291b0=&SceneEntryProbe::page;
+    world.call_334c4=&SceneEntryProbe::ray;
+    world.call_33e28=&SceneEntryProbe::background;
+    world.call_33de0=&SceneEntryProbe::ground;
+    world.call_34de8=&SceneEntryProbe::prepare;
+    world.call_1bdac=&SceneEntryProbe::actors;
+    world.call_2c294=&SceneEntryProbe::scene;
+    world.call_274a4=&SceneEntryProbe::effects;
+    world.call_2f868=&SceneEntryProbe::resource;
+    code2::function_1f1c8(machine,world);
+    const std::vector<std::string> expected={
+        "291B0","334C4_RAY_REQUEST","33E28_REQUEST",
+        "33DE0_REQUEST","34DE8_REQUEST","1BDAC_REQUEST",
+        "2C294_REQUEST","274A4_REQUEST","2F868_REQUEST"};
+    require(check.valid && check.calls==expected &&
+            code2::load_le32(mem.data()+0xFDBCu)==0xA0000u &&
+            code2::load_le32(mem.data()+0xC044u)==0x12u &&
+            code2::load_le32(mem.data()+0xC048u)==0x56u &&
+            code2::load_le32(mem.data()+0xFF50u)==0x80u,
+            "Original 1F1C8 render-entry state/callback schedule changed");
+    SceneEntryProbe::active()=nullptr;
+    std::cout<<"ORIGINAL_CODE2_1F494_1F1C8_SOURCE_ENTRY_PASS"
+             <<" party_redraws=4 source_1F3FC=SKIPPED_BY_RETAIL_HIGH_BIT"
+             <<" world_entry=1EDAC_334C4_33E28_33DE0"
+             <<" active_world_raster=NOT_CONNECTED"
+             <<" party_portrait_pixels=NOT_RENDERED\\n";
+}
 void test_original_actor_postload() {
     std::vector<code2::u8> memory(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=memory.data();
@@ -292,6 +387,7 @@ int main() {
         test_original_compositor_dispatch();
         test_original_source_vga_capture();
         test_original_source_present_fallback();
+        test_original_source_hud_and_world_entry();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
