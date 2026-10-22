@@ -1227,14 +1227,29 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
                  <<" independent_rows="<<independent_portrait.rows
                  <<" independent_units="<<unsigned(independent_portrait.width_units)
                  <<" SOURCE=2FD9C\\n"<<std::flush;
+        // The raw archive holds 80 one-row sprite frames. Retail
+        // 2FD9C invokes 37810 when reorder is set: 37810 rearranges
+        // the four original VGA plane strips and rewrites the IMAGE
+        // header to 1 frame x 80 rows. Compare to the original
+        // *post-37810* layout, not the pre-decode RES1 file header.
+        const bool transposed=independent_portrait.reorder!=0u &&
+                              independent_portrait.rows==1u;
+        const u32 expected_frames=transposed?1u:independent_portrait.frames;
+        const u32 expected_rows=transposed?independent_portrait.frames:
+                                            independent_portrait.rows;
+        const u32 expected_stride=expected_rows*
+                                  independent_portrait.width_units*8u+
+                                  (independent_portrait.tag==0xFFu?0u:1u);
         REQUIRE(std::uint64_t(res_offset)+13u<=res1.size() &&
                 res1[res_offset]=='E' && res1[res_offset+1u]=='H' &&
                 res1[res_offset+2u]==1u &&
                 memory[image_record+2u]==1u &&
                 std::uint64_t(image)+8u<=memory.size() &&
-                code2::load_le16(memory.data()+image+2u)==independent_portrait.frames &&
-                code2::load_le16(memory.data()+image+4u)==independent_portrait.rows &&
-                memory[image+6u]==independent_portrait.width_units);
+                code2::load_le16(memory.data()+image)==expected_stride &&
+                code2::load_le16(memory.data()+image+2u)==expected_frames &&
+                code2::load_le16(memory.data()+image+4u)==expected_rows &&
+                memory[image+6u]==independent_portrait.width_units &&
+                memory[image+7u]==(independent_portrait.tag==0xFFu?0u:0x80u));
         std::cout<<"ORIGINAL_CODE2_1F494_RES1_SOURCE_PORTRAIT_HEADER_PASS"
                  <<" item="<<id<<" image="<<image
                  <<" original_archive=RES1"
