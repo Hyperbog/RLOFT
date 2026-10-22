@@ -70,6 +70,8 @@ struct Session {
     unsigned original_325b0_completed=0;
     unsigned original_boot_output_page_selects=0;
     unsigned original_boot_scanout_page_selects=0;
+    unsigned original_20440_res_image_loads=0;
+    unsigned original_20440_res_image_retains=0;
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -1301,6 +1303,8 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_325b0_completed!=1u ||
        current->original_boot_output_page_selects!=1u ||
        current->original_boot_scanout_page_selects!=1u ||
+       current->original_20440_res_image_loads!=1u ||
+       current->original_20440_res_image_retains!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1470,6 +1474,59 @@ u32 original_level_heap_release_header(u32 header) noexcept {
 }
 void original_level_heap_release(u32 payload) noexcept {
     code2::function_310b0(current->machine,current->dos_file_io,payload);
+}
+// Original startup asset: 20440 computes [258DC]+2Ch and loads it via
+// 2ECB4. The original type-1 RES0 record 59 is independently inspected
+// by the owner original-media gate; the cached image is decoded by the
+// canonical original 2FD9C callback on the same retained guest.
+void original_20440_res0_image_load(u32 item,u32 slot) noexcept {
+    if(!current->live_continuation || !current->game_audio.app68 ||
+       current->original_boot_scanout_page_selects!=1u ||
+       current->original_20440_res_image_loads!=0u || slot!=0u ||
+       item!=code2::load_le32(current->data.data()+0x258DCu)+0x2Cu)
+        stop("ORIGINAL_20440_2ECB4_ASSET_ORDER_OR_ID_CHANGED");
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    if(std::uint64_t(catalog)+16u>current->data.size())
+        stop("ORIGINAL_20440_2ECB4_ARCHIVE_CACHE_UNMAPPED");
+    const u32 count=code2::load_le32(current->data.data()+catalog+8u);
+    const u32 records=code2::load_le32(current->data.data()+catalog+12u);
+    if(item>=count ||
+       std::uint64_t(records)+std::uint64_t(count)*9u>current->data.size())
+        stop("ORIGINAL_20440_2ECB4_RESOURCE_ENTRY_OUT_OF_RANGE");
+    const u32 cache=records+item*9u;
+    if(current->data[cache+2u]!=0u)
+        stop("ORIGINAL_20440_2ECB4_RESOURCE_NOT_UNLOADED");
+    code2::function_2ecb4(
+        current->machine,*current->game_audio.app68,item,slot);
+    const u32 image=code2::load_le32(current->data.data()+cache+5u);
+    if(current->data[cache+2u]!=1u || image==0u ||
+       std::uint64_t(image)+8u>current->data.size() ||
+       code2::load_le16(current->data.data()+image)==0u ||
+       code2::load_le16(current->data.data()+image+2u)==0u)
+        stop("ORIGINAL_20440_2ECB4_IMAGE_DECODE_NOT_VERIFIED");
+    ++current->original_20440_res_image_loads;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=2ECB4_RES0_TYPE1_SOURCE_COMPLETED"
+             <<" entry="<<item<<" decoded_ptr="<<image
+             <<" original_guest=PRESERVED\n"<<std::flush;
+}
+void original_20440_res0_image_retain(u32 item,u32 slot) noexcept {
+    if(!current->live_continuation ||
+       current->original_20440_res_image_loads!=1u ||
+       current->original_20440_res_image_retains!=0u ||
+       slot!=0u ||
+       item!=code2::load_le32(current->data.data()+0x258DCu)+0x2Cu)
+        stop("ORIGINAL_20440_2F184_RETAIN_ORDER_CHANGED");
+    code2::function_2f184(current->machine,item,slot);
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    const u32 records=code2::load_le32(current->data.data()+catalog+12u);
+    const u32 cache=records+item*9u;
+    if(current->data[cache+2u]!=1u ||
+       (current->data[cache]&0x10u)==0u ||
+       code2::load_le32(current->data.data()+cache+5u)==0u)
+        stop("ORIGINAL_20440_2F184_RETAIN_FLAG_NOT_SET");
+    ++current->original_20440_res_image_retains;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=2F184_RES0_RESOURCE_PINNED"
+             <<" entry="<<item<<" retained_bit=0x10\n"<<std::flush;
 }
 void original_181b4_level_load(u32 requested) noexcept {
     if(requested!=0x16u || current->original_16cd0_completed!=1u ||
@@ -2798,6 +2855,8 @@ void attach_original_vga(
     source.game.call_325b0=&original_325b0_live_palette;
     source.game.call_291b0=&original_291b0_boot_page;
     source.game.call_291c8=&original_291c8_boot_scanout;
+    source.game.call_2ecb4=&original_20440_res0_image_load;
+    source.game.call_2f184=&original_20440_res0_image_retain;
     source.game.call_2f844=&original_2f844_source_enable;
     source.game.call_181b4=&original_181b4_level_load;
     source.game.app45=&source.presentation;
