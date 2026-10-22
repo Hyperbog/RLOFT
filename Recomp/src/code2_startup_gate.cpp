@@ -3005,14 +3005,50 @@ std::uint32_t answer_real_mode_mouse(Opaque* owner,std::uint32_t eax,
     return static_cast<std::uint32_t>(owner->pending.service);
 }
 std::uint32_t answer_mouse_range(Opaque* owner,std::uint32_t command) {
+    const bool after_startup=owner && owner->live_session &&
+        held(owner).original_20440_mouse_started;
     if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
        owner->pending.service!=rloft::guest_continuation::Service::DosMouseRange ||
        (command!=7u && command!=8u) || owner->pending.ax!=command ||
        owner->pending.bx!=0u || owner->pending.cx!=0u ||
-       owner->pending.dx!=(command==7u?0x27Eu:0xC7u))
+       owner->pending.dx!=(command==7u?0x27Eu:(after_startup?0x18Fu:0xC7u)))
         throw std::logic_error("Original CODE.2 INT33 mouse range mismatch");
     const auto q=owner->pending;
     owner->live_worker->resume(q,{0xFFFFu,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+std::uint32_t answer_original_mouse_pointer(Opaque* owner,std::uint32_t command,
+                                            std::uint32_t buttons,
+                                            std::uint32_t x,std::uint32_t y) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::Original20440MousePointer ||
+       !held(owner).original_20440_mouse_started ||
+       (command!=3u && command!=4u) || owner->pending.ax!=command ||
+       owner->pending.bx!=0u ||
+       owner->pending.cx!=(command==4u?0x140u:0u) ||
+       owner->pending.dx!=(command==4u?0xC8u:0u) ||
+       buttons>3u || x>0x27Eu || y>0x18Fu ||
+       (command==4u && (x!=0x140u || y!=0xC8u)))
+        throw std::logic_error("Original CODE2 not waiting for a valid INT33 mouse pointer command");
+    const auto request=owner->pending;
+    // Explicit virtual-mouse test response. No physical input device or
+    // unobserved user movement is inferred.
+    owner->live_worker->resume(request,{0xFFFFu,buttons,x,y});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
+std::uint32_t answer_original_mouse_callback(Opaque* owner) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::Original20440MouseCallback ||
+       owner->pending.ax!=0x33u || owner->pending.bx!=0xA7ACu ||
+       owner->pending.cx!=0xA7C8u || owner->pending.dx!=0xA79Eu ||
+       !held(owner).original_20440_mouse_started)
+        throw std::logic_error("Original CODE2 not waiting for INT33 fn0C callback registration");
+    const auto request=owner->pending;
+    owner->live_worker->resume(request,{0u,0u,0u,0u});
     if(!owner->live_worker->await_pause(owner->pending))return 0u;
     return static_cast<std::uint32_t>(owner->pending.service);
 }
