@@ -969,6 +969,67 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     for(std::size_t i=0;i<grid.cells.size();++i)
         REQUIRE(code2::load_le16(memory.data()+0x198E0u+2u*i)==
                 grid.cells[i]);
+    // Independently trace original LEVELS.DAT's packed column-event
+    // lists and 11-byte moving/primary/alternate actor records. This
+    // checks the *actual* original 181B4 deserialization on retained
+    // guest memory, not fabricated or preloaded actor arrays.
+    const u32 level_first=rloft::original_levels::le32(
+        archive.data()+4u+22u*4u);
+    const u32 level_last=rloft::original_levels::le32(
+        archive.data()+4u+23u*4u);
+    std::size_t disk_actor=static_cast<std::size_t>(level_first)+
+        0x1Du+0x2A4u+grid.cells.size()*2u;
+    REQUIRE(level_last<=archive.size() && disk_actor<level_last);
+    u32 indexed_columns=0u;
+    for(u32 col=0u;col<grid.width;++col) {
+        REQUIRE(disk_actor+2u<=level_last);
+        const u32 n=rloft::original_levels::le16(
+            archive.data()+disk_actor);
+        disk_actor+=2u;
+        REQUIRE(disk_actor+std::uint64_t(n)*10u<=level_last);
+        indexed_columns+=n;
+        disk_actor+=n*10u;
+    }
+    const std::array<u32,3u> actor_counts{
+        rloft::original_levels::le16(grid.header.data()+0x28Au),
+        rloft::original_levels::le16(grid.header.data()+0x28Eu),
+        rloft::original_levels::le16(grid.header.data()+0x28Cu)};
+    const std::array<u32,3u> actor_destinations{
+        0x14D80u,0x22238u,0x17618u};
+    u32 actor_count=0u;
+    for(std::size_t group=0u;group<actor_counts.size();++group) {
+        const u32 count=actor_counts[group];
+        const u32 destination=actor_destinations[group];
+        REQUIRE(count<=512u &&
+                disk_actor+std::uint64_t(count)*11u<=level_last &&
+                std::uint64_t(destination)+std::uint64_t(count)*0x16u<=
+                    memory.size());
+        for(u32 index=0u;index<count;++index) {
+            const u32 source=static_cast<u32>(disk_actor)+index*11u;
+            const u32 dest=destination+index*0x16u;
+            REQUIRE(code2::load_le16(memory.data()+dest+0x0Eu)==
+                    rloft::original_levels::le16(archive.data()+source));
+            REQUIRE(code2::load_le16(memory.data()+dest+0x06u)==
+                    rloft::original_levels::le16(archive.data()+source+2u));
+            REQUIRE(code2::load_le16(memory.data()+dest+0x04u)==
+                    rloft::original_levels::le16(archive.data()+source+4u));
+            REQUIRE(code2::load_le16(memory.data()+dest+0x02u)==
+                    rloft::original_levels::le16(archive.data()+source+6u));
+            REQUIRE(code2::load_le16(memory.data()+dest)==
+                    rloft::original_levels::le16(archive.data()+source+8u));
+        }
+        actor_count+=count;
+        disk_actor+=static_cast<std::size_t>(count)*11u;
+    }
+    std::cout<<"ORIGINAL_CODE2_181B4_LEVEL22_ACTOR_RECORDS_PARITY_PASS"
+             <<" moving="<<actor_counts[0]
+             <<" primary="<<actor_counts[1]
+             <<" alternate="<<actor_counts[2]
+             <<" total="<<actor_count
+             <<" indexed_column_objects="<<indexed_columns
+             <<" original_source=181B4"
+             <<" actor_records=BYTE_MAPPED_FROM_AUTHENTIC_LEVELS_DAT"
+             <<" actor_AI=NOT_CONNECTED\n"<<std::flush;
     std::cout<<"ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_PASS"
              <<" source=181B4"
              <<" input=AUTHENTIC_LEVELS_DAT"
