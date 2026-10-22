@@ -1936,10 +1936,20 @@ void original_181b4_level_load(u32 requested) noexcept {
     const u32 actor_random_before=current->original_level_actor_random_calls;
     b.call_19ccc=&original_level_19ccc_push;
     b.call_19cf4=&original_level_19cf4_pop;
-    // Source calls 1F8E0 even for an unchanged mode. The full compositor
-    // is provisioned with authentic RES0 blit callbacks, and fails closed
-    // at the unresolved original 30070 VGA capture, never faking a frame.
-    b.call_1f8e0=&original_level_1f8e0_scene_mode;
+    // An original 1F8E0 changed-scene mode invokes 1F8FC, which also
+    // requires 30070 planar captures, HUD, world composition and display
+    // callbacks. Our genuine RES0 2E510/2939C/2A380 bridge is prepared,
+    // but the complete callback graph is not yet available. Do not
+    // execute a partial 1F8FC and corrupt the continuous source startup.
+    // Keep 1F8E0 DISCONNECTED for this phase, matching the last validated
+    // game-loop boundary; the isolated original 1F8FC source test remains
+    // mandatory. Never report frame acceptance until all branches work.
+    const u32 art_mode=current->data[0x81ACu+requested*3u];
+    const u32 current_mode=code2::load_le32(current->data.data()+0xC034u);
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SCENE_MODE_FRONTIER"
+             <<" requested="<<art_mode<<" retained="<<current_mode
+             <<" original_30070_capture=NOT_CONNECTED"
+             <<" scene_rendering=NOT_CONNECTED\\n"<<std::flush;
     b.call_0ccf4=&original_level_0ccf4_party_terminal;
     code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
     ++current->original_level_actor_postloads;
@@ -1955,13 +1965,13 @@ void original_181b4_level_load(u32 requested) noexcept {
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
-       current->original_level_scene_mode_calls!=1u ||
+       current->original_level_scene_mode_calls!=0u ||
        current->original_level_party_terminal_checks!=1u ||
        current->original_level_actor_postloads!=1u)
         stop("ORIGINAL_181B4_SOURCE_WORLD_STATE_CALLBACKS_MISSING");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_STATE_CALLBACKS_COMPLETED"
              <<" source=19CCC_19CF4_0CCF4"
-             <<" scene_1F8E0=ORIGINAL_SOURCE_DISPATCH"
+             <<" scene_1F8FC_RES0_BRIDGE=PREPARED_NOT_EXECUTED"
              <<" actor_terminal=SOURCE_CHECK"
              <<" world_rendering=NOT_CONNECTED\n"<<std::flush;
     ++current->original_181b4_completed;
