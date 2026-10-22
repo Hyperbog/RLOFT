@@ -113,6 +113,8 @@ struct Session {
     code2::Application67Boundary info_callbacks{};
     code2::Application68Boundary res_callbacks{};
     code2::Application70Boundary original_image_callbacks{};
+    code2::Runtime125Boundary original_texture_callbacks{};
+    unsigned original_type6_decodes=0;
     u32 original_image_record=0xFFFFFFFFu;
     u32 original_image_handle=0u;
     u32 original_image_end=0u;
@@ -396,6 +398,21 @@ struct Session {
                      <<" width_units="<<unsigned(file[entry+9u])
                      <<" end="<<next<<"\n"<<std::flush;
         }
+        if(t.canonical_owner &&
+           (file[entry+2u]==6u || file[entry+2u]==7u)) {
+            const u32 next=(item+1u<count)?
+                code2::load_le32(file.data()+4u+(item+1u)*4u):
+                static_cast<u32>(file.size());
+            if(next<=entry+7u || next>file.size() ||
+               file[entry]!='E' || file[entry+1u]!='H') {
+                t.original_image_invalid=true;t.error=true;return;
+            }
+            t.original_image_record=item;
+            t.original_image_handle=handle;
+            t.original_image_start=entry;
+            t.original_image_end=next;
+            t.original_image_invalid=false;
+        }
         if(t.trace_materialize) {
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=31334_INDEXED_SEEK"
                      <<" item="<<item<<" handle="<<handle
@@ -505,6 +522,62 @@ struct Session {
         ++t.original_type1_decodes;
         return image;
     }
+    // Retail RES4 type-6 textures: compiled source 37590 allocates the
+    // texture and 2FB04 expands the original file stream. This is
+    // wired into the SAME original Application68 used for RES0/RES1.
+    static u8 original_texture_read8(u32 at) noexcept {
+        auto& t=state();
+        if(at>=t.memory.size()){t.error=true;return 0u;}
+        return t.memory[at];
+    }
+    static void original_texture_write8(u32 at,u8 value) noexcept {
+        auto& t=state();
+        if(at>=t.memory.size()){t.error=true;return;}
+        t.memory[at]=value;
+    }
+    static u16 original_texture_read_word(u32 header) noexcept {
+        auto& t=state();
+        if(header!=0x2B670u || t.original_image_invalid ||
+           t.original_image_handle==0u ||
+           t.original_image_record==0xFFFFFFFFu ||
+           original_logical_position()+2u>t.original_image_end) {
+            t.error=true;return 0u;
+        }
+        if(copy_handle(t.memory.data()+0x2B680u,2u,
+                       t.original_image_handle)!=2u) {
+            t.error=true;return 0u;
+        }
+        return code2::load_le16(t.memory.data()+0x2B680u);
+    }
+    static void original_texture_set_stream(u32 stream) noexcept {
+        code2::function_2f960(state().m,stream);
+    }
+    static void original_texture_align() noexcept {
+        auto& t=state();
+        code2::function_2f96c(t.m,t.original_image_callbacks);
+    }
+    static void original_texture_decompress(
+            u32 out,u32 desc,u32 data,u32 count,u32 mode) noexcept {
+        auto& t=state();
+        (void)code2::function_2fb04(
+            t.m,t.original_image_callbacks,out,desc,data,count,mode);
+    }
+    static u32 original_type6_source_decoder(u32 header,u32 handle) noexcept {
+        auto& t=state();
+        if(header!=0x2B670u || handle!=t.original_image_handle ||
+           t.original_image_invalid || t.original_image_record==0xFFFFFFFFu ||
+           (t.memory[header+2u]!=6u && t.memory[header+2u]!=7u)) {
+            t.error=true;return 0u;
+        }
+        const u32 image=code2::function_37590(
+            t.original_texture_callbacks,header,handle);
+        if(!image || t.error || t.original_image_invalid ||
+           original_logical_position()!=t.original_image_end) {
+            t.error=true;return 0u;
+        }
+        ++t.original_type6_decodes;
+        return image;
+    }
     static u32 init_local_read(u8* dst,u32 size,u32 handle) {return copy_handle(dst,size,handle);}
     static u32 read_guest(u32 dst,u32 size,u32 handle) {
         auto& t=state();
@@ -572,12 +645,20 @@ struct Session {
         res_callbacks.call_312ec=&read_guest_void;
         res_callbacks.call_31334=&resource_record_seek;
         res_callbacks.call_2fd9c=&original_type1_source_decoder;
+        res_callbacks.call_37590=&original_type6_source_decoder;
         original_image_callbacks.call_312ec=&read_guest;
         original_image_callbacks.call_3131c=&original_image_position;
         original_image_callbacks.call_3104c=&alloc_guest;
         original_image_callbacks.call_310b0=&free_guest;
         original_image_callbacks.call_37700=&original_image_37700;
         original_image_callbacks.call_37810=&original_image_37810;
+        original_texture_callbacks.read_word=&original_texture_read_word;
+        original_texture_callbacks.alloc=&alloc_guest;
+        original_texture_callbacks.read8=&original_texture_read8;
+        original_texture_callbacks.write8=&original_texture_write8;
+        original_texture_callbacks.call_2f960=&original_texture_set_stream;
+        original_texture_callbacks.call_2f96c=&original_texture_align;
+        original_texture_callbacks.call_2fb04=&original_texture_decompress;
     }
     ~Session(){current=nullptr;}
     void seed_authenticated_code2(const std::filesystem::path& code_file) {
