@@ -569,8 +569,29 @@ struct Session {
            (t.memory[header+2u]!=6u && t.memory[header+2u]!=7u)) {
             t.error=true;return 0u;
         }
+        std::cerr<<"CODE2_ORIGINAL_TYPE6_DIAGNOSTIC_BEFORE"
+                 <<" item="<<t.original_image_record
+                 <<" handle="<<handle
+                 <<" type="<<unsigned(t.memory[header+2u])
+                 <<" logical="<<original_logical_position()
+                 <<" start="<<t.original_image_start
+                 <<" end="<<t.original_image_end
+                 <<" file_cursor="<<t.files[handle].cursor
+                 <<" buffered="<<code2::load_le32(t.memory.data()+0xF4D8u)
+                 <<" invalid="<<t.original_image_invalid
+                 <<" error="<<t.error<<"\\n"<<std::flush;
         const u32 image=code2::function_37590(
             t.original_texture_callbacks,header,handle);
+        std::cerr<<"CODE2_ORIGINAL_TYPE6_DIAGNOSTIC_AFTER"
+                 <<" item="<<t.original_image_record
+                 <<" decoded_ptr="<<image
+                 <<" invalid="<<t.original_image_invalid
+                 <<" error="<<t.error
+                 <<" logical="<<original_logical_position()
+                 <<" end="<<t.original_image_end
+                 <<" buffered="<<code2::load_le32(t.memory.data()+0xF4D8u)
+                 <<" image_len="<<(image?code2::load_le16(t.memory.data()+image):0u)
+                 <<"\\n"<<std::flush;
         if(!image || t.error || t.original_image_invalid ||
            original_logical_position()!=t.original_image_end) {
             t.error=true;return 0u;
