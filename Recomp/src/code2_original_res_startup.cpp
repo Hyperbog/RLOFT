@@ -829,7 +829,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" no_key_host_replies=2"
              <<" next_service=11"
              <<" guest_memory=PRESERVED"
-             <<" game_rendering=NOT_CONNECTED\\n"<<std::flush;
+             <<" game_rendering=NOT_CONNECTED\n"<<std::flush;
     std::cout<<"ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS"
              <<" entry=20440_16D04"
              <<" INIT_reopens=2"
