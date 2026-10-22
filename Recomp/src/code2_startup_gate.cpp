@@ -1394,6 +1394,118 @@ void original_16cd0_chars_load() noexcept {
     ++current->original_16cd0_completed;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=16CD0_CHARS_16ADC_SOURCE_COMPLETED\n"<<std::flush;
 }
+// Original 20440 -> 181B4: preserved archive fallback and unchanged
+// CODE.2 Machine/DGROUP/Watcom allocations. WORK saved-level writes are
+// intentionally unsupported here; a missing WORK file is a DOS miss.
+u32 original_level_missing_standalone(u32 name) noexcept {
+    if(name!=0x819Cu || !current->host_files)
+        stop("ORIGINAL_181B4_STANDALONE_FILENAME_POINTER");
+    const std::string guest=guest_dos_basename(name);
+    if(guest!="work\\lev022.dat" && guest!="WORK\\LEV022.DAT")
+        stop("ORIGINAL_181B4_STANDALONE_NAME_UNEXPECTED");
+    // The default original installation has no mutable WORK level.
+    // If one exists, this read-only archive gate cannot skip that branch.
+    const auto filename=current->original_installation_root/
+        "WORK"/"LEV022.DAT";
+    std::error_code ec;
+    const auto status=std::filesystem::symlink_status(filename,ec);
+    if(!ec && std::filesystem::exists(status))
+        stop("ORIGINAL_181B4_SAVED_LEVEL_BRANCH_NOT_CONNECTED");
+    if(ec && ec!=std::errc::no_such_file_or_directory)
+        stop("ORIGINAL_181B4_WORK_STAT_FAILED");
+    return 0xFFFFFFFFu;
+}
+u32 original_level_archive_open_local(const u8* name) noexcept {
+    if(!name || std::memcmp(name,"levels.dat",11u)!=0 ||
+       std::memcmp(current->data.data()+0x170A0u,name,11u)!=0)
+        stop("ORIGINAL_181B4_ARCHIVE_NAME_UNINITIALIZED");
+    return original_boot_file_open(0x170A0u);
+}
+u32 original_level_file_seek_host(u32 handle,u32 offset,u32 origin) noexcept {
+    if(!current->host_files || handle>0xFFFFu || origin>2u ||
+       offset>0x7FFFFFFFu ||
+       !current->host_descriptor_flags.count(handle))
+        stop("ORIGINAL_181B4_FILE_SEEK_ABI_CHANGED");
+    const auto result=current->host_files->seek(
+        static_cast<u16>(handle),static_cast<std::int32_t>(offset),
+        static_cast<u8>(origin));
+    if(result.carry)stop("ORIGINAL_181B4_FILE_SEEK_FAILED");
+    return result.offset();
+}
+u32 original_level_source_seek(u32 offset,u32 origin,u32 handle) noexcept {
+    return code2::function_3131c(current->dos_file_io,offset,origin,handle);
+}
+u32 original_level_read_local(u8* dst,u32 size,u32 handle) noexcept {
+    if(!current->host_files || !dst || size>0xFFFFu || handle>0xFFFFu ||
+       !current->host_descriptor_flags.count(handle))
+        stop("ORIGINAL_181B4_LOCAL_READ_ABI_CHANGED");
+    const auto result=current->host_files->read(
+        static_cast<u16>(handle),dst,size);
+    if(result.carry || result.ax!=size)
+        stop("ORIGINAL_181B4_LOCAL_READ_INCOMPLETE");
+    return result.ax;
+}
+u32 original_level_sound_bank() noexcept {
+    return code2::function_29050(current->machine);
+}
+u32 original_level_sound_mode() noexcept {
+    return code2::function_29048(current->machine);
+}
+u32 original_level_heap_release_header(u32 header) noexcept {
+    code2::function_37c37(current->heap,header);
+    return 0u;
+}
+void original_level_heap_release(u32 payload) noexcept {
+    code2::function_310b0(current->machine,current->dos_file_io,payload);
+}
+void original_181b4_level_load(u32 requested) noexcept {
+    if(requested!=0x16u || current->original_16cd0_completed!=1u ||
+       current->original_03838_completed!=1u || !current->host_files)
+        stop("ORIGINAL_181B4_SOURCE_BOOT_ORDER");
+    // Reconstructed 181B4 copies this 11-byte buffer from guest BSS.
+    // The missing C-runtime literal relocation is isolated here:
+    // restore ONLY the original CODE.2-authenticated 'levels.dat\0'
+    // pathname, never synthetic map/header/actor contents.
+    u8* const name=current->data.data()+0x170A0u;
+    const bool empty=std::all_of(name,name+11u,[](u8 b){return b==0u;});
+    if(empty) {
+        std::ifstream original(
+            current->original_installation_root/"CODE.2",std::ios::binary);
+        if(!original)stop("ORIGINAL_181B4_FILE_PROVENANCE_UNAVAILABLE");
+        original.seekg(0x51FC4u,std::ios::beg);
+        char source_name[11]{};
+        original.read(source_name,11);
+        if(!original || std::memcmp(source_name,"levels.dat",11u)!=0)
+            stop("ORIGINAL_181B4_LITERAL_PROVENANCE_MISMATCH");
+        std::memcpy(name,source_name,11u);
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_ORIGINAL_FILENAME_LITERAL_ADAPTER\n"
+                 <<std::flush;
+    } else if(std::memcmp(name,"levels.dat",11u)!=0)
+        stop("ORIGINAL_181B4_GUEST_FILENAME_CHANGED");
+    code2::Application32Boundary b{};
+    b.call_312a0=&original_level_missing_standalone;
+    b.call_312a0_local=&original_level_archive_open_local;
+    b.call_3131c=&original_level_source_seek;
+    b.call_312ec=&original_boot_file_read;
+    b.call_312ec_local=&original_level_read_local;
+    b.call_312dc=&original_boot_file_close;
+    b.call_30d30=&original_checked_memset;
+    b.call_3104c=&original_boot_heap_alloc;
+    b.call_310b0=&original_level_heap_release;
+    b.call_29050=&original_level_sound_bank;
+    b.call_29048=&original_level_sound_mode;
+    code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
+    if(code2::load_le32(current->data.data()+0xC6C8u)!=requested ||
+       code2::load_le16(current->data.data()+0x25619u)==0u ||
+       code2::load_le16(current->data.data()+0x2561Bu)==0u ||
+       code2::load_le32(current->data.data()+0xCF44u)==0u)
+        stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
+             <<std::flush;
+}
+void original_2f844_source_enable() noexcept {
+    code2::function_2f844(current->machine);
+}
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
     current->active_sound_base=base; current->active_sound_count=count;
@@ -1855,6 +1967,8 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
     state.dos_file_close.descriptor_close=&original_dos_close_fixture;
     state.dos_file_io.call_38106=&original_binary_read;
     state.dos_file_io.call_380f8=&original_source_descriptor_close;
+    state.dos_file_io.call_38407=&original_level_file_seek_host;
+    state.dos_file_io.call_37c37=&original_level_heap_release_header;
     state.game_audio.call_312ec=&original_sound_config_read;
     state.game_audio.call_312dc=&original_sound_config_close;
     state.mouse_init.int33_reset=&controlled_mouse_reset;
@@ -2587,6 +2701,8 @@ void attach_original_vga(
     source.game.call_16d04=&original_16d04_after_dos_open;
     source.game.call_3838=&original_03838_sintab_load;
     source.game.call_16cd0=&original_16cd0_chars_load;
+    source.game.call_2f844=&original_2f844_source_enable;
+    source.game.call_181b4=&original_181b4_level_load;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
