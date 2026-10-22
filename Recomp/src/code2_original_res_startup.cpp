@@ -12,6 +12,7 @@
 #include "original_code2_scene_palette.hpp"
 #include "original_code2_guest_session.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
+#include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include <memory>
 #include "original_media_identity.hpp"
@@ -111,6 +112,13 @@ struct Session {
     code2::Application30Boundary init_callbacks{};
     code2::Application67Boundary info_callbacks{};
     code2::Application68Boundary res_callbacks{};
+    code2::Application70Boundary original_image_callbacks{};
+    u32 original_image_record=0xFFFFFFFFu;
+    u32 original_image_handle=0u;
+    u32 original_image_end=0u;
+    u32 original_image_start=0u;
+    unsigned original_type1_decodes=0;
+    bool original_image_invalid=false;
     struct Handle {unsigned file; std::size_t cursor;};
     std::map<u32,Handle> files{};
     u32 heap_cursor=0x400000u;
@@ -324,9 +332,11 @@ struct Session {
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=SEEK handle="<<handle
                      <<" offset="<<offset<<" origin="<<origin<<"\n"<<std::flush;
         const auto it=t.files.find(handle);
-        if(it==t.files.end() || origin!=0 || offset>t.fixture.data[it->second.file].size()){
-            t.error=true;return 0u;
-        }
+        if(it==t.files.end()){t.error=true;return 0u;}
+        const auto& bytes=t.fixture.data[it->second.file];
+        if(origin==1u && offset==0u)
+            return static_cast<u32>(it->second.cursor);
+        if(origin!=0u || offset>bytes.size()){t.error=true;return 0u;}
         it->second.cursor=offset;return offset;
     }
     static void resource_record_seek(u32 item,u32 handle) {
@@ -378,6 +388,85 @@ struct Session {
         h.cursor+=n;
         if(n!=size)t.error=true;
         return static_cast<u32>(n);
+    }
+    // The original 2FD9C type-1 image parser uses the same source file
+    // stream, buffer globals and authentic Watcom allocator. This runs on
+    // the same canonical guest that called 20440 -> 2ECB4; no image
+    // bytes are filled from the independent media decoder.
+    static u32 original_logical_position() {
+        auto& t=state();
+        const auto it=t.files.find(t.original_image_handle);
+        if(it==t.files.end()) {t.original_image_invalid=true;return 0u;}
+        const u32 buffered=code2::load_le32(t.memory.data()+0xF4D8u);
+        if(buffered>it->second.cursor){t.original_image_invalid=true;return 0u;}
+        return static_cast<u32>(it->second.cursor-buffered);
+    }
+    static u8 original_image_buffered_byte() {
+        auto& t=state();
+        if(t.original_image_invalid ||
+           original_logical_position()>=t.original_image_end){
+            t.original_image_invalid=true;return 0u;
+        }
+        return code2::function_2f9e4(t.m,t.original_image_callbacks);
+    }
+    static bool original_image_37700_read(u8* output) {
+        auto& t=state();
+        if(t.original_image_invalid || !output ||
+           original_logical_position()>=t.original_image_end)return false;
+        *output=code2::function_2f9e4(t.m,t.original_image_callbacks);
+        return !t.original_image_invalid && !t.error;
+    }
+    static void original_image_37700_output(u8 value) {
+        auto& t=state();
+        code2::function_2fa30(t.m,t.original_image_callbacks,value);
+    }
+    static u32 original_image_37700() {
+        auto& t=state();
+        const u32 descriptor=code2::load_le32(t.memory.data()+0x2B6A4u);
+        if(!descriptor || std::uint64_t(descriptor)+2u>t.memory.size()){
+            t.original_image_invalid=true;return 0u;
+        }
+        const u32 frames=code2::load_le16(t.memory.data()+descriptor);
+        const u32 per=code2::load_le32(t.memory.data()+0x2B6B4u);
+        if(frames==0u || per==0u || std::uint64_t(frames)*per>2u*1024u*1024u){
+            t.original_image_invalid=true;return 0u;
+        }
+        code2::Runtime126Boundary callbacks{};
+        callbacks.bounded_read=&original_image_37700_read;
+        callbacks.put_output=&original_image_37700_output;
+        const u32 ok=code2::function_37700(t.m,callbacks,frames*per+18u);
+        if(ok!=1u || original_logical_position()!=t.original_image_end)
+            t.original_image_invalid=true;
+        return ok;
+    }
+    static void original_image_37810(u32 record) {
+        auto& t=state();
+        if(std::uint64_t(record)+4u>t.memory.size()){
+            t.original_image_invalid=true;return;
+        }
+        const u32 frames=code2::load_le16(t.memory.data()+record+2u);
+        if(!frames || frames>1024u){t.original_image_invalid=true;return;}
+        std::vector<u16> permutation(4u*frames);
+        code2::Runtime127Boundary callbacks{};
+        callbacks.permutation_words=permutation.data();
+        code2::function_37810(callbacks,t.memory.data()+record);
+    }
+    static u32 original_type1_source_decoder(u32 header,u32 handle) {
+        auto& t=state();
+        if(header!=0x2B670u || handle!=t.original_image_handle ||
+           t.original_image_record==0xFFFFFFFFu ||
+           t.memory[header+2u]!=1u ||
+           code2::load_le16(t.memory.data()+header+3u)!=8u) {
+            t.original_image_invalid=true;return 0u;
+        }
+        const auto image=code2::function_2fd9c(t.m,t.original_image_callbacks,
+                                                header,handle);
+        if(t.error || t.original_image_invalid || !image ||
+           original_logical_position()!=t.original_image_end) {
+            t.original_image_invalid=true;return 0u;
+        }
+        ++t.original_type1_decodes;
+        return image;
     }
     static u32 init_local_read(u8* dst,u32 size,u32 handle) {return copy_handle(dst,size,handle);}
     static u32 read_guest(u32 dst,u32 size,u32 handle) {
@@ -445,6 +534,13 @@ struct Session {
         res_callbacks.call_312a0_stack=&open_resource;
         res_callbacks.call_312ec=&read_guest_void;
         res_callbacks.call_31334=&resource_record_seek;
+        res_callbacks.call_2fd9c=&original_type1_source_decoder;
+        original_image_callbacks.call_312ec=&read_guest;
+        original_image_callbacks.call_3131c=&position;
+        original_image_callbacks.call_3104c=&alloc_guest;
+        original_image_callbacks.call_310b0=&free_guest;
+        original_image_callbacks.call_37700=&original_image_37700;
+        original_image_callbacks.call_37810=&original_image_37810;
     }
     ~Session(){current=nullptr;}
     void seed_authenticated_code2(const std::filesystem::path& code_file) {
