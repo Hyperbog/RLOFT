@@ -1526,6 +1526,8 @@ void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
        bank!=code2::load_le32(current->data.data()+0xC034u) ||
        std::memcmp(current->data.data()+resource,"COLORS",7u)!=0)
         stop("ORIGINAL_325B0_SOURCE_PALETTE_ABI_CHANGED");
+    const std::size_t handles_before=current->host_files->open_handles();
+    const std::size_t descriptors_before=current->host_descriptor_flags.size();
     code2::Application81Boundary callbacks{};
     callbacks.app72=&current->dos_file_io;
     (void)code2::function_325b0(
@@ -1550,8 +1552,8 @@ void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
            return value>63u;
        }))
         stop("ORIGINAL_325B0_PALETTE_DIFFERS_FROM_AUTHENTIC_COLORS");
-    if(current->host_files->open_handles()!=0u ||
-       current->host_descriptor_flags.size()!=0u)
+    if(current->host_files->open_handles()!=handles_before ||
+       current->host_descriptor_flags.size()!=descriptors_before)
         stop("ORIGINAL_325B0_DOS_HANDLE_LEAK");
     ++current->original_325b0_completed;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=325B0_SOURCE_COLORS_COMPLETED"
