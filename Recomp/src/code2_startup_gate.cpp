@@ -9,6 +9,7 @@
 #include "original_guest_continuation.hpp"
 #include "original_code2_video_boot.hpp"
 #include "original_sintab_raster.hpp"
+#include "../../Code2/graphics/original_res_type6.hpp"
 #include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
 #include "host_dos_disk_space.hpp"
@@ -2567,6 +2568,60 @@ void original_181b4_level_load(u32 requested) noexcept {
     // SINTAB VGA generation as a bounded PREVIEW, not a complete
     // 1F8FC frame (HUD/outdoor/scene presentation remain pending).
     original_world_sweep_335dc();
+    // The Level22 exterior view's genuine 335DC ray records currently
+    // select no textured RES4 material. Verify the original 37590 type6
+    // decoder independently using one AUTHENTIC archive record chosen
+    // from its signed EH type6 directory, and independently compare
+    // every decompressed texel to the decoded CODE.2 guest allocation.
+    // This is a decoder witness, never an invented wall in Level22.
+    {
+        try {
+            const auto source=rloft::original_res::read_only(
+                (current->original_installation_root/"RES4").string());
+            const u32 count=code2::load_le32(source.data());
+            if(count==0u || count>200000u ||
+               4u+std::uint64_t(count)*4u>source.size())
+                stop("ORIGINAL_37590_RETAIL_RES4_DIRECTORY_INVALID");
+            bool tested=false;
+            for(u32 id=0u;id<count;++id) {
+                const u32 offset=code2::load_le32(source.data()+4u+id*4u);
+                const u32 end=(id+1u<count)?
+                    code2::load_le32(source.data()+4u+(id+1u)*4u):
+                    static_cast<u32>(source.size());
+                if(offset>source.size() || end<offset ||
+                   end>source.size())
+                    stop("ORIGINAL_37590_RETAIL_RES4_OFFSETS_INVALID");
+                if(end-offset<8u || source[offset]!='E' ||
+                   source[offset+1u]!='H' || source[offset+2u]!=6u ||
+                   code2::load_le16(source.data()+offset+3u)!=0u)
+                    continue;
+                const u32 n=code2::load_le16(source.data()+offset+5u);
+                if(n!=4096u && n!=8192u)continue;
+                const auto independently=rloft::original_res::decode_type6(
+                    source,id);
+                const u32 image=original_world_material(id,4u);
+                if(code2::load_le16(current->data.data()+image)!=n ||
+                   std::uint64_t(image)+2u+n>current->data.size() ||
+                   !std::equal(independently.column_major.begin(),
+                               independently.column_major.end(),
+                               current->data.begin()+image+2u))
+                    stop("ORIGINAL_37590_SOURCE_TEXTURE_PIXEL_BYTES_DIFFER");
+                std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=37590_RES4_TYPE6_SOURCE_DECODE"
+                         <<" archive=RES4 material_id="<<id
+                         <<" original_guest=PRESERVED"
+                         <<" decoded_bytes="<<n
+                         <<" exact_texels=INDEPENDENT_MEDIA_MATCH"
+                         <<" renderer=SOURCE_335DC_3263C_PREPARED"
+                         <<" Level22_textured_wall=NOT_REQUESTED\\n"
+                         <<std::flush;
+                tested=true;break;
+            }
+            if(!tested)
+                stop("ORIGINAL_37590_RETAIL_RES4_TYPE6_RECORD_NOT_FOUND");
+        }catch(const std::exception&) {
+            stop("ORIGINAL_37590_INDEPENDENT_RES4_DECODE_WITNESS_FAILED");
+        }
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=335DC_3263C_RETAINED_VGA_RASTER"
              <<" callbacks="<<current->original_world_source_flushes
              <<" sintab_runs="<<current->original_world_source_sintab_calls
