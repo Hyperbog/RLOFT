@@ -379,6 +379,55 @@ struct Bridge {
         }
         return image;
     }
+    // Retail 1A5B0 -> 2A020 uses VGA GC write mode 1: each
+    // aperture read captures the four plane latches and the subsequent
+    // write copies the same four bytes to the other original page.
+    // This is not a host-side RGBA/bitmap copy.
+    void run_original_2a020_page_copy(u32 target_page) {
+        if(target_page>1u || !video.bios_mode() ||
+           machine.data[0xEF4Du]>1u ||
+           (target_page==machine.data[0xEF4Du]))
+            throw std::invalid_argument("Original 2A020 page copy invalid source/destination");
+        Scope scope(*this);
+        code2::Application59Boundary cb{};
+        cb.out16=&out16;
+        cb.read8=&vga_read;
+        cb.write8=&vga_write;
+        code2::function_2a020(machine,cb,target_page);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2A020 VGA plane/latch copy unsupported");
+    }
+    // The cursor background restore uses original 2932C clipped
+    // dispatch and original 2A178 VGA sequencer plane writes.
+    static u32 source_cursor_restore_2a178(
+        u32 src,u32 row,u32 x,u32 rows,u32 pixels) noexcept {
+        auto& b=self();
+        if((src!=0x9E3Au && src!=0xA23Au) ||
+           rows!=32u || pixels!=16u ||
+           row>368u || x>304u ||
+           std::uint64_t(src)+768u>b.guest_extent) {
+            b.invalid_access=true;return 0u;
+        }
+        code2::Application60Boundary io{};
+        io.out16=&out16;
+        io.vga_read8=&vga_read;
+        io.vga_write8=&vga_write;
+        code2::function_2a178(b.machine,io,src,row,x,rows,pixels);
+        return 1u;
+    }
+    void run_original_2932c_cursor_restore(
+        u32 src,code2::s32 x,code2::s32 y,u32 w,u32 h) {
+        if((src!=0x9E3Au && src!=0xA23Au) || w!=32u || h!=16u)
+            throw std::invalid_argument("Original 2932C cursor restore ABI changed");
+        Scope scope(*this);
+        code2::Application56Boundary cb{};
+        cb.call_2a178=&source_cursor_restore_2a178;
+        code2::function_2932c(machine,cb,src,x,y,
+                               static_cast<code2::s32>(w),
+                               static_cast<code2::s32>(h));
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2932C/2A178 cursor restore failed");
+    }
     // Original cursor image rasterization: CODE2 29804->29414->2A380
     // shares the same physical VGA aperture as the source 2A114
     // background capture. Ordinary guest RAM and VGA are distinct.
