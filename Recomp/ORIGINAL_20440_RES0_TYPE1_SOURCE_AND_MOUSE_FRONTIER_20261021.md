@@ -16,6 +16,16 @@ Source `20440` reads `DGROUP[0x258DC]+0x2C`; in the original owner media this se
 - `58112e7`: handles original **frame permutation**, corrected after the first no-permutation parity assertion failed. [Windows #39707502111](https://github.com/Hyperbog/RLOFT/actions/runs/39707502111) **passed**, including `ORIGINAL_CODE2_20440_RES0_SOURCE_ACCEPTED` and 85/85 CTests.
 - Exact accepted evidence: `ORIGINAL_CODE2_20440_RES0_TYPE1_DECODE_PARITY_PASS entry=59 source=2ECB4_2FD9C byte_count=3248 frames=14 method=3 all_source_planar_bytes=MATCH retention_2F184=YES guest_memory=PRESERVED`.
 
+## Original mouse/cursor dependency — independently identified
+
+The original-media Windows gate [#39707725281](https://github.com/Hyperbog/RLOFT/actions/runs/39707725281) **passed** all 85 CTests and the mandatory RES0 59 source parity. Its read-only live-guest probe, after real `20440` loading, reports:
+
+```
+ORIGINAL_CODE2_20440_CURSOR_DEPENDENCY_DISCOVERY source_mouse_2E340=65535 cursor_item=62 archive=RES0 cursor_type=1 cursor_header_bytes=8 source_1A0B0=NOT_YET_CONNECTED source_1A288=NOT_YET_CONNECTED
+```
+
+The actual source mouse-present word is **0xFFFF**, so the `1A0B0` present-mouse branch MUST be implemented; treating it as a no-op or taking the absent-mouse branch is not correct. Original cursor image is **RES0 entry 62, EH type-1 descriptor length 8**, and its source loader can reuse the newly verified typed decoder with a separately bounded entry/stream. That cursor image is not yet decoded on the current startup worker. Original `33D38` Y range, `33D18` X range, `33C90` function-4 pointer positioning, `33CB0` function-3 button/coordinates and `1A064` DOS/DPMI callback installation require real host services in this source order; the current bounded mouse-range service does not support the function-3/4 calls or the updated Y range. Do not make up their return values. **Source 1A0B0 and 1A288 remain unconnected.**
+
 ## Strict next original source frontier
 
 1. Inspect original `2E340` guest mouse-presence state and the actual `0x258DC+0x2F` cursor-image archive record (a diagnostic is now in the original-media test). Do **not** substitute a mouse-present value.
