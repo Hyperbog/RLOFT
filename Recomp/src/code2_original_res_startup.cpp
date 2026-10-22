@@ -1012,27 +1012,72 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         (expected.tag==0xFFu?0u:1u);
     REQUIRE(std::uint64_t(loaded)+8u+
                 std::uint64_t(frame_stride)*expected.frames<=memory.size());
-    // The original 37810 permutation changes frame layout; accept only
-    // the nonpermuted startup record until independent permutation parity
-    // is added. Never confuse an unverified image with a decoded one.
-    REQUIRE(expected.reorder==0u &&
-            code2::load_le16(memory.data()+loaded)==frame_stride &&
-            code2::load_le16(memory.data()+loaded+2u)==expected.frames &&
-            code2::load_le16(memory.data()+loaded+4u)==expected.rows &&
-            memory[loaded+6u]==expected.width_units);
     const u32 plane_bytes=decoded_frame_bytes/4u;
     REQUIRE(decoded_frame_bytes!=0u && decoded_frame_bytes%4u==0u &&
             expected.decoded.size()==
                 std::uint64_t(decoded_frame_bytes)*expected.frames);
-    for(u32 frame=0;frame<expected.frames;++frame) {
-        const u32 out=loaded+8u+frame*frame_stride;
+    std::vector<u8> independent(
+        8u+static_cast<std::size_t>(frame_stride)*expected.frames,0u);
+    code2::store_le16(independent.data(),static_cast<u16>(frame_stride));
+    code2::store_le16(independent.data()+2u,expected.frames);
+    code2::store_le16(independent.data()+4u,expected.rows);
+    independent[6u]=expected.width_units;
+    independent[7u]=expected.tag==0xFFu?0u:0x80u;
+    for(u32 frame=0u;frame<expected.frames;++frame) {
+        const u32 out=8u+frame*frame_stride;
         const u32 data=out+(expected.tag==0xFFu?0u:1u);
-        if(expected.tag!=0xFFu)REQUIRE(memory[out]==expected.tag);
+        if(expected.tag!=0xFFu)independent[out]=expected.tag;
         for(u32 i=0;i<plane_bytes;++i)
             for(u32 plane=0;plane<4u;++plane)
-                REQUIRE(memory[data+plane*plane_bytes+i]==
-                    expected.decoded[frame*decoded_frame_bytes+4u*i+plane]);
+                independent[data+plane*plane_bytes+i]=
+                    expected.decoded[frame*decoded_frame_bytes+4u*i+plane];
     }
+    if(expected.reorder!=0u && expected.rows==1u) {
+        // Independently reconstruct 37810's 4-plane/frame permutation
+        // using the original register-loop ordering, not a preloaded
+        // renderer/cache or CODE.2's 37810 implementation.
+        const u32 total=4u*expected.frames;
+        std::vector<u16> permutation(total);
+        u32 offset=0u;
+        for(u32 index=0;index<total;++index) {
+            permutation[offset/2u]=static_cast<u16>(index);
+            offset+=8u;
+            if(offset>=2u*total)offset=offset-2u*total+2u;
+        }
+        u32 remaining=total-1u;
+        u32 output=8u+(expected.tag==0xFFu?0u:1u);
+        const u32 strip=static_cast<u32>(expected.width_units)*2u;
+        const u32 base=output;
+        for(u32 n=1u;remaining!=0u;++n,--remaining) {
+            u16 chosen=permutation[n];
+            u32 where=n;
+            for(u32 i=n;i<n+remaining;++i) {
+                if(permutation[i]==n) {where=i;break;}
+            }
+            const u16 displaced=permutation[where];
+            permutation[where]=chosen;
+            chosen=displaced;
+            permutation[n]=chosen;
+            const u32 first=(n/4u)*frame_stride+(n%4u)*strip;
+            const u32 second=(where/4u)*frame_stride+(where%4u)*strip;
+            REQUIRE(base+first+strip<=independent.size() &&
+                    base+second+strip<=independent.size() &&
+                    output+strip<=independent.size());
+            for(u32 i=0u;i<strip;++i)
+                std::swap(independent[base+first+i],
+                          independent[base+second+i]);
+            for(u32 i=0u;i<strip;++i)
+                independent[output+i]=independent[base+first+i];
+            output+=strip;
+        }
+        code2::store_le16(independent.data()+4u,expected.frames);
+        code2::store_le16(independent.data()+2u,1u);
+        code2::store_le16(independent.data(),
+                          static_cast<u16>(expected.frames*
+                                           expected.width_units*8u));
+    }
+    REQUIRE(std::equal(independent.begin(),independent.end(),
+                       memory.begin()+loaded));
     std::cout<<"ORIGINAL_CODE2_20440_RES0_TYPE1_DECODE_PARITY_PASS"
              <<" entry="<<target
              <<" source=2ECB4_2FD9C"
