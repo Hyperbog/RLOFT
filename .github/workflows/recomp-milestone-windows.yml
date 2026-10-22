@@ -274,13 +274,13 @@ jobs:
         run: |
           python Recomp/tools/inspect_original_source_callmap.py Code2/Code2.cpp --functions 20440 1fc14 20294 20608
           if ($LASTEXITCODE -ne 0) { throw "Original CODE2 call-map source extraction failed" }
-      - name: Explore genuine CODE2 second 16D04 INIT execution and next dependency
+      - name: Validate original CODE2 20440 SINTAB CHARS Level22 and 1FC14 source loop
         shell: pwsh
         timeout-minutes: 2
-        continue-on-error: true
+        continue-on-error: false
         run: |
-          # An explicit exploratory original-media source test, NOT an
-          # acceptance claim until the following dependency is mapped.
+          # Original-media source gate: require actual 16D04 and 20440 source
+          # initialization, exact Level22 grid and two retained 1FC14 polls.
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
           $cmd = [System.Diagnostics.ProcessStartInfo]::new()
