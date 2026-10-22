@@ -1282,6 +1282,28 @@ void original_16d04_after_dos_open() noexcept {
     ++current->original_16d04_completed;
     std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=16D04_SOURCE_COMPLETED_ON_GUEST_STACK\n"<<std::flush;
 }
+// The original 20608 application calls the noreturn 1FC14 gameplay
+// loop after 20440 returns. Source 1FC14 reads keyboard via 30B40.
+// Without this callback the reconstructed optional function pointer
+// yields key 0 in a busy loop, hiding the real live-gameplay frontier.
+u32 original_30b40_keyboard_poll() noexcept {
+    if(!current->live_continuation ||
+       current->original_16d04_completed!=1u ||
+       current->original_source_page_pushes!=2u ||
+       current->original_source_page_pops!=2u ||
+       current->original_source_dac_streams!=2u ||
+       code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
+       code2::load_le32(current->data.data()+0xA7E8u)!=1u)
+        stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_30B40_KEYBOARD_ENTRY\n"<<std::flush;
+    rloft::guest_continuation::Reply response{};
+    const rloft::guest_continuation::Request request{
+        rloft::guest_continuation::Service::Original1FC14KeyboardEntry,
+        0u,0u,0u,0u,0u};
+    if(!current->live_continuation->suspend(request,response))
+        stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_SHUTDOWN");
+    return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
+}
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
     current->active_sound_base=base; current->active_sound_count=count;
@@ -2467,6 +2489,7 @@ void attach_original_vga(
     source.presentation.call_291b0=&original_291b0_source_page;
     source.presentation.call_29b40=&original_29b40_source_rectangle;
     source.presentation.call_2e5d4=&original_2e5d4_source_page_pop;
+    source.presentation.call_30b40=&original_30b40_keyboard_poll;
     source.game.call_5e38=&original_5e38_boot_options;
     source.game.call_28f58=&original_28f58_volume;
     source.game.call_31218=&original_31218_chars_probe;
