@@ -365,7 +365,8 @@ struct Session {
         }
         it->second.cursor=entry;
         if(t.canonical_owner && it->second.file==2u &&
-           item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Cu) {
+           (item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Cu ||
+            item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Fu)) {
             const u32 next=(item+1u<count)?
                 code2::load_le32(file.data()+4u+(item+1u)*4u):
                 static_cast<u32>(file.size());
