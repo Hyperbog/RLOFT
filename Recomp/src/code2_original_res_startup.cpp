@@ -477,12 +477,23 @@ struct Session {
     static u32 original_image_37700() {
         auto& t=state();
         const u32 descriptor=code2::load_le32(t.memory.data()+0x2B6A4u);
-        if(!descriptor || std::uint64_t(descriptor)+2u>t.memory.size()){
+        const u8 mode=t.memory[0x2B6C3u];
+        // Type-1 2FD9C executes 2FB04 mode=1 with a nonzero image
+        // descriptor and frame count. Retail type-6 37590 executes
+        // 2FB04 mode=0 with a ZERO descriptor, directly streaming
+        // 4096/8192 texture bytes into its allocated guest image.
+        // The old decoder callback rejected descriptor 0, so RES4
+        // could never reach the bounded original 37700 decompressor.
+        const bool direct_texture=(mode==0u && descriptor==0u);
+        if(!direct_texture &&
+           (!descriptor || std::uint64_t(descriptor)+2u>t.memory.size())){
             t.original_image_invalid=true;return 0u;
         }
-        const u32 frames=code2::load_le16(t.memory.data()+descriptor);
+        const u32 frames=direct_texture?1u:
+            code2::load_le16(t.memory.data()+descriptor);
         const u32 per=code2::load_le32(t.memory.data()+0x2B6B4u);
-        if(frames==0u || per==0u || std::uint64_t(frames)*per>2u*1024u*1024u){
+        if((mode!=0u && mode!=1u) || frames==0u || per==0u ||
+           std::uint64_t(frames)*per>2u*1024u*1024u){
             t.original_image_invalid=true;return 0u;
         }
         code2::Runtime126Boundary callbacks{};
