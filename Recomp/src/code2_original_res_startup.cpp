@@ -842,7 +842,34 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
             entry.memory_address==base &&
             entry.original_source_page_pops==2u &&
             entry.original_source_planar_fills==4u &&
-            entry.original_source_palette_streams==2u);
+            entry.original_source_palette_streams==2u &&
+            entry.original_source_325b0_loads==1u &&
+            entry.original_boot_render_page_selects==1u &&
+            entry.original_boot_scanout_page_selects==1u);
+    const auto output_page=memory[0xC050u];
+    const auto scanout_page=static_cast<std::uint8_t>(output_page^1u);
+    REQUIRE(memory[0xEF4Du]==output_page &&
+            memory[0xEF4Eu]==scanout_page &&
+            memory[0xF0D0u]==0u);
+    const std::uint16_t expected_crtc=static_cast<std::uint16_t>(
+        ((static_cast<std::uint32_t>(scanout_page)*
+          (code2::load_le32(memory.data()+0xF005u)>>4u))&0xFFu)<<8u);
+    REQUIRE(s->guest->video.crtc_start()==expected_crtc);
+    for(std::uint32_t i=0u;i<256u;++i) {
+        const auto rgb=s->guest->video.palette(static_cast<std::uint8_t>(i));
+        REQUIRE(rgb.r==memory[0xC054u+i*3u] &&
+                rgb.g==memory[0xC054u+i*3u+1u] &&
+                rgb.b==memory[0xC054u+i*3u+2u]);
+    }
+    std::cout<<"ORIGINAL_CODE2_20440_COLORS_PRESENTATION_SOURCE_PASS"
+             <<" compiled_palette=325B0"
+             <<" palette_bytes=768"
+             <<" compiled_output=291B0"
+             <<" compiled_scanout=291C8"
+             <<" CRTC=SOURCE_FORMULA"
+             <<" original_vga_palette=256_RGB6_MATCH"
+             <<" guest_memory=PRESERVED"
+             <<" rendering=NOT_CONNECTED\n"<<std::flush;
     // Two explicit no-key host replies: the original 1FC14 source loop
     // executes between these 30B40 polls on its original retained stack.
     // This proves source iteration, NOT any real-world frame production.
