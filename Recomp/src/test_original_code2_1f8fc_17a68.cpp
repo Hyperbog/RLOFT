@@ -172,6 +172,81 @@ void test_original_source_vga_capture() {
              <<" frame_mode=ISOLATED_SYNTHETIC"
              <<" live_scene=NOT_CONNECTED\\n";
 }
+// Original CODE.2 1A5B0 no-mouse branch: scanout -> push output page
+// -> source 2A020 copy all four planar pages -> restore output page.
+// Source video registers and image bytes are checked separately.
+struct SourcePresentProbe {
+    code2::Machine* machine{};
+    rloft::source_video_boot::Bridge* bridge{};
+    rloft::graphics::OriginalVgaHost* video{};
+    u32 scanout=0xFFFFFFFFu, copied=0xFFFFFFFFu;
+    u32 pushes=0u,pops=0u;
+    static SourcePresentProbe*& active() {
+        static thread_local SourcePresentProbe* p=nullptr;return p;
+    }
+    static void scanout_page(u32 page) noexcept {
+        active()->scanout=page;
+        try {active()->bridge->run_original_291c8(page);}
+        catch(...) {std::terminate();}
+    }
+    static void push(u32 page) noexcept {
+        try {active()->bridge->run_original_2e590(page);++active()->pushes;}
+        catch(...) {std::terminate();}
+    }
+    static void pop() noexcept {
+        try {active()->bridge->run_original_2e5d4();++active()->pops;}
+        catch(...) {std::terminate();}
+    }
+    static void copy(u32 page) noexcept {
+        active()->copied=page;
+        try {active()->bridge->run_original_2a020_page_copy(page);}
+        catch(...) {std::terminate();}
+    }
+};
+void test_original_source_present_fallback() {
+    std::vector<code2::u8> mem(0x50000u,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    rloft::graphics::OriginalVgaHost vga;
+    rloft::source_video_boot::Bridge bridge(machine,vga,mem.size());
+    bridge.run_original_290f4(3u);
+    for(u32 y=0u;y<400u;y+=13u)
+        for(u32 x=0u;x<320u;x+=7u)
+            require(vga.write_direct_pixel(x,y,
+              static_cast<code2::u8>((x*11u+y*19u+1u)&255u)),
+               "VGA initial frame pixel failed");
+    SourcePresentProbe probe{&machine,&bridge,&vga};
+    SourcePresentProbe::active()=&probe;
+    code2::Application33Boundary video{};
+    video.call_291c8=&SourcePresentProbe::scanout_page;
+    video.call_2a020=&SourcePresentProbe::copy;
+    code2::Application34Boundary mouse{};
+    mouse.app33=&video;
+    code2::Application35Boundary compositor{};
+    compositor.app34=&mouse;
+    compositor.call_2e590=&SourcePresentProbe::push;
+    compositor.call_2e5d4=&SourcePresentProbe::pop;
+    require(code2::load_le16(mem.data()+0x85FCu)==0u,
+            "1A5B0 isolated fallback requires mouse-disabled original branch");
+    code2::function_1a5b0(machine,compositor,0u,0xFFFFFFFFu,0u);
+    require(probe.scanout==0u && probe.copied==1u &&
+            probe.pushes==1u && probe.pops==1u &&
+            mem[0xF0D0u]==0u && mem[0xEF4Du]==0u &&
+            mem[0xEF4Eu]==0u && mem[0x9E39u]==1u,
+            "Original 1A5B0 did not execute page copy/restore order");
+    bridge.run_original_291c8(1u);
+    for(u32 y=0u;y<400u;y+=13u)
+        for(u32 x=0u;x<320u;x+=7u)
+            require(vga.indexed_scanout(x,y)==
+                   static_cast<code2::u8>((x*11u+y*19u+1u)&255u),
+                    "2A020 latch-mode page copy differs from expected pixel");
+    SourcePresentProbe::active()=nullptr;
+    std::cout<<"ORIGINAL_CODE2_1A5B0_2A020_VGA_PRESENT_PASS"
+             <<" branch=MOUSE_ABSENT_SYNTHETIC"
+             <<" original_page_copy=FULL_PLANES"
+             <<" source_scanout=291C8"
+             <<" original_page_stack=2E590_2E5D4"
+             <<" retained_gameplay=NOT_CONNECTED\\n";
+}
 void test_original_actor_postload() {
     std::vector<code2::u8> memory(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=memory.data();
@@ -216,6 +291,7 @@ int main() {
     try {
         test_original_compositor_dispatch();
         test_original_source_vga_capture();
+        test_original_source_present_fallback();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
