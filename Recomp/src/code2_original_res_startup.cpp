@@ -837,6 +837,37 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" cells="<<grid.cells.size()
              <<" guest_memory=PRESERVED"
              <<" rendering=NOT_CONNECTED\n"<<std::flush;
+    // Inspection of the exact original 20440 RES0 record at the point
+    // before its currently-unwired 2ECB4 callback. No guest bytes changed.
+    const u32 target=code2::load_le32(memory.data()+0x258DCu)+0x2Cu;
+    const u32 catalog=code2::load_le32(memory.data()+0xF0B8u);
+    REQUIRE(catalog>0u && std::uint64_t(catalog)+16u<=memory.size());
+    const u32 records=code2::load_le32(memory.data()+catalog+0x0Cu);
+    const u32 record_count=code2::load_le32(memory.data()+catalog+8u);
+    REQUIRE(target<record_count && record_count>0u &&
+            std::uint64_t(records)+std::uint64_t(record_count)*9u<=memory.size());
+    const u32 slot=records+target*9u;
+    const u32 source_handle=code2::load_le32(memory.data()+catalog);
+    const auto& archive0=s->guest->fixture.data[2u];
+    REQUIRE(source_handle!=0u && archive0.size()>8u);
+    const u32 archive_count=code2::load_le32(archive0.data());
+    REQUIRE(target<archive_count &&
+            4u+std::uint64_t(target)*4u+4u<=archive0.size());
+    const u32 at=code2::load_le32(archive0.data()+4u+target*4u);
+    REQUIRE(std::uint64_t(at)+5u<=archive0.size() &&
+            archive0[at]==0x45u && archive0[at+1u]==0x48u);
+    const u32 raw_type=archive0[at+2u];
+    const std::int16_t encoded_length=static_cast<std::int16_t>(
+        code2::load_le16(archive0.data()+at+3u));
+    std::cout<<"ORIGINAL_CODE2_20440_RESOURCE_DISCOVERY"
+             <<" selected_index="<<target
+             <<" catalog_count="<<record_count
+             <<" source_archive=RES0"
+             <<" encoded_type="<<raw_type
+             <<" encoded_length="<<encoded_length
+             <<" prior_loaded="<<static_cast<unsigned>(memory[slot+2u])
+             <<" metadata_offset="<<at
+             <<" decoded=NOT_YET_CONNECTED\n"<<std::flush;
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
