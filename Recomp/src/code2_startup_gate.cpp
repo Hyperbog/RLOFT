@@ -1844,7 +1844,10 @@ void original_181b4_level_load(u32 requested) noexcept {
     b.call_29048=&original_level_sound_mode;
     b.call_19ccc=&original_level_19ccc_push;
     b.call_19cf4=&original_level_19cf4_pop;
-    b.call_1f8e0=&original_level_1f8e0_scene_mode;
+    // The original level switch requests new palette/art through 1F8FC.
+    // Do not pretend that the full scene renderer is available here:
+    // 1F8E0 stays an explicit unresolved callback until source
+    // compositor/UI resource and redraw dependencies are attached.
     b.call_0ccf4=&original_level_0ccf4_party_terminal;
     code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
     if(code2::load_le32(current->data.data()+0xC6C8u)!=requested ||
@@ -1854,11 +1857,12 @@ void original_181b4_level_load(u32 requested) noexcept {
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
-       current->original_level_scene_mode_calls!=1u ||
+       current->original_level_scene_mode_calls!=0u ||
        current->original_level_party_terminal_checks!=1u)
         stop("ORIGINAL_181B4_SOURCE_WORLD_STATE_CALLBACKS_MISSING");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_STATE_CALLBACKS_COMPLETED"
-             <<" source=19CCC_19CF4_1F8E0_0CCF4"
+             <<" source=19CCC_19CF4_0CCF4"
+             <<" scene_1F8E0_1F8FC=NOT_CONNECTED"
              <<" actor_terminal=SOURCE_CHECK"
              <<" world_rendering=NOT_CONNECTED\n"<<std::flush;
     ++current->original_181b4_completed;
