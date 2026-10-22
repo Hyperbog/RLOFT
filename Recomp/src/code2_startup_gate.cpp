@@ -75,6 +75,7 @@ struct Session {
     unsigned original_level_actor_random_calls=0;
     unsigned original_scene_page_copies=0;
     unsigned original_scene_presentations=0;
+    unsigned original_scene_res1_portrait_decodes=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
     unsigned original_boot_output_page_selects=0;
@@ -1824,6 +1825,68 @@ u32 original_scene_res_image(u32 item,u32 slot) noexcept {
         stop("ORIGINAL_1F8FC_RES0_SOURCE_DECODE_FAILED");
     return ptr;
 }
+// Real retail party portraits from the original RES1 archive. These
+// are *not* image literals: the caller supplies CODE.2's computed
+// 1F494 -> 298F0 actor resource key and invokes 2ECB4/2FD9C
+// via the already retained Application69/68 cache and DOS file host.
+u32 original_scene_hud_res_image(u32 item,u32 slot) noexcept {
+    if(slot==0u)return original_scene_res_image(item,slot);
+    if(slot!=1u || !current->game_audio.app68 ||
+       !current->live_continuation || !current->original_vga ||
+       current->original_181b4_completed!=1u)
+        stop("ORIGINAL_1F494_RES1_GUEST_RESOURCE_PREREQUISITE");
+    const u32 count_base=code2::load_le32(
+        current->data.data()+0xF0B8u);
+    if(std::uint64_t(count_base)+2u*16u>current->data.size())
+        stop("ORIGINAL_1F494_RES1_ARCHIVE_SLOT_BOUNDS");
+    const u32 record=count_base+slot*16u;
+    const u32 entries=code2::load_le32(current->data.data()+record+8u);
+    const u32 table=code2::load_le32(current->data.data()+record+12u);
+    if(item>=entries || !table ||
+       std::uint64_t(table)+std::uint64_t(entries)*9u>
+           current->data.size())
+        stop("ORIGINAL_1F494_RES1_RESOURCE_RECORD_BOUNDS");
+    const u32 offset=table+item*9u;
+    const u8 type_before=current->data[offset+2u];
+    const u32 image=code2::function_2f29c(
+        current->machine,current->game_audio,item,slot);
+    if(!image || current->data[offset+2u]!=1u ||
+       std::uint64_t(image)+8u>current->data.size() ||
+       code2::load_le32(current->data.data()+offset+5u)!=image ||
+       !code2::load_le16(current->data.data()+image) ||
+       !code2::load_le16(current->data.data()+image+2u) ||
+       !code2::load_le16(current->data.data()+image+4u))
+        stop("ORIGINAL_1F494_RES1_TYPE1_DECODE_INVALID");
+    if(type_before==0u)++current->original_scene_res1_portrait_decodes;
+    return image;
+}
+void original_scene_hud_2975c(u32 frame,u32 row,u32 x,
+                              u32 item,u32 slot) noexcept {
+    const u32 image=original_scene_hud_res_image(item,slot);
+    if(!image)return;
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2975c_hud_frame(
+            frame,row,x,item,slot,image,&original_scene_hud_res_image);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1F494_2975C_HUD_PIXEL_RASTER_FAILED");
+    }
+}
+void original_scene_hud_298f0(u32 frame,u32 row,u32 x,
+                              u32 item,u32 slot,u32 table) noexcept {
+    const u32 image=original_scene_hud_res_image(item,slot);
+    if(!image)return;
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_298f0_hud_portrait(
+            frame,row,x,item,slot,table,image,
+            &original_scene_hud_res_image);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1F494_298F0_TRANSLATED_RES1_PORTRAIT_FAILED");
+    }
+}
 void original_scene_res_blit(u32 frame,u32 row,u32 x,u32 image) noexcept {
     if(!current->original_vga)
         stop("ORIGINAL_1F8FC_NO_ORIGINAL_VGA_DEVICE");
@@ -3519,6 +3582,9 @@ void attach_original_vga(
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
     source.presentation.call_1a5b0=&original_scene_1a5b0;
+    // Party RES0/RES1 source decoders and portrait blitters are attached
+    // independently of enabling the incomplete full 1F8FC frame.
+    source.original_mouse_resources.call_2975c=&original_scene_hud_2975c;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
