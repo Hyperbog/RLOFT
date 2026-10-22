@@ -56,6 +56,10 @@ std::uint32_t answer_real_mode_mouse(Opaque*,std::uint32_t eax,
                                      std::uint32_t edx=0u);
 // Acknowledge the source INT33 function 7 or 8 range request.
 std::uint32_t answer_mouse_range(Opaque*,std::uint32_t command);
+std::uint32_t answer_original_mouse_pointer(Opaque*,std::uint32_t command,
+                                            std::uint32_t buttons,
+                                            std::uint32_t x,std::uint32_t y);
+std::uint32_t answer_original_mouse_callback(Opaque*);
 // Answer the genuine DOS INT21 AH36 query from the actual original
 // install volume. 16-bit DOS cluster geometry is bounded/saturated;
 // this is a host filesystem adaptation, not retail DOS disk parity.
