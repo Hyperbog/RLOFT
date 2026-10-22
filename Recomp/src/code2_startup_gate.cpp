@@ -1853,8 +1853,20 @@ u32 original_scene_hud_res_image(u32 item,u32 slot) noexcept {
     const u32 table=code2::load_le32(current->data.data()+record+12u);
     if(item>=entries || !table ||
        std::uint64_t(table)+std::uint64_t(entries)*9u>
-           current->data.size())
+           current->data.size()) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_RES1_LOOKUP_OUT_OF_BOUNDS"
+                 <<" requested_id="<<item
+                 <<" slot="<<slot<<" entries="<<entries
+                 <<" table="<<table
+                 <<" guest_bytes="<<current->data.size()
+                 <<" saved_mode="<<code2::load_le32(current->data.data()+0xC034u)
+                 <<" actor0_hands="<<code2::load_le16(current->data.data()+0x2193Cu)
+                 <<","<<code2::load_le16(current->data.data()+0x21940u)
+                 <<" actor1_hands="<<code2::load_le16(current->data.data()+0x21B84u)
+                 <<","<<code2::load_le16(current->data.data()+0x21B88u)
+                 <<" full_frame=NOT_CONNECTED\\n"<<std::flush;
         stop("ORIGINAL_1F494_RES1_RESOURCE_RECORD_BOUNDS");
+    }
     const u32 offset=table+item*9u;
     const u8 type_before=current->data[offset+2u];
     const u32 image=code2::function_2f29c(
