@@ -994,11 +994,33 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" source_archive=RES0"
              <<" encoded_type="<<raw_type
              <<" encoded_length="<<encoded_length
-             <<" prior_loaded="<<static_cast<unsigned>(memory[slot+2u])
+             <<" source_cache_loaded="<<static_cast<unsigned>(memory[slot+2u])
              <<" metadata_offset="<<at
-             <<" decoded=NOT_YET_CONNECTED\n"<<std::flush;
+             <<" source_decoder=ORIGINAL_2FD9C\n"<<std::flush;
     // Independent source-vs-original-image proof: the standalone media
     // reader decodes RES0:59 but never writes to the canonical guest.
+    // Read-only discovery for original 1A0B0/1A288. Do not silently
+    // assume the old startup mouse range fixture is real cursor input.
+    const u32 mouse_context=code2::load_le32(memory.data()+0xF04Cu);
+    REQUIRE(std::uint64_t(mouse_context)+8u<=memory.size());
+    const u32 original_mouse_detected=code2::load_le16(
+        memory.data()+mouse_context);
+    const u32 cursor_resource=code2::load_le32(
+        memory.data()+0x258DCu)+0x2Fu;
+    REQUIRE(cursor_resource<archive_count);
+    const u32 cursor_at=code2::load_le32(
+        archive0.data()+4u+cursor_resource*4u);
+    REQUIRE(std::uint64_t(cursor_at)+5u<=archive0.size() &&
+            archive0[cursor_at]=='E' && archive0[cursor_at+1u]=='H');
+    std::cout<<"ORIGINAL_CODE2_20440_CURSOR_DEPENDENCY_DISCOVERY"
+             <<" source_mouse_2E340="<<original_mouse_detected
+             <<" cursor_item="<<cursor_resource
+             <<" archive=RES0"
+             <<" cursor_type="<<unsigned(archive0[cursor_at+2u])
+             <<" cursor_header_bytes="<<code2::load_le16(
+                    archive0.data()+cursor_at+3u)
+             <<" source_1A0B0=NOT_YET_CONNECTED"
+             <<" source_1A288=NOT_YET_CONNECTED\n"<<std::flush;
     const auto expected=rloft::original_res::decode_type1(archive0,target);
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
             s->guest->original_type1_decodes==1u &&
