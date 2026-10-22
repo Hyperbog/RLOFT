@@ -71,6 +71,8 @@ struct Session {
     unsigned original_level_state_pops=0;
     unsigned original_level_scene_mode_calls=0;
     unsigned original_level_party_terminal_checks=0;
+    unsigned original_level_actor_postloads=0;
+    unsigned original_level_actor_random_calls=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
     unsigned original_boot_output_page_selects=0;
@@ -1783,6 +1785,29 @@ void original_level_19cf4_pop() noexcept {
         stop("ORIGINAL_181B4_19CF4_STACK_RESTORE_FAILED");
     ++current->original_level_state_pops;
 }
+// Part 26: source-backed actor post-load callbacks. These use the actual
+// retained CODE.2 DGROUP quest bits and RNG, not host-selected flags.
+// Dialogue remains a fail-closed boundary until its full callback tree
+// and display resources can execute in the same guest.
+u32 original_level_actor_quest(u32 bit) noexcept {
+    return code2::function_1c1dc(current->machine,bit);
+}
+u32 original_level_actor_type(u32 type) noexcept {
+    return code2::function_2acdc(type);
+}
+u32 original_level_actor_random() noexcept {
+    ++current->original_level_actor_random_calls;
+    return code2::function_30ca2(current->machine);
+}
+u32 original_level_actor_roll(u32 count,u32 sides,u32 add,u32 flat) noexcept {
+    code2::Application39Boundary b{};
+    b.call_30ca2=&original_level_actor_random;
+    return code2::function_1c328(
+        current->machine,b,count,sides,add,flat);
+}
+void original_level_actor_dialog(u32,u32) noexcept {
+    stop("ORIGINAL_17A68_1C77C_DIALOGUE_CALLBACK_NOT_CONNECTED");
+}
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
     // Execute the authentic unchanged-scene source path only while
@@ -1842,6 +1867,17 @@ void original_181b4_level_load(u32 requested) noexcept {
     b.call_310b0=&original_level_heap_release;
     b.call_29050=&original_level_sound_bank;
     b.call_29048=&original_level_sound_mode;
+    code2::Application31Boundary actor_callbacks{};
+    actor_callbacks.call_1c1dc=&original_level_actor_quest;
+    actor_callbacks.call_2acdc=&original_level_actor_type;
+    actor_callbacks.call_30ca2=&original_level_actor_random;
+    actor_callbacks.call_1c328=&original_level_actor_roll;
+    actor_callbacks.call_1c77c=&original_level_actor_dialog;
+    b.app31=&actor_callbacks;
+    // Execute the compiled 17A68 post-load transformations as part of
+    // real 181B4 deserialization. The original party/quest RNG is used;
+    // unsupported dialogue must never silently become a no-op.
+    const u32 actor_random_before=current->original_level_actor_random_calls;
     b.call_19ccc=&original_level_19ccc_push;
     b.call_19cf4=&original_level_19cf4_pop;
     // The original level switch requests new palette/art through 1F8FC.
@@ -1850,6 +1886,12 @@ void original_181b4_level_load(u32 requested) noexcept {
     // compositor/UI resource and redraw dependencies are attached.
     b.call_0ccf4=&original_level_0ccf4_party_terminal;
     code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
+    ++current->original_level_actor_postloads;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=17A68_ACTOR_POSTLOAD_SOURCE_EXECUTED"
+             <<" original_guest=PRESERVED rng_callbacks="
+             <<(current->original_level_actor_random_calls-actor_random_before)
+             <<" quest_predicate=1C1DC actor_type=2ACDC"
+             <<" dialogue=FAIL_CLOSED\\n"<<std::flush;
     if(code2::load_le32(current->data.data()+0xC6C8u)!=requested ||
        code2::load_le16(current->data.data()+0x25619u)==0u ||
        code2::load_le16(current->data.data()+0x2561Bu)==0u ||
@@ -1858,7 +1900,8 @@ void original_181b4_level_load(u32 requested) noexcept {
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
        current->original_level_scene_mode_calls!=0u ||
-       current->original_level_party_terminal_checks!=1u)
+       current->original_level_party_terminal_checks!=1u ||
+       current->original_level_actor_postloads!=1u)
         stop("ORIGINAL_181B4_SOURCE_WORLD_STATE_CALLBACKS_MISSING");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_STATE_CALLBACKS_COMPLETED"
              <<" source=19CCC_19CF4_0CCF4"
