@@ -379,6 +379,91 @@ void test_original_source_present_active_mouse() {
              <<" pixel_copy_and_restore=SOURCE"
              <<" live_gameplay=NOT_CONNECTED\\n";
 }
+// Source 1F494 normal-party path: original 1F3FC classifies actor
+// state and 1EA90 resolves two equipment frame requests. Pixel draws
+// remain observation callbacks rather than fabricated RES0 art.
+struct NormalHudProbe {
+    static NormalHudProbe*& active() {
+        static thread_local NormalHudProbe* p=nullptr;return p;
+    }
+    u32 portrait=0u,frame=0u,bars=0u,equipment=0u,shades=0u,
+        status=0u,resource=0u,flips=0u;
+    bool valid=true;
+    static void page(u32 p) {active()->valid &= p==0u;}
+    static void background(u32 fr,u32 y,u32 x,u32 res,u32 slot) {
+        active()->valid &= fr==0u && y==0x136u && x==1u &&
+                            res==55u && slot==0u;
+        ++active()->frame;
+    }
+    static void translated(u32 fr,u32 y,u32 x,u32 res,u32 slot,u32 table) {
+        active()->valid &= fr==0u && slot<=1u && table>=0xCF70u;
+        if(res==79u && y==0x138u && x==4u && slot==1u)
+            ++active()->portrait;
+        else if(res==60u && y==0x114u && slot==0u)
+            ++active()->equipment;
+        else active()->valid=false;
+    }
+    static void rectangle(u32 y,u32 x,u32 rows,u32 pixels,u32 color) {
+        if(y==0x148u && x==0x30u && rows==64u &&
+           pixels==4u && color==0x43u)++active()->bars;
+        else if(y==0x114u && rows==0x20u && pixels==0x10u &&
+                color==0u)++active()->flips;
+        else active()->valid=false;
+    }
+    static void shade(u32 y,u32 x,u32 rows,u32 pixels,u32 color) {
+        active()->valid &= y==0x114u && x==4u && rows==0x20u &&
+                           pixels==0x10u && color==0x43u;
+        ++active()->shades;
+    }
+    static u32 hitpoints(u32 slot) {active()->valid &= slot==0u;return 80u;}
+    static u32 item_allowed(u32 slot,u32 side) {
+        active()->valid &= slot==0u && side<2u;return 1u;
+    }
+    static void special(u32,u32) {++active()->status;}
+    static u32 image(u32 id,u32 archive) {
+        active()->valid &= id==60u && archive==0u;
+        ++active()->resource;return 0x31000u;
+    }
+    static void flip(u32,u32) {}
+};
+void test_original_source_normal_hud_requests() {
+    std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    code2::store_le32(mem.data()+0x258DCu,15u);
+    code2::store_le32(mem.data()+0x258E4u,32u);
+    code2::store_le32(mem.data()+0xC034u,4u);
+    code2::store_le16(mem.data()+0x218FEu,100u);
+    code2::store_le16(mem.data()+0x2193Cu,0xFFFFu);
+    code2::store_le16(mem.data()+0x2193Eu,0xFFFFu);
+    mem[0x218F2u]=1u;mem[0x218F3u]=2u;
+    mem[0xCF5Au]=1u;
+    NormalHudProbe probe{};NormalHudProbe::active()=&probe;
+    code2::Application43Boundary ui{};
+    ui.call_2975c=&NormalHudProbe::background;
+    ui.call_298f0=&NormalHudProbe::translated;
+    ui.call_29b40=&NormalHudProbe::rectangle;
+    ui.call_2e374=&NormalHudProbe::shade;
+    ui.call_2f29c=&NormalHudProbe::image;
+    ui.call_24478=&NormalHudProbe::item_allowed;
+    code2::Application44Boundary frame{};
+    frame.app43=&ui;
+    frame.call_291b0=&NormalHudProbe::page;
+    frame.call_ef14=&NormalHudProbe::hitpoints;
+    frame.call_22f40=&NormalHudProbe::special;
+    code2::function_1f494(machine,frame,0u);
+    require(probe.valid && probe.frame==1u &&
+            probe.portrait==1u && probe.bars==1u &&
+            probe.equipment==2u && probe.resource==2u &&
+            probe.flips==2u && probe.shades==1u &&
+            probe.status==1u && mem[0xCF5Au]==0u,
+            "Original 1F494/1EA90 normal party resource request ABI changed");
+    NormalHudProbe::active()=nullptr;
+    std::cout<<"ORIGINAL_CODE2_1F494_NORMAL_PARTY_SOURCE_PASS"
+             <<" portrait_res=79 frame_res=55 equipment_res=60"
+             <<" 1EA90_equipment_frames=2"
+             <<" original_state=1F3FC"
+             <<" source_render_pixels=NOT_CONNECTED\\n";
+}
 void test_original_source_hud_and_world_entry() {
     std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=mem.data();
@@ -484,6 +569,7 @@ int main() {
         test_original_source_present_fallback();
         test_original_source_present_active_mouse();
         test_original_source_hud_and_world_entry();
+        test_original_source_normal_hud_requests();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
