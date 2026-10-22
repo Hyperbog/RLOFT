@@ -1034,7 +1034,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" source_1A288=NOT_YET_CONNECTED\n"<<std::flush;
     const auto expected=rloft::original_res::decode_type1(archive0,target);
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
-            s->guest->original_type1_decodes==1u &&
+            s->guest->original_type1_decodes==2u &&
             !s->guest->original_image_invalid && !s->guest->error);
     const u32 loaded=code2::load_le32(memory.data()+slot+5u);
     REQUIRE(memory[slot+2u]==1u &&
@@ -1120,6 +1120,29 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" all_source_planar_bytes=MATCH"
              <<" retention_2F184=YES"
              <<" guest_memory=PRESERVED\n"<<std::flush;
+    const auto cursor_expected=
+        rloft::original_res::decode_type1(archive0,cursor_resource);
+    const u32 cursor_cache=records+cursor_resource*9u;
+    const u32 cursor_image=code2::load_le32(memory.data()+cursor_cache+5u);
+    REQUIRE(cursor_resource==62u && cursor_expected.frames==11u &&
+            cursor_expected.rows==32u && cursor_expected.width_units==2u &&
+            cursor_expected.method==3u &&
+            memory[cursor_cache+2u]==1u && cursor_image!=0u &&
+            std::uint64_t(cursor_image)+0x1614u<memory.size() &&
+            std::equal(memory.begin()+cursor_image,
+                       memory.begin()+cursor_image+0x1614u,
+                       memory.begin()+0x880Du) &&
+            code2::load_le16(memory.data()+0x85FCu)==0xFFFFu &&
+            code2::load_le16(memory.data()+0x9E37u)==1u &&
+            memory[0xF0D0u]==0u);
+    std::cout<<"ORIGINAL_CODE2_20440_MOUSE_CURSOR_SOURCE_PASS"
+             <<" source=1A0B0_1A288_2F29C_2FD9C_292BC_2A114_29804_2A380"
+             <<" archive=RES0_62"
+             <<" frames="<<cursor_expected.frames
+             <<" image_copy=1614_SOURCE_BYTES_MATCH"
+             <<" mouse_state=INT33_EXPLICIT_VIRTUAL_HOST"
+             <<" vga=ORIGINAL_PLANES"
+             <<" original_guest=PRESERVED\n"<<std::flush;
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
