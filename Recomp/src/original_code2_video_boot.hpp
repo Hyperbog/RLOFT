@@ -29,6 +29,7 @@ struct Bridge {
     u32 source_page_pop_calls=0;
     u32 source_page_select_calls=0;
     u32 source_rectangle_fill_calls=0;
+    u32 source_cursor_background_captures=0;
     explicit Bridge(code2::Machine& guest,
                     rloft::graphics::OriginalVgaHost& v,
                     std::size_t memory_bytes)
@@ -268,6 +269,36 @@ struct Bridge {
         if(invalid_access || video.unsupported_read() ||
            machine.data[0xEF4Eu]!=page)
             throw std::runtime_error("Original 291C8 source scanout selection failed");
+    }
+    // Original 1A288 -> 292BC -> 2A114 snapshots planar VGA bytes
+    // before drawing a cursor. Preserve VGA read-map sequencing.
+    static u32 source_cursor_2a114(u32 dst,u32 row,u32 x,u32 rows,u32 pixels) noexcept {
+        auto& b=self();
+        if(rows!=16u || pixels!=32u || row>384u || x>288u ||
+           dst<0x9E3Au || std::uint64_t(dst)+768u>b.guest_extent) {
+            b.invalid_access=true;return 0u;
+        }
+        code2::Application60Boundary io{};
+        io.out16=&out16;
+        io.vga_read8=&vga_read;
+        io.vga_write8=&vga_write;
+        code2::function_2a114(b.machine,io,dst,row,x,rows,pixels);
+        ++b.source_cursor_background_captures;
+        return 1u;
+    }
+    void run_original_292bc_cursor_capture(u32 dst,code2::s32 x,
+                                            code2::s32 y,u32 w,u32 h) {
+        if((dst!=0x9E3Au && dst!=0xA23Au) || w!=32u || h!=16u)
+            throw std::invalid_argument("Original 1A288 cursor rectangle changed");
+        Scope scope(*this);
+        auto cb=app56();
+        cb.call_2a114=&source_cursor_2a114;
+        code2::function_292bc(machine,cb,dst,x,y,
+                               static_cast<code2::s32>(w),
+                               static_cast<code2::s32>(h));
+        if(invalid_access || video.unsupported_read() ||
+           source_cursor_background_captures!=1u)
+            throw std::runtime_error("Original 292BC/2A114 cursor snapshot failed");
     }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
