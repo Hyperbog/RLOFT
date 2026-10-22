@@ -2350,6 +2350,31 @@ void original_181b4_level_load(u32 requested) noexcept {
                  <<" original_source=2F29C_2ECB4_2FD9C"
                  <<" portrait_VGA=NOT_YET_DRAWN\n"<<std::flush;
     }
+    // Establish source ray records from actual Level22 camera/grid on
+    // the retained (not copied) original machine. The 32954 ray pass is
+    // separate from 335DC/3263C rasterization and is not a VGA frame.
+    original_world_camera_334c4();
+    unsigned visible_rays=0u,solid_rays=0u;
+    for(u32 i=0u;i<256u;++i) {
+        const u32 record=0x15A18u+i*0x1Cu;
+        if(code2::load_le32(current->data.data()+record+0x0Cu)==1u)
+            ++visible_rays;
+        if(code2::load_le32(current->data.data()+record+0x04u)!=0x93u)
+            ++solid_rays;
+    }
+    if(code2::load_le32(current->data.data()+0xFD0Cu)!=450u ||
+       code2::load_le32(current->data.data()+0xC714u)!=2700u ||
+       code2::load_le32(current->data.data()+0xC6D8u)!=256u)
+        stop("ORIGINAL_334C4_32954_LEVEL22_CAMERA_SOURCE_DIVERGED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=334C4_32954_RETAINED_LEVEL22_RAYS"
+             <<" columns=256"
+             <<" heading=270"
+             <<" world_cells=450"
+             <<" first_pass_flags="<<visible_rays
+             <<" nonempty_ray_columns="<<solid_rays
+             <<" original_guest=PRESERVED"
+             <<" source_raycast=COMPLETE"
+             <<" original_335DC_3263C_VGA=NOT_YET_CONNECTED\\n"<<std::flush;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
