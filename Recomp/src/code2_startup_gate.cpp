@@ -2570,6 +2570,26 @@ std::uint32_t advance_original_second_init(Opaque* owner) {
         throw std::runtime_error("Original CODE2 second INIT did not complete in original guest");
     return static_cast<std::uint32_t>(owner->pending.service);
 }
+std::uint32_t answer_original_keyboard_event(
+    Opaque* owner,std::uint32_t key_code) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::Original1FC14KeyboardEntry ||
+       owner->pending.ax!=0u || owner->pending.bx!=0u ||
+       key_code>0xFFFFu)
+        throw std::logic_error("Original CODE2 not at live 1FC14 keyboard poll");
+    const auto& before=held(owner);
+    if(before.original_16d04_completed!=1u || !before.original_vga ||
+       before.original_source_page_pops!=2u)
+        throw std::logic_error("Original CODE2 game entry state not retained");
+    const auto* const guest_base=before.machine.data;
+    const auto request=owner->pending;
+    owner->live_worker->resume(request,{key_code,0u,0u,0u});
+    if(!owner->live_worker->await_pause(owner->pending))return 0u;
+    if(held(owner).machine.data!=guest_base)
+        throw std::runtime_error("CODE2 1FC14 guest memory moved between keyboard polls");
+    return static_cast<std::uint32_t>(owner->pending.service);
+}
 void attach_original_resource_callbacks(Opaque* owner,void* original_app68) {
     if(!owner || !original_app68 || !owner->live_worker ||
        !owner->live_worker->paused())
