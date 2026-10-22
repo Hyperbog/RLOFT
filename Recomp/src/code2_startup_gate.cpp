@@ -73,6 +73,8 @@ struct Session {
     unsigned original_level_party_terminal_checks=0;
     unsigned original_level_actor_postloads=0;
     unsigned original_level_actor_random_calls=0;
+    unsigned original_scene_page_copies=0;
+    unsigned original_scene_presentations=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
     unsigned original_boot_output_page_selects=0;
@@ -1877,6 +1879,118 @@ void original_scene_capture_release(u32 image) noexcept {
     b.call_310b0=&original_level_heap_release;
     code2::function_30040(b,image);
 }
+// Runtime-retained original 1A5B0 presentation graph. The active mouse
+// path draws a cursor on the new scanout, source-copies its full VGA page,
+// and restores the cursor background on the other page. Keep each
+// low-level guest IO operation bound to the same VGA hardware emulator.
+void original_scene_select_scanout(u32 page) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_291c8(page);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_291C8_SCANOUT_FAILED");
+    }
+}
+void original_scene_page_push(u32 page) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e590(page);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_2E590_PAGE_PUSH_FAILED");
+    }
+}
+void original_scene_page_pop() noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2e5d4();
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_2E5D4_PAGE_POP_FAILED");
+    }
+}
+void original_scene_copy_page(u32 page) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2a020_page_copy(page);
+        ++current->original_scene_page_copies;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_2A020_VGA_LATCH_PAGE_COPY_FAILED");
+    }
+}
+void original_scene_cursor_capture(u32 dst,code2::s32 x,code2::s32 y,
+                                   u32 w,u32 h) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_292bc_cursor_capture(dst,x,y,w,h);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_292BC_CURSOR_CAPTURE_FAILED");
+    }
+}
+void original_scene_cursor_restore(u32 src,code2::s32 x,code2::s32 y,
+                                   u32 w,u32 h) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2932c_cursor_restore(src,x,y,w,h);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_2932C_CURSOR_RESTORE_FAILED");
+    }
+}
+void original_scene_pointer_sprite(u32 frame,code2::s32 x,
+                                   code2::s32 y,u32 image) noexcept {
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_29804_cursor_sprite(frame,x,y,image);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A5B0_29804_MOUSE_SPRITE_UNSUPPORTED");
+    }
+}
+void original_scene_cursor_memory_copy(u32 dst,u32 src,u32 count) noexcept {
+    const auto cursor_buf=[](u32 p) {
+        return p==0x9E3Au || p==0xA23Au;
+    };
+    if(!cursor_buf(dst) || !cursor_buf(src) || count!=0x400u ||
+       std::uint64_t(dst)+count>current->data.size() ||
+       std::uint64_t(src)+count>current->data.size())
+        stop("ORIGINAL_1A5B0_CURSOR_BUFFER_COPY_OUT_OF_RANGE");
+    (void)code2::function_30cd4(current->machine,dst,src,count);
+}
+void original_scene_1a5b0(u32 page,code2::s32 cursor,u32 variant) noexcept {
+    if(page>1u || !current->live_continuation || !current->original_vga ||
+       current->original_20440_mouse_inits!=1u)
+        stop("ORIGINAL_1A5B0_GUEST_PRESENTATION_PREREQUISITES");
+    code2::Application33Boundary video=current->original_mouse_resources;
+    video.call_291c8=&original_scene_select_scanout;
+    video.call_2a020=&original_scene_copy_page;
+    video.call_30cd4=&original_scene_cursor_memory_copy;
+    code2::Application34Boundary mouse=current->original_mouse_init_callbacks;
+    mouse.app33=&video;
+    code2::Application35Boundary draw=current->original_mouse_draw_callbacks;
+    draw.app34=&mouse;
+    draw.call_2e590=&original_scene_page_push;
+    draw.call_2e5d4=&original_scene_page_pop;
+    draw.call_292bc=&original_scene_cursor_capture;
+    draw.call_2932c=&original_scene_cursor_restore;
+    draw.call_29804=&original_scene_pointer_sprite;
+    draw.call_2ae30=&original_20440_mouse_hit;
+    const unsigned copies_before=current->original_scene_page_copies;
+    code2::function_1a5b0(current->machine,draw,page,
+                           static_cast<u32>(cursor),variant);
+    if(current->original_scene_page_copies!=copies_before+1u ||
+       current->data[0xF0D0u]!=0u ||
+       current->data[0xEF4Eu]!=page)
+        stop("ORIGINAL_1A5B0_SOURCE_PRESENTATION_DID_NOT_COMPLETE");
+    ++current->original_scene_presentations;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A5B0_SOURCE_VGA_PRESENT"
+             <<" scanout="<<page<<" originals=291C8_2A020_2E590_2E5D4"
+             <<" cursor_active="<<(code2::load_le16(current->data.data()+0x85FCu)!=0u)
+             <<" original_guest=PRESERVED\\n"<<std::flush;
+}
 void original_scene_palette(u32 palette,u32 first,u32 bank,
                             u32 filename,u32 count) noexcept {
     // Retail Level 22 requests mode 4 while its retained palette mode is 3.
@@ -3370,6 +3484,7 @@ void attach_original_vga(
     source.presentation.call_22d70=&original_scene_clear_event_ring;
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
+    source.presentation.call_1a5b0=&original_scene_1a5b0;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
