@@ -519,6 +519,62 @@ struct Bridge {
            source_cursor_sprite_draws!=1u)
             throw std::runtime_error("1F8FC original 2939C/2A380 VGA blit failed");
     }
+    // Original party portrait: 1F494 -> 298F0 -> 2F29C -> 2A584.
+    // The 256-byte color table is a guest DGROUP address; translation
+    // executes in the compiled original planar blitter, not the host.
+    u32 source_hud_palette_draws=0u;
+    static u32 source_hud_translated(u32 frame,u32 row,u32 x,
+                                     u32 image,u32 table) noexcept {
+        auto& b=self();
+        auto gfx=cursor_gfx();
+        code2::function_2a584(b.machine,gfx,frame,row,x,image,table);
+        ++b.source_hud_palette_draws;
+        return 1u;
+    }
+    void check_hud_image(u32 frame,u32 row,u32 x,u32 image) const {
+        if(image==0u || std::uint64_t(image)+8u>guest_extent ||
+           row>=400u || x>=320u)
+            throw std::out_of_range("Original HUD image pointer or origin outside guest/VGA");
+        const u8* d=machine.data;
+        const u32 stride=code2::load_le16(d+image);
+        const u32 frames=code2::load_le16(d+image+2u);
+        const u32 rows=code2::load_le16(d+image+4u);
+        const u32 pixels=static_cast<u32>(d[image+6u])*8u;
+        if(!stride || !frames || !rows || !pixels ||
+           frame>=frames || rows>400u-row || pixels>320u-x ||
+           std::uint64_t(image)+8u+
+             static_cast<std::uint64_t>(frame+1u)*stride>guest_extent)
+            throw std::out_of_range("Original HUD source image metadata invalid");
+    }
+    void run_original_2975c_hud_frame(u32 frame,u32 row,u32 x,
+                                     u32 res,u32 slot,u32 image,
+                                     u32 (*lookup)(u32,u32)) {
+        if(!lookup)throw std::invalid_argument("Original HUD RES lookup absent");
+        check_hud_image(frame,row,x,image);
+        Scope scope(*this);
+        code2::Application57Boundary cb{};
+        cb.call_2f29c=lookup;
+        cb.call_2a380=&cursor_source_2a380;
+        (void)code2::function_2975c(cb,frame,row,x,res,slot);
+        if(invalid_access || video.unsupported_read() ||
+           source_cursor_sprite_draws!=1u)
+            throw std::runtime_error("Original 2975C HUD VGA draw failed");
+    }
+    void run_original_298f0_hud_portrait(u32 frame,u32 row,u32 x,
+                                         u32 res,u32 slot,u32 table,
+                                         u32 image,u32 (*lookup)(u32,u32)) {
+        if(!lookup || std::uint64_t(table)+256u>guest_extent)
+            throw std::invalid_argument("Original HUD RES lookup/table absent");
+        check_hud_image(frame,row,x,image);
+        Scope scope(*this);
+        code2::Application57Boundary cb{};
+        cb.call_2f29c=lookup;
+        cb.call_2a584=&source_hud_translated;
+        (void)code2::function_298f0(cb,frame,row,x,res,slot,table);
+        if(invalid_access || video.unsupported_read() ||
+           source_hud_palette_draws!=1u)
+            throw std::runtime_error("Original 298F0/2A584 portrait source failed");
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
