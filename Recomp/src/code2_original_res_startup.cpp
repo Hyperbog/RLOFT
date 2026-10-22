@@ -11,6 +11,7 @@
 #include "original_code2_palette_loader.hpp"
 #include "original_code2_scene_palette.hpp"
 #include "original_code2_guest_session.hpp"
+#include "../../Code2/graphics/original_levels_grid.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include <memory>
 #include "original_media_identity.hpp"
@@ -807,6 +808,35 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     REQUIRE(s->guest->memory.data()==base && s->guest->m.data==base &&
             s->guest->init_opens==2u && !s->guest->error);
     REQUIRE(next==11u);
+    // Independent original archive parser cross-checks the actual source
+    // 181B4 guest result, rather than another host-decoded world copy.
+    const auto archive=rloft::original_levels::read_archive(
+        (s->original_root/"LEVELS.DAT").string());
+    const auto grid=rloft::original_levels::decode_grid(archive,22u);
+    const auto& memory=s->guest->memory;
+    REQUIRE(code2::load_le32(memory.data()+0xC6C8u)==22u &&
+            code2::load_le16(memory.data()+0x25619u)==grid.width &&
+            code2::load_le16(memory.data()+0x2561Bu)==grid.height &&
+            memory.data()==base);
+    for(std::size_t i=0;i<grid.header.size();++i) {
+        if(i==0x29Au || i==0x29Bu)continue; // source 181B4 scale fix
+        REQUIRE(memory[0x25618u+i]==grid.header[i]);
+    }
+    const std::uint16_t scale=rloft::original_levels::le16(
+        grid.header.data()+0x29Au);
+    REQUIRE(code2::load_le16(memory.data()+0x258B2u)==
+            (scale?scale:1u));
+    for(std::size_t i=0;i<grid.cells.size();++i)
+        REQUIRE(code2::load_le16(memory.data()+0x198E0u+2u*i)==
+                grid.cells[i]);
+    std::cout<<"ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_PASS"
+             <<" source=181B4"
+             <<" input=AUTHENTIC_LEVELS_DAT"
+             <<" width="<<grid.width
+             <<" height="<<grid.height
+             <<" cells="<<grid.cells.size()
+             <<" guest_memory=PRESERVED"
+             <<" rendering=NOT_CONNECTED\\n"<<std::flush;
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
