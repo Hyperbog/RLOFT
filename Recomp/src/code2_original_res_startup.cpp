@@ -421,6 +421,11 @@ struct Session {
     // stream, buffer globals and authentic Watcom allocator. This runs on
     // the same canonical guest that called 20440 -> 2ECB4; no image
     // bytes are filled from the independent media decoder.
+    // Application70's call_3131c signature is (handle,origin,delta),
+    // unlike the Application30 file callback's (delta,origin,handle).
+    static u32 original_image_position(u32 handle,u32 origin,u32 delta) {
+        return position(delta,origin,handle);
+    }
     static u32 original_logical_position() {
         auto& t=state();
         const auto it=t.files.find(t.original_image_handle);
@@ -564,7 +569,7 @@ struct Session {
         res_callbacks.call_31334=&resource_record_seek;
         res_callbacks.call_2fd9c=&original_type1_source_decoder;
         original_image_callbacks.call_312ec=&read_guest;
-        original_image_callbacks.call_3131c=&position;
+        original_image_callbacks.call_3131c=&original_image_position;
         original_image_callbacks.call_3104c=&alloc_guest;
         original_image_callbacks.call_310b0=&free_guest;
         original_image_callbacks.call_37700=&original_image_37700;
