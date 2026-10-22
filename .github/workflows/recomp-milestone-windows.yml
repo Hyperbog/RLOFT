@@ -305,7 +305,7 @@ jobs:
           }
           $combined = @($out.GetAwaiter().GetResult(), $err.GetAwaiter().GetResult()) -join "`n"
           foreach ($line in ($combined -split "`r?`n")) {
-            if ($line -match 'ORIGINAL_CODE2_SECOND_16D04|SECOND_16D04_SOURCE|CODE2_ORIGINAL_LIVE_INIT|CODE2_ORIGINAL_LIVE_VGA_TRACE|CODE2_SOURCE_CHAIN_STAGE|RLOFT_STAGED_TRACE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL|REAL_SECOND_INIT_|ORIGINAL_CODE2_1FC14_TWO_SOURCE_LOOP_ITERATIONS_PASS|CODE2_ORIGINAL_LIVE_GAMEPLAY') {
+            if ($line -match 'ORIGINAL_CODE2_SECOND_16D04|SECOND_16D04_SOURCE|CODE2_ORIGINAL_LIVE_INIT|CODE2_ORIGINAL_LIVE_VGA_TRACE|CODE2_SOURCE_CHAIN_STAGE|RLOFT_STAGED_TRACE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL|REAL_SECOND_INIT_|ORIGINAL_CODE2_1FC14_TWO_SOURCE_LOOP_ITERATIONS_PASS|ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_PASS|CODE2_ORIGINAL_LIVE_BOOT|CODE2_ORIGINAL_LIVE_GAMEPLAY') {
               Write-Host "SOURCE_SECOND_INIT: $line"
             }
           }
@@ -319,6 +319,10 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_1FC14_TWO_SOURCE_LOOP_ITERATIONS_PASS.*no_key_host_replies=2.*next_service=11.*guest_memory=PRESERVED.*game_rendering=NOT_CONNECTED') {
             throw "Original 1FC14 did not complete two retained no-key 30B40 source polls"
           }
+          if ($combined -notmatch 'ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_PASS.*input=AUTHENTIC_LEVELS_DAT.*guest_memory=PRESERVED.*rendering=NOT_CONNECTED') {
+            throw "Original 181B4 Level 22 packed grid did not match independent archived media"
+          }
+          Write-Host "ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_ACCEPTED original_guest=RETAINED"
           Write-Host "ORIGINAL_CODE2_1FC14_SOURCE_ITERATIONS_PASS original_stack=RETAINED rendering=NOT_CONNECTED"
           Write-Host "ORIGINAL_CODE2_16D04_SOURCE_EXPERIMENT_PASS original_stack=RETAINED"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
