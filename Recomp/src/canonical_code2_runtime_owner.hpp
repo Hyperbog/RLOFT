@@ -34,6 +34,9 @@ struct Evidence {
     std::uint32_t original_source_planar_fills=0;
     std::uint32_t original_source_video_mode_calls=0;
     std::uint32_t original_source_palette_streams=0;
+    std::uint32_t original_source_325b0_loads=0;
+    std::uint32_t original_boot_render_page_selects=0;
+    std::uint32_t original_boot_scanout_page_selects=0;
     bool source_290f4_320x400_video_initialized=false;
 };
 Opaque* start(const std::filesystem::path& original_code2);
