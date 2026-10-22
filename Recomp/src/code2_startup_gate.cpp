@@ -1341,7 +1341,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_20440_mouse_inits!=1u ||
        current->original_20440_mouse_cursor_loads!=1u ||
        current->original_20440_mouse_callback_installs!=1u ||
-       current->original_20440_mouse_draws!=1u ||
+       current->original_20440_mouse_draws==0u ||
        current->original_source_page_pushes!=3u ||
        current->original_source_page_pops!=3u ||
        current->original_source_dac_streams!=2u ||
@@ -1710,16 +1710,29 @@ u32 original_20440_mouse_hit(code2::s32 x,code2::s32 y) noexcept {
     if(hit!=0u)stop("ORIGINAL_1A288_HIT_HANDLER_NOT_CONNECTED");
     return hit;
 }
-void original_20440_mouse_draw(u32,code2::s32,code2::s32,u32) noexcept {
-    stop("ORIGINAL_1A288_MASKED_CURSOR_DRAW_NOT_CONNECTED");
+void original_20440_mouse_draw(u32 frame,code2::s32 x,
+                               code2::s32 y,u32 image) noexcept {
+    if(!current->original_vga ||
+       current->original_20440_mouse_capture_calls!=1u ||
+       image!=0x880Du)
+        stop("ORIGINAL_1A288_CURSOR_SPRITE_DRAW_OUT_OF_ORDER");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_29804_cursor_sprite(frame,x,y,image);
+        ++current->original_20440_mouse_draws;
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A288_29804_SOURCE_CURSOR_DRAW"
+                 <<" frame="<<frame<<" x="<<x<<" y="<<y
+                 <<" vga=ORIGINAL_PLANAR_SOURCE\n"<<std::flush;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1A288_CURSOR_29804_VGA_BACKEND_REJECTED_SOURCE_DRAW");
+    }
 }
 void original_20440_mouse_render() noexcept {
     if(current->original_20440_mouse_inits!=1u ||
        current->original_20440_mouse_draws!=0u ||
        !current->original_vga)
         stop("ORIGINAL_1A288_SOURCE_CURSOR_PREREQUISITES");
-    if(code2::load_le16(current->data.data()+0xA6C0u)!=0u)
-        stop("ORIGINAL_1A288_VISIBLE_CURSOR_SPRITE_NOT_CONNECTED");
     code2::function_1a288(
         current->machine,current->original_mouse_draw_callbacks);
     if(current->original_20440_mouse_capture_calls!=1u ||
@@ -1727,10 +1740,12 @@ void original_20440_mouse_render() noexcept {
        current->original_source_page_pops!=3u ||
        code2::load_le16(current->data.data()+0x9E37u)!=1u)
         stop("ORIGINAL_1A288_SOURCE_CURSOR_CAPTURE_INCOMPLETE");
-    ++current->original_20440_mouse_draws;
-    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A288_CURSOR_SOURCE_CAPTURE_COMPLETED"
-             <<" source=292BC_2A114"
-             <<" sprite_visibility=ORIGINAL_DISABLED\n"<<std::flush;
+    if(current->original_20440_mouse_draws==0u)
+        stop("ORIGINAL_1A288_EXPECTED_VISIBLE_SPRITE_NOT_DRAWN");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1A288_CURSOR_SOURCE_COMPLETED"
+             <<" source=292BC_2A114_29804_29414_2A380"
+             <<" visible_sprite_draws="<<current->original_20440_mouse_draws
+             <<" original_vga=RETAINED\n"<<std::flush;
 }
 void original_181b4_level_load(u32 requested) noexcept {
     if(requested!=0x16u || current->original_16cd0_completed!=1u ||
