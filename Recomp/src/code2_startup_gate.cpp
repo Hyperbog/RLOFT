@@ -2568,6 +2568,8 @@ void original_181b4_level_load(u32 requested) noexcept {
     // SINTAB VGA generation as a bounded PREVIEW, not a complete
     // 1F8FC frame (HUD/outdoor/scene presentation remain pending).
     original_world_sweep_335dc();
+    const u32 original_scene_materials_requested=
+        static_cast<u32>(current->original_world_materials.size());
     // The Level22 exterior view's genuine 335DC ray records currently
     // select no textured RES4 material. Verify the original 37590 type6
     // decoder independently using one AUTHENTIC archive record chosen
@@ -2627,7 +2629,9 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" sintab_runs="<<current->original_world_source_sintab_calls
              <<" legacy_sampler_runs="<<current->original_world_legacy_sampler_calls
              <<" planar_pixels="<<current->original_world_source_pixels
-             <<" decoded_materials="<<current->original_world_materials.size()
+             <<" scene_materials_requested="<<original_scene_materials_requested
+             <<" diagnostic_materials_extra="
+             <<(current->original_world_materials.size()-original_scene_materials_requested)
              <<" original_guest=PRESERVED"
              <<" frame_status=PREVIEW_ONLY_NOT_ORIGINAL_1F8FC\\n"
              <<std::flush;
