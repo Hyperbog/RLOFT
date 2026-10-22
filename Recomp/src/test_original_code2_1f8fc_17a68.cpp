@@ -511,6 +511,53 @@ void test_original_source_normal_hud_requests() {
              <<" original_state=1F3FC"
              <<" source_render_pixels=NOT_CONNECTED\\n";
 }
+// World entry 1F1C8 -> 334C4 executes the actual original fixed
+// point 35680 camera/basis prepass. The ray traversal at 32954 is
+// observed as an explicit unmet callback frontier, never skipped and
+// never presented as a completed scene.
+u32 synthetic_world_ray_requests=0u;
+void synthetic_world_ray_boundary() {++synthetic_world_ray_requests;}
+void test_original_source_334c4_world_prepass() {
+    std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    const u32 table=0x20000u;
+    code2::store_le32(mem.data()+0xC65Cu,table);
+    code2::store_le32(mem.data()+0xC658u,270u);
+    code2::store_le32(mem.data()+table+270u*4u,0x00008000u);
+    code2::store_le32(mem.data()+table+360u*4u,0x0000C000u);
+    code2::store_le32(mem.data()+0x2560Cu,0x00010000u);
+    code2::store_le32(mem.data()+0x255D0u,0x00030000u);
+    code2::store_le32(mem.data()+0x255D4u,0x00020000u);
+    code2::store_le16(mem.data()+0x25619u,2u);
+    code2::store_le16(mem.data()+0x2561Bu,2u);
+    for(u32 i=0u;i<4u;++i)
+        code2::store_le16(mem.data()+0x198E0u+i*2u,0xFFFFu);
+    synthetic_world_ray_requests=0u;
+    code2::Application90Boundary world{};
+    world.call_35680=&code2::function_35680;
+    world.call_32954=&synthetic_world_ray_boundary;
+    code2::function_334c4(machine,world);
+    const u32 horizontal=code2::function_35680(0x10000u,0x8000u);
+    const u32 vertical=code2::function_35680(0x10000u,0xC000u);
+    require(synthetic_world_ray_requests==1u &&
+            code2::load_le32(mem.data()+0xFD0Cu)==4u &&
+            code2::load_le32(mem.data()+0xC714u)==2700u &&
+            code2::load_le32(mem.data()+0x255FCu)==0x8000u &&
+            code2::load_le32(mem.data()+0x255F8u)==0xC000u &&
+            code2::load_le32(mem.data()+0x255F4u)==0x30000u+horizontal &&
+            code2::load_le32(mem.data()+0x255ECu)==0x20000u-vertical &&
+            code2::load_le32(mem.data()+0x22220u)==0x800u &&
+            code2::load_le32(mem.data()+0xC72Cu)==0xFFFFFFFFu,
+            "334C4 source camera and fixed point world prepass changed");
+    for(u32 i=0u;i<4u;++i)
+        require(code2::load_le16(mem.data()+0x198E0u+i*2u)==0xFFBFu,
+                "334C4 source visible-world flag clearing differs");
+    std::cout<<"ORIGINAL_CODE2_334C4_35680_WORLD_PREPASS_PASS"
+             <<" camera_heading=270 cell_count=4"
+             <<" trig=ORIGINAL_FIXED_POINT_SOURCE"
+             <<" ray_32954=REQUESTED_NOT_EXECUTED"
+             <<" original_pixel_raster=NOT_CONNECTED\\n";
+}
 void test_original_source_hud_and_world_entry() {
     std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=mem.data();
@@ -618,6 +665,7 @@ int main() {
         test_original_source_hud_and_world_entry();
         test_original_source_normal_hud_requests();
         test_original_source_hud_vga_pixels();
+        test_original_source_334c4_world_prepass();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
