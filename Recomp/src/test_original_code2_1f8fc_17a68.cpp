@@ -2,6 +2,7 @@
 // post-load control flow. The callbacks below are TEST INSTRUMENTATION;
 // they do not draw pixels or replace the live game renderer.
 #include "../../Code2/Code2.cpp"
+#include "original_code2_video_boot.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -110,6 +111,67 @@ void test_original_compositor_dispatch() {
 }
 u32 quest_bit(u32 bit) {return code2::function_1c1dc(*actor_machine,bit);}
 u32 actor_kind(u32 type) {return code2::function_2acdc(type);}
+// Actual 30070 + 292BC + 2A114 read-plane capture, tested against
+// independently generated VGA pixels and unmodified original raster I/O.
+// Synthetic allocator provides only storage; CODE.2 owns all metadata.
+u32 capture_heap_cursor=0u;
+u32 capture_allocate(u32 n) noexcept {
+    const u32 ptr=capture_heap_cursor;
+    capture_heap_cursor+=(n+3u)&~3u;
+    return ptr;
+}
+void test_original_source_vga_capture() {
+    std::vector<code2::u8> memory(0x50000u,0u);
+    code2::Machine machine{};machine.data=memory.data();
+    rloft::graphics::OriginalVgaHost video{};
+    rloft::source_video_boot::Bridge bridge(machine,video,memory.size());
+    bridge.run_original_290f4(3u);
+    require(code2::load_le16(memory.data()+0xEF3Fu)==400u &&
+            code2::load_le16(memory.data()+0xEF41u)==320u,
+            "Original 290F4 source geometry unavailable");
+    for(u32 row=0u;row<274u;++row)
+        for(u32 x=32u;x<288u;++x)
+            require(video.write_direct_pixel(x,row,
+                      static_cast<code2::u8>((row*31u+x*17u)&255u)),
+                    "Generated VGA capture witness pixel failed");
+    capture_heap_cursor=0x31000u;
+    const struct {u32 row;u32 rows;} plans[]={{0u,4u},{0x104u,4u},{0x106u,11u}};
+    for(const auto& p:plans) {
+        const u32 image=bridge.run_original_30070_capture(
+            p.row,0x20u,p.rows,0x100u,0xFFu,&capture_allocate);
+        require(image>=0x31000u &&
+                code2::load_le16(memory.data()+image)==p.rows*0x100u &&
+                code2::load_le16(memory.data()+image+2u)==1u &&
+                code2::load_le16(memory.data()+image+4u)==p.rows &&
+                memory[image+6u]==32u && memory[image+7u]==0u,
+                "CODE2 30070 allocated wrong source image metadata");
+        const u32 per_row=64u;
+        const u32 payload=image+8u;
+        // 2A114 writes all four VGA planes, each in row-major byte
+        // order; compare every byte against independently authored
+        // pixel values, not against the source buffer itself.
+        for(u32 plane=0u;plane<4u;++plane)
+            for(u32 row=0u;row<p.rows;++row)
+                for(u32 x=0u;x<per_row;++x) {
+                    const u32 screen_x=32u+x*4u+plane;
+                    const u32 screen_row=p.row+row;
+                    const u32 expected=(screen_row*31u+screen_x*17u)&255u;
+                    const u32 actual=memory[payload+plane*p.rows*per_row+
+                                            row*per_row+x];
+                    require(actual==expected,
+                            "30070 2A114 source bytes disagree with VGA plane pixels");
+                }
+    }
+    require(capture_heap_cursor>0x31000u &&
+            !video.unsupported_read(),
+            "Original capture requested unsupported VGA read");
+    std::cout<<"ORIGINAL_CODE2_30070_292BC_2A114_SOURCE_VGA_CAPTURE_PASS"
+             <<" capture_rectangles=3"
+             <<" original_source_pixels=ALL_PLANES_MATCH"
+             <<" original_source_heap_metadata=YES"
+             <<" frame_mode=ISOLATED_SYNTHETIC"
+             <<" live_scene=NOT_CONNECTED\\n";
+}
 void test_original_actor_postload() {
     std::vector<code2::u8> memory(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=memory.data();
@@ -153,6 +215,7 @@ void test_original_actor_postload() {
 int main() {
     try {
         test_original_compositor_dispatch();
+        test_original_source_vga_capture();
         test_original_actor_postload();
         return 0;
     }catch(const std::exception& e){
