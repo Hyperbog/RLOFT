@@ -337,6 +337,21 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_20440_MOUSE_CURSOR_SOURCE_PASS.*source=1A0B0_1A288_2F29C_2FD9C_292BC_2A114_29804_2A380.*archive=RES0_62.*image_copy=1614_SOURCE_BYTES_MATCH.*original_guest=PRESERVED') {
             throw "Original mouse/cursor source did not execute live INT33, 2A114 VGA capture and 2A380 visible sprite"
           }
+          # These are real archived RES1 and RES4 decoder/raster facts
+          # from the SAME preserved Level22 guest, not separate fixtures.
+          # They do not certify full 1F8FC frame composition.
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F494_RES1_298F0_2A584_VGA_PREVIEW.*original_guest=PRESERVED.*source_portraits=2.*changed_indexed_pixels=[1-9][0-9]*.*real_RES1=338_362.*full_1F494=NOT_YET_CONNECTED') {
+            throw "Retained Level22 did not decode and raster authentic RES1 338/362 portraits with source 298F0/2A584"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=334C4_32954_RETAINED_LEVEL22_RAYS.*columns=256.*heading=270.*world_cells=450.*nonempty_ray_columns=256.*original_guest=PRESERVED.*source_raycast=CALLBACK_EXECUTED') {
+            throw "Retained Level22 original 334C4/32954 raycast source trace absent"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=37590_RES4_TYPE6_SOURCE_DECODE.*archive=RES4.*exact_texels=INDEPENDENT_MEDIA_MATCH.*Level22_textured_wall=NOT_REQUESTED') {
+            throw "Retained original RES4 37590 decoded texels lack independent media parity"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=335DC_3263C_RETAINED_VGA_RASTER.*original_guest=PRESERVED.*frame_status=PREVIEW_ONLY_NOT_ORIGINAL_1F8FC') {
+            throw "Retained original 335DC/3263C VGA source preview was not completed or was mislabeled"
+          }
           if ($combined -notmatch 'ORIGINAL_CODE2_181B4_LEVEL22_ACTOR_RECORDS_PARITY_PASS.*moving=1.*primary=110.*alternate=0.*total=111.*actor_records=BYTE_MAPPED_FROM_AUTHENTIC_LEVELS_DAT.*actor_AI=NOT_CONNECTED') {
             throw "Original Level22 actor records did not match independent LEVELS.DAT inputs"
           }
