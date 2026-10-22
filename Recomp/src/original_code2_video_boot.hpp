@@ -359,8 +359,22 @@ struct Bridge {
            code2::load_le16(machine.data+image+2u)!=1u ||
            code2::load_le16(machine.data+image+4u)!=rows ||
            machine.data[image+6u]!=pixels/8u ||
-           machine.data[image+7u]!=(tag==0xFFu?0u:0x80u))
+           machine.data[image+7u]!=(tag==0xFFu?0u:0x80u)) {
+            std::cerr<<"CODE2_30070_CAPTURE_DIAGNOSTIC invalid_access="<<invalid_access
+                     <<" unsupported_read="<<video.unsupported_read()
+                     <<" calls="<<source_frame_background_captures
+                     <<" image="<<image<<" expected="<<expected
+                     <<" extent="<<guest_extent
+                     <<" stride="<<code2::load_le16(machine.data+image)
+                     <<" frames="<<code2::load_le16(machine.data+image+2u)
+                     <<" rows="<<code2::load_le16(machine.data+image+4u)
+                     <<" units="<<unsigned(machine.data[image+6u])
+                     <<" flags="<<unsigned(machine.data[image+7u])
+                     <<" requested_row="<<row<<" requested_x="<<x
+                     <<" requested_rows="<<rows<<" requested_pixels="<<pixels
+                     <<" tag="<<tag<<"\\n";
             throw std::runtime_error("Original 30070 VGA plane capture incomplete");
+        }
         return image;
     }
     // Original cursor image rasterization: CODE2 29804->29414->2A380
