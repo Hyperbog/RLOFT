@@ -66,6 +66,7 @@ struct Session {
     unsigned original_16d04_completed=0;
     unsigned original_03838_completed=0;
     unsigned original_16cd0_completed=0;
+    unsigned original_181b4_completed=0;
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -1293,6 +1294,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_16d04_completed!=1u ||
        current->original_03838_completed!=1u ||
        current->original_16cd0_completed!=1u ||
+       current->original_181b4_completed!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1505,6 +1507,7 @@ void original_181b4_level_load(u32 requested) noexcept {
        code2::load_le16(current->data.data()+0x2561Bu)==0u ||
        code2::load_le32(current->data.data()+0xCF44u)==0u)
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
+    ++current->original_181b4_completed;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
