@@ -1847,11 +1847,35 @@ void original_scene_res_release(u32 resource,u32 slot) noexcept {
     code2::function_2efd0(
         current->machine,*current->game_audio.app68,resource,slot);
 }
-u32 original_scene_capture_pending(u32,u32,u32,u32,u32) noexcept {
-    // 30070 requests three source VGA-region captures and retains guest
-    // image pointers; returning a fabricated handle would corrupt the
-    // original composition and invalidate all later frame equivalence.
-    stop("ORIGINAL_1F8FC_30070_VGA_CAPTURE_NOT_CONNECTED");
+u32 original_scene_capture(u32 row,u32 x,u32 rows,u32 pixels,u32 tag) noexcept {
+    if(!current->original_vga || !current->live_continuation ||
+       tag!=0xFFu || x!=0x20u || pixels!=0x100u ||
+       !((row==0u && rows==4u) ||
+         (row==0x104u && rows==4u) ||
+         (row==0x106u && rows==0x0Bu)))
+        stop("ORIGINAL_1F8FC_30070_SOURCE_CAPTURE_ABI_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        const u32 image=bridge.run_original_30070_capture(
+            row,x,rows,pixels,tag,&original_boot_heap_alloc);
+        if(image==0u || bridge.source_frame_background_captures!=1u)
+            stop("ORIGINAL_1F8FC_30070_IMAGE_NOT_CAPTURED");
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_30070_SOURCE_VGA_CAPTURE"
+                 <<" row="<<row<<" x="<<x<<" rows="<<rows
+                 <<" pixels="<<pixels<<" guest_image="<<image
+                 <<" original_guest=PRESERVED\\n"<<std::flush;
+        return image;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1F8FC_30070_VGA_BRIDGE_REJECTED_CAPTURE");
+    }
+}
+void original_scene_capture_release(u32 image) noexcept {
+    if(!image || std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_1F8FC_30040_IMAGE_POINTER_INVALID");
+    code2::Application70Boundary b{};
+    b.call_310b0=&original_level_heap_release;
+    code2::function_30040(b,image);
 }
 void original_scene_palette(u32 a,u32 b,u32 c,u32 d,u32 e) noexcept {
     // The original full-scene path may switch COLORS bank. Reuse the
@@ -1948,7 +1972,7 @@ void original_181b4_level_load(u32 requested) noexcept {
     const u32 current_mode=code2::load_le32(current->data.data()+0xC034u);
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SCENE_MODE_FRONTIER"
              <<" requested="<<art_mode<<" retained="<<current_mode
-             <<" original_30070_capture=NOT_CONNECTED"
+             <<" original_30070_capture=SOURCE_VGA_BRIDGE_AVAILABLE"
              <<" scene_rendering=NOT_CONNECTED\\n"<<std::flush;
     b.call_0ccf4=&original_level_0ccf4_party_terminal;
     code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
@@ -3319,7 +3343,8 @@ void attach_original_vga(
     source.game.call_181b4=&original_181b4_level_load;
     source.presentation.call_2e510=&original_scene_frame_base;
     source.presentation.call_2efd0=&original_scene_res_release;
-    source.presentation.call_30070=&original_scene_capture_pending;
+    source.presentation.call_30070=&original_scene_capture;
+    source.presentation.call_30040=&original_scene_capture_release;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {

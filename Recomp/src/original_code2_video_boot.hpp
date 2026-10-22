@@ -30,6 +30,7 @@ struct Bridge {
     u32 source_page_select_calls=0;
     u32 source_rectangle_fill_calls=0;
     u32 source_cursor_background_captures=0;
+    u32 source_frame_background_captures=0;
     u32 source_cursor_sprite_draws=0;
     explicit Bridge(code2::Machine& guest,
                     rloft::graphics::OriginalVgaHost& v,
@@ -303,6 +304,64 @@ struct Bridge {
         if(invalid_access || video.unsupported_read() ||
            source_cursor_background_captures!=1u)
             throw std::runtime_error("Original 292BC/2A114 cursor snapshot failed");
+    }
+    // Generic original CODE.2 30070 -> 292BC -> 2A114 capture.
+    // Source storage is allocated through the *guest's* 3104C;
+    // original 2A114 reads VGA planes in plane-major sequence.
+    static u32 source_capture_2a114(u32 dst,u32 row,u32 x,
+                                     u32 rows,u32 pixels) noexcept {
+        auto& b=self();
+        if(rows==0u || pixels==0u || row>=400u || x>=320u ||
+           rows>400u-row || pixels>320u-x) {
+            b.invalid_access=true;return 0u;
+        }
+        const u32 plane=x&3u;
+        const u32 bytes=(pixels+plane+3u)>>2u;
+        const std::uint64_t length=std::uint64_t(rows)*bytes*4u;
+        if(dst>=b.guest_extent || length>b.guest_extent-dst) {
+            b.invalid_access=true;return 0u;
+        }
+        code2::Application60Boundary io{};
+        io.out16=&out16;
+        io.vga_read8=&vga_read;
+        io.vga_write8=&vga_write;
+        code2::function_2a114(b.machine,io,dst,row,x,rows,pixels);
+        ++b.source_frame_background_captures;
+        return 1u;
+    }
+    u32 run_original_30070_capture(u32 row,u32 x,u32 rows,u32 pixels,
+                                     u32 tag,u32 (*allocate)(u32)) {
+        if(!allocate || rows==0u || pixels==0u ||
+           row>=400u || x>=320u || rows>400u-row ||
+           pixels>320u-x || (x&3u)!=0u ||
+           (pixels&7u)!=0u || (x&3u)!=0u ||
+           rows>0xFFFFu || pixels>0x7F8u || tag>255u)
+            throw std::invalid_argument("Original 30070 VGA rectangle invalid");
+        // CODE.2 computes a 16-bit allocation length after 2A1E8.
+        const u32 expected=code2::function_2a1e8(
+            1u,rows,pixels/8u,8u,tag);
+        if(expected==0u || expected>0xFFFFu-8u)
+            throw std::out_of_range("Original 30070 image exceeds source word allocation");
+        Scope scope(*this);
+        code2::Application56Boundary video_callbacks{};
+        video_callbacks.call_2a114=&source_capture_2a114;
+        code2::Application70Boundary resource{};
+        resource.app56=&video_callbacks;
+        resource.call_3104c=allocate;
+        const u32 image=code2::function_30070(
+            machine,resource,static_cast<code2::s32>(row),
+            static_cast<code2::s32>(x),static_cast<code2::s32>(rows),
+            static_cast<code2::s32>(pixels),tag);
+        if(invalid_access || video.unsupported_read() ||
+           source_frame_background_captures!=1u ||
+           image==0u || std::uint64_t(image)+expected+8u>guest_extent ||
+           code2::load_le16(machine.data+image)!=expected ||
+           code2::load_le16(machine.data+image+2u)!=1u ||
+           code2::load_le16(machine.data+image+4u)!=rows ||
+           machine.data[image+6u]!=pixels/8u ||
+           machine.data[image+7u]!=(tag==0xFFu?0u:0x80u))
+            throw std::runtime_error("Original 30070 VGA plane capture incomplete");
+        return image;
     }
     // Original cursor image rasterization: CODE2 29804->29414->2A380
     // shares the same physical VGA aperture as the source 2A114
