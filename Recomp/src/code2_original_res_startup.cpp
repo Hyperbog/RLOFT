@@ -364,9 +364,11 @@ struct Session {
             return;
         }
         it->second.cursor=entry;
-        if(t.canonical_owner && it->second.file==2u &&
-           (item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Cu ||
-            item==code2::load_le32(t.memory.data()+0x258DCu)+0x2Fu)) {
+        // The original retail 2FD9C decoder is common to ALL RES slot
+        // type-1 images, not only the boot RES0:59 and cursor RES0:62.
+        // Authenticate each original archive record before sharing the
+        // bounded stream with the exact same retained CODE.2 guest.
+        if(t.canonical_owner && file[entry+2u]==1u) {
             const u32 next=(item+1u<count)?
                 code2::load_le32(file.data()+4u+(item+1u)*4u):
                 static_cast<u32>(file.size());
@@ -385,7 +387,8 @@ struct Session {
             t.original_image_start=entry;
             t.original_image_end=next;
             t.original_image_invalid=false;
-            std::cerr<<"CODE2_ORIGINAL_20440_TYPED_IMAGE_METADATA"
+            std::cerr<<"CODE2_ORIGINAL_RESOURCE_TYPE1_METADATA"
+                     <<" archive="<<(it->second.file-2u)
                      <<" entry="<<item
                      <<" mode="<<unsigned(file[entry+11u])
                      <<" frames="<<code2::load_le16(file.data()+entry+5u)
