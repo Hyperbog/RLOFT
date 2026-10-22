@@ -8,6 +8,7 @@
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
 #include "original_code2_video_boot.hpp"
+#include "original_sintab_raster.hpp"
 #include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
 #include "host_dos_disk_space.hpp"
@@ -76,6 +77,13 @@ struct Session {
     unsigned original_scene_page_copies=0;
     unsigned original_scene_presentations=0;
     unsigned original_scene_res1_portrait_decodes=0;
+    struct WorldMaterial {u32 begin=0,end=0,image=0;};
+    std::map<u32,WorldMaterial> original_world_materials{};
+    bool original_world_raster_invalid=false;
+    unsigned original_world_source_flushes=0;
+    unsigned original_world_source_pixels=0;
+    unsigned original_world_source_sintab_calls=0;
+    unsigned original_world_legacy_sampler_calls=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
     unsigned original_boot_output_page_selects=0;
@@ -2172,6 +2180,145 @@ void original_world_camera_334c4() noexcept {
     b.call_35680=&code2::function_35680;
     b.call_32954=&original_world_rays_32954;
     code2::function_334c4(current->machine,b);
+}
+// Original 335DC -> 3263C -> 32620/338C8 world sampler bridge.
+// The previous native world harness used a SECOND guest; these callback
+// closures consume the retained 181B4, 03838, RES4 and VGA memory.
+u32 original_world_material(u32 id,u32 slot) noexcept {
+    if(id==0x93u)return 0u;  // Original empty material ID.
+    if(slot!=4u || !current->game_audio.app68 ||
+       current->original_181b4_completed!=1u)
+        stop("ORIGINAL_335DC_RES4_RETAINED_SOURCE_PRECONDITION");
+    const u32 ptr=code2::function_2f29c(
+        current->machine,current->game_audio,id,slot);
+    if(!ptr || std::uint64_t(ptr)+2u>current->data.size())
+        stop("ORIGINAL_335DC_RES4_37590_DECODE_FAILED");
+    const u32 bytes=code2::load_le16(current->data.data()+ptr);
+    if((bytes!=4096u && bytes!=8192u) ||
+       std::uint64_t(ptr)+2u+bytes>current->data.size())
+        stop("ORIGINAL_335DC_RES4_TEXTURE_SOURCE_FORMAT");
+    current->original_world_materials[id]={ptr+2u,ptr+2u+bytes,ptr};
+    return ptr;
+}
+u32 original_world_sintab_begin() noexcept {return 0x100000u;}
+u32 original_world_sintab_end() noexcept {
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    if(std::uint64_t(catalog)+16u>current->data.size())return 0u;
+    const u32 table=code2::load_le32(current->data.data()+catalog+12u);
+    const u32 res0_id=code2::load_le32(current->data.data()+0x258DCu)+0x2Cu;
+    if(std::uint64_t(table)+9u*(res0_id+1u)>current->data.size())return 0u;
+    return code2::load_le32(current->data.data()+table+res0_id*9u+5u);
+}
+u8 original_world_sintab_code8(u32 at) noexcept {
+    if(at<original_world_sintab_begin() ||
+       at>=original_world_sintab_end()) {
+        current->original_world_raster_invalid=true;return 0u;
+    }
+    return current->data[at];
+}
+u16 original_world_sintab_code16(u32 at) noexcept {
+    const u16 lo=original_world_sintab_code8(at);
+    return static_cast<u16>(lo|(static_cast<u16>(
+        original_world_sintab_code8(at+1u))<<8u));
+}
+void original_world_sintab_patch(u32 at,u8 value) noexcept {
+    if(at<original_world_sintab_begin() ||
+       at>=original_world_sintab_end()) {
+        current->original_world_raster_invalid=true;return;
+    }
+    current->data[at]=value;
+}
+u32 original_world_sintab_offset(u32 table,u32 offset) noexcept {
+    return code2::function_337c8(current->machine,table,offset);
+}
+u32 original_world_sintab_execute(
+            u32 target,u32 source,u32 destination,u32 shade) noexcept {
+    const u32 id=code2::load_le32(current->data.data()+0xC700u);
+    const auto match=current->original_world_materials.find(id);
+    if(match==current->original_world_materials.end()) {
+        current->original_world_raster_invalid=true;return 0u;
+    }
+    const auto texture=match->second;
+    const auto result=rloft_recomp::execute_sintab_scale(
+        target,source,destination,shade,
+        original_world_sintab_begin(),original_world_sintab_end(),
+        texture.begin,texture.end,
+        [](u32 at)->u8 {
+            if(at>=current->data.size()) {
+                current->original_world_raster_invalid=true;return 0u;
+            }
+            return current->data[at];
+        },
+        [](u32 at,u8 pixel) {
+            if(at<0xA0000u || at>=0xB0000u ||
+               at>=current->data.size()) {
+                current->original_world_raster_invalid=true;return;
+            }
+            current->data[at]=pixel;
+            if(!current->original_vga->write_aperture(
+                  static_cast<u16>(at-0xA0000u),pixel))
+                current->original_world_raster_invalid=true;
+        });
+    if(!result.ok)current->original_world_raster_invalid=true;
+    ++current->original_world_source_sintab_calls;
+    current->original_world_source_pixels+=result.pixels;
+    return result.ok?1u:0u;
+}
+u32 original_world_338c8(u32 shade,u32 height,u32 src,u32 dst) noexcept {
+    code2::Application94Boundary b(0u);
+    (void)code2::function_338c8(current->machine,b,shade,height,src,dst);
+    if(dst<0xA0000u ||
+       std::uint64_t(dst)+255u*80u>=0xB0000u) {
+        current->original_world_raster_invalid=true;return 0u;
+    }
+    for(u32 row=0u;row<256u;++row) {
+        const u32 at=dst+row*80u;
+        if(!current->original_vga->write_aperture(
+             static_cast<u16>(at-0xA0000u),current->data[at])) {
+            current->original_world_raster_invalid=true;return 0u;
+        }
+    }
+    ++current->original_world_legacy_sampler_calls;
+    return 1u;
+}
+void original_world_flush_3263c() noexcept {
+    if(!current->original_vga ||
+       !original_world_sintab_end() ||
+       current->original_world_raster_invalid)
+        stop("ORIGINAL_3263C_VGA_OR_CODE_UNAVAILABLE");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        {
+            rloft::source_video_boot::Bridge::Scope scope(bridge);
+            code2::Application82Boundary scaler{};
+            scaler.invoke_register_callback=&original_world_sintab_execute;
+            code2::Application83Boundary compositor{};
+            compositor.app82=&scaler;
+            compositor.out16=&rloft::source_video_boot::Bridge::out16;
+            compositor.code_load8=&original_world_sintab_code8;
+            compositor.code_load16=&original_world_sintab_code16;
+            compositor.code_store8=&original_world_sintab_patch;
+            compositor.call_337c8=&original_world_sintab_offset;
+            compositor.call_338c8=&original_world_338c8;
+            code2::function_3263c(current->machine,compositor);
+        }
+        if(current->original_world_raster_invalid ||
+           bridge.invalid_access || current->original_vga->unsupported_read())
+            stop("ORIGINAL_3263C_RETAINED_SOURCE_RASTER_FAILED");
+        ++current->original_world_source_flushes;
+    }catch(const std::exception&) {
+        stop("ORIGINAL_3263C_RETAINED_VGA_BRIDGE_EXCEPTION");
+    }
+}
+void original_world_sweep_335dc() noexcept {
+    if(current->original_181b4_completed!=1u ||
+       code2::load_le32(current->data.data()+0xC6D8u)!=256u)
+        stop("ORIGINAL_335DC_RETAINED_SOURCE_RAYS_NOT_READY");
+    code2::Application91Boundary b{};
+    b.call_2f29c=&original_world_material;
+    b.call_3263c=&original_world_flush_3263c;
+    code2::function_335dc(current->machine,b);
 }
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
