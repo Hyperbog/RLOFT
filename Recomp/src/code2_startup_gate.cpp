@@ -1304,6 +1304,90 @@ u32 original_30b40_keyboard_poll() noexcept {
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_SHUTDOWN");
     return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
 }
+// Original 20440 direct dependencies. All file bytes arrive through the
+// already installed read-only DOS transport; no second guest/heap is created.
+u32 original_boot_file_open(u32 path) noexcept {
+    if(!current->host_files)
+        stop("ORIGINAL_20440_READONLY_DOS_ROOT_MISSING");
+    return code2::function_312a0(current->dos_file_io,path);
+}
+u32 original_boot_file_read(u32 dst,u32 size,u32 handle) noexcept {
+    const u32 got=code2::function_312ec(current->dos_file_io,dst,size,handle);
+    if(got!=size)stop("ORIGINAL_20440_DOS_SHORT_READ");
+    return got;
+}
+void original_boot_file_read_void(u32 dst,u32 size,u32 handle) noexcept {
+    (void)original_boot_file_read(dst,size,handle);
+}
+void original_boot_file_close(u32 handle) noexcept {
+    (void)code2::function_312dc(current->dos_file_io,handle);
+}
+u32 original_boot_heap_alloc(u32 bytes) noexcept {
+    return original_checked_allocation(bytes);
+}
+u32 original_boot_read_word(u32 size,u32 handle) noexcept {
+    if(size!=2u || !current->host_files || handle>0xFFFFu ||
+       !current->host_descriptor_flags.count(handle))
+        stop("ORIGINAL_03838_LOCAL_WORD_ABI_INVALID");
+    u8 raw[2]{};
+    const auto result=current->host_files->read(
+        static_cast<u16>(handle),raw,2u);
+    if(result.carry || result.ax!=2u)
+        stop("ORIGINAL_03838_LOCAL_WORD_READ_FAILED");
+    return code2::load_le16(raw);
+}
+void original_03838_sintab_load() noexcept {
+    if(!current->live_continuation ||
+       current->original_16d04_completed!=1u ||
+       std::memcmp(current->data.data()+0x24u,"SINTAB",7u)!=0)
+        stop("ORIGINAL_03838_SOURCE_STARTUP_PRECONDITION");
+    code2::Application06Boundary b{};
+    b.call_312a0=&original_boot_file_open;
+    b.call_3104c=&original_boot_heap_alloc;
+    b.call_312ec=&original_boot_file_read_void;
+    b.call_312ec_local=&original_boot_read_word;
+    b.call_312dc=&original_boot_file_close;
+    code2::function_03838(current->machine,b);
+    if(code2::load_le32(current->data.data()+0xC6D8u)!=256u ||
+       code2::load_le32(current->data.data()+0xC738u)!=127u ||
+       code2::load_le32(current->data.data()+0xC730u)!=508u ||
+       code2::load_le32(current->data.data()+0x6090u)!=324989u ||
+       code2::load_le32(current->data.data()+0xC65Cu)==0u ||
+       code2::load_le32(current->data.data()+0xC660u)==0u ||
+       code2::load_le32(current->data.data()+0x608Cu)==0u)
+        stop("ORIGINAL_03838_AUTHENTIC_SINTAB_SOURCE_MISMATCH");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=03838_SINTAB_SOURCE_COMPLETED\\n"<<std::flush;
+}
+void original_boot_divide_error() noexcept {
+    stop("ORIGINAL_16ADC_CHARACTER_DIVIDE_BY_ZERO");
+}
+u32 original_boot_dbd4(u32 slot) noexcept {
+    code2::Application19Boundary b{};
+    b.divide_error=&original_boot_divide_error;
+    return static_cast<u32>(code2::function_0dbd4(current->machine,b,slot));
+}
+void original_boot_03ea4(u32 slot,code2::s32 level) noexcept {
+    code2::function_03ea4(current->machine,slot,static_cast<u32>(level));
+}
+void original_boot_03de4(u32 slot,code2::s32 level) noexcept {
+    code2::function_03de4(current->machine,slot,static_cast<u32>(level));
+}
+void original_16cd0_chars_load() noexcept {
+    if(!current->live_continuation ||
+       code2::load_le32(current->data.data()+0xC65Cu)==0u ||
+       std::memcmp(current->data.data()+0x710u,"CHARS",6u)!=0)
+        stop("ORIGINAL_16CD0_CHARACTERS_SOURCE_PRECONDITION");
+    code2::Application30Boundary b{};
+    b.call_312a0=&original_boot_file_open;
+    b.call_312ec=&original_boot_file_read;
+    b.call_312dc=&original_boot_file_close;
+    b.call_30d30=&original_checked_memset;
+    b.call_dbd4=&original_boot_dbd4;
+    b.call_03ea4=&original_boot_03ea4;
+    b.call_03de4=&original_boot_03de4;
+    code2::function_16cd0(current->machine,b);
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=16CD0_CHARS_16ADC_SOURCE_COMPLETED\\n"<<std::flush;
+}
 void original_audio_init(u32 base,u32 count) noexcept {
     ++current->audio_init_calls;
     current->active_sound_base=base; current->active_sound_count=count;
@@ -2495,6 +2579,8 @@ void attach_original_vga(
     source.game.call_31218=&original_31218_chars_probe;
     source.game.call_312a0=&original_312a0_next_dos_open;
     source.game.call_16d04=&original_16d04_after_dos_open;
+    source.game.call_3838=&original_03838_sintab_load;
+    source.game.call_16cd0=&original_16cd0_chars_load;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
