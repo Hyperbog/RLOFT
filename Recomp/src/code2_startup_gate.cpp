@@ -1877,13 +1877,32 @@ void original_scene_capture_release(u32 image) noexcept {
     b.call_310b0=&original_level_heap_release;
     code2::function_30040(b,image);
 }
-void original_scene_palette(u32 a,u32 b,u32 c,u32 d,u32 e) noexcept {
-    // The original full-scene path may switch COLORS bank. Reuse the
-    // source loader, but do not pass off bootstrap's one-time checks
-    // as a verified arbitrary-level palette change.
-    if(current->original_325b0_completed!=0u)
-        stop("ORIGINAL_1F8FC_REPEAT_325B0_PALETTE_PENDING");
-    original_325b0_live_palette(a,b,c,d,e);
+void original_scene_palette(u32 palette,u32 first,u32 bank,
+                            u32 filename,u32 count) noexcept {
+    // Retail Level 22 requests mode 4 while its retained palette mode is 3.
+    // Only the real original 325B0 COLORS reader may change the DAC
+    // source buffer; the subsequent 29234 applies it to the VGA device.
+    if(current->original_325b0_completed!=1u ||
+       !current->original_vga || bank!=4u ||
+       code2::load_le32(current->data.data()+0xC034u)!=bank)
+        stop("ORIGINAL_1F8FC_SCENE_PALETTE_MODE_UNVERIFIED");
+    original_325b0_live_palette(palette,first,bank,filename,count);
+    if(current->original_325b0_completed!=2u)
+        stop("ORIGINAL_1F8FC_SCENE_COLORS_NOT_LOADED");
+}
+void original_scene_clear_event_ring() noexcept {
+    code2::function_22d70(current->machine);
+}
+void original_scene_finish_keyboard() noexcept {
+    code2::function_30b2c(current->machine);
+}
+void original_scene_poll_source_events() noexcept {
+    if(code2::load_le32(current->data.data()+0xF0C8u)!=0u ||
+       (current->data[0xF0B1u]&0x7Fu)!=0u &&
+       current->data[0xF0B2u]==0u)
+        stop("ORIGINAL_1F8FC_2F868_INTERACTIVE_SOURCE_CALLBACK_PENDING");
+    code2::Application70Boundary b{};
+    code2::function_2f868(current->machine,b);
 }
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
@@ -2009,7 +2028,8 @@ void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
     if(!current->live_continuation || !current->host_files ||
        !current->original_vga || current->original_16cd0_completed!=1u ||
        current->original_03838_completed!=1u ||
-       current->original_325b0_completed!=0u ||
+       current->original_325b0_completed>1u ||
+       (current->original_325b0_completed==1u && bank!=4u) ||
        palette!=0xC054u || first!=0u || resource!=0x1128u ||
        colors!=0x100u || bank>=15u ||
        bank!=code2::load_le32(current->data.data()+0xC034u) ||
@@ -3345,6 +3365,11 @@ void attach_original_vga(
     source.presentation.call_2efd0=&original_scene_res_release;
     source.presentation.call_30070=&original_scene_capture;
     source.presentation.call_30040=&original_scene_capture_release;
+    source.presentation.call_325b0=&original_scene_palette;
+    source.presentation.call_29234=&original_video_palette_29234;
+    source.presentation.call_22d70=&original_scene_clear_event_ring;
+    source.presentation.call_2f868=&original_scene_poll_source_events;
+    source.presentation.call_30b2c=&original_scene_finish_keyboard;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
