@@ -2959,6 +2959,9 @@ Evidence inspect(const Opaque* owner) {
     out.original_source_planar_fills=s.original_source_planar_fills;
     out.original_source_video_mode_calls=s.original_source_video_modes;
     out.original_source_palette_streams=s.original_source_dac_streams;
+    out.original_source_325b0_loads=s.original_325b0_completed;
+    out.original_boot_render_page_selects=s.original_boot_output_page_selects;
+    out.original_boot_scanout_page_selects=s.original_boot_scanout_page_selects;
     out.source_290f4_320x400_video_initialized=
        s.original_source_video_modes==1u && s.original_vga &&
        s.original_vga->bios_mode()==0x13u &&
