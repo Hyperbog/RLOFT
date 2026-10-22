@@ -2470,6 +2470,18 @@ void original_181b4_level_load(u32 requested) noexcept {
     ++current->original_181b4_completed;
     // Load the *real* Level22 normal-party RES1 portraits by original
     // 2F29C -> 2ECB4 -> 2FD9C, on the same guest and Watcom heap.
+    // Capture the genuine VGA DRAW page as a separate diagnostic; it
+    // must never be mistaken for a complete scene or DOS reference.
+    auto draw_page_indices=[&]() {
+        auto copy=*current->original_vga;
+        if(!copy.write_indexed_port(0x3D4u,0x800Cu) ||
+           !copy.write_indexed_port(0x3D4u,0x000Du) ||
+           copy.crtc_start()!=0x8000u)
+            stop("ORIGINAL_1F494_VGA_PREVIEW_PAGE_SNAPSHOT_UNAVAILABLE");
+        return copy.scanout_indices();
+    };
+    const auto before_portraits=draw_page_indices();
+
     // Preserve resource-catalog and image type verification, and allow
     // the original cache to satisfy a second lookup without allocation.
     for(u32 slot=0u;slot<4u;++slot) {
@@ -2486,6 +2498,10 @@ void original_181b4_level_load(u32 requested) noexcept {
         const u32 image=original_scene_hud_res_image(id,1u);
         if(original_scene_hud_res_image(id,1u)!=image)
             stop("ORIGINAL_1F494_RES1_PORTRAIT_CACHE_NOT_STABLE");
+        const u32 state=code2::function_1f3fc(current->machine,slot);
+        const u32 pos=(slot%2u)*0x35u+(slot/2u)*0xD3u;
+        original_scene_hud_298f0(
+            0u,0x138u,pos+4u,id,1u,0xCF70u+(state<<8u));
         std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_RES1_RETAIL_PORTRAIT_SOURCE_DECODE"
                  <<" actor_slot="<<slot<<" res1_id="<<id
                  <<" decoded_ptr="<<image
@@ -2497,6 +2513,22 @@ void original_181b4_level_load(u32 requested) noexcept {
                  <<" original_source=2F29C_2ECB4_2FD9C"
                  <<" portrait_VGA=NOT_YET_DRAWN\n"<<std::flush;
     }
+    const auto after_portraits=draw_page_indices();
+    u32 portrait_changed_pixels=0u;
+    for(u32 y=0x138u;y<0x188u;++y)
+        for(u32 x=0u;x<108u;++x)
+            portrait_changed_pixels+=
+                before_portraits[y*320u+x]!=after_portraits[y*320u+x];
+    if(portrait_changed_pixels==0u)
+        stop("ORIGINAL_1F494_REAL_RES1_PORTRAIT_VGA_PIXELS_UNCHANGED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_RES1_298F0_2A584_VGA_PREVIEW"
+             <<" original_guest=PRESERVED"
+             <<" source_portraits=2"
+             <<" source_draw_page=1"
+             <<" changed_indexed_pixels="<<portrait_changed_pixels
+             <<" real_RES1=338_362"
+             <<" full_1F494=NOT_YET_CONNECTED"
+             <<" mode4_scene=NOT_CONNECTED\\n"<<std::flush;
     // Establish source ray records from actual Level22 camera/grid on
     // the retained (not copied) original machine. The 32954 ray pass is
     // separate from 335DC/3263C rasterization and is not a VGA frame.
