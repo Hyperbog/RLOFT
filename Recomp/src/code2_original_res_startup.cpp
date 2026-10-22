@@ -932,7 +932,17 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     REQUIRE(c::pending_host_service(owner)==10u);
     auto* const base=s->guest->memory.data();
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=SECOND_16D04_SOURCE_RESUME_BEGIN\n"<<std::flush;
-    const auto next=c::advance_original_second_init(owner);
+    // Original 20440 must initialize the present mouse after RES0:59
+    // and before level loading. Feed explicit virtual-host INT33 replies
+    // while preserving the suspended source thread and guest memory.
+    REQUIRE(c::advance_original_second_init(owner)==2u);
+    REQUIRE(c::answer_mouse_range(owner,8u)==2u);
+    REQUIRE(c::answer_mouse_range(owner,7u)==12u);
+    REQUIRE(c::answer_original_mouse_pointer(
+        owner,4u,0u,0x140u,0xC8u)==12u);
+    REQUIRE(c::answer_original_mouse_pointer(
+        owner,3u,0u,0x140u,0xC8u)==13u);
+    const auto next=c::answer_original_mouse_callback(owner);
     // A full original 16D04 must reopen the unchanged original INIT
     // resource through the retained original Application30 callbacks.
     REQUIRE(s->guest->memory.data()==base && s->guest->m.data==base &&
