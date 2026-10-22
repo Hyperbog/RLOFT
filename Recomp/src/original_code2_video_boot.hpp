@@ -30,6 +30,7 @@ struct Bridge {
     u32 source_page_select_calls=0;
     u32 source_rectangle_fill_calls=0;
     u32 source_cursor_background_captures=0;
+    u32 source_cursor_sprite_draws=0;
     explicit Bridge(code2::Machine& guest,
                     rloft::graphics::OriginalVgaHost& v,
                     std::size_t memory_bytes)
@@ -299,6 +300,70 @@ struct Bridge {
         if(invalid_access || video.unsupported_read() ||
            source_cursor_background_captures!=1u)
             throw std::runtime_error("Original 292BC/2A114 cursor snapshot failed");
+    }
+    // Original cursor image rasterization: CODE2 29804->29414->2A380
+    // shares the same physical VGA aperture as the source 2A114
+    // background capture. Ordinary guest RAM and VGA are distinct.
+    static bool cursor_aperture(u32 address) noexcept {
+        return address>=0xA0000u && address<0xB0000u;
+    }
+    static u8 cursor_read8(u32 address) noexcept {
+        return cursor_aperture(address)?vga_read(address):guest_read(address);
+    }
+    static u16 cursor_read16(u32 address) noexcept {
+        return static_cast<u16>(cursor_read8(address) |
+                                  (static_cast<u16>(cursor_read8(address+1u))<<8u));
+    }
+    static void cursor_write8(u32 address,u8 value) noexcept {
+        if(cursor_aperture(address))vga_write(address,value);
+        else guest_write(address,value);
+    }
+    static void cursor_write16(u32 address,u16 value) noexcept {
+        cursor_write8(address,static_cast<u8>(value));
+        cursor_write8(address+1u,static_cast<u8>(value>>8u));
+    }
+    static void cursor_map(u32 row,u32 x,u32* address,u8* plane) noexcept {
+        if(!address || !plane){self().invalid_access=true;return;}
+        const auto map=code2::function_2ab38(self().machine,row,x);
+        *address=map.addr;
+        *plane=static_cast<u8>(map.plane);
+    }
+    static code2::Graphics2Boundary cursor_gfx() noexcept {
+        auto cb=graphics();
+        cb.read8=&cursor_read8;
+        cb.read16=&cursor_read16;
+        cb.write8=&cursor_write8;
+        cb.write16=&cursor_write16;
+        cb.translate_2ab38=&cursor_map;
+        return cb;
+    }
+    static u32 cursor_source_2a380(u32 frame,u32 y,u32 x,u32 image) noexcept {
+        auto& b=self();
+        if(std::uint64_t(image)+8u>b.guest_extent || frame>15u ||
+           y>399u || x>319u){b.invalid_access=true;return 0u;}
+        auto graphics=cursor_gfx();
+        code2::function_2a380(b.machine,graphics,frame,y,x,image);
+        ++b.source_cursor_sprite_draws;
+        return 1u;
+    }
+    static u32 cursor_clipped_not_yet_connected(u32,u32,u32,u32,u32) noexcept {
+        self().invalid_access=true;
+        return 0u;
+    }
+    void run_original_29804_cursor_sprite(u32 frame,code2::s32 x,
+                                          code2::s32 y,u32 image) {
+        if(image!=0x880Du || frame>=11u || x<0 || x>319 ||
+           y<0 || y>399 || machine.data[0xF0D0u]!=1u)
+            throw std::invalid_argument("Original 29804 mouse sprite draw order or image changed");
+        Scope scope(*this);
+        code2::Application57Boundary callbacks{};
+        callbacks.call_2a380=&cursor_source_2a380;
+        callbacks.call_2a6b0=&cursor_clipped_not_yet_connected;
+        (void)code2::function_29804(machine,callbacks,frame,
+                                     static_cast<u32>(x),static_cast<u32>(y),image);
+        if(invalid_access || video.unsupported_read() ||
+           source_cursor_sprite_draws!=1u)
+            throw std::runtime_error("Original 29804/29414/2A380 cursor sprite not drawn");
     }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
