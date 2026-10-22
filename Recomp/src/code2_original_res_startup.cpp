@@ -806,6 +806,30 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     // resource through the retained original Application30 callbacks.
     REQUIRE(s->guest->memory.data()==base && s->guest->m.data==base &&
             s->guest->init_opens==2u && !s->guest->error);
+    REQUIRE(next==11u);
+    const auto entry=c::inspect(owner);
+    REQUIRE(entry.source_cpu_stack_resumable &&
+            entry.memory_address==base &&
+            entry.original_source_page_pops==2u &&
+            entry.original_source_planar_fills==4u &&
+            entry.original_source_palette_streams==2u);
+    // Two explicit no-key host replies: the original 1FC14 source loop
+    // executes between these 30B40 polls on its original retained stack.
+    // This proves source iteration, NOT any real-world frame production.
+    for(std::uint64_t i=1u;i<=2u;++i) {
+        REQUIRE(c::answer_original_keyboard_event(owner,0u)==11u);
+        const auto frame=c::inspect(owner);
+        REQUIRE(frame.memory_address==base &&
+                frame.pending_DOS_service_sequence==
+                    entry.pending_DOS_service_sequence+i &&
+                frame.original_source_page_pops==2u);
+    }
+    std::cout<<"ORIGINAL_CODE2_1FC14_TWO_SOURCE_LOOP_ITERATIONS_PASS"
+             <<" original_keyboard_poll=30B40"
+             <<" no_key_host_replies=2"
+             <<" next_service=11"
+             <<" guest_memory=PRESERVED"
+             <<" game_rendering=NOT_CONNECTED\\n"<<std::flush;
     std::cout<<"ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS"
              <<" entry=20440_16D04"
              <<" INIT_reopens=2"
