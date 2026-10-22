@@ -202,6 +202,32 @@ struct SourcePresentProbe {
         try {active()->bridge->run_original_2a020_page_copy(page);}
         catch(...) {std::terminate();}
     }
+    u32 captures=0u,restores=0u,draws=0u,guest_copies=0u;
+    static void cursor_capture(u32 dst,s32 x,s32 y,u32 w,u32 h) noexcept {
+        try {
+            active()->bridge->run_original_292bc_cursor_capture(dst,x,y,w,h);
+            ++active()->captures;
+        }catch(...) {std::terminate();}
+    }
+    static void cursor_restore(u32 src,s32 x,s32 y,u32 w,u32 h) noexcept {
+        try {
+            active()->bridge->run_original_2932c_cursor_restore(src,x,y,w,h);
+            ++active()->restores;
+        }catch(...) {std::terminate();}
+    }
+    static void cursor_draw(u32 frame,s32 x,s32 y,u32 image) noexcept {
+        try {
+            active()->bridge->run_original_29804_cursor_sprite(frame,x,y,image);
+            ++active()->draws;
+        }catch(...) {std::terminate();}
+    }
+    static u32 cursor_hit(s32,s32) noexcept {return 0u;}
+    static void memory_copy(u32 dst,u32 src,u32 n) noexcept {
+        if(n!=0x400u || (dst!=0x9E3Au&&dst!=0xA23Au) ||
+           (src!=0x9E3Au&&src!=0xA23Au))std::terminate();
+        (void)code2::function_30cd4(*active()->machine,dst,src,n);
+        ++active()->guest_copies;
+    }
 };
 void test_original_source_present_fallback() {
     std::vector<code2::u8> mem(0x50000u,0u);
@@ -284,6 +310,75 @@ struct SceneEntryProbe {
     static void effects() {active()->calls.push_back("274A4_REQUEST");}
     static void resource() {active()->calls.push_back("2F868_REQUEST");}
 };
+// Authentic active-pointer 1A5B0 source branch: same code2 source
+// cursor capture/raster, 2A020 VGA page copy, then 2932C/2A178
+// restore on the alternate page. Cursor image bytes are a *synthetic*
+// test pattern (not the original RES0 cursor). This tests original
+// presentation machinery, not DOS screenshot parity.
+void test_original_source_present_active_mouse() {
+    std::vector<code2::u8> mem(0x50000u,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    rloft::graphics::OriginalVgaHost vga;
+    rloft::source_video_boot::Bridge bridge(machine,vga,mem.size());
+    bridge.run_original_290f4(3u);
+    for(u32 y=0u;y<400u;++y)
+        for(u32 x=0u;x<320u;++x)
+            require(vga.write_direct_pixel(x,y,19u),
+                    "Active cursor frame source VGA priming failed");
+    const u32 sprite=0x880Du;
+    code2::store_le16(mem.data()+sprite,256u);
+    code2::store_le16(mem.data()+sprite+2u,11u);
+    code2::store_le16(mem.data()+sprite+4u,16u);
+    mem[sprite+6u]=2u;
+    mem[sprite+7u]=0u;
+    std::fill(mem.begin()+sprite+8u,
+              mem.begin()+sprite+8u+11u*256u,77u);
+    code2::store_le16(mem.data()+0x85FCu,0xFFFFu);
+    code2::store_le16(mem.data()+0x9E37u,1u);
+    code2::store_le16(mem.data()+0x9E31u,200u);
+    code2::store_le16(mem.data()+0x9E33u,160u);
+    code2::store_le16(mem.data()+0xA6B4u,200u);
+    code2::store_le16(mem.data()+0xA6B6u,160u);
+    code2::store_le16(mem.data()+0x85FEu,0xFFFFu);
+    code2::store_le16(mem.data()+0x8600u,0xFFFFu);
+    code2::store_le16(mem.data()+0xA6C0u,1u);
+    SourcePresentProbe probe{&machine,&bridge,&vga};
+    SourcePresentProbe::active()=&probe;
+    code2::Application33Boundary video{};
+    video.call_291c8=&SourcePresentProbe::scanout_page;
+    video.call_2a020=&SourcePresentProbe::copy;
+    video.call_30cd4=&SourcePresentProbe::memory_copy;
+    code2::Application34Boundary mouse{};
+    mouse.app33=&video;
+    code2::Application35Boundary compositor{};
+    compositor.app34=&mouse;
+    compositor.call_2e590=&SourcePresentProbe::push;
+    compositor.call_2e5d4=&SourcePresentProbe::pop;
+    compositor.call_292bc=&SourcePresentProbe::cursor_capture;
+    compositor.call_2932c=&SourcePresentProbe::cursor_restore;
+    compositor.call_2ae30=&SourcePresentProbe::cursor_hit;
+    compositor.call_29804=&SourcePresentProbe::cursor_draw;
+    code2::function_1a5b0(machine,compositor,0u,0xFFFFFFFFu,0u);
+    require(probe.scanout==0u && probe.copied==1u &&
+            probe.captures==1u && probe.draws==1u &&
+            probe.restores==1u && probe.guest_copies==1u &&
+            probe.pushes==3u && probe.pops==3u &&
+            mem[0xF0D0u]==0u && mem[0xEF4Du]==0u &&
+            mem[0xEF4Eu]==0u && mem[0x9E39u]==0u &&
+            code2::load_le16(mem.data()+0x9E37u)==1u,
+            "Original 1A5B0 active cursor presentation source contract changed");
+    require(vga.indexed_scanout(160u,200u)==77u,
+            "Original active pointer not rasterized to active page");
+    bridge.run_original_291c8(1u);
+    require(vga.indexed_scanout(160u,200u)==19u,
+            "Original 2932C/2A178 did not restore alternate cursor background");
+    SourcePresentProbe::active()=nullptr;
+    std::cout<<"ORIGINAL_CODE2_1A5B0_MOUSE_ACTIVE_VGA_PRESENT_PASS"
+             <<" source=1A288_29804_2A020_2932C_2A178"
+             <<" mouse_image=SYNTHETIC_TEST_FIXTURE"
+             <<" pixel_copy_and_restore=SOURCE"
+             <<" live_gameplay=NOT_CONNECTED\\n";
+}
 void test_original_source_hud_and_world_entry() {
     std::vector<code2::u8> mem(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=mem.data();
@@ -387,6 +482,7 @@ int main() {
         test_original_compositor_dispatch();
         test_original_source_vga_capture();
         test_original_source_present_fallback();
+        test_original_source_present_active_mouse();
         test_original_source_hud_and_world_entry();
         test_original_actor_postload();
         return 0;
