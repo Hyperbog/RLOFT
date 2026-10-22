@@ -25,7 +25,9 @@ enum class Service : std::uint8_t {
     Original5E38PostDoublePageClear = 8, // superseded by reconstructed 5E38 source
     Original312A0CharacterPath = 9, // superseded by original DOS read-only source transport
     Original16D04SecondInit = 10,
-    Original1FC14KeyboardEntry = 11
+    Original1FC14KeyboardEntry = 11,
+    Original20440MousePointer = 12, // INT33 fn4 position and fn3 pointer state
+    Original20440MouseCallback = 13 // INT33 fn0C install from original 1A064
 };
 struct Request {
     Service service=Service::DosMouseReset;
