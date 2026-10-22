@@ -334,7 +334,7 @@ struct Bridge {
         if(!allocate || rows==0u || pixels==0u ||
            row>=400u || x>=320u || rows>400u-row ||
            pixels>320u-x || (x&3u)!=0u ||
-           (pixels&7u)!=0u || (x&3u)!=0u ||
+           (pixels&7u)!=0u ||
            rows>0xFFFFu || pixels>0x7F8u || tag>255u)
             throw std::invalid_argument("Original 30070 VGA rectangle invalid");
         // CODE.2 computes a 16-bit allocation length after 2A1E8.
@@ -343,6 +343,7 @@ struct Bridge {
         if(expected==0u || expected>0xFFFFu-8u)
             throw std::out_of_range("Original 30070 image exceeds source word allocation");
         Scope scope(*this);
+        const u32 captures_before=source_frame_background_captures;
         code2::Application56Boundary video_callbacks{};
         video_callbacks.call_2a114=&source_capture_2a114;
         code2::Application70Boundary resource{};
@@ -353,7 +354,7 @@ struct Bridge {
             static_cast<code2::s32>(x),static_cast<code2::s32>(rows),
             static_cast<code2::s32>(pixels),tag);
         if(invalid_access || video.unsupported_read() ||
-           source_frame_background_captures!=1u ||
+           source_frame_background_captures!=captures_before+1u ||
            image==0u || std::uint64_t(image)+expected+8u>guest_extent ||
            code2::load_le16(machine.data+image)!=expected ||
            code2::load_le16(machine.data+image+2u)!=1u ||
@@ -363,6 +364,7 @@ struct Bridge {
             std::cerr<<"CODE2_30070_CAPTURE_DIAGNOSTIC invalid_access="<<invalid_access
                      <<" unsupported_read="<<video.unsupported_read()
                      <<" calls="<<source_frame_background_captures
+                     <<" captures_before="<<captures_before
                      <<" image="<<image<<" expected="<<expected
                      <<" extent="<<guest_extent
                      <<" stride="<<code2::load_le16(machine.data+image)
