@@ -67,6 +67,7 @@ struct Session {
     unsigned original_03838_completed=0;
     unsigned original_16cd0_completed=0;
     unsigned original_181b4_completed=0;
+    unsigned original_325b0_completed=0;
     code2::Application30Boundary* original_16d04_callbacks=nullptr;
     std::filesystem::path original_installation_root;
     code2::Application69Boundary game_audio{};
@@ -1295,6 +1296,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_03838_completed!=1u ||
        current->original_16cd0_completed!=1u ||
        current->original_181b4_completed!=1u ||
+       current->original_325b0_completed!=1u ||
        current->original_source_page_pushes!=2u ||
        current->original_source_page_pops!=2u ||
        current->original_source_dac_streams!=2u ||
@@ -1509,6 +1511,51 @@ void original_181b4_level_load(u32 requested) noexcept {
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
     ++current->original_181b4_completed;
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
+             <<std::flush;
+}
+void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
+                                 u32 resource,u32 colors) noexcept {
+    // This is the actual compiled original 325B0 -> 32588 -> 312A0,
+    // 3131C, 312EC, 32150 and 312DC, on the running 20440 stack.
+    if(!current->live_continuation || !current->host_files ||
+       !current->original_vga || current->original_16cd0_completed!=1u ||
+       current->original_03838_completed!=1u ||
+       current->original_325b0_completed!=0u ||
+       palette!=0xC054u || first!=0u || resource!=0x1128u ||
+       colors!=0x100u || bank>=15u ||
+       bank!=code2::load_le32(current->data.data()+0xC034u) ||
+       std::memcmp(current->data.data()+resource,"COLORS",7u)!=0)
+        stop("ORIGINAL_325B0_SOURCE_PALETTE_ABI_CHANGED");
+    code2::Application81Boundary callbacks{};
+    callbacks.app72=&current->dos_file_io;
+    (void)code2::function_325b0(
+        current->machine,callbacks,palette,first,bank,resource,colors);
+    // Independent read-only media witness. The existing source startup
+    // staged zero brightness, so the original 32150 leaves RGB6 unchanged.
+    const u32 profile=code2::load_le32(current->data.data()+0xF050u);
+    if(profile>current->data.size()-0x6Du ||
+       current->data[profile+0x6Cu]!=0u)
+        stop("ORIGINAL_325B0_NONZERO_BRIGHTNESS_NEEDS_SOURCE_COMPARISON");
+    std::ifstream original(current->original_installation_root/"COLORS",
+                           std::ios::in|std::ios::binary);
+    if(!original)stop("ORIGINAL_325B0_COLORS_MEDIA_NOT_FOUND");
+    original.seekg(static_cast<std::streamoff>(1u+bank*768u),std::ios::beg);
+    std::array<u8,768u> expected{};
+    original.read(reinterpret_cast<char*>(expected.data()),
+                  static_cast<std::streamsize>(expected.size()));
+    if(!original ||
+       !std::equal(expected.begin(),expected.end(),
+                   current->data.begin()+palette) ||
+       std::any_of(expected.begin(),expected.end(),[](u8 value){
+           return value>63u;
+       }))
+        stop("ORIGINAL_325B0_PALETTE_DIFFERS_FROM_AUTHENTIC_COLORS");
+    if(current->host_files->open_handles()!=0u ||
+       current->host_descriptor_flags.size()!=0u)
+        stop("ORIGINAL_325B0_DOS_HANDLE_LEAK");
+    ++current->original_325b0_completed;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=325B0_SOURCE_COLORS_COMPLETED"
+             <<" bank="<<bank<<" RGB6=768 original_guest=PRESERVED\n"
              <<std::flush;
 }
 void original_2f844_source_enable() noexcept {
@@ -2709,6 +2756,7 @@ void attach_original_vga(
     source.game.call_16d04=&original_16d04_after_dos_open;
     source.game.call_3838=&original_03838_sintab_load;
     source.game.call_16cd0=&original_16cd0_chars_load;
+    source.game.call_325b0=&original_325b0_live_palette;
     source.game.call_2f844=&original_2f844_source_enable;
     source.game.call_181b4=&original_181b4_level_load;
     source.game.app45=&source.presentation;
