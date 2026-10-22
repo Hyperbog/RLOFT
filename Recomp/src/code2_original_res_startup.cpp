@@ -836,7 +836,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" height="<<grid.height
              <<" cells="<<grid.cells.size()
              <<" guest_memory=PRESERVED"
-             <<" rendering=NOT_CONNECTED\\n"<<std::flush;
+             <<" rendering=NOT_CONNECTED\n"<<std::flush;
     const auto entry=c::inspect(owner);
     REQUIRE(entry.source_cpu_stack_resumable &&
             entry.memory_address==base &&
