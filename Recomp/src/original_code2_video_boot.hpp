@@ -342,7 +342,8 @@ struct Bridge {
     }
     static u32 cursor_source_2a380(u32 frame,u32 y,u32 x,u32 image) noexcept {
         auto& b=self();
-        if(std::uint64_t(image)+8u>b.guest_extent || frame>15u ||
+        if(std::uint64_t(image)+8u>b.guest_extent ||
+           frame>=code2::load_le16(b.machine.data+image+2u) ||
            y>399u || x>319u){b.invalid_access=true;return 0u;}
         auto graphics=cursor_gfx();
         code2::function_2a380(b.machine,graphics,frame,y,x,image);
@@ -367,6 +368,32 @@ struct Bridge {
         if(invalid_access || video.unsupported_read() ||
            source_cursor_sprite_draws!=1u)
             throw std::runtime_error("Original 29804/29414/2A380 cursor sprite not drawn");
+    }
+    // Source 1F8FC -> 2E510 -> 2E4A4 -> 2939C -> 2A380.
+    // Unlike the cursor-only 29804 wrapper, this accepts the actual
+    // RES0 frame image address and renders on the currently selected
+    // original VGA page. No host-generated art or page is substituted.
+    void run_original_2939c_res_image(u32 frame,u32 row,u32 x,u32 image) {
+        if(image==0u || std::uint64_t(image)+8u>guest_extent ||
+           row>=400u || x>=320u)
+            throw std::out_of_range("1F8FC RES image header outside source guest");
+        const u8* d=machine.data;
+        const u32 stride=code2::load_le16(d+image);
+        const u32 frames=code2::load_le16(d+image+2u);
+        const u32 rows=code2::load_le16(d+image+4u);
+        const u32 width=static_cast<u32>(d[image+6u])*8u;
+        if(!stride || !frames || !rows || !width ||
+           frame>=frames || row+rows>400u || x+width>320u ||
+           std::uint64_t(image)+8u+
+               static_cast<std::uint64_t>(frame+1u)*stride>guest_extent)
+            throw std::out_of_range("1F8FC original RES0 image metadata invalid");
+        Scope scope(*this);
+        code2::Application56Boundary blit{};
+        blit.call_2a380=&cursor_source_2a380;
+        code2::function_2939c(blit,frame,row,x,image);
+        if(invalid_access || video.unsupported_read() ||
+           source_cursor_sprite_draws!=1u)
+            throw std::runtime_error("1F8FC original 2939C/2A380 VGA blit failed");
     }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||

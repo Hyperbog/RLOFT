@@ -1808,12 +1808,68 @@ u32 original_level_actor_roll(u32 count,u32 sides,u32 add,u32 flat) noexcept {
 void original_level_actor_dialog(u32,u32) noexcept {
     stop("ORIGINAL_17A68_1C77C_DIALOGUE_CALLBACK_NOT_CONNECTED");
 }
+void original_325b0_live_palette(u32,u32,u32,u32,u32) noexcept;
+// The first original 1F8FC raster calls source 2E510 with two
+// RES0 frame bases. The existing loader supplies real unloaded RES
+// records in the same guest, and the existing planar VGA host receives
+// the output of the original 2939C -> 2A380 source pipeline.
+u32 original_scene_res_image(u32 item,u32 slot) noexcept {
+    if(!current->game_audio.app68 || slot!=0u || !current->original_vga)
+        stop("ORIGINAL_1F8FC_RES0_RESOURCE_CALLBACK_UNAVAILABLE");
+    const u32 ptr=code2::function_2f29c(
+        current->machine,current->game_audio,item,slot);
+    if(!ptr || std::uint64_t(ptr)+8u>current->data.size())
+        stop("ORIGINAL_1F8FC_RES0_SOURCE_DECODE_FAILED");
+    return ptr;
+}
+void original_scene_res_blit(u32 frame,u32 row,u32 x,u32 image) noexcept {
+    if(!current->original_vga)
+        stop("ORIGINAL_1F8FC_NO_ORIGINAL_VGA_DEVICE");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2939c_res_image(frame,row,x,image);
+    }catch(const std::exception&) {
+        stop("ORIGINAL_1F8FC_2939C_SOURCE_VGA_BLIT_INVALID");
+    }
+}
+void original_scene_frame_base(u32 row,u32 x,u32 resource,u32 slot) noexcept {
+    if(row>399u || x>319u || slot!=0u)
+        stop("ORIGINAL_1F8FC_FRAME_BASE_REQUEST_INVALID");
+    code2::Application67Boundary b{};
+    b.call_2f29c=&original_scene_res_image;
+    b.call_2939c=&original_scene_res_blit;
+    code2::function_2e510(current->machine,b,row,x,resource,slot);
+}
+void original_scene_res_release(u32 resource,u32 slot) noexcept {
+    if(!current->game_audio.app68 || slot!=0u)
+        stop("ORIGINAL_1F8FC_RES_CACHE_NOT_RETAINED");
+    code2::function_2efd0(
+        current->machine,*current->game_audio.app68,resource,slot);
+}
+u32 original_scene_capture_pending(u32,u32,u32,u32,u32) noexcept {
+    // 30070 requests three source VGA-region captures and retains guest
+    // image pointers; returning a fabricated handle would corrupt the
+    // original composition and invalidate all later frame equivalence.
+    stop("ORIGINAL_1F8FC_30070_VGA_CAPTURE_NOT_CONNECTED");
+}
+void original_scene_palette(u32 a,u32 b,u32 c,u32 d,u32 e) noexcept {
+    // The original full-scene path may switch COLORS bank. Reuse the
+    // source loader, but do not pass off bootstrap's one-time checks
+    // as a verified arbitrary-level palette change.
+    if(current->original_325b0_completed!=0u)
+        stop("ORIGINAL_1F8FC_REPEAT_325B0_PALETTE_PENDING");
+    original_325b0_live_palette(a,b,c,d,e);
+}
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
     // Execute the authentic unchanged-scene source path only while
     // compositor/party art callbacks are being integrated.
     if(mode!=code2::load_le32(current->data.data()+0xC034u))
         stop("ORIGINAL_181B4_1F8FC_SCENE_COMPOSITOR_NOT_CONNECTED");
+    // Execute source 1F8E0. On an actual mode change the original
+    // 1F8FC callback graph runs until its first unsupported dependency,
+    // which remains explicit and cannot silently become blank artwork.
     code2::function_1f8e0(current->machine,current->presentation,mode);
     if(current->data[0xCF58u]!=1u)
         stop("ORIGINAL_181B4_1F8E0_SCENE_DIRTY_FLAG_ABSENT");
@@ -1880,10 +1936,10 @@ void original_181b4_level_load(u32 requested) noexcept {
     const u32 actor_random_before=current->original_level_actor_random_calls;
     b.call_19ccc=&original_level_19ccc_push;
     b.call_19cf4=&original_level_19cf4_pop;
-    // The original level switch requests new palette/art through 1F8FC.
-    // Do not pretend that the full scene renderer is available here:
-    // 1F8E0 stays an explicit unresolved callback until source
-    // compositor/UI resource and redraw dependencies are attached.
+    // Source calls 1F8E0 even for an unchanged mode. The full compositor
+    // is provisioned with authentic RES0 blit callbacks, and fails closed
+    // at the unresolved original 30070 VGA capture, never faking a frame.
+    b.call_1f8e0=&original_level_1f8e0_scene_mode;
     b.call_0ccf4=&original_level_0ccf4_party_terminal;
     code2::function_181b4(current->machine,b,static_cast<code2::s32>(requested));
     ++current->original_level_actor_postloads;
@@ -1899,13 +1955,13 @@ void original_181b4_level_load(u32 requested) noexcept {
         stop("ORIGINAL_181B4_GUEST_LEVEL_NOT_INITIALIZED");
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
-       current->original_level_scene_mode_calls!=0u ||
+       current->original_level_scene_mode_calls!=1u ||
        current->original_level_party_terminal_checks!=1u ||
        current->original_level_actor_postloads!=1u)
         stop("ORIGINAL_181B4_SOURCE_WORLD_STATE_CALLBACKS_MISSING");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_STATE_CALLBACKS_COMPLETED"
              <<" source=19CCC_19CF4_0CCF4"
-             <<" scene_1F8E0_1F8FC=NOT_CONNECTED"
+             <<" scene_1F8E0=ORIGINAL_SOURCE_DISPATCH"
              <<" actor_terminal=SOURCE_CHECK"
              <<" world_rendering=NOT_CONNECTED\n"<<std::flush;
     ++current->original_181b4_completed;
@@ -3251,6 +3307,9 @@ void attach_original_vga(
     source.original_mouse_draw_callbacks.call_29804=&original_20440_mouse_draw;
     source.game.call_2f844=&original_2f844_source_enable;
     source.game.call_181b4=&original_181b4_level_load;
+    source.presentation.call_2e510=&original_scene_frame_base;
+    source.presentation.call_2efd0=&original_scene_res_release;
+    source.presentation.call_30070=&original_scene_capture_pending;
     source.game.app45=&source.presentation;
 }
 std::uint32_t answer_source_video_mode(Opaque* owner) {
