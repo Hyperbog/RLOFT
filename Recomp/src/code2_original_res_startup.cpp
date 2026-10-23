@@ -45,6 +45,81 @@ std::vector<u8> disk_read(const std::filesystem::path& p) {
     if(!f)throw std::runtime_error("Partial file: "+p.filename().string());
     return data;
 }
+// Reconstruct original source 2FD9C decoded IMAGE bytes independently,
+// including 37810 planar-frame permutation, without reading the guest cache.
+static std::vector<u8> independent_type1_guest_image(
+        const rloft::original_res::Image& expected) {
+    const u32 decoded_frame_bytes=expected.frame_size();
+    const u32 frame_stride=decoded_frame_bytes+
+        (expected.tag==0xFFu?0u:1u);
+    REQUIRE(frame_stride<=0xFFFFu);
+    const u32 plane_bytes=decoded_frame_bytes/4u;
+    REQUIRE(decoded_frame_bytes!=0u && decoded_frame_bytes%4u==0u &&
+            expected.decoded.size()==
+                std::uint64_t(decoded_frame_bytes)*expected.frames);
+    std::vector<u8> independent(
+        8u+static_cast<std::size_t>(frame_stride)*expected.frames,0u);
+    code2::store_le16(independent.data(),static_cast<u16>(frame_stride));
+    code2::store_le16(independent.data()+2u,expected.frames);
+    code2::store_le16(independent.data()+4u,expected.rows);
+    independent[6u]=expected.width_units;
+    independent[7u]=expected.tag==0xFFu?0u:0x80u;
+    for(u32 frame=0u;frame<expected.frames;++frame) {
+        const u32 out=8u+frame*frame_stride;
+        const u32 data=out+(expected.tag==0xFFu?0u:1u);
+        if(expected.tag!=0xFFu)independent[out]=expected.tag;
+        for(u32 i=0;i<plane_bytes;++i)
+            for(u32 plane=0;plane<4u;++plane)
+                independent[data+plane*plane_bytes+i]=
+                    expected.decoded[frame*decoded_frame_bytes+4u*i+plane];
+    }
+    if(expected.reorder!=0u && expected.rows==1u) {
+        // Independently reconstruct 37810's 4-plane/frame permutation
+        // using the original register-loop ordering, not a preloaded
+        // renderer/cache or CODE.2's 37810 implementation.
+        const u32 total=4u*expected.frames;
+        std::vector<u16> permutation(total);
+        u32 offset=0u;
+        for(u32 index=0;index<total;++index) {
+            permutation[offset/2u]=static_cast<u16>(index);
+            offset+=8u;
+            if(offset>=2u*total)offset=offset-2u*total+2u;
+        }
+        u32 remaining=total-1u;
+        u32 output=8u+(expected.tag==0xFFu?0u:1u);
+        const u32 strip=static_cast<u32>(expected.width_units)*2u;
+        const u32 base=output;
+        for(u32 n=1u;remaining!=0u;++n,--remaining) {
+            u16 chosen=permutation[n];
+            u32 where=n;
+            for(u32 i=n;i<n+remaining;++i) {
+                if(permutation[i]==n) {where=i;break;}
+            }
+            const u16 displaced=permutation[where];
+            permutation[where]=chosen;
+            chosen=displaced;
+            permutation[n]=chosen;
+            const u32 first=(n/4u)*frame_stride+(n%4u)*strip;
+            const u32 second=(where/4u)*frame_stride+(where%4u)*strip;
+            REQUIRE(base+first+strip<=independent.size() &&
+                    base+second+strip<=independent.size() &&
+                    output+strip<=independent.size());
+            for(u32 i=0u;i<strip;++i)
+                std::swap(independent[base+first+i],
+                          independent[base+second+i]);
+            for(u32 i=0u;i<strip;++i)
+                independent[output+i]=independent[base+first+i];
+            output+=strip;
+        }
+        code2::store_le16(independent.data()+4u,expected.frames);
+        code2::store_le16(independent.data()+2u,1u);
+        code2::store_le16(independent.data(),
+                          static_cast<u16>(expected.frames*
+                                           expected.width_units*8u));
+    }
+    return independent;
+}
+
 struct Fixture {
     std::array<std::vector<u8>,15> data{};
     std::string cd_prefix{};
@@ -1320,8 +1395,68 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         std::cerr<<" RES"<<entry.archive<<":"<<entry.index
                  <<"@"<<entry.image;
     std::cerr<<"\\n"<<std::flush;
+    constexpr std::array<std::pair<u32,u32>,10> source_type1_expected{{
+        {0u,59u},{0u,62u},{1u,338u},{1u,362u},{0u,54u},
+        {0u,49u},{1u,37u},{1u,34u},{0u,60u},{0u,34u}
+    }};
+    REQUIRE(s->guest->original_type1_decodes==source_type1_expected.size() &&
+            s->guest->source_type1_ledger.size()==source_type1_expected.size());
+    // Fail on any missing, extra, reordered or redirected source decode.
+    // Compare all decoded IMAGE bytes with an independent archive decoder.
+    code2::Application69Boundary cache_reuse{};
+    cache_reuse.app68=&s->guest->res_callbacks;
+    for(std::size_t i=0u;i<source_type1_expected.size();++i) {
+        const auto& event=s->guest->source_type1_ledger[i];
+        const auto expected_entry=source_type1_expected[i];
+        REQUIRE(event.archive==expected_entry.first &&
+                event.index==expected_entry.second);
+        const auto& archive_bytes=s->guest->fixture.data[event.archive+2u];
+        const u32 original_count=code2::load_le32(archive_bytes.data());
+        REQUIRE(event.index<original_count);
+        const u32 source_offset=code2::load_le32(
+            archive_bytes.data()+4u+event.index*4u);
+        REQUIRE(std::uint64_t(source_offset)+13u<=archive_bytes.size() &&
+                archive_bytes[source_offset]=='E' &&
+                archive_bytes[source_offset+1u]=='H' &&
+                archive_bytes[source_offset+2u]==1u);
+        const u32 rec=catalog+event.archive*16u;
+        REQUIRE(event.archive<2u &&
+                code2::load_le32(memory.data()+rec+8u)==original_count);
+        const u32 guest_table=code2::load_le32(memory.data()+rec+12u);
+        const u32 record=guest_table+event.index*9u;
+        REQUIRE(std::uint64_t(record)+9u<=memory.size() &&
+                memory[record+2u]==1u &&
+                code2::load_le32(memory.data()+record+5u)==event.image);
+        const auto reference=rloft::original_res::decode_type1(
+            archive_bytes,event.index);
+        const auto exact_image=independent_type1_guest_image(reference);
+        REQUIRE(event.image!=0u && exact_image.size()>8u &&
+                std::uint64_t(event.image)+exact_image.size()<=memory.size() &&
+                std::equal(exact_image.begin(),exact_image.end(),
+                           memory.begin()+event.image));
+        const unsigned before_reuse=s->guest->original_type1_decodes;
+        const u32 retained=code2::function_2f29c(
+            s->guest->m,cache_reuse,event.index,event.archive);
+        REQUIRE(retained==event.image &&
+                s->guest->original_type1_decodes==before_reuse &&
+                !s->guest->error && !s->guest->original_image_invalid);
+        std::cout<<"ORIGINAL_CODE2_RETAINED_TYPE1_ENTRY_PARITY_PASS"
+                 <<" ordinal="<<(i+1u)
+                 <<" archive=RES"<<event.archive
+                 <<" id="<<event.index
+                 <<" bytes="<<exact_image.size()
+                 <<" decoded=2FD9C"
+                 <<" parity=INDEPENDENT_ORIGINAL_BYTES"
+                 <<" cache=2F29C_REUSED\n";
+    }
+    std::cout<<"ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS"
+             <<" decodes="<<source_type1_expected.size()
+             <<" sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34"
+             <<" independent_bytes=ALL_MATCH"
+             <<" cache_reuses="<<source_type1_expected.size()
+             <<" guest=RETAINED\n";
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
-            s->guest->original_type1_decodes==4u &&
+            s->guest->original_type1_decodes==source_type1_expected.size() &&
             !s->guest->original_image_invalid && !s->guest->error);
     // After the original 181B4 postload the two normal-party RES1
     // portraits were authentically 2F29C->2ECB4->2FD9C decoded in
