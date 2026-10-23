@@ -12,6 +12,7 @@ struct ExteriorSourceTrace {
     u32 active_actor_runs=0u,resource_requests=0u;
     u32 resource_id=0u,resource_slot=0u;
     u32 resource_image=0u,subtractive_draws=0u,palette_delta=0u;
+    u32 clipped_rasters=0u;
 };
 thread_local ExteriorSourceTrace* exterior_trace=nullptr;
 
