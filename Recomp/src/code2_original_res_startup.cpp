@@ -1429,7 +1429,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
                 code2::load_le32(memory.data()+record+5u)==event.image);
         const auto reference=rloft::original_res::decode_type1(
             archive_bytes,event.index);
-        const auto exact_image=independent_type1_guest_image(reference);
+        const auto exact_image=rloft_code2_resource_internal::independent_type1_guest_image(reference);
         REQUIRE(event.image!=0u && exact_image.size()>8u &&
                 std::uint64_t(event.image)+exact_image.size()<=memory.size() &&
                 std::equal(exact_image.begin(),exact_image.end(),
