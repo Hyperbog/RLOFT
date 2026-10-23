@@ -324,7 +324,7 @@ jobs:
           if ($type1Entries.Count -ne 10) {
             throw "Expected exactly ten independently verified retained type-1 image records, got $($type1Entries.Count)"
           }
-          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE.*original_source=1F494_1EA90_22F40_298F0_2975C.*normal_party=2 terminal_party=2.*changed_draw_page_pixels=[1-9][0-9]*.*frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC') {
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE.*original_source=1F494_1EA90_22F40_298F0_2975C.*normal_party=2 terminal_party=2.*changed_draw_page_pixels=[1-9][0-9]*.*four_panels=NONZERO panel_pixels=[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*.*frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC') {
             throw "Original retained 1F494/1EA90 HUD source execution and indexed VGA pixel acceptance missing"
           }
           if ($combined -notmatch 'ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS.*INIT_reopens=2') {
