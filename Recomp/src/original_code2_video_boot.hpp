@@ -586,6 +586,21 @@ struct Bridge {
            source_hud_palette_draws!=1u)
             throw std::runtime_error("Original 298F0/2A584 portrait source failed");
     }
+    // Original active-exterior sprite: 314B0 -> 29838 -> 2A478.
+    // Retains the x86 subtractive transparent-key VGA write semantics;
+    // resource decoding and original archive addressing are handled by the
+    // caller's 2F29C, never by a substituted host image.
+    void run_original_2a478_subtractive(u32 frame,u32 row,u32 x,
+                                       u32 image,u32 delta) {
+        if(delta>255u)
+            throw std::out_of_range("Original 2A478 palette delta outside byte range");
+        check_hud_image(frame,row,x,image);
+        Scope scope(*this);
+        auto gfx=cursor_gfx();
+        code2::function_2a478(machine,gfx,frame,row,x,image,delta);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2A478 subtractive VGA raster failed");
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
