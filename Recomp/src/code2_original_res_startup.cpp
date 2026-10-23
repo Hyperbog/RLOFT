@@ -556,7 +556,23 @@ struct Session {
         const std::size_t n=std::min<std::size_t>(size,bytes.size()-h.cursor);
         std::copy_n(bytes.data()+h.cursor,n,destination);
         h.cursor+=n;
-        if(n!=size) {
+        // The original 2F9B0/2F96C 1 KiB DOS archive buffer uses
+        // AX=bytes_read. At the final RES8 record 2F9B0 legitimately
+        // asks for 1024 bytes but DOS returns the remaining 404.
+        // This is NOT a short fixed-size record/header read.
+        const bool buffered_dos_eof=
+            destination==t.memory.data()+0xF0D4u &&
+            h.file>=2u && h.file<=12u &&
+            size<=0x400u && n>0u && n<size &&
+            h.cursor==bytes.size();
+        if(buffered_dos_eof)
+            std::cerr<<"ORIGINAL_CODE2_BUFFERED_RES_EOF_READ_PASS"
+                     <<" archive=RES"<<(h.file-2u)
+                     <<" requested="<<size<<" returned="<<n
+                     <<" source=2F9B0_2F96C_312EC"
+                     <<" error=PRESERVED_NOT_SET"
+                     <<" EOF=YES\\n"<<std::flush;
+        else if(n!=size) {
             std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_SHORT_READ"
                      <<" file="<<h.file<<" handle="<<handle
                      <<" requested="<<size<<" actual="<<n
