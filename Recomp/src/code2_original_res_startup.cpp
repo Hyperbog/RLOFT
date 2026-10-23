@@ -1395,17 +1395,21 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         std::cerr<<" RES"<<entry.archive<<":"<<entry.index
                  <<"@"<<entry.image;
     std::cerr<<"\\n"<<std::flush;
-    constexpr std::array<std::pair<u32,u32>,10> source_type1_expected{{
+    constexpr std::array<std::pair<u32,u32>,11> source_type1_expected{{
         {0u,59u},{0u,62u},{1u,338u},{1u,362u},{0u,54u},
-        {0u,49u},{1u,37u},{1u,34u},{0u,60u},{0u,34u}
+        {0u,49u},{1u,37u},{1u,34u},{0u,60u},{0u,34u},
+        {8u,50u}
     }};
-    REQUIRE(s->guest->original_type1_decodes==source_type1_expected.size() &&
-            s->guest->source_type1_ledger.size()==source_type1_expected.size());
+    const char* const exterior=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR");
+    const bool retained_exterior=exterior && std::strcmp(exterior,"1")==0;
+    const std::size_t exact_decode_count=retained_exterior?11u:10u;
+    REQUIRE(s->guest->original_type1_decodes==exact_decode_count &&
+            s->guest->source_type1_ledger.size()==exact_decode_count);
     // Fail on any missing, extra, reordered or redirected source decode.
     // Compare all decoded IMAGE bytes with an independent archive decoder.
     code2::Application69Boundary cache_reuse{};
     cache_reuse.app68=&s->guest->res_callbacks;
-    for(std::size_t i=0u;i<source_type1_expected.size();++i) {
+    for(std::size_t i=0u;i<exact_decode_count;++i) {
         const auto& event=s->guest->source_type1_ledger[i];
         const auto expected_entry=source_type1_expected[i];
         REQUIRE(event.archive==expected_entry.first &&
@@ -1420,7 +1424,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
                 archive_bytes[source_offset+1u]=='H' &&
                 archive_bytes[source_offset+2u]==1u);
         const u32 rec=catalog+event.archive*16u;
-        REQUIRE(event.archive<2u &&
+        REQUIRE(event.archive<11u &&
                 code2::load_le32(memory.data()+rec+8u)==original_count);
         const u32 guest_table=code2::load_le32(memory.data()+rec+12u);
         const u32 record=guest_table+event.index*9u;
@@ -1450,13 +1454,14 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
                  <<" cache=2F29C_REUSED\n";
     }
     std::cout<<"ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS"
-             <<" decodes="<<source_type1_expected.size()
+             <<" decodes="<<exact_decode_count
              <<" sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34"
+             <<(retained_exterior?"_RES8_50":"")
              <<" independent_bytes=ALL_MATCH"
-             <<" cache_reuses="<<source_type1_expected.size()
+             <<" cache_reuses="<<exact_decode_count
              <<" guest=RETAINED\n";
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
-            s->guest->original_type1_decodes==source_type1_expected.size() &&
+            s->guest->original_type1_decodes==exact_decode_count &&
             !s->guest->original_image_invalid && !s->guest->error);
     // After the original 181B4 postload the two normal-party RES1
     // portraits were authentically 2F29C->2ECB4->2FD9C decoded in
