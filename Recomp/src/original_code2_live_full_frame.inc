@@ -61,6 +61,17 @@ u32 original_full_exterior_resource(u32 id,u32 slot) noexcept {
         current->machine,current->game_audio,id,slot);
     if(image && std::uint64_t(image)+8u>current->data.size())
         stop("ORIGINAL_314B0_FULL_RES8_NONZERO_POINTER_INVALID");
+    if(!image) {
+        const u32 rec=catalog+8u*16u;
+        const u32 dir=code2::load_le32(current->data.data()+rec+12u);
+        const u32 entry=dir+id*9u;
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=314B0_RES8_NULL_IMAGE"
+                 <<" id="<<id<<" archive=8"
+                 <<" cache_type="<<unsigned(current->data[entry]&0x0Fu)
+                 <<" cache_status="<<unsigned(current->data[entry+2u])
+                 <<" source_return=0_ALLOWED"
+                 <<" retain_guest=YES\\n"<<std::flush;
+    }
     ++exterior_trace->resource_requests;
     exterior_trace->resource_id=id;
     exterior_trace->resource_slot=slot;
