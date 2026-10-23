@@ -1395,14 +1395,17 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
         std::cerr<<" RES"<<entry.archive<<":"<<entry.index
                  <<"@"<<entry.image;
     std::cerr<<"\\n"<<std::flush;
-    constexpr std::array<std::pair<u32,u32>,11> source_type1_expected{{
+    constexpr std::array<std::pair<u32,u32>,13> source_type1_expected{{
         {0u,59u},{0u,62u},{1u,338u},{1u,362u},{0u,54u},
         {0u,49u},{1u,37u},{1u,34u},{0u,60u},{0u,34u},
-        {8u,50u}
+        {8u,50u},{0u,25u},{0u,26u}
     }};
     const char* const exterior=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR");
     const bool retained_exterior=exterior && std::strcmp(exterior,"1")==0;
-    const std::size_t exact_decode_count=retained_exterior?11u:10u;
+    const char* const frame=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FRAME_ENTRY");
+    const bool retained_frame=frame && std::strcmp(frame,"1")==0;
+    const std::size_t exact_decode_count=retained_frame?13u:(retained_exterior?11u:10u);
+    REQUIRE(!retained_frame || retained_exterior);
     REQUIRE(s->guest->original_type1_decodes==exact_decode_count &&
             s->guest->source_type1_ledger.size()==exact_decode_count);
     // Fail on any missing, extra, reordered or redirected source decode.
@@ -1457,6 +1460,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" decodes="<<exact_decode_count
              <<" sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34"
              <<(retained_exterior?"_RES8_50":"")
+             <<(retained_frame?"_RES0_25_26":"")
              <<" independent_bytes=ALL_MATCH"
              <<" cache_reuses="<<exact_decode_count
              <<" guest=RETAINED\n";
