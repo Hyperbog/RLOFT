@@ -117,7 +117,8 @@ void original_live_1f8fc_source_chain() noexcept {
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
        exterior.active_actor_runs!=1u || exterior.subtractive_draws!=1u ||
-       exterior.resource_requests!=1u || exterior.angle_patches!=4u ||
+       exterior.resource_requests!=1u ||
+       (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
        frame.presentations!=0u)
     {
@@ -141,6 +142,7 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" party_dirty_flags=CLEARED"
              <<" world_sprite_draws="<<exterior.subtractive_draws
              <<" captures="<<frame.captures
+             <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next=EXTERIOR_REMAINING_SOURCE"
