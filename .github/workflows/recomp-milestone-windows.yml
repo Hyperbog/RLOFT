@@ -326,7 +326,7 @@ jobs:
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX.*original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838_OR_2986C.*active_world_cell=1 actor_calls=1 resource_requests=1 resource_id=50 resource_slot=8.*subtractive_draws=1 palette_delta=[0-8].*34998_patch_callbacks=4.*changed_indexed_pixels=[1-9][0-9]*.*retained_guest=YES.*frontier=314B0_REMAINING_31_SPRITES_PENDING.*full_1F8FC=NOT_ENABLED') {
             throw "Retained original 1F1C8 source did not execute actual 314B0 active exterior and reach bounded RES sprite raster dependency"
           }
-          if ($combined -notmatch 'ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS decodes=11 sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34_RES8_50 independent_bytes=ALL_MATCH cache_reuses=11 guest=RETAINED') {
+          if ($combined -notmatch 'ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS decodes=13 sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34_RES8_50_RES0_25_26 independent_bytes=ALL_MATCH cache_reuses=13 guest=RETAINED') {
             throw "Retained original 2FD9C type-1 exact decode order, independent bytes, or 2F29C cache reuse did not pass"
           }
           $type1Entries = [regex]::Matches($combined, 'ORIGINAL_CODE2_RETAINED_TYPE1_ENTRY_PARITY_PASS ordinal=([0-9]+) archive=RES([0-9]+) id=([0-9]+) bytes=[0-9]+ decoded=2FD9C parity=INDEPENDENT_ORIGINAL_BYTES cache=2F29C_REUSED')
