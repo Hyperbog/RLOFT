@@ -44,7 +44,7 @@ std::vector<u8> disk_read(const std::filesystem::path& p) {
     return data;
 }
 struct Fixture {
-    std::array<std::vector<u8>,13> data{};
+    std::array<std::vector<u8>,15> data{};
     std::string cd_prefix{};
     static constexpr std::array<u16,18> init_words={
         15,168,336,0,2169,3316,4158,600,49,49,69,166,192,266,32,103,48,414
@@ -54,6 +54,8 @@ struct Fixture {
             const auto dir=std::filesystem::path(root);
             data[0]=disk_read(dir/"INIT");
             data[1]=disk_read(dir/"INFO.DAT");
+            data[13]=disk_read(dir/"NPCS.DAT");
+            data[14]=disk_read(dir/"OBJECTS.DAT");
             for(unsigned i=0;i<11;++i) {
                 const auto& media=(i>=9 && !cd_root.empty()) ?
                     std::filesystem::path(cd_root) : dir;
@@ -63,6 +65,8 @@ struct Fixture {
             data[0].resize(1879);
             for(unsigned i=0;i<18;++i)code2::store_le16(data[0].data()+2u*i,init_words[i]);
             data[1]={'0','0','0','0','0','0','0','0','0','1','1','1','1',2,0,'D',':'};
+            data[13].assign(4u,0u);
+            data[14].assign(4u,0u);
             for(unsigned i=0;i<11;++i) {
                 auto& b=data[i+2];b.resize(20);
                 code2::store_le32(b.data(),2);code2::store_le32(b.data()+4,12);
@@ -71,6 +75,14 @@ struct Fixture {
                 code2::store_le16(b.data()+15,3);
                 b[17]=0;b[18]=0;b[19]=0;
             }
+        }
+        for(const auto pair: {std::pair<std::size_t,u32>{13u,0x45u},
+                               {14u,0x41u}}) {
+            const auto& bytes=data[pair.first];
+            REQUIRE(bytes.size()>=4u);
+            const auto count=code2::load_le32(bytes.data());
+            REQUIRE(count<=4096u &&
+                    4u+std::uint64_t(count)*pair.second==bytes.size());
         }
         REQUIRE(data[0].size()==1879u);
         REQUIRE(data[1].size()>=15u && data[1].size()<=80u);
@@ -110,6 +122,11 @@ struct Session {
     code2::Machine& m;
     rloft::canonical_code2_runtime::Opaque* canonical_owner=nullptr;
     code2::Application30Boundary init_callbacks{};
+    code2::Application25Boundary object_app25{};
+    code2::Application26Boundary object_app26{};
+    code2::Application28Boundary object_app28{};
+    code2::Application29Boundary object_app29{};
+    unsigned original_npc_opens=0u,original_object_opens=0u;
     code2::Application67Boundary info_callbacks{};
     code2::Application68Boundary res_callbacks{};
     code2::Application70Boundary original_image_callbacks{};
@@ -290,6 +307,25 @@ struct Session {
             t.error=true;return 0xffffffffu;
         }
         ++t.init_opens;t.files[0x41u]={0u,0u};return 0x41u;
+    }
+    static code2::s32 open_original_actor_catalog(u32 pointer) {
+        auto& t=state();
+        const bool npcs=pointer==0x6F8u;
+        const bool objects=pointer==0x704u;
+        if((!npcs && !objects) || pointer+12u>t.memory.size()) {
+            t.error=true;return -1;
+        }
+        const char* name=npcs?"NPCS.DAT":"OBJECTS.DAT";
+        if(std::strcmp(reinterpret_cast<const char*>(t.memory.data()+pointer),name)!=0 ||
+           t.files.count(npcs?0x43u:0x44u)!=0u) {
+            t.error=true;return -1;
+        }
+        const u32 handle=npcs?0x43u:0x44u;
+        const auto index=npcs?13u:14u;
+        if(t.fixture.data[index].size()<4u) {t.error=true;return -1;}
+        t.files[handle]={index,0u};
+        if(npcs)++t.original_npc_opens;else ++t.original_object_opens;
+        return static_cast<code2::s32>(handle);
     }
     static u32 open_info(u32 pointer) {
         auto& t=state();
@@ -659,6 +695,14 @@ struct Session {
             guest_string(0x1384u,"INFO.DAT");
             guest_string(0x26000u,"RES");
         }
+        object_app25.call_312ec=&read_guest_void;
+        object_app26.call_312a0=&open_original_actor_catalog;
+        object_app26.call_3104c=&alloc_guest;
+        object_app26.call_312dc=&close_file;
+        object_app28.app25=&object_app25;
+        object_app28.app26=&object_app26;
+        object_app29.app28=&object_app28;
+        object_app29.call_312ec_local=&init_local_read;
         init_callbacks.call_312a0=&open_init;
         init_callbacks.call_3131c=&position;
         init_callbacks.call_312ec_local=&init_local_read;
@@ -693,6 +737,14 @@ struct Session {
         original_texture_callbacks.call_2fb04=&original_texture_decompress;
     }
     ~Session(){current=nullptr;}
+    void enable_original_npc_object_init() {
+        REQUIRE(canonical_owner && init_opens==1u &&
+                original_npc_opens==0u && original_object_opens==0u &&
+                init_callbacks.app29==nullptr);
+        // Source 16D04 performs 16810 (NPCS) and 168C8 (OBJECTS)
+        // before reopening INIT, on the same preserved Watcom heap.
+        init_callbacks.app29=&object_app29;
+    }
     void seed_authenticated_code2(const std::filesystem::path& code_file) {
         const auto original=disk_read(code_file);
         REQUIRE(rloft_recomp::is_original_code2(original));
@@ -905,6 +957,7 @@ struct Opaque {
             canonical.get(),static_cast<void*>(&guest->res_callbacks));
         // Keep the SAME original Application30 INIT file reader available
         // when original CODE2 20440 later calls 16D04 a second time.
+        guest->enable_original_npc_object_init();
         c::attach_original_init_callbacks(
             canonical.get(),static_cast<void*>(&guest->init_callbacks));
         c::attach_original_vga(canonical.get(),&guest->video);
@@ -1063,6 +1116,31 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     // resource through the retained original Application30 callbacks.
     REQUIRE(s->guest->memory.data()==base && s->guest->m.data==base &&
             s->guest->init_opens==2u && !s->guest->error);
+    // Independent bytes, not a host-authored replacement table: original
+    // 16810/168C8 allocated and read both retail actor catalogs.
+    const auto& original_npcs=s->guest->fixture.data[13u];
+    const auto& original_objects=s->guest->fixture.data[14u];
+    const u32 npc_count=code2::load_le32(original_npcs.data());
+    const u32 object_count=code2::load_le32(original_objects.data());
+    const u32 npc_base=code2::load_le32(base+0x22230u);
+    const u32 object_base=code2::load_le32(base+0x255D8u);
+    REQUIRE(s->guest->original_npc_opens==1u &&
+            s->guest->original_object_opens==1u &&
+            npc_count>0u && object_count>37u &&
+            code2::load_le32(base+0x258F4u)==npc_count &&
+            code2::load_le32(base+0x258E8u)==object_count &&
+            npc_base>0u && object_base>0u &&
+            std::uint64_t(npc_base)+npc_count*0x45u<=s->guest->memory.size() &&
+            std::uint64_t(object_base)+object_count*0x41u<=s->guest->memory.size() &&
+            std::equal(original_npcs.begin()+4u,original_npcs.end(),base+npc_base) &&
+            std::equal(original_objects.begin()+4u,original_objects.end(),base+object_base));
+    std::cout<<"ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS"
+             <<" npc_count="<<npc_count
+             <<" object_count="<<object_count
+             <<" mace_graphic="<<code2::load_le16(base+object_base+37u*65u+0x2Du)
+             <<" blue_robe_graphic="<<code2::load_le16(base+object_base+8u*65u+0x2Du)
+             <<" source=16D04_16810_168C8_3104C_312EC"
+             <<" guest_heap=RETAINED original_bytes=INDEPENDENT_MATCH\\n";
     REQUIRE(next==11u);
     // Independent original archive parser cross-checks the actual source
     // 181B4 guest result, rather than another host-decoded world copy.
