@@ -325,7 +325,7 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_1F8FC_SOURCE_WORKER_CHAIN_REQUEST_PASS.*source_guest=PRESERVED.*next_source_keyboard=30B40') {
             throw "Retained CODE.2 keyboard test did not resume from the original 1F8FC integrated compositor diagnostic"
           }
-          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_COMPOSITOR_CHAIN.*original_source=1F8FC_2E510_2EFD0_1F494_1EA90_1F1C8_314B0_2A478.*backgrounds=2 releases=2.*party_dirty_flags=CLEARED.*world_sprite_draws=[1-9][0-9]* captures=3 angle_patches=(0|4) presentations=0.*guest=PRESERVED.*next=34DE8_POLYGON_RASTER.*complete_frames=0') {
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_COMPOSITOR_CHAIN.*original_source=1F8FC_2E510_2EFD0_1F494_1EA90_1F1C8_314B0_2A478.*backgrounds=2 releases=2.*party_dirty_flags=CLEARED.*world_sprite_draws=[1-9][0-9]* clipped_source_rasters=[1-9][0-9]* captures=3 angle_patches=(0|4) presentations=0.*guest=PRESERVED.*next=34DE8_POLYGON_RASTER.*complete_frames=0') {
             throw "Original 1F8FC failed two releases, three VGA captures, party HUD, source RES8 actor loop, or expected polygon frontier"
           }
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SOURCE_FRAME_ENTRY.*original_source=1F8FC_2E510_2F29C_2939C_2A380.*backgrounds=2.*original_release_boundary=2EFD0.*original_guest=PRESERVED.*completed_frames=0') {
