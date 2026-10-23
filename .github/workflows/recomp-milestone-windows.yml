@@ -296,6 +296,7 @@ jobs:
           [void]$cmd.ArgumentList.Add("--advance-original-16d04")
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_HUD"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FRAME_ENTRY"] = "1"
           $child = [System.Diagnostics.Process]::new()
           $child.StartInfo = $cmd
           if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
@@ -318,6 +319,9 @@ jobs:
           if ($result -ne 0) { throw "Original second INIT source experiment exited $result" }
           if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
             throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SOURCE_FRAME_ENTRY.*original_source=1F8FC_2E510_2F29C_2939C_2A380.*backgrounds=2.*original_release_boundary=2EFD0.*original_guest=PRESERVED.*completed_frames=0') {
+            throw "Original retained 1F8FC did not draw both authentic RES0 backgrounds before its bounded 2EFD0 frontier"
           }
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX.*original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838_OR_2986C.*active_world_cell=1 actor_calls=1 resource_requests=1 resource_id=50 resource_slot=8.*subtractive_draws=1 palette_delta=[0-8].*34998_patch_callbacks=4.*changed_indexed_pixels=[1-9][0-9]*.*retained_guest=YES.*frontier=314B0_REMAINING_31_SPRITES_PENDING.*full_1F8FC=NOT_ENABLED') {
             throw "Retained original 1F1C8 source did not execute actual 314B0 active exterior and reach bounded RES sprite raster dependency"
