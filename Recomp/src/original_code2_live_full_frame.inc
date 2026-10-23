@@ -289,7 +289,13 @@ void original_live_1f8fc_source_chain() noexcept {
     scene.call_33de0=&original_exterior_ground;
     scene.call_34a74=through_actor?
         &original_full_exterior_oblique_sprite:&original_exterior_oblique_sprite;
-    scene.call_34de8=&original_exterior_polygon_frontier;
+    const char* const polygon_source=
+        std::getenv("RLOFT_RECOMP_EXPERIMENTAL_POLYGON_SOURCE");
+    const bool source_polygons=through_actor && polygon_source &&
+        std::strcmp(polygon_source,"1")==0;
+    scene.call_34de8=source_polygons?
+        &original_full_exterior_polygon_source:&original_exterior_polygon_frontier;
+    scene.call_1bdac=source_polygons?&original_full_1bdac_frontier:nullptr;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
 
@@ -322,14 +328,19 @@ void original_live_1f8fc_source_chain() noexcept {
     current->active_escape=prior;
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
-    const char* const expected_stop=through_actor?
-        "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
-        "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN";
+    const char* const expected_stop=source_polygons?
+        (frame.polygon_quads!=0u?
+            "ORIGINAL_34DE8_33E6C_POLYGON_RASTER_PENDING":
+            "ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING"):
+        (through_actor?
+            "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
+            "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
     if(!current->stop_reason ||
        std::strcmp(current->stop_reason,expected_stop)!=0 ||
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
        exterior.active_actor_runs!=1u || exterior.subtractive_draws==0u ||
+       (source_polygons && frame.polygon_cells==0u) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -359,10 +370,16 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" captures="<<frame.captures
              <<" res4_source_requests="<<frame.original_res4_requests
              <<" oblique_source_rasters="<<frame.oblique_rasters
+             <<" polygon_source_cells="<<frame.polygon_cells
+             <<" polygon_source_projections="<<frame.polygon_projections
+             <<" polygon_source_quads="<<frame.polygon_quads
+             <<" polygon_scan_returns="<<frame.polygon_scan_returns
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
-             <<" next="<<(through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE")
+             <<" next="<<(source_polygons?
+                 (frame.polygon_quads?"33E6C_POLYGON_RASTER":"1BDAC_ACTOR_UPDATE"):
+                 (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
 }
