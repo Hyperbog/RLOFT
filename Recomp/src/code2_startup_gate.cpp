@@ -1933,7 +1933,16 @@ void original_scene_res_blit(u32 frame,u32 row,u32 x,u32 image) noexcept {
         rloft::source_video_boot::Bridge bridge(
             current->machine,*current->original_vga,current->data.size());
         bridge.run_original_2939c_res_image(frame,row,x,image);
-    }catch(const std::exception&) {
+    }catch(const std::exception& e) {
+        const bool header=std::uint64_t(image)+8u<=current->data.size();
+        std::cerr<<"CODE2_ORIGINAL_HUD_BLIT_FRONTIER"
+                 <<" frame="<<frame<<" row="<<row<<" x="<<x
+                 <<" image="<<image
+                 <<" stride="<<(header?code2::load_le16(current->data.data()+image):0u)
+                 <<" frames="<<(header?code2::load_le16(current->data.data()+image+2u):0u)
+                 <<" rows="<<(header?code2::load_le16(current->data.data()+image+4u):0u)
+                 <<" units="<<(header?unsigned(current->data[image+6u]):0u)
+                 <<" reason="<<e.what()<<"\\n"<<std::flush;
         stop("ORIGINAL_1F8FC_2939C_SOURCE_VGA_BLIT_INVALID");
     }
 }
