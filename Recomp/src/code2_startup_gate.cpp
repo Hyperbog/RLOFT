@@ -19,6 +19,7 @@
 #include "dpmi_selector_descriptors.hpp"
 #include "dos_paragraph_memory.hpp"
 #include <algorithm>
+#include <cstdlib>
 #include <array>
 #include <csetjmp>
 #include <cstdint>
@@ -2648,9 +2649,16 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" original_guest=PRESERVED"
              <<" frame_status=PREVIEW_ONLY_NOT_ORIGINAL_1F8FC\\n"
              <<std::flush;
-    // Source HUD rendering is a separate pre-transition guest probe.
-    // Full 1F8FC and exterior 1F1C8 remain disabled.
-    original_live_1f494_party_probe();
+    // 1F494 is an explicit fail-closed *developer* probe until the
+    // original item/equipment resource selection is reconciled.
+    // Authentic Level 22 requested RES1 ID 16724 from a 428-entry
+    // archive during 1EA90 on 2026-10-22; never mask that lookup by
+    // substituting art or by silently treating a partial HUD as a frame.
+    // The ordinary, previously accepted boot path must remain intact.
+    if(const char* enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_HUD")) {
+        if(std::strcmp(enabled,"1")==0)
+            original_live_1f494_party_probe();
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
 }
