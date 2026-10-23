@@ -1,9 +1,9 @@
-// Retained Level22 exterior source frontier: execute actual 1F1C8 until
-// its first unavailable polygon/terrain compositor, while preserving the
-// original 334C4 camera/ray preparation and 33DE0/33E28 VGA REP STOSB.
-//
-// Do NOT equate this bounded prefix with a completed exterior scene or
-// enable 1F8FC based on these pixels.
+// Retained Level22 exterior source frontier: execute actual 1F1C8,
+// its 334C4->32954 camera/ray preparation, original 34998 view coefficients,
+// and authentic 314B0->29838 RES8 active-environment branch until the
+// first not-yet-connected 2A478 subtractive planar sprite raster.
+// Also retain true 33DE0/33E28 VGA REP STOSB callbacks for other profiles.
+// Do NOT equate this bounded prefix with a completed exterior/game frame.
 void original_world_camera_334c4() noexcept;
 
 struct ExteriorSourceTrace {
