@@ -95,9 +95,24 @@ u32 original_full_exterior_unsupported_raster(
     u32,u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_314B0_FULL_2A6B0_CLIPPED_RASTER_PENDING");
 }
-u32 original_full_exterior_unsupported_raster6(
-    u32,u32,u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_314B0_FULL_2A8A0_CLIPPED_RASTER_PENDING");
+u32 original_full_exterior_2a8a0(
+    u32 frame,u32 row,u32 x,u32 clip,u32 image,u32 delta) noexcept {
+    if(!exterior_trace || !image || delta>8u)
+        stop("ORIGINAL_314B0_2A8A0_CLIPPED_ARGUMENTS_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2a8a0_clipped(frame,row,x,clip,image,delta);
+    } catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=314B0_CLIPPED_RASTER_FRONTIER"
+                 <<" row="<<row<<" x="<<x
+                 <<" clip="<<clip<<" image="<<image
+                 <<" delta="<<delta<<" reason="<<e.what()<<"\\n"<<std::flush;
+        stop("ORIGINAL_314B0_FULL_2A8A0_SOURCE_RASTER_FAILED");
+    }
+    ++exterior_trace->subtractive_draws;
+    exterior_trace->palette_delta=delta;
+    return 0u;
 }
 void original_full_exterior_actor(u32 view) noexcept {
     if(!exterior_trace || view!=1u)
@@ -108,7 +123,7 @@ void original_full_exterior_actor(u32 view) noexcept {
     b.call_2a380=&original_full_exterior_unclipped;
     b.call_2a478=&original_full_exterior_subtractive;
     b.call_2a6b0=&original_full_exterior_unsupported_raster;
-    b.call_2a8a0=&original_full_exterior_unsupported_raster6;
+    b.call_2a8a0=&original_full_exterior_2a8a0;
     code2::Application73Boundary actor{};
     actor.app57=&b;
     code2::function_314b0(current->machine,actor,view);
