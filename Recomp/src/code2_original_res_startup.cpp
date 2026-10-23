@@ -139,6 +139,8 @@ struct Session {
     u32 original_image_end=0u;
     u32 original_image_start=0u;
     unsigned original_type1_decodes=0;
+    struct Type1Entry {u32 archive;u32 index;u32 image;};
+    std::vector<Type1Entry> source_type1_ledger{};
     bool original_image_invalid=false;
     struct Handle {unsigned file; std::size_t cursor;};
     std::map<u32,Handle> files{};
@@ -568,7 +570,13 @@ struct Session {
            original_logical_position()!=t.original_image_end) {
             t.original_image_invalid=true;return 0u;
         }
+        const auto it=t.files.find(handle);
+        if(it==t.files.end() || it->second.file<2u || it->second.file>12u) {
+            t.error=true;return 0u;
+        }
         ++t.original_type1_decodes;
+        t.source_type1_ledger.push_back({
+            static_cast<u32>(it->second.file-2u),t.original_image_record,image});
         return image;
     }
     // Retail RES4 type-6 textures: compiled source 37590 allocates the
@@ -1306,6 +1314,12 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" source_1A0B0=NOT_YET_CONNECTED"
              <<" source_1A288=NOT_YET_CONNECTED\n"<<std::flush;
     const auto expected=rloft::original_res::decode_type1(archive0,target);
+    std::cerr<<"ORIGINAL_CODE2_RETAINED_TYPE1_LEDGER_TRACE"
+             <<" decodes="<<s->guest->original_type1_decodes;
+    for(const auto& entry:s->guest->source_type1_ledger)
+        std::cerr<<" RES"<<entry.archive<<":"<<entry.index
+                 <<"@"<<entry.image;
+    std::cerr<<"\\n"<<std::flush;
     REQUIRE(raw_type==1u && target==59u && encoded_length==8 &&
             s->guest->original_type1_decodes==4u &&
             !s->guest->original_image_invalid && !s->guest->error);
