@@ -126,10 +126,32 @@ void original_live_1f494_party_probe() noexcept {
             changed+=before[y*320u+x]!=after[y*320u+x];
     if(!changed)
         stop("ORIGINAL_LIVE_1F494_SOURCE_HUD_NO_VGA_PIXEL_CHANGE");
+    // The source draws two normal character HUD columns and two
+    // encoded high-bit terminal columns; an aggregate pixel delta
+    // alone could hide a missing character region.
+    constexpr std::array<std::pair<u32,u32>,4> columns{{
+        {0u,0x35u},{0x35u,0x6Au},{0xD3u,0x108u},{0x108u,320u}
+    }};
+    std::array<u32,4> panel_changes{};
+    for(u32 slot=0u;slot<4u;++slot) {
+        const u16 flags=code2::load_le16(
+            current->data.data()+0x218F0u+slot*0x248u);
+        if(((flags&0x8000u)!=0u)!=(slot>=2u))
+            stop("ORIGINAL_LIVE_1F494_LEVEL22_PARTY_PROFILE_CHANGED");
+        for(u32 y=0x113u;y<400u;++y)
+            for(u32 x=columns[slot].first;x<columns[slot].second;++x)
+                panel_changes[slot]+=
+                    before[y*320u+x]!=after[y*320u+x];
+        if(panel_changes[slot]==0u)
+            stop("ORIGINAL_LIVE_1F494_PARTY_PANEL_HAS_NO_VGA_PIXEL_CHANGE");
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE"
              <<" original_source=1F494_1EA90_22F40_298F0_2975C"
              <<" normal_party=2 terminal_party=2"
              <<" changed_draw_page_pixels="<<changed
+             <<" four_panels=NONZERO"
+             <<" panel_pixels="<<panel_changes[0]<<","<<panel_changes[1]
+             <<","<<panel_changes[2]<<","<<panel_changes[3]
              <<" mode=3_PRETRANSITION_ONLY"
              <<" frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC\n"
              <<std::flush;
