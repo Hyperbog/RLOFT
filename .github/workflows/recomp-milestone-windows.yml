@@ -293,6 +293,7 @@ jobs:
           [void]$cmd.ArgumentList.Add("--cd-root")
           [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
           [void]$cmd.ArgumentList.Add("--advance-original-16d04")
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_HUD"] = "1"
           $child = [System.Diagnostics.Process]::new()
           $child.StartInfo = $cmd
           if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
@@ -313,6 +314,12 @@ jobs:
           $child.Dispose()
           if (-not $completed) { throw "Original 16D04 continuation timed out after 45 seconds" }
           if ($result -ne 0) { throw "Original second INIT source experiment exited $result" }
+          if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
+            throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE.*original_source=1F494_1EA90_22F40_298F0_2975C.*normal_party=2 terminal_party=2.*changed_draw_page_pixels=[1-9][0-9]*.*frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC') {
+            throw "Original retained 1F494/1EA90 HUD source execution and indexed VGA pixel acceptance missing"
+          }
           if ($combined -notmatch 'ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS.*INIT_reopens=2') {
             throw "Original second INIT did not prove a second authentic INIT read"
           }
