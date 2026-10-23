@@ -77,6 +77,11 @@ u32 original_full_exterior_subtractive(
     exterior_trace->palette_delta=delta;
     return 0u;
 }
+u32 original_full_exterior_unclipped(
+    u32 frame,u32 row,u32 x,u32 image) noexcept {
+    original_scene_res_blit(frame,row,x,image);
+    return 0u;
+}
 u32 original_full_exterior_unsupported_raster(
     u32,u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_314B0_FULL_2A6B0_CLIPPED_RASTER_PENDING");
@@ -91,6 +96,7 @@ void original_full_exterior_actor(u32 view) noexcept {
     ++exterior_trace->active_actor_runs;
     code2::Application57Boundary b{};
     b.call_2f29c=&original_full_exterior_resource;
+    b.call_2a380=&original_full_exterior_unclipped;
     b.call_2a478=&original_full_exterior_subtractive;
     b.call_2a6b0=&original_full_exterior_unsupported_raster;
     b.call_2a8a0=&original_full_exterior_unsupported_raster6;
@@ -185,7 +191,7 @@ void original_live_1f8fc_source_chain() noexcept {
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
        exterior.active_actor_runs!=1u || exterior.subtractive_draws==0u ||
-       exterior.resource_requests!=1u ||
+       exterior.resource_requests!=(through_actor?exterior.subtractive_draws:1u) ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
        frame.presentations!=0u)
