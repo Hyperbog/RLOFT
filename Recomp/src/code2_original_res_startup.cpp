@@ -1732,6 +1732,20 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" physical_input=NOT_CONNECTED"
              <<" world_position_change=NOT_VERIFIED"
              <<" original_scene_rendering=NOT_CONNECTED\\n"<<std::flush;
+    // Source worker is now paused at original 1FC14/30B40 and ALL
+    // original archive, character, VGA and input parity checks have passed.
+    // A reserved host diagnostic reply (not a real keyboard scan code)
+    // invokes 1F8FC without disturbing the preceding acceptance ledger.
+    if(const char* full=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR")) {
+        if(std::strcmp(full,"1")==0) {
+            REQUIRE(c::answer_original_keyboard_event(owner,0xFFFFu)==11u);
+            REQUIRE(c::inspect(owner).memory_address==base);
+            std::cout<<"ORIGINAL_CODE2_1F8FC_SOURCE_WORKER_CHAIN_REQUEST_PASS"
+                     <<" diagnostic_key=FFFF_NON_DOS"
+                     <<" source_guest=PRESERVED"
+                     <<" next_source_keyboard=30B40\\n"<<std::flush;
+        }
+    }
     std::cout<<"ORIGINAL_CODE2_SECOND_16D04_SOURCE_PASS"
              <<" entry=20440_16D04"
              <<" INIT_reopens=2"
