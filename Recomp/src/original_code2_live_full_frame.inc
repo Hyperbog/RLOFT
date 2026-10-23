@@ -111,6 +111,7 @@ u32 original_full_exterior_2a8a0(
         stop("ORIGINAL_314B0_FULL_2A8A0_SOURCE_RASTER_FAILED");
     }
     ++exterior_trace->subtractive_draws;
+    ++exterior_trace->clipped_rasters;
     exterior_trace->palette_delta=delta;
     return 0u;
 }
@@ -240,6 +241,7 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" backgrounds=2 releases=2"
              <<" party_dirty_flags=CLEARED"
              <<" world_sprite_draws="<<exterior.subtractive_draws
+             <<" clipped_source_rasters="<<exterior.clipped_rasters
              <<" captures="<<frame.captures
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
