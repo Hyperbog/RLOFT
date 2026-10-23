@@ -321,6 +321,9 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
             throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
           }
+          if ($combined -notmatch 'ORIGINAL_CODE2_1F8FC_SOURCE_WORKER_CHAIN_REQUEST_PASS.*source_guest=PRESERVED.*next_source_keyboard=30B40') {
+            throw "Retained CODE.2 keyboard test did not resume from the original 1F8FC integrated compositor diagnostic"
+          }
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_COMPOSITOR_CHAIN.*original_source=1F8FC_2E510_2EFD0_1F494_1EA90_1F1C8_314B0_2A478.*backgrounds=2 releases=2.*party_dirty_flags=CLEARED.*world_sprite_draws=1.*presentations=0.*guest=PRESERVED.*complete_frames=0') {
             throw "Source 1F8FC failed chained original cache release, HUD, and first exterior raster acceptance"
           }
