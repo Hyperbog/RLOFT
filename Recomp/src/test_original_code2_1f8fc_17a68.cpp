@@ -474,6 +474,41 @@ u32 synthetic_hud_lookup(u32 id,u32 slot) noexcept {
     ++synthetic_hud_lookups;
     return synthetic_hud_image;
 }
+// Isolated planar reference for the *actual* compiled 2A478 transparent
+// palette-subtract raster. The IMAGE is deliberately synthetic here;
+// original RES8:50 materialization is a separate retained-media gate.
+void test_original_2a478_source_transparent_raster() {
+    std::vector<code2::u8> mem(0x50000u,0u);
+    code2::Machine machine{};machine.data=mem.data();
+    rloft::graphics::OriginalVgaHost vga;
+    rloft::source_video_boot::Bridge bridge(machine,vga,mem.size());
+    bridge.run_original_290f4(3u);
+    const u32 image=0x20100u;
+    // One 8px wide, one-row type-1 transparent IMAGE, four VGA planes
+    // x two source bytes each. Transparent-key 0xFF must be preserved
+    // rather than being palette-subtracted or painted.
+    code2::store_le16(mem.data()+image,9u);
+    code2::store_le16(mem.data()+image+2u,1u);
+    code2::store_le16(mem.data()+image+4u,1u);
+    mem[image+6u]=1u;
+    mem[image+7u]=0x80u;
+    mem[image+8u]=0xFFu;
+    for(u32 i=0u;i<8u;++i)
+        mem[image+9u+i]=static_cast<code2::u8>(40u+i);
+    mem[image+10u]=0xFFu;
+    require(vga.write_direct_pixel(36u,200u,13u),
+            "2A478 synthetic transparent witness setup failed");
+    const auto old_transparent=vga.indexed_scanout(36u,200u);
+    bridge.run_original_2a478_subtractive(0u,200u,32u,image,7u);
+    require(vga.indexed_scanout(32u,200u)==33u &&
+            vga.indexed_scanout(36u,200u)==old_transparent &&
+            !vga.unsupported_read(),
+            "Original 2A478 palette subtraction or transparent-key VGA pixel incorrect");
+    std::cout<<"ORIGINAL_CODE2_2A478_SOURCE_SUBTRACTIVE_VGA_PASS"
+             <<" opaque_pixel=33 delta=7 transparent_pixel="<<unsigned(old_transparent)
+             <<" original=2A478_PLANAR source_art=SYNTHETIC_IMAGE"
+             <<" retained_RES8_50=NOT_YET_CONNECTED\\n";
+}
 void test_original_source_hud_vga_pixels() {
     std::vector<code2::u8> mem(0x50000u,0u);
     code2::Machine machine{};machine.data=mem.data();
@@ -696,6 +731,7 @@ void test_original_actor_postload() {
 int main() {
     try {
         test_original_29838_six_argument_abi();
+        test_original_2a478_source_transparent_raster();
         test_original_compositor_dispatch();
         test_original_source_vga_capture();
         test_original_source_present_fallback();
