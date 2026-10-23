@@ -299,6 +299,7 @@ jobs:
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FRAME_ENTRY"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_FRONTIER"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_SOURCE"] = "1"
           $child = [System.Diagnostics.Process]::new()
           $child.StartInfo = $cmd
           if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
@@ -331,7 +332,7 @@ jobs:
           if ($combined -match 'CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_SHORT_READ') {
             throw "Original source RES decoder reached a short archive read during the retained compositor"
           }
-          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_COMPOSITOR_CHAIN.*original_source=1F8FC_2E510_2EFD0_1F494_1EA90_1F1C8_314B0_2A478.*backgrounds=2 releases=2.*party_dirty_flags=CLEARED.*world_sprite_draws=[1-9][0-9]* clipped_source_rasters=[1-9][0-9]* captures=3 res4_source_requests=[1-9][0-9]* oblique_source_rasters=[1-9][0-9]* angle_patches=(0|4) presentations=0.*guest=PRESERVED.*next=34DE8_POLYGON_RASTER.*complete_frames=0') {
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_COMPOSITOR_CHAIN.*original_source=1F8FC_2E510_2EFD0_1F494_1EA90_1F1C8_314B0_2A478.*backgrounds=2 releases=2.*party_dirty_flags=CLEARED.*world_sprite_draws=[1-9][0-9]* clipped_source_rasters=[1-9][0-9]* captures=3 res4_source_requests=[1-9][0-9]* oblique_source_rasters=[1-9][0-9]* polygon_source_cells=[1-9][0-9]* polygon_source_projections=[0-9]+ polygon_source_quads=[0-9]+ polygon_scan_returns=[0-9]+ angle_patches=(0|4) presentations=0.*guest=PRESERVED.*next=(33E6C_POLYGON_RASTER|1BDAC_ACTOR_UPDATE).*complete_frames=0') {
             throw "Original 1F8FC failed two releases, three VGA captures, party HUD, source RES8 actor loop, or expected polygon frontier"
           }
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SOURCE_FRAME_ENTRY.*original_source=1F8FC_2E510_2F29C_2939C_2A380.*backgrounds=2.*original_release_boundary=2EFD0.*original_guest=PRESERVED.*completed_frames=0') {
