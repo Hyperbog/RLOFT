@@ -57,6 +57,7 @@ on:
       - 'Recomp/src/code2_original_world_frame.cpp'
       - 'Recomp/src/original_code2_1f494_bridge.inc'
       - 'Recomp/src/test_original_code2_298f0_party_masked_abi.cpp'
+      - 'Recomp/src/test_original_code2_1f8fc_17a68.cpp'
       - 'Recomp/tools/run_two_skeleton_complete_frame.ps1'
       - 'Recomp/src/original_sintab_raster.hpp'
       - 'Recomp/src/original_code2_369d8_raster.hpp'
@@ -318,15 +319,15 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
             throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
           }
-          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX.*original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838_OR_2986C.*active_world_cell=1 actor_calls=1 resource_requests=1 resource_id=50 resource_slot=8.*34998_patch_callbacks=4.*retained_guest=YES.*frontier=314B0_RESOURCE_SPRITE_RASTER_PENDING.*full_1F8FC=NOT_ENABLED') {
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX.*original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838_OR_2986C.*active_world_cell=1 actor_calls=1 resource_requests=1 resource_id=50 resource_slot=8.*subtractive_draws=1 palette_delta=[0-8].*34998_patch_callbacks=4.*changed_indexed_pixels=[1-9][0-9]*.*retained_guest=YES.*frontier=314B0_REMAINING_31_SPRITES_PENDING.*full_1F8FC=NOT_ENABLED') {
             throw "Retained original 1F1C8 source did not execute actual 314B0 active exterior and reach bounded RES sprite raster dependency"
           }
-          if ($combined -notmatch 'ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS decodes=10 sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34 independent_bytes=ALL_MATCH cache_reuses=10 guest=RETAINED') {
+          if ($combined -notmatch 'ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS decodes=11 sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34_RES8_50 independent_bytes=ALL_MATCH cache_reuses=11 guest=RETAINED') {
             throw "Retained original 2FD9C type-1 exact decode order, independent bytes, or 2F29C cache reuse did not pass"
           }
           $type1Entries = [regex]::Matches($combined, 'ORIGINAL_CODE2_RETAINED_TYPE1_ENTRY_PARITY_PASS ordinal=([0-9]+) archive=RES([0-9]+) id=([0-9]+) bytes=[0-9]+ decoded=2FD9C parity=INDEPENDENT_ORIGINAL_BYTES cache=2F29C_REUSED')
-          if ($type1Entries.Count -ne 10) {
-            throw "Expected exactly ten independently verified retained type-1 image records, got $($type1Entries.Count)"
+          if ($type1Entries.Count -ne 11) {
+            throw "Expected exactly eleven independently verified retained type-1 image records, got $($type1Entries.Count)"
           }
           if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE.*original_source=1F494_1EA90_22F40_298F0_2975C.*normal_party=2 terminal_party=2.*changed_draw_page_pixels=[1-9][0-9]*.*four_panels=NONZERO panel_pixels=[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*.*frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC') {
             throw "Original retained 1F494/1EA90 HUD source execution and indexed VGA pixel acceptance missing"
