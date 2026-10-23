@@ -1956,6 +1956,7 @@ void original_scene_frame_base(u32 row,u32 x,u32 resource,u32 slot) noexcept {
 }
 #include "original_code2_live_party_hud.inc"
 #include "original_code2_live_exterior_prefix.inc"
+#include "original_code2_live_1f8fc_entry.inc"
 void original_scene_res_release(u32 resource,u32 slot) noexcept {
     if(!current->game_audio.app68 || slot!=0u)
         stop("ORIGINAL_1F8FC_RES_CACHE_NOT_RETAINED");
@@ -2672,6 +2673,10 @@ void original_181b4_level_load(u32 requested) noexcept {
     if(const char* enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR")) {
         if(std::strcmp(enabled,"1")==0)
             original_live_1f1c8_source_prefix_probe();
+    }
+    if(const char* enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FRAME_ENTRY")) {
+        if(std::strcmp(enabled,"1")==0)
+            original_live_1f8fc_entry_probe();
     }
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_LEVEL22_ARCHIVE_SOURCE_COMPLETED\n"
              <<std::flush;
