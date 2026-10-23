@@ -120,8 +120,23 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
     exterior_trace=nullptr;
     if(!current->stop_reason ||
        std::strcmp(current->stop_reason,
-                   "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING")!=0)
+                   "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING")!=0) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F1C8_PREFIX_FRONTIER_DIAGNOSTIC"
+                 <<" first_unsupported="<<(current->stop_reason?current->stop_reason:"NONE")
+                 <<" sky_runs="<<trace.sky_runs
+                 <<" ground_runs="<<trace.ground_runs
+                 <<" raster_bytes="<<trace.write_bytes
+                 <<" angle_patches="<<trace.angle_patches
+                 <<" c026="<<unsigned(current->data[0xC026u])
+                 <<" c027="<<unsigned(current->data[0xC027u])
+                 <<" c028="<<unsigned(current->data[0xC028u])
+                 <<" active="<<unsigned(current->data[0x258A8u])
+                 <<" kind="<<unsigned(current->data[0x258B0u])
+                 <<" world_kind="<<unsigned(current->data[0x258B1u])
+                 <<" page="<<unsigned(current->data[0xC050u])
+                 <<"\\n"<<std::flush;
         stop("ORIGINAL_1F1C8_PREFIX_UNEXPECTED_DEPENDENCY");
+    }
     const auto after=indexed_draw();
     u32 changed=0u;
     for(u32 y=0u;y<400u;++y)
