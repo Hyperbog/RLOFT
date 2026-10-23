@@ -11,6 +11,7 @@ struct ExteriorSourceTrace {
     u32 write_calls=0u,write_bytes=0u,angle_patches=0u;
     u32 active_actor_runs=0u,resource_requests=0u;
     u32 resource_id=0u,resource_slot=0u;
+    u32 resource_image=0u,subtractive_draws=0u,palette_delta=0u;
 };
 thread_local ExteriorSourceTrace* exterior_trace=nullptr;
 
@@ -74,8 +75,39 @@ u32 original_exterior_actor_resource(u32 key,u32 slot) noexcept {
     ++exterior_trace->resource_requests;
     exterior_trace->resource_id=key;
     exterior_trace->resource_slot=slot;
-    // Fail before substituting a RES sprite or skipping the clipped raster.
-    stop("ORIGINAL_1F1C8_314B0_RESOURCE_SPRITE_RASTER_PENDING");
+    if(!current->game_audio.app68 || !current->original_vga ||
+       key!=50u || slot!=8u)
+        stop("ORIGINAL_1F1C8_314B0_RES8_50_SOURCE_PREREQUISITE_CHANGED");
+    const u32 image=code2::function_2f29c(
+        current->machine,current->game_audio,key,slot);
+    if(!image || std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_1F1C8_314B0_RES8_50_SOURCE_IMAGE_INVALID");
+    exterior_trace->resource_image=image;
+    return image;
+}
+u32 original_exterior_sprite_subtract(u32 frame,u32 row,u32 x,u32 image,
+                                        u32 palette_delta) noexcept {
+    if(!exterior_trace || image!=exterior_trace->resource_image ||
+       frame!=0u || row!=4u || x!=0x20u || palette_delta>8u)
+        stop("ORIGINAL_1F1C8_314B0_2A478_RASTER_ABI_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2a478_subtractive(
+            frame,row,x,image,palette_delta);
+    }catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=RES8_50_2A478_RASTER_EXCEPTION"
+                 <<" reason="<<e.what()
+                 <<" image="<<image
+                 <<" row="<<row<<" x="<<x
+                 <<" delta="<<palette_delta<<"\\n"<<std::flush;
+        stop("ORIGINAL_1F1C8_314B0_2A478_VGA_RASTER_FAILED");
+    }
+    ++exterior_trace->subtractive_draws;
+    exterior_trace->palette_delta=palette_delta;
+    // First real RES8:50 sprite drawn. The next 31 original
+    // weather sprites and full 1F1C8 scene graph remain unconnected.
+    stop("ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
 }
 void original_exterior_active_actor(u32 view) noexcept {
     if(!exterior_trace || view!=1u)
@@ -83,6 +115,7 @@ void original_exterior_active_actor(u32 view) noexcept {
     ++exterior_trace->active_actor_runs;
     code2::Application57Boundary sprite{};
     sprite.call_2f29c=&original_exterior_actor_resource;
+    sprite.call_2a478=&original_exterior_sprite_subtract;
     code2::Application73Boundary actor{};
     actor.app57=&sprite;
     code2::function_314b0(current->machine,actor,view);
@@ -138,7 +171,7 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
     exterior_trace=nullptr;
     if(!current->stop_reason ||
        std::strcmp(current->stop_reason,
-                   "ORIGINAL_1F1C8_314B0_RESOURCE_SPRITE_RASTER_PENDING")!=0) {
+                   "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN")!=0) {
         std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F1C8_PREFIX_FRONTIER_DIAGNOSTIC"
                  <<" first_unsupported="<<(current->stop_reason?current->stop_reason:"NONE")
                  <<" sky_runs="<<trace.sky_runs
@@ -149,6 +182,9 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
                  <<" resource_requests="<<trace.resource_requests
                  <<" resource_id="<<trace.resource_id
                  <<" resource_slot="<<trace.resource_slot
+                 <<" sprite_draws="<<trace.subtractive_draws
+                 <<" delta="<<trace.palette_delta
+                 <<" image="<<trace.resource_image
                  <<" c026="<<unsigned(current->data[0xC026u])
                  <<" c027="<<unsigned(current->data[0xC027u])
                  <<" c028="<<unsigned(current->data[0xC028u])
@@ -167,7 +203,8 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
     if(trace.sky_runs!=0u || trace.ground_runs!=0u ||
        trace.write_calls!=0u || trace.write_bytes!=0u ||
        trace.active_actor_runs!=1u || trace.resource_requests!=1u ||
-       trace.angle_patches!=4u)
+       trace.subtractive_draws!=1u || trace.resource_image==0u ||
+       trace.angle_patches!=4u || changed==0u)
         stop("ORIGINAL_1F1C8_SOURCE_ACTIVE_RENDERER_ACCEPTANCE_FAILED");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX"
              <<" original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838_OR_2986C"
@@ -175,10 +212,13 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
              <<" resource_requests="<<trace.resource_requests
              <<" resource_id="<<trace.resource_id
              <<" resource_slot="<<trace.resource_slot
+             <<" sprite_image="<<trace.resource_image
+             <<" subtractive_draws="<<trace.subtractive_draws
+             <<" palette_delta="<<trace.palette_delta
              <<" 34998_patch_callbacks="<<trace.angle_patches
              <<" changed_indexed_pixels="<<changed
              <<" retained_guest=YES"
-             <<" frontier=314B0_RESOURCE_SPRITE_RASTER_PENDING"
+             <<" frontier=314B0_REMAINING_31_SPRITES_PENDING"
              <<" full_1F8FC=NOT_ENABLED\\n"<<std::flush;
     // This diagnostic owns no scene-mode transition or palette changes.
     current->stop_reason=nullptr;
