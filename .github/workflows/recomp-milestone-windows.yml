@@ -325,6 +325,9 @@ jobs:
           if ($combined -notmatch 'ORIGINAL_CODE2_1F8FC_SOURCE_WORKER_CHAIN_REQUEST_PASS.*source_guest=PRESERVED.*next_source_keyboard=30B40') {
             throw "Retained CODE.2 keyboard test did not resume from the original 1F8FC integrated compositor diagnostic"
           }
+          if ($combined -notmatch 'ORIGINAL_CODE2_BUFFERED_RES_EOF_READ_PASS archive=RES8 requested=1024 returned=404 source=2F9B0_2F96C_312EC error=PRESERVED_NOT_SET EOF=YES') {
+            throw "The final RES8 record did not preserve the original DOS buffered short-EOF read contract"
+          }
           if ($combined -match 'CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_SHORT_READ') {
             throw "Original source RES decoder reached a short archive read during the retained compositor"
           }
