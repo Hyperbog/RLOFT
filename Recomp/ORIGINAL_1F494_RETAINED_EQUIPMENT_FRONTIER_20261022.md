@@ -25,6 +25,17 @@ LIVE_CODE2_SOURCE_STOP=ORIGINAL_1F494_RES1_RESOURCE_RECORD_BOUNDS
 
 Authentic RES1:338/362 decoded/drew successfully earlier in the same guest, as did authentic Level22 `32954` rays and the separate `37590` type-6 decoder. **An ID outside the RES1 catalog is not a rendering result**. It indicates an unresolved pre-transition equipment/item-source dependency or ABI/state mismatch; its precise cause is not yet established. Do not clamp the ID, fabricate sprites, skip the callback or assert normal-party HUD success.
 
+## Independent original OBJECTS.DAT record audit
+
+The supplied untouched `OBJECTS.DAT` is **21,844 bytes** (SHA256 `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`). Its little-endian initial count is **336**, and its remaining **21,840 bytes** form exactly **336 records × 65 bytes**. Using zero-based record indices after the four-byte count:
+
+- Object **37** is **MACE**, with original record byte `+0x2D = 37`.
+- Object **8** is **BLUE ROBE**, with original record byte `+0x2D = 8`.
+
+These two authentic item indices agree with the live Level22 equipment words (`37,8`), while the erroneous RES1 request `16724` is neither of the observed raw record selectors. **This does not yet prove** whether the fault originates in item-table initialization, an indirect guest pointer, the `1EA90` reconstruction, or a callback ABI. Preserve the original data and disambiguate these possibilities by tracing the source computed request before `2F29C`.
+
+**Final verified CI for the fail-closed change:** [MSVC original-media #39875380876](https://github.com/Hyperbog/RLOFT/actions/runs/39875380876) PASS, [Linux #39875404226](https://github.com/Hyperbog/RLOFT/actions/runs/39875404226) PASS, [source-link #39875404122](https://github.com/Hyperbog/RLOFT/actions/runs/39875404122) PASS. These results validate normal startup and compilation, **not** opt-in HUD correctness.
+
 ## Fail-closed feature gate
 
 Commit `bcf2b85e` keeps the diagnostic available only when **`RLOFT_RECOMP_EXPERIMENTAL_HUD=1`**. It no longer runs during ordinary original-media boot, preserving the preceding verified `1FC14` and retained VGA boundary until equipment source state is reconciled. The following source-only change corrects the diagnostic trace newline. Ordinary startup **does not imply** this HUD callback passed.
