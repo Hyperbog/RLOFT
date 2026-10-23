@@ -20,6 +20,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
+#include <utility>
 #include <csetjmp>
 #include <filesystem>
 #include <fstream>
