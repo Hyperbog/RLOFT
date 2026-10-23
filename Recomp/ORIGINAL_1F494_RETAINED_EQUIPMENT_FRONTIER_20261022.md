@@ -48,3 +48,30 @@ Commit `bcf2b85e` keeps the diagnostic available only when **`RLOFT_RECOMP_EXPER
 4. Validate full original `1A5B0` page presentation and multiple input-driven indexed VGA/DAC6 frames against independently captured DOS frames.
 
 **Not accepted:** full party HUD, source world composition, mode-4 palette+screen, input-driven frame parity, DOS screenshot parity, gameplay-ready executable.
+
+## Follow-up: original catalog loader repaired and retained 1F494 executed
+
+The original retail `CODE.2` at `0x75F24 + 0x992` contains bytes `54 41` ("TA"), little-endian **16724**. With `[255D8]=0`, original `1EA90` evaluates equipped object 37 as `37*65+0x2D=0x992`, proving the anomalous resource number was a read from **uninitialized object-table DGROUP**. This was NOT an `298F0` six-argument ABI error.
+
+Repaired `Recomp/src/code2_original_res_startup.cpp`:
+- Preserved original `16D04 -> 16810` (`NPCS.DAT`) and `16D04 -> 168C8` (`OBJECTS.DAT`) via full `Application29/28/25/26` callback chain in the **retained second initializer**, not via host-inserted decoded table or artificial sprite IDs.
+- Source allocates original 83 NPC records × 69 bytes and 336 object records × 65 bytes with the existing Watcom allocator, and populates `22230/255D8` in preserved original DGROUP via read-only file I/O.
+- New independent gate compares all 5,727 NPC bytes and 21,840 object bytes with untouched original input. [Windows original-media #39876509515](https://github.com/Hyperbog/RLOFT/actions/runs/39876509515) PASSED normal startup, all 86 existing CTests, original level actors, and retained input; original-gate log emitted `ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS npc_count=83 object_count=336 mace_graphic=37 blue_robe_graphic=8 ... original_bytes=INDEPENDENT_MATCH`.
+
+Actual HUD exercise and VGA edge:
+- Added explicit opt-in `RLOFT_RECOMP_EXPERIMENTAL_HUD=1` to original-media Windows CI, with mandatory source `1F494/1EA90` indexed-pixel acceptance.
+- Retail terminal-party graphic at y=275, x=266, width=56 **crosses the scanline by two pixels**. Original `2A380` uses linear four-plane VGA addressing, without row-width clipping. The retained video bridge incorrectly required `x+width<=320`. Revision [11746c67](https://github.com/Hyperbog/RLOFT/commit/11746c670e3966192f0c76b1dbbee404a1efb991) checks the actual bounded linear 320×400 planar draw-page footprint instead.
+- [Original-media Windows #39877377048](https://github.com/Hyperbog/RLOFT/actions/runs/39877377048) executed **retained compiled `1F494` / `1EA90`** with source `22F40,298F0,2975C`, two normal party panels, two terminal panels, and **12,966 changed indexed VGA pixels**. Exact log: `CODE2_ORIGINAL_LIVE_BOOT=1F494_1EA90_RETAINED_HUD_PROBE original_source=1F494_1EA90_22F40_298F0_2975C normal_party=2 terminal_party=2 changed_draw_page_pixels=12966 mode=3_PRETRANSITION_ONLY frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC`.
+
+**Follow-on test failure, not evidence of incorrect resource bytes:** The same Windows run later failed the previous `code2_original_res_startup.cpp` assertion:
+
+```text
+INIT/RES source: raw_type==1u && target==59u && encoded_length==8 &&
+s->guest->original_type1_decodes==4u &&
+!s->guest->original_image_invalid && !s->guest->error
+```
+
+That test was written when only four original type-1 resources had been decoded. The now-enabled full HUD loads more original RES0/RES1 resources. Do not blindly change the equality to a weak lower bound. Record the actual additional type-1 IDs, verify independent originals and cache reuse, and **then** update the historical exact-count expectation with a new explicit resource-ID ledger. Current Windows original-media CI is **RED**; full retained HUD is a successful **pretransition pixel witness** but not yet CI-accepted. The other source branches remain independent; default gameplay startup still does not enable `1F8FC`.
+
+**Next acceptance:** Update the genuine resource decode ledger and exact-count gates, then validate two actor portraits, four equipment draws, two terminal panels, palette tables, original HP bars, complete draw-page indexed pixels, and final strict Windows CI on the same retained guest. Mode-4 compositor, exterior `1F1C8`, real physical input, and DOS screenshot parity remain unconnected.
+
