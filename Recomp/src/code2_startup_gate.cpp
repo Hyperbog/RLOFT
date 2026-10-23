@@ -1347,6 +1347,7 @@ void original_16d04_after_dos_open() noexcept {
 // loop after 20440 returns. Source 1FC14 reads keyboard via 30B40.
 // Without this callback the reconstructed optional function pointer
 // yields key 0 in a busy loop, hiding the real live-gameplay frontier.
+void original_live_1f8fc_source_chain() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
     if(!current->live_continuation ||
        current->original_16d04_completed!=1u ||
@@ -1375,6 +1376,16 @@ u32 original_30b40_keyboard_poll() noexcept {
         0u,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_SHUTDOWN");
+    // Private source-test handshake (not a DOS keyboard scan code):
+    // authenticate archives and input dispatch first, then run the full
+    // original compositor callback graph on the SAME worker and guest.
+    if(response.ax==0xFFFFu) {
+        const char* enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR");
+        if(!enabled || std::strcmp(enabled,"1")!=0)
+            stop("ORIGINAL_1F8FC_FULL_COMPOSITOR_DIAGNOSTIC_NOT_ENABLED");
+        original_live_1f8fc_source_chain();
+        return 0u;
+    }
     return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
 }
 // Original 20440 direct dependencies. All file bytes arrive through the
@@ -2132,6 +2143,7 @@ void original_scene_poll_source_events() noexcept {
     code2::Application70Boundary b{};
     code2::function_2f868(current->machine,b);
 }
+#include "original_code2_live_full_frame.inc"
 // Original world ray reconstruction, attached to the *retained*
 // CODE.2 Machine rather than a second WorldRaySource fixture. All
 // geometry, SINTAB tables, and material IDs remain guest-owned.
