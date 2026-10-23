@@ -9,6 +9,10 @@ struct OriginalFullFrameTrace {
     u32 presentations=0u;
     u32 original_res4_requests=0u;
     u32 oblique_rasters=0u;
+    u32 polygon_cells=0u;
+    u32 polygon_projections=0u;
+    u32 polygon_quads=0u;
+    u32 polygon_scan_returns=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -187,6 +191,58 @@ void original_full_exterior_oblique_sprite() noexcept {
         stop("ORIGINAL_1F1C8_34A74_SOURCE_RASTER_FAILED");
     }
     ++original_full_frame_trace->oblique_rasters;
+}
+
+// Actual compiled 34DE8 map scan and original 35798 perspective
+// projection. The first projected polygon remains fail-closed at
+// the unconnected 33E6C raster edge/scanline callbacks.
+u32 original_full_polygon_record(code2::s32 x,code2::s32 y) noexcept {
+    if(!original_full_frame_trace || x<0 || y<0)
+        stop("ORIGINAL_34DE8_LEVEL_RECORD_QUERY_INVALID");
+    ++original_full_frame_trace->polygon_cells;
+    return code2::function_1e8c8(
+        current->machine,static_cast<u32>(x),static_cast<u32>(y));
+}
+void original_full_polygon_project(code2::Machine& m,
+        u32 x,u32 y,u32 screen,u32 depth) noexcept {
+    if(!original_full_frame_trace ||
+       std::uint64_t(depth)+2u>current->data.size())
+        stop("ORIGINAL_34DE8_35798_PROJECTOR_INVALID");
+    ++original_full_frame_trace->polygon_projections;
+    code2::function_35798(m,x,y,screen,depth);
+}
+void original_full_polygon_quad(
+        code2::Machine&,code2::Runtime103Boundary&,
+        const u32* quad) noexcept {
+    if(!original_full_frame_trace || !quad)
+        stop("ORIGINAL_34DE8_SOURCE_STACK_QUAD_MISSING");
+    ++original_full_frame_trace->polygon_quads;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=34DE8_ORIGINAL_VERTEX_QUAD"
+             <<" ordinal="<<original_full_frame_trace->polygon_quads
+             <<" source=34DE8_35798_34BB0"
+             <<" vertex0_x="<<quad[0]
+             <<" vertex0_y="<<quad[1]
+             <<" original_guest=PRESERVED\n"<<std::flush;
+    stop("ORIGINAL_34DE8_33E6C_POLYGON_RASTER_PENDING");
+}
+void original_full_exterior_polygon_source() noexcept {
+    if(!original_full_frame_trace || !current->original_vga)
+        stop("ORIGINAL_34DE8_SOURCE_GUEST_PREREQUISITES");
+    code2::Runtime110Boundary scan{};
+    scan.call_1e8c8=&original_full_polygon_record;
+    scan.call_35798=&original_full_polygon_project;
+    code2::Runtime109Boundary quad{};
+    quad.call_2f29c=&original_full_frame_resource;
+    quad.call_33e6c_local_quad=&original_full_polygon_quad;
+    code2::Runtime103Boundary raster{};
+    code2::function_34de8(current->machine,scan,quad,raster);
+    ++original_full_frame_trace->polygon_scan_returns;
+}
+void original_full_1bdac_frontier() noexcept {
+    if(!original_full_frame_trace ||
+       original_full_frame_trace->polygon_scan_returns!=1u)
+        stop("ORIGINAL_1BDAC_POLYGON_PREDECESSOR_MISSING");
+    stop("ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING");
 }
 
 void original_live_1f8fc_source_chain() noexcept {
