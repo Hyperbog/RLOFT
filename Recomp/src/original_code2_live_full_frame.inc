@@ -8,6 +8,7 @@ struct OriginalFullFrameTrace {
     u32 captures=0u;
     u32 presentations=0u;
     u32 original_res4_requests=0u;
+    u32 oblique_rasters=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -170,6 +171,24 @@ u32 original_full_frame_resource(u32 id,u32 slot) noexcept {
     return image;
 }
 
+void original_full_exterior_oblique_sprite() noexcept {
+    if(!exterior_trace || !original_full_frame_trace ||
+       !current->original_vga)
+        stop("ORIGINAL_1F1C8_34A74_RETAINED_GUEST_ABI_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_34a74_oblique();
+    } catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=34A74_RES4_TEXTURE_FRONTIER"
+                 <<" image="<<code2::load_le32(current->data.data()+0xC040u)
+                 <<" line_count="<<code2::load_le32(current->data.data()+0xFF50u)
+                 <<" reason="<<e.what()<<"\\n"<<std::flush;
+        stop("ORIGINAL_1F1C8_34A74_SOURCE_RASTER_FAILED");
+    }
+    ++original_full_frame_trace->oblique_rasters;
+}
+
 void original_live_1f8fc_source_chain() noexcept {
     if(!current || !current->live_continuation ||
        current->original_181b4_completed!=1u ||
@@ -212,7 +231,8 @@ void original_live_1f8fc_source_chain() noexcept {
         &original_full_exterior_actor:&original_exterior_active_actor;
     scene.call_33e28=&original_exterior_sky;
     scene.call_33de0=&original_exterior_ground;
-    scene.call_34a74=&original_exterior_oblique_sprite;
+    scene.call_34a74=through_actor?
+        &original_full_exterior_oblique_sprite:&original_exterior_oblique_sprite;
     scene.call_34de8=&original_exterior_polygon_frontier;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
@@ -282,6 +302,7 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" clipped_source_rasters="<<exterior.clipped_rasters
              <<" captures="<<frame.captures
              <<" res4_source_requests="<<frame.original_res4_requests
+             <<" oblique_source_rasters="<<frame.oblique_rasters
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
