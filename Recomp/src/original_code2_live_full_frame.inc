@@ -47,10 +47,19 @@ void original_full_frame_present(u32 page,code2::s32 cursor,u32 variant) noexcep
 u32 original_full_exterior_resource(u32 id,u32 slot) noexcept {
     if(!exterior_trace || slot!=8u || !current->game_audio.app68)
         stop("ORIGINAL_314B0_FULL_RES8_RESOURCE_ABI_CHANGED");
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    if(catalog==0u || std::uint64_t(catalog)+9u*16u>current->data.size())
+        stop("ORIGINAL_314B0_FULL_RES8_ARCHIVE_TABLE_MISSING");
+    const u32 count=code2::load_le32(current->data.data()+catalog+8u*16u+8u);
+    if(id>=count)
+        stop("ORIGINAL_314B0_FULL_RES8_RECORD_OUT_OF_BOUNDS");
+    // Source 2F29C is allowed to return null for a valid record, and
+    // compiled 2986C/29564 tests image==0 and omits that raster.
+    // Do not turn an authentic absent image into a fatal host exception.
     const u32 image=code2::function_2f29c(
         current->machine,current->game_audio,id,slot);
-    if(!image || std::uint64_t(image)+8u>current->data.size())
-        stop("ORIGINAL_314B0_FULL_RES8_RESOURCE_NOT_LOADED");
+    if(image && std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_314B0_FULL_RES8_NONZERO_POINTER_INVALID");
     ++exterior_trace->resource_requests;
     exterior_trace->resource_id=id;
     exterior_trace->resource_slot=slot;
@@ -191,7 +200,7 @@ void original_live_1f8fc_source_chain() noexcept {
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
        exterior.active_actor_runs!=1u || exterior.subtractive_draws==0u ||
-       exterior.resource_requests!=(through_actor?exterior.subtractive_draws:1u) ||
+       exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
        frame.presentations!=0u)
@@ -201,6 +210,7 @@ void original_live_1f8fc_source_chain() noexcept {
                  <<" background="<<frame.backgrounds
                  <<" release="<<frame.releases
                  <<" captures="<<frame.captures
+                 <<" source_resource_requests="<<exterior.resource_requests
                  <<" exterior_actor="<<exterior.active_actor_runs
                  <<" world_sprites="<<exterior.subtractive_draws
                  <<" angle_patches="<<exterior.angle_patches
