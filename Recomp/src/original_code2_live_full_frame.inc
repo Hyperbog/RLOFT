@@ -40,6 +40,67 @@ void original_full_frame_present(u32 page,code2::s32 cursor,u32 variant) noexcep
     original_scene_1a5b0(page,cursor,variant);
     ++original_full_frame_trace->presentations;
 }
+// Optional deeper original 314B0 branch. Unlike the first-sprite prefix,
+// the real 314B0 loops over its retained actor records until exhausted.
+// Only original 2A478's genuine un-clipped raster is accepted here; any
+// other raster variant must fail closed instead of vanishing.
+u32 original_full_exterior_resource(u32 id,u32 slot) noexcept {
+    if(!exterior_trace || slot!=8u || !current->game_audio.app68)
+        stop("ORIGINAL_314B0_FULL_RES8_RESOURCE_ABI_CHANGED");
+    const u32 image=code2::function_2f29c(
+        current->machine,current->game_audio,id,slot);
+    if(!image || std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_314B0_FULL_RES8_RESOURCE_NOT_LOADED");
+    ++exterior_trace->resource_requests;
+    exterior_trace->resource_id=id;
+    exterior_trace->resource_slot=slot;
+    exterior_trace->resource_image=image;
+    return image;
+}
+u32 original_full_exterior_subtractive(
+    u32 frame,u32 row,u32 x,u32 image,u32 delta) noexcept {
+    if(!exterior_trace || !image || delta>8u ||
+       std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_314B0_FULL_2A478_RASTER_ARGUMENTS_INVALID");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2a478_subtractive(frame,row,x,image,delta);
+    }catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=314B0_NEXT_RASTER_FRONTIER"
+                 <<" frame="<<frame<<" row="<<row<<" x="<<x
+                 <<" image="<<image<<" delta="<<delta
+                 <<" reason="<<e.what()<<"\\n"<<std::flush;
+        stop("ORIGINAL_314B0_FULL_2A478_SOURCE_RASTER_FAILED");
+    }
+    ++exterior_trace->subtractive_draws;
+    exterior_trace->palette_delta=delta;
+    return 0u;
+}
+u32 original_full_exterior_unsupported_raster(
+    u32,u32,u32,u32,u32) noexcept {
+    stop("ORIGINAL_314B0_FULL_2A6B0_CLIPPED_RASTER_PENDING");
+}
+u32 original_full_exterior_unsupported_raster6(
+    u32,u32,u32,u32,u32,u32) noexcept {
+    stop("ORIGINAL_314B0_FULL_2A8A0_CLIPPED_RASTER_PENDING");
+}
+void original_full_exterior_actor(u32 view) noexcept {
+    if(!exterior_trace || view!=1u)
+        stop("ORIGINAL_314B0_FULL_VIEW_CHANGED");
+    ++exterior_trace->active_actor_runs;
+    code2::Application57Boundary b{};
+    b.call_2f29c=&original_full_exterior_resource;
+    b.call_2a478=&original_full_exterior_subtractive;
+    b.call_2a6b0=&original_full_exterior_unsupported_raster;
+    b.call_2a8a0=&original_full_exterior_unsupported_raster6;
+    code2::Application73Boundary actor{};
+    actor.app57=&b;
+    code2::function_314b0(current->machine,actor,view);
+    if(exterior_trace->subtractive_draws==0u)
+        stop("ORIGINAL_314B0_FULL_NO_SOURCE_SPRITES");
+}
+
 void original_live_1f8fc_source_chain() noexcept {
     if(!current || !current->live_continuation ||
        current->original_181b4_completed!=1u ||
@@ -74,7 +135,12 @@ void original_live_1f8fc_source_chain() noexcept {
     scene.call_23024=&original_live_hud_group;
     scene.call_334c4=&original_world_camera_334c4;
     scene.call_34998=&original_exterior_angle_refresh;
-    scene.call_314b0=&original_exterior_active_actor;
+    const char* const polygon_advance=
+        std::getenv("RLOFT_RECOMP_EXPERIMENTAL_POLYGON_FRONTIER");
+    const bool through_actor=polygon_advance &&
+        std::strcmp(polygon_advance,"1")==0;
+    scene.call_314b0=through_actor?
+        &original_full_exterior_actor:&original_exterior_active_actor;
     scene.call_33e28=&original_exterior_sky;
     scene.call_33de0=&original_exterior_ground;
     scene.call_34a74=&original_exterior_oblique_sprite;
@@ -111,12 +177,14 @@ void original_live_1f8fc_source_chain() noexcept {
     current->active_escape=prior;
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
+    const char* const expected_stop=through_actor?
+        "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
+        "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN";
     if(!current->stop_reason ||
-       std::strcmp(current->stop_reason,
-           "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN")!=0 ||
+       std::strcmp(current->stop_reason,expected_stop)!=0 ||
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
-       exterior.active_actor_runs!=1u || exterior.subtractive_draws!=1u ||
+       exterior.active_actor_runs!=1u || exterior.subtractive_draws==0u ||
        exterior.resource_requests!=1u ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -145,7 +213,7 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
-             <<" next=EXTERIOR_REMAINING_SOURCE"
+             <<" next="<<(through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE")
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
 }
