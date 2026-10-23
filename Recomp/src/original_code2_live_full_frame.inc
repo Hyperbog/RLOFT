@@ -132,6 +132,30 @@ void original_full_exterior_actor(u32 view) noexcept {
         stop("ORIGINAL_314B0_FULL_NO_SOURCE_SPRITES");
 }
 
+// Application43 is shared between party HUD and 1F1C8. Exterior
+// oblique/polygon textures request RES4, not RES1 portraits. Forward
+// these authentic requests to the retained 2F29C loader, preserving
+// null image returns on valid archive entries.
+u32 original_full_frame_resource(u32 id,u32 slot) noexcept {
+    if(slot==0u || slot==1u)
+        return original_scene_hud_res_image(id,slot);
+    if((slot!=4u && slot!=8u) ||
+       !current->game_audio.app68 || !current->original_vga)
+        stop("ORIGINAL_1F8FC_SHARED_RESOURCE_ABI_CHANGED");
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    if(!catalog || std::uint64_t(catalog)+(slot+1u)*16u>current->data.size())
+        stop("ORIGINAL_1F8FC_SHARED_ARCHIVE_DIRECTORY_NOT_READY");
+    const u32 rec=catalog+slot*16u;
+    const u32 count=code2::load_le32(current->data.data()+rec+8u);
+    if(id>=count)
+        stop("ORIGINAL_1F8FC_SHARED_RESOURCE_RECORD_OUT_OF_BOUNDS");
+    const u32 image=code2::function_2f29c(
+        current->machine,current->game_audio,id,slot);
+    if(image && std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_1F8FC_SHARED_RESOURCE_IMAGE_INVALID");
+    return image;
+}
+
 void original_live_1f8fc_source_chain() noexcept {
     if(!current || !current->live_continuation ||
        current->original_181b4_completed!=1u ||
@@ -144,7 +168,7 @@ void original_live_1f8fc_source_chain() noexcept {
     exterior_trace=&exterior;
     code2::Application43Boundary ui{};
     ui.call_19cc4=&original_live_hud_clock;
-    ui.call_2f29c=&original_scene_hud_res_image;
+    ui.call_2f29c=&original_full_frame_resource;
     ui.call_29b40=&original_live_hud_rect;
     ui.call_24478=&original_live_hud_item;
     ui.call_2a258=&original_live_hud_2a258;
