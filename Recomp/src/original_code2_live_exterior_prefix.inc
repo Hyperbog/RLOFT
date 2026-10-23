@@ -9,6 +9,8 @@ void original_world_camera_334c4() noexcept;
 struct ExteriorSourceTrace {
     u32 sky_runs=0u,ground_runs=0u;
     u32 write_calls=0u,write_bytes=0u,angle_patches=0u;
+    u32 active_actor_runs=0u,resource_requests=0u;
+    u32 resource_id=0u,resource_slot=0u;
 };
 thread_local ExteriorSourceTrace* exterior_trace=nullptr;
 
@@ -67,8 +69,24 @@ void original_exterior_angle_refresh() noexcept {
     if(!exterior_trace || exterior_trace->angle_patches!=before+4u)
         stop("ORIGINAL_1F1C8_34998_SOURCE_PATCHES_NOT_OBSERVED");
 }
-void original_exterior_active_actor(u32) noexcept {
-    stop("ORIGINAL_1F1C8_314B0_ACTIVE_ACTOR_RENDERER_PENDING");
+u32 original_exterior_actor_resource(u32 key,u32 slot) noexcept {
+    if(!exterior_trace)stop("ORIGINAL_1F1C8_314B0_RESOURCE_CALLBACK_OUTSIDE_SOURCE");
+    ++exterior_trace->resource_requests;
+    exterior_trace->resource_id=key;
+    exterior_trace->resource_slot=slot;
+    // Fail before substituting a RES sprite or skipping the clipped raster.
+    stop("ORIGINAL_1F1C8_314B0_RESOURCE_SPRITE_RASTER_PENDING");
+}
+void original_exterior_active_actor(u32 view) noexcept {
+    if(!exterior_trace || view!=1u)
+        stop("ORIGINAL_1F1C8_314B0_ACTIVE_WORLD_VIEW_CHANGED");
+    ++exterior_trace->active_actor_runs;
+    code2::Application57Boundary sprite{};
+    sprite.call_2f29c=&original_exterior_actor_resource;
+    code2::Application73Boundary actor{};
+    actor.app57=&sprite;
+    code2::function_314b0(current->machine,actor,view);
+    stop("ORIGINAL_1F1C8_314B0_SOURCE_RETURNED_WITHOUT_SPRITES");
 }
 void original_exterior_oblique_sprite() noexcept {
     stop("ORIGINAL_1F1C8_34A74_OBLIQUE_SPRITE_PENDING");
@@ -120,13 +138,17 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
     exterior_trace=nullptr;
     if(!current->stop_reason ||
        std::strcmp(current->stop_reason,
-                   "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING")!=0) {
+                   "ORIGINAL_1F1C8_314B0_RESOURCE_SPRITE_RASTER_PENDING")!=0) {
         std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F1C8_PREFIX_FRONTIER_DIAGNOSTIC"
                  <<" first_unsupported="<<(current->stop_reason?current->stop_reason:"NONE")
                  <<" sky_runs="<<trace.sky_runs
                  <<" ground_runs="<<trace.ground_runs
                  <<" raster_bytes="<<trace.write_bytes
                  <<" angle_patches="<<trace.angle_patches
+                 <<" actor_runs="<<trace.active_actor_runs
+                 <<" resource_requests="<<trace.resource_requests
+                 <<" resource_id="<<trace.resource_id
+                 <<" resource_slot="<<trace.resource_slot
                  <<" c026="<<unsigned(current->data[0xC026u])
                  <<" c027="<<unsigned(current->data[0xC027u])
                  <<" c028="<<unsigned(current->data[0xC028u])
@@ -142,19 +164,22 @@ void original_live_1f1c8_source_prefix_probe() noexcept {
     for(u32 y=0u;y<400u;++y)
         for(u32 x=0u;x<320u;++x)
             changed+=before[y*320u+x]!=after[y*320u+x];
-    if(trace.sky_runs!=1u || trace.ground_runs!=0u ||
-       trace.write_calls!=128u || trace.write_bytes!=8192u ||
-       changed==0u)
-        stop("ORIGINAL_1F1C8_SOURCE_SKY_PIXEL_ACCEPTANCE_FAILED");
+    if(trace.sky_runs!=0u || trace.ground_runs!=0u ||
+       trace.write_calls!=0u || trace.write_bytes!=0u ||
+       trace.active_actor_runs!=1u || trace.resource_requests!=1u ||
+       trace.angle_patches!=4u)
+        stop("ORIGINAL_1F1C8_SOURCE_ACTIVE_RENDERER_ACCEPTANCE_FAILED");
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX"
-             <<" original_source=1F1C8_1EDAC_334C4_32954_33E28"
-             <<" sky_rows="<<trace.write_calls
-             <<" planar_bytes="<<trace.write_bytes
-             <<" changed_indexed_pixels="<<changed
+             <<" original_source=1F1C8_1EDAC_334C4_32954_34998_314B0_29838"
+             <<" active_world_cell=1 actor_calls="<<trace.active_actor_runs
+             <<" resource_requests="<<trace.resource_requests
+             <<" resource_id="<<trace.resource_id
+             <<" resource_slot="<<trace.resource_slot
              <<" 34998_patch_callbacks="<<trace.angle_patches
+             <<" changed_indexed_pixels="<<changed
              <<" retained_guest=YES"
-             <<" frontier=34DE8_POLYGON_NOT_CONNECTED"
-             <<" full_1F8FC=NOT_ENABLED\n"<<std::flush;
+             <<" frontier=314B0_RESOURCE_SPRITE_RASTER_PENDING"
+             <<" full_1F8FC=NOT_ENABLED\\n"<<std::flush;
     // This diagnostic owns no scene-mode transition or palette changes.
     current->stop_reason=nullptr;
 }
