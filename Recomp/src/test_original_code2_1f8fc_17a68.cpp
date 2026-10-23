@@ -61,6 +61,43 @@ void phase22d70() {trace->record("22D70");}
 void phase2f868() {trace->record("2F868");}
 void phase30b2c() {trace->record("30B2C");}
 
+// Cross-check the six-argument retail 29838 ABI reconstructed from the
+// exact CODE.2 x86 bytes at 29838..2986B. Original 314B0 passes
+// (frame=0,row=4,x=32,resource=50,archive=8,palette_delta=7).
+u32 original_29838_lookup(u32 resource,u32 archive) {
+    trace->check(resource==50u && archive==8u);
+    trace->record("2F29C_RES8_50");
+    return 0x12340u;
+}
+u32 original_29838_blit(u32 frame,u32 row,u32 x,u32 image,u32 delta) {
+    trace->check(frame==0u && row==4u && x==32u &&
+                 image==0x12340u && delta==7u);
+    trace->record("2A478_DELTA7");
+    return 1u;
+}
+u32 original_29838_tail() {
+    trace->record("2E758");
+    return 1u;
+}
+void test_original_29838_six_argument_abi() {
+    Trace local{};
+    trace=&local;
+    code2::Application57Boundary b{};
+    b.call_2f29c=&original_29838_lookup;
+    b.call_2a478=&original_29838_blit;
+    b.call_2e758=&original_29838_tail;
+    const u32 returned=code2::function_29838(
+        b,0u,4u,32u,50u,8u,7u);
+    require(local.valid && returned==1u &&
+            local.calls==std::vector<std::string>{
+                "2F29C_RES8_50","2A478_DELTA7","2E758"},
+            "Retail 29838 6-argument resource/raster ABI differs");
+    trace=nullptr;
+    std::cout<<"ORIGINAL_CODE2_29838_SIX_ARGUMENT_ABI_PASS"
+             <<" resource=RES8_50 column=32 palette_delta=7"
+             <<" source=RETAIL_29838_2986B_CALL_STACK\\n";
+}
+
 void test_original_compositor_dispatch() {
     std::vector<code2::u8> memory(code2::kObject2VirtualSize,0u);
     code2::Machine machine{};machine.data=memory.data();
@@ -658,6 +695,7 @@ void test_original_actor_postload() {
 }
 int main() {
     try {
+        test_original_29838_six_argument_abi();
         test_original_compositor_dispatch();
         test_original_source_vga_capture();
         test_original_source_present_fallback();
