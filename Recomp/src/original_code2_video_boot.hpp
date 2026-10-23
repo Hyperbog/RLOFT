@@ -630,6 +630,33 @@ struct Bridge {
         if(invalid_access || video.unsupported_read())
             throw std::runtime_error("Original 2A8A0 clipped source VGA raster failed");
     }
+    // Compiled original 34A74 -> 342E4/34954 four-plane angled
+    // RES4 texture sampler. All ES:EDI writes remain in the retained
+    // indexed VGA aperture; do not construct any host-side texture.
+    static void oblique_patch8(u32 pc,u8) noexcept {
+        if(pc!=0x34AF9u && pc!=0x34B69u &&
+           pc!=0x34AF6u && pc!=0x34B66u &&
+           pc!=0x34B07u && pc!=0x34B77u)
+            self().invalid_access=true;
+    }
+    void run_original_34a74_oblique() {
+        const u32 image=code2::load_le32(machine.data+0xC040u);
+        const u32 lines=code2::load_le32(machine.data+0xFF50u);
+        if(!image || std::uint64_t(image)+4098u>guest_extent ||
+           code2::load_le16(machine.data+image)<4096u ||
+           !lines || lines>256u ||
+           std::uint64_t(0xFF58u)+6u*lines>guest_extent)
+            throw std::out_of_range("Original 34A74 RES4 texture or scanline geometry unavailable");
+        Scope scope(*this);
+        code2::Runtime108Boundary driver{};
+        driver.patch_code8=&oblique_patch8;
+        code2::Runtime106Boundary raster{};
+        raster.out16=&out16;
+        raster.store_es8=&vga_write;
+        code2::function_34a74(machine,driver,raster);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 34A74 oblique source VGA raster failed");
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
