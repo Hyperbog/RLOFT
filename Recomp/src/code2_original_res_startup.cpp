@@ -459,6 +459,12 @@ struct Session {
     static void resource_record_seek(u32 item,u32 handle) {
         auto& t=state();
         const auto it=t.files.find(handle);
+        if(t.canonical_owner &&
+           std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR")) {
+            std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_ARCHIVE_SEEK"
+                     <<" id="<<item<<" handle="<<handle
+                     <<" error_before="<<t.error<<"\\n"<<std::flush;
+        }
         if(it==t.files.end() || it->second.file<2u ||
            it->second.file>=t.fixture.data.size()) {
             t.error=true;
@@ -550,7 +556,14 @@ struct Session {
         const std::size_t n=std::min<std::size_t>(size,bytes.size()-h.cursor);
         std::copy_n(bytes.data()+h.cursor,n,destination);
         h.cursor+=n;
-        if(n!=size)t.error=true;
+        if(n!=size) {
+            std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_SHORT_READ"
+                     <<" file="<<h.file<<" handle="<<handle
+                     <<" requested="<<size<<" actual="<<n
+                     <<" source_cursor="<<h.cursor
+                     <<" guest=RETAINED\\n"<<std::flush;
+            t.error=true;
+        }
         return static_cast<u32>(n);
     }
     // The original 2FD9C type-1 image parser uses the same source file
