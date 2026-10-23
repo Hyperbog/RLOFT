@@ -506,8 +506,16 @@ struct Bridge {
         const u32 frames=code2::load_le16(d+image+2u);
         const u32 rows=code2::load_le16(d+image+4u);
         const u32 width=static_cast<u32>(d[image+6u])*8u;
+        // The retail 2A380 raster writes through the linear, four-plane
+        // VGA aperture. A source sprite can cross the 320px scanline
+        // boundary (e.g. Level22 terminal panel x=266, width=56) without
+        // overflowing the backing page. Reject actual page overflow, not
+        // a valid original linear row spill.
+        const std::uint64_t last_pixel=
+            (std::uint64_t(row)+rows-1u)*320u+x+width-1u;
         if(!stride || !frames || !rows || !width ||
-           frame>=frames || row+rows>400u || x+width>320u ||
+           frame>=frames || row+rows>400u ||
+           last_pixel>=128000u ||
            std::uint64_t(image)+8u+
                static_cast<std::uint64_t>(frame+1u)*stride>guest_extent)
             throw std::out_of_range("1F8FC original RES0 image metadata invalid");
@@ -540,8 +548,11 @@ struct Bridge {
         const u32 frames=code2::load_le16(d+image+2u);
         const u32 rows=code2::load_le16(d+image+4u);
         const u32 pixels=static_cast<u32>(d[image+6u])*8u;
+        const std::uint64_t last_pixel=
+            (std::uint64_t(row)+rows-1u)*320u+x+pixels-1u;
         if(!stride || !frames || !rows || !pixels ||
-           frame>=frames || rows>400u-row || pixels>320u-x ||
+           frame>=frames || rows>400u-row ||
+           last_pixel>=128000u ||
            std::uint64_t(image)+8u+
              static_cast<std::uint64_t>(frame+1u)*stride>guest_extent)
             throw std::out_of_range("Original HUD source image metadata invalid");
