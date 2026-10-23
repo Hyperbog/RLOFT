@@ -131,6 +131,6 @@ void original_live_1f494_party_probe() noexcept {
              <<" normal_party=2 terminal_party=2"
              <<" changed_draw_page_pixels="<<changed
              <<" mode=3_PRETRANSITION_ONLY"
-             <<" frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC\\n"
+             <<" frame_status=HUD_ONLY_NOT_ORIGINAL_1F8FC\n"
              <<std::flush;
 }
