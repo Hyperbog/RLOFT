@@ -657,6 +657,51 @@ struct Bridge {
         if(invalid_access || video.unsupported_read())
             throw std::runtime_error("Original 34A74 oblique source VGA raster failed");
     }
+    // 33E6C/34110 still executes the original fixed-point polygon
+    // scanline arithmetic. Canonical 34110 writes ES:EBX as a guest
+    // absolute A0000h address; mirror exactly those source-computed bytes
+    // through this device's genuine VGA sequencer/aperture.
+    // No host texture sampler, interpolator or replacement pixels.
+    bool run_original_34110_polygon() {
+        const u8* d=machine.data;
+        code2::s32 first=static_cast<code2::s16>(
+            code2::load_le16(d+0xFDE2u));
+        code2::s32 last=static_cast<code2::s16>(
+            code2::load_le16(d+0xFE06u));
+        const code2::s32 right=static_cast<code2::s32>(
+            code2::load_le32(d+0xFDB4u));
+        const code2::s32 left=static_cast<code2::s32>(
+            code2::load_le32(d+0xFDB8u));
+        const bool draws=first<right && last>left;
+        if(draws) {
+            if(last>right)last=right;
+            if(first<left)first=left;
+        }
+        const u32 scan=code2::load_le32(d+0xFD20u);
+        const u32 page=code2::load_le32(d+0xFDBCu);
+        if(draws && (first<0 || first>last ||
+            last>=320 || scan>=400u ||
+            (page!=0xA0000u && page!=0xA8000u)))
+            throw std::out_of_range(
+                "Original 34110 VGA scanline bounds outside source mode");
+        Scope scope(*this);
+        code2::Runtime104Boundary raster{};
+        raster.out16=&out16;
+        code2::function_34110(machine,raster);
+        if(draws) {
+            for(code2::s32 x=first;x<=last;++x) {
+                const std::uint64_t addr=
+                    std::uint64_t(page)+static_cast<u32>(x)*0x50u+(scan>>2u);
+                if(addr<0xA0000u || addr>=0xB0000u || addr>=guest_extent)
+                    throw std::out_of_range(
+                        "Original 34110 physical VGA address outside aperture");
+                vga_write(static_cast<u32>(addr),machine.data[addr]);
+            }
+        }
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 34110 source polygon raster failed");
+        return draws;
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
