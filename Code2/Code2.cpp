@@ -19891,10 +19891,19 @@ static_assert(0x29802u-0x297D0u==50u);
 }
 static_assert(0x29838u-0x29804u==52u);
 
-[[nodiscard]] u32 function_29838(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 mode) noexcept {
-    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+[[nodiscard]] u32 function_29838(Application57Boundary& b,u32 frame,u32 row,
+                                 u32 column,u32 resource_id,u32 archive_slot,
+                                 u32 palette_delta) noexcept {
+    // Original CODE.2 29838..2986B has SIX cdecl arguments:
+    //   push [esp+14h], push [esp+14h], call 2F29C
+    // first push is original arg5 (archive slot), second original arg4
+    // (resource ID). The unmodified [esp+18h] at 2984C is original arg6
+    // (palette delta). The three final pushes recover args3/2/1.
+    // Independent retail 314B0 caller at 31528..31558 pushes all SIX.
+    const u32 image=b.call_2f29c?b.call_2f29c(resource_id,archive_slot):0u;
     if(image==0u)return 0u;
-    if(b.call_2a478)(void)b.call_2a478(a1,a2,key,image,static_cast<u32>(static_cast<u8>(mode)));
+    if(b.call_2a478)(void)b.call_2a478(frame,row,column,image,
+                                         static_cast<u32>(static_cast<u8>(palette_delta)));
     return b.call_2e758?b.call_2e758():0u;
 }
 static_assert(0x2986Cu-0x29838u==52u);
@@ -24388,7 +24397,12 @@ void function_314b0(Machine& m,Application73Boundary& b,u32 view) noexcept {
         else if(mode==10u)set_bias=16;
         for(u32 i=0;i<0x20u;++i){
             const u32 random_set=((function_30ca2(m)*7u)>>15)+static_cast<u32>(key_base+set_bias);
-            if(b.app57)(void)function_29838(*b.app57,0u,4u,i*8u+0x20u,random_set,8u);
+            // Retail 31528/31585/315E2 pass six arguments. Weather
+            // brightness 0..8 is the palette delta; modes 9/10 clamp it
+            // to 8 while applying a +8/+16 resource-set bias.
+            if(b.app57)(void)function_29838(*b.app57,0u,4u,i*8u+0x20u,
+                                               random_set,8u,
+                                               mode<=8u?mode:8u);
         }
     }
 
