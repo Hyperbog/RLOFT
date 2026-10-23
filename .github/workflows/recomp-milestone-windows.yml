@@ -294,6 +294,7 @@ jobs:
           [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
           [void]$cmd.ArgumentList.Add("--advance-original-16d04")
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_HUD"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR"] = "1"
           $child = [System.Diagnostics.Process]::new()
           $child.StartInfo = $cmd
           if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
@@ -316,6 +317,9 @@ jobs:
           if ($result -ne 0) { throw "Original second INIT source experiment exited $result" }
           if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
             throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
+          }
+          if ($combined -notmatch 'CODE2_ORIGINAL_LIVE_BOOT=1F1C8_EXTERIOR_SOURCE_PREFIX.*original_source=1F1C8_1EDAC_334C4_32954_33E28.*sky_rows=128.*planar_bytes=8192.*changed_indexed_pixels=[1-9][0-9]*.*frontier=34DE8_POLYGON_NOT_CONNECTED.*full_1F8FC=NOT_ENABLED') {
+            throw "Retained original 1F1C8 source/VGA sky prefix did not reach the explicit 34DE8 polygon frontier"
           }
           if ($combined -notmatch 'ORIGINAL_CODE2_RETAINED_TYPE1_EXACT_LEDGER_PASS decodes=10 sequence=RES0_59_62_RES1_338_362_RES0_54_49_RES1_37_34_RES0_60_34 independent_bytes=ALL_MATCH cache_reuses=10 guest=RETAINED') {
             throw "Retained original 2FD9C type-1 exact decode order, independent bytes, or 2F29C cache reuse did not pass"
