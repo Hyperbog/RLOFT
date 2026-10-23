@@ -7,6 +7,7 @@ struct OriginalFullFrameTrace {
     u32 releases=0u;
     u32 captures=0u;
     u32 presentations=0u;
+    u32 original_res4_requests=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -149,6 +150,8 @@ u32 original_full_frame_resource(u32 id,u32 slot) noexcept {
     const u32 count=code2::load_le32(current->data.data()+rec+8u);
     if(id>=count)
         stop("ORIGINAL_1F8FC_SHARED_RESOURCE_RECORD_OUT_OF_BOUNDS");
+    if(slot==4u && original_full_frame_trace)
+        ++original_full_frame_trace->original_res4_requests;
     const u32 image=code2::function_2f29c(
         current->machine,current->game_audio,id,slot);
     if(image && std::uint64_t(image)+8u>current->data.size())
@@ -267,6 +270,7 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" world_sprite_draws="<<exterior.subtractive_draws
              <<" clipped_source_rasters="<<exterior.clipped_rasters
              <<" captures="<<frame.captures
+             <<" res4_source_requests="<<frame.original_res4_requests
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
