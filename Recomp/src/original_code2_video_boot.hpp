@@ -601,6 +601,35 @@ struct Bridge {
         if(invalid_access || video.unsupported_read())
             throw std::runtime_error("Original 2A478 subtractive VGA raster failed");
     }
+    // The real retail 29564 -> 2A8A0 clipped, palette-subtractive
+    // transparent planar blit. Clip fields are six original guest dwords,
+    // NOT an inferred host rectangle. Preserve original source arithmetic
+    // and VGA sequencer masks on the same retained CODE.2 Machine.
+    void run_original_2a8a0_clipped(
+        u32 frame,u32 row,u32 x,u32 clip,u32 image,u32 delta) {
+        if(delta>8u || !image ||
+           std::uint64_t(clip)+0x18u>guest_extent ||
+           std::uint64_t(image)+8u>guest_extent ||
+           row>=400u || x>=320u)
+            throw std::out_of_range("Original 2A8A0 clip input invalid");
+        const u32 frames=code2::load_le16(machine.data+image+2u);
+        const u32 stride=code2::load_le16(machine.data+image);
+        const u32 original_rows=code2::load_le16(machine.data+image+4u);
+        const u32 visible_rows=code2::load_le32(machine.data+clip+8u);
+        const u32 visible_pixels=code2::load_le32(machine.data+clip+0x14u);
+        if(!frames || frame>=frames || !stride || !original_rows ||
+           !visible_rows || visible_rows>original_rows ||
+           visible_rows>400u-row ||
+           !visible_pixels || visible_pixels>320u ||
+           std::uint64_t(image)+8u+
+             std::uint64_t(frame+1u)*stride>guest_extent)
+            throw std::out_of_range("Original 2A8A0 clipped IMAGE bounds invalid");
+        Scope scope(*this);
+        auto b=app61();
+        code2::function_2a8a0(machine,b,frame,row,x,clip,image,delta);
+        if(invalid_access || video.unsupported_read())
+            throw std::runtime_error("Original 2A8A0 clipped source VGA raster failed");
+    }
     void run_original_29b40(u32 row,u32 x,u32 rows,u32 pixels,u32 color) {
         if(row+rows>400u || x+pixels>320u ||
            rows==0u || pixels==0u || color>255u)
