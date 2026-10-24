@@ -446,6 +446,12 @@ jobs:
           [void]$cmd.ArgumentList.Add("--cd-root")
           [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
           [void]$cmd.ArgumentList.Add("--advance-original-16d04")
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_HUD"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_EXTERIOR"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FRAME_ENTRY"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_FRONTIER"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_SOURCE"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
           $proc = [System.Diagnostics.Process]::new()
           $proc.StartInfo = $cmd
