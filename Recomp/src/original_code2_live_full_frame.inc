@@ -38,6 +38,8 @@ struct OriginalFullFrameTrace {
     u32 compass_clips=0u;
     u32 compass_images=0u;
     u32 compass_vga_writes=0u;
+    u32 frame_audio_queries=0u;
+    u32 compositor_returns=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -604,11 +606,38 @@ void original_full_274a4_source() noexcept {
     }
     ++original_full_frame_trace->compass_source_returns;
 }
-u32 original_full_1f120_frontier() noexcept {
+u32 original_full_1f120_actor_count() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->compass_source_returns!=1u)
         stop("ORIGINAL_1F120_COMPASS_PREDECESSOR_MISSING");
-    stop("ORIGINAL_1F120_AUDIO_FRAME_UPDATE_PENDING");
+    ++original_full_frame_trace->frame_audio_queries;
+    return code2::function_2b1bc(current->machine);
+}
+u32 original_full_1f120_audio_mode() noexcept {
+    return code2::function_29048(current->machine);
+}
+void original_full_1f120_audio_guard() noexcept {
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+        stop("ORIGINAL_1F120_ACTIVE_AUDIO_DRIVER_UNCONNECTED");
+}
+void original_full_1f120_audio_start(u32 slot,u32 arg) noexcept {
+    original_full_1f120_audio_guard();
+    code2::function_28ae0(current->machine,current->audio_seed,slot,arg);
+}
+void original_full_1f120_audio_select(u32 slot) noexcept {
+    original_full_1f120_audio_guard();
+    code2::function_288fc(current->machine,current->audio_seed,slot);
+}
+void original_full_1f120_audio_volume(u32 volume) noexcept {
+    original_full_1f120_audio_guard();
+    code2::function_28f58(current->machine,current->audio_seed,volume);
+}
+void original_full_1f120_audio_tempo(u32 value) noexcept {
+    original_full_1f120_audio_guard();
+    code2::function_29008(current->machine,current->audio_seed,value);
+}
+void original_full_1f120_sound_event(u32,u32,u32,u32) noexcept {
+    stop("ORIGINAL_1F120_RARE_SOUND_EVENT_PENDING");
 }
 
 void original_live_1f8fc_source_chain() noexcept {
@@ -664,7 +693,14 @@ void original_live_1f8fc_source_chain() noexcept {
     scene.call_1bdac=source_polygons?&original_full_1bdac_source:nullptr;
     scene.call_2c294=source_polygons?&original_full_2c294_source:nullptr;
     scene.call_274a4=source_polygons?&original_full_274a4_source:nullptr;
-    scene.call_2b1bc=source_polygons?&original_full_1f120_frontier:nullptr;
+    scene.call_2b1bc=source_polygons?&original_full_1f120_actor_count:nullptr;
+    scene.call_29048=source_polygons?&original_full_1f120_audio_mode:nullptr;
+    scene.call_28ae0=source_polygons?&original_full_1f120_audio_start:nullptr;
+    scene.call_288fc=source_polygons?&original_full_1f120_audio_select:nullptr;
+    scene.call_28f58=source_polygons?&original_full_1f120_audio_volume:nullptr;
+    scene.call_29008=source_polygons?&original_full_1f120_audio_tempo:nullptr;
+    scene.call_30ca2=source_polygons?&original_full_scene_random:nullptr;
+    scene.call_28110=source_polygons?&original_full_1f120_sound_event:nullptr;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
 
@@ -692,13 +728,17 @@ void original_live_1f8fc_source_chain() noexcept {
     if(stopped==0) {
         current->active_escape=&scope;
         code2::function_1f8fc(current->machine,compositor);
+        if(source_polygons) {
+            ++frame.compositor_returns;
+            stop("ORIGINAL_1F8FC_SOURCE_FRAME_RETURNED");
+        }
         stop("ORIGINAL_1F8FC_CHAIN_RETURNED_WITHOUT_ORIGINAL_WORLD_RENDER");
     }
     current->active_escape=prior;
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
     const char* const expected_stop=source_polygons?
-        "ORIGINAL_1F120_AUDIO_FRAME_UPDATE_PENDING":
+        "ORIGINAL_1F8FC_SOURCE_FRAME_RETURNED":
         (through_actor?
             "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
             "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
@@ -717,11 +757,13 @@ void original_live_1f8fc_source_chain() noexcept {
             frame.scene_sprite_raster_returns!=frame.scene_sprite_calls ||
             frame.scene_projection_returns!=1u ||
             frame.compass_source_calls!=1u ||
-            frame.compass_source_returns!=1u)) ||
+            frame.compass_source_returns!=1u ||
+             frame.frame_audio_queries!=1u ||
+             frame.compositor_returns!=1u)) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
-       current->data[0xC050u]!=initial_page ||
-       frame.presentations!=0u)
+       current->data[0xC050u]!=(source_polygons?(initial_page^1u):initial_page) ||
+       frame.presentations!=(source_polygons?1u:0u))
     {
         std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_CHAIN_DIAGNOSTIC"
                  <<" stop="<<(current->stop_reason?current->stop_reason:"NONE")
@@ -772,12 +814,15 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" compass_clips="<<frame.compass_clips
              <<" compass_images="<<frame.compass_images
              <<" compass_vga_writes="<<frame.compass_vga_writes
+             <<" frame_audio_queries="<<frame.frame_audio_queries
+             <<" compositor_returns="<<frame.compositor_returns
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next="<<(source_polygons?
-                 "1F120_FRAME_UPDATE":
+                 "SOURCE_FRAME_PRESENTED":
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
-             <<" complete_frames=0\n"<<std::flush;
+             <<" complete_frames="<<(source_polygons?1u:0u)
+             <<" DOS_VGA_PARITY=NOT_VERIFIED\n"<<std::flush;
     current->stop_reason=nullptr;
 }
