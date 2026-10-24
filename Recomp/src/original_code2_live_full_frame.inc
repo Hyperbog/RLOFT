@@ -314,17 +314,26 @@ u32 original_full_actor_missing_collision(u32,u32,u32) noexcept {
 void original_full_actor_missing_movement(u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_MOVE_PENDING");
 }
-void original_full_actor_missing_offsets(u32*,u32*,u32,u32) noexcept {
-    stop("ORIGINAL_1BDAC_MOVEMENT_VECTOR_PENDING");
+void original_full_actor_missing_offsets(u32* dx,u32* dy,u32 radius,u32 heading) noexcept {
+    if(!dx || !dy)stop("ORIGINAL_1BDAC_MOVEMENT_VECTOR_ARGUMENTS");
+    code2::Application67Boundary movement{};
+    movement.call_35680=&code2::function_35680;
+    code2::function_2df2c(current->machine,movement,dx,dy,radius,heading);
 }
 void original_full_actor_missing_clear(u32,u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_CLEAR_PENDING");
 }
 u32 original_full_actor_missing_query() noexcept {
-    stop("ORIGINAL_1BDAC_MOVEMENT_QUERY_PENDING");
+    return code2::function_311e0(current->machine);
 }
-void original_full_actor_missing_update(u32) noexcept {
-    stop("ORIGINAL_1BDAC_MOVEMENT_UPDATE_PENDING");
+u32 original_full_actor_seed_callback(u32 value) noexcept {
+    code2::function_30cc4(current->machine,value);
+    return value;
+}
+void original_full_actor_missing_update(u32 seed) noexcept {
+    code2::Application56Boundary timer{};
+    timer.call_30cc4=&original_full_actor_seed_callback;
+    (void)code2::function_290d0(current->machine,timer,seed);
 }
 void original_full_actor_divide_error() noexcept {
     stop("ORIGINAL_1BDAC_SOURCE_DIVIDE_ERROR");
