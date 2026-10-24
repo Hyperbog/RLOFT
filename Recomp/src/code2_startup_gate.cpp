@@ -9,6 +9,7 @@
 #include "original_guest_continuation.hpp"
 #include "original_code2_video_boot.hpp"
 #include "original_sintab_raster.hpp"
+#include "original_code2_36cec_scene.hpp"
 #include "../../Code2/graphics/original_res_type6.hpp"
 #include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
