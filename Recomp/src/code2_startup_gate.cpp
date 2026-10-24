@@ -1395,6 +1395,16 @@ u32 original_30b40_keyboard_poll() noexcept {
         if(!enabled || std::strcmp(enabled,"1")!=0)
             stop("ORIGINAL_1F8FC_FULL_COMPOSITOR_DIAGNOSTIC_NOT_ENABLED");
         original_live_1f8fc_source_chain();
+        // The private one-shot 1F8FC diagnostic clears its temporary
+        // thread-local scene trace pointers. Before returning its synthetic
+        // zero-key response to the retained 1FC14 source loop, rearm the
+        // next tick's independent tracing context. This changes no guest
+        // input, camera, resource or rendering state.
+        if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+           live && std::strcmp(live,"1")==0) {
+            current->original_1fc14_last_scan_code=0u;
+            original_full_prepare_1fc14_source_tick();
+        }
         return 0u;
     }
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
