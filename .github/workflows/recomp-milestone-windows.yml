@@ -428,6 +428,55 @@ jobs:
           Write-Host "ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_ACCEPTED original_guest=RETAINED"
           Write-Host "ORIGINAL_CODE2_1FC14_SOURCE_ITERATIONS_PASS original_stack=RETAINED rendering=NOT_CONNECTED"
           Write-Host "ORIGINAL_CODE2_16D04_SOURCE_EXPERIMENT_PASS original_stack=RETAINED"
+      - name: Probe authentic original 1FC14 29804 clipping in retained Level22 guest
+        shell: pwsh
+        timeout-minutes: 2
+        run: |
+          # Independent experimental invocation. The default green one-frame
+          # test above must not activate the unaccepted 1A510 cursor path.
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $cmd = [System.Diagnostics.ProcessStartInfo]::new()
+          $cmd.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $cmd.UseShellExecute = $false
+          $cmd.RedirectStandardOutput = $true
+          $cmd.RedirectStandardError = $true
+          [void]$cmd.ArgumentList.Add("--root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $media).Path)
+          [void]$cmd.ArgumentList.Add("--cd-root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
+          [void]$cmd.ArgumentList.Add("--advance-original-16d04")
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
+          $proc = [System.Diagnostics.Process]::new()
+          $proc.StartInfo = $cmd
+          if (-not $proc.Start()) { throw "Cannot start retained 1FC14 source clip probe" }
+          $out = $proc.StandardOutput.ReadToEndAsync()
+          $err = $proc.StandardError.ReadToEndAsync()
+          $exited = $proc.WaitForExit(45000)
+          if (-not $exited) {
+            $proc.Kill($true)
+            $proc.WaitForExit()
+          }
+          $combined = @($out.GetAwaiter().GetResult(), $err.GetAwaiter().GetResult()) -join "`n"
+          $exit = $proc.ExitCode
+          $proc.Dispose()
+          $clip = [regex]::Match($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_29804_SOURCE_CLIP original_return=([012]) draw_calls=([0-9]+) clipped_calls=([0-9]+) clip_depth_before=([0-9]+) clip_depth_after=([0-9]+) clip_record=([0-9]+) bounds=([0-9]+),([0-9]+),([0-9]+),([0-9]+) cropped=([0-9]+),([0-9]+).*invalid_access=([01]) unsupported_vga_read=([01])')
+          foreach ($line in ($combined -split "`r?`n")) {
+            if ($line -match '1FC14_29804_SOURCE_CLIP|1FC14_29804_CURSOR_ABI_FAILURE|1FC14_1A510_SOURCE_PAGE_HANDOFF|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
+              Write-Host "ORIGINAL_1FC14_EXPERIMENTAL: $line"
+            }
+          }
+          if (-not $exited) { throw "Retained original 29804 clip probe timed out" }
+          if (-not $clip.Success) { throw "Authentic 29804 clip return, dimensions and VGA status were not captured" }
+          if ($clip.Groups[4].Value -ne $clip.Groups[5].Value) {
+            throw "Original 29804 clip-stack depth was not restored"
+          }
+          $sourceStop = $combined -match 'LIVE_CODE2_SOURCE_STOP=ORIGINAL_1A5B0_29804_MOUSE_SPRITE_UNSUPPORTED'
+          $handoff = $combined -match 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF'
+          if (-not $sourceStop -and -not $handoff) {
+            throw "Original 29804 unexpected diagnostic completion / stop"
+          }
+          Write-Host "ORIGINAL_1FC14_29804_CLIP_PROBE_PASS source_return=$($clip.Groups[1].Value) drawn=$($clip.Groups[2].Value) clipped=$($clip.Groups[3].Value) guest=PRESERVED acceptance=DIAGNOSTIC_ONLY"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
