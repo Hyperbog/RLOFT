@@ -62,6 +62,13 @@ Real stdin `S/D/W` has already executed original source `30B40` three times; it 
 
 The Windows original-media workflow additionally runs an opt-in 60-poll **diagnostic** with host-delivered sustained movement followed by idle polls. This is not a DOS key-held IRQ9 waveform; it measures whether authentic original source functions eventually update camera values without host writes. An unsupported source branch remains a diagnostic failure, **not** a camera-displacement acceptance.
 
+
+## 2026-10-24 extended original-media observation
+
+The diagnostic [Windows run #40078918700](https://github.com/Hyperbog/RLOFT/actions/runs/40078918700) passed the other required original-media tests, including source audio, five private frame captures, and three short live host-keyboard pulses. Its **separately non-gating, 60-poll movement search** returned only **42 original source input events** within the 95-second diagnostic limit and was terminated by its safety timeout. Of the 42 completed events, **zero** changed camera X/Y and **zero** changed heading, even though the guest's `C000` speed saturated at unsigned `65376` (signed `-160`). These 42 observations are genuine original-code guest state, not fabricated movement. The remaining 20 intended events were **not executed** and cannot be counted. The positive-camera acceptance remains OPEN. This result implicates an unconnected or untriggered original world-position integration path, or missing real-time input cadence; it does not prove which one.
+
+The strict native terminal option `RLOFT_RECOMP_REQUIRE_CONSOLE_REAL_POSE=1` now refuses success without original source changing camera X/Y or heading. Do **not** set this flag merely to obtain a convenient passing synthetic test.
+
 ### Never promote from these probes
 
 Source VGA/private indexed capture ≠ synchronized original DOS framebuffer. Original `28168/27F24` synthetic callback tests ≠ initialized retail AIL. Real WinMM `WHDR_DONE` ≠ original AIL completion. Source movement accumulator ≠ camera displacement. Whole-game acceptance gates remain unchanged.
