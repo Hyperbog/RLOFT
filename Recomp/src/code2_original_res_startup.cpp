@@ -1784,6 +1784,64 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" gameplay_loop=NOT_VERIFIED\n"<<std::flush;
     return next;
 }
+std::uint32_t drive_console_keyboard(Opaque* s) {
+    if(!s || !s->initialized || !s->resources_loaded)
+        throw std::invalid_argument("Original console input needs a retained guest");
+    namespace c=rloft::canonical_code2_runtime;
+    auto* const owner=s->canonical.get();
+    if(c::pending_host_service(owner)!=11u)
+        throw std::logic_error("Original 30B40 source keyboard callback is not waiting");
+    const auto* const guest_base=s->guest->memory.data();
+    std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=EXPERIMENTAL"
+             <<" source=1FC14_30B40"
+             <<" input=HOST_TERMINAL_TRANSLATED"
+             <<" dos_keyboard_irq9=NOT_CONNECTED"
+             <<" active_audio_driver=NOT_CONNECTED"
+             <<" commands=W_FORWARD_A_LEFT_S_BACK_D_RIGHT_ENTER_IDLE_Q_QUIT\n"
+             <<std::flush;
+    unsigned events=0u;
+    std::string line;
+    // The terminal, not a synthetic scripted fixture, supplies these
+    // commands. A line terminator is necessary: this is not a physical
+    // scan-code, interrupt-timing or game-controller parity claim.
+    while(events<256u && std::getline(std::cin,line)) {
+        if(line.size()!=1u) {
+            if(line.empty())line=" ";
+            else {
+                std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=UNRECOGNIZED_COMMAND\n";
+                continue;
+            }
+        }
+        const char ckey=line[0];
+        if(ckey=='q' || ckey=='Q')break;
+        u32 scan=0u;
+        switch(ckey) {
+            case 'w':case 'W':scan=0x148u;break;
+            case 'a':case 'A':scan=0x14Bu;break;
+            case 's':case 'S':scan=0x150u;break;
+            case 'd':case 'D':scan=0x14Du;break;
+            case ' ':scan=0u;break;
+            default:
+                std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=UNRECOGNIZED_COMMAND\n";
+                continue;
+        }
+        const u32 status=c::answer_original_keyboard_event(owner,scan);
+        if(status!=11u || s->guest->memory.data()!=guest_base)
+            throw std::runtime_error(
+                "Original guest did not return to 30B40 after real terminal command");
+        ++events;
+        std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_KEYBOARD_REENTERED"
+                 <<" terminal_events="<<events
+                 <<" original_scan_code="<<scan
+                 <<" active_guest=PRESERVED"
+                 <<" DOS_IRQ_TIMING=NOT_VERIFIED\n"<<std::flush;
+    }
+    std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=ENDED"
+             <<" host_terminal_events="<<events
+             <<" original_30B40_source=EXECUTED"
+             <<" physical_irq9_parity=NOT_VERIFIED\n"<<std::flush;
+    return c::pending_host_service(owner);
+}
 void dispatch_pending(Opaque* s) {
     if(!s || !s->initialized)
         throw std::invalid_argument("CODE2 startup guest is not initialized");
