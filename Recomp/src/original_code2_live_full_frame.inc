@@ -13,6 +13,11 @@ struct OriginalFullFrameTrace {
     u32 polygon_projections=0u;
     u32 polygon_quads=0u;
     u32 polygon_scan_returns=0u;
+    u32 polygon_vertex_copies=0u;
+    u32 polygon_edges=0u;
+    u32 polygon_steps=0u;
+    u32 polygon_scanlines=0u;
+    u32 polygon_drawn_scanlines=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -193,9 +198,8 @@ void original_full_exterior_oblique_sprite() noexcept {
     ++original_full_frame_trace->oblique_rasters;
 }
 
-// Actual compiled 34DE8 map scan and original 35798 perspective
-// projection. The first projected polygon remains fail-closed at
-// the unconnected 33E6C raster edge/scanline callbacks.
+// Retained 34DE8 map scan and 35798 perspective projection.
+// The original 33E6C, 3402C, 33FB4 and 34110 remain source-owned.
 u32 original_full_polygon_record(code2::s32 x,code2::s32 y) noexcept {
     if(!original_full_frame_trace || x<0 || y<0)
         stop("ORIGINAL_34DE8_LEVEL_RECORD_QUERY_INVALID");
@@ -211,19 +215,65 @@ void original_full_polygon_project(code2::Machine& m,
     ++original_full_frame_trace->polygon_projections;
     code2::function_35798(m,x,y,screen,depth);
 }
+void original_full_polygon_copy(u32 from,u32 to,u32 count) noexcept {
+    if(!original_full_frame_trace || count!=8u ||
+       std::uint64_t(from)+32u>current->data.size() ||
+       std::uint64_t(to)+32u>current->data.size())
+        stop("ORIGINAL_33E6C_VERTEX_COPY_ABI_CHANGED");
+    // Original REP MOVSD copies exactly eight guest dwords.
+    std::copy_n(current->data.data()+from,32u,current->data.data()+to);
+    ++original_full_frame_trace->polygon_vertex_copies;
+}
+void original_full_polygon_edge(u32 vertex,u32 state) noexcept {
+    if(!original_full_frame_trace || vertex>3u ||
+       (state!=0xFDC4u && state!=0xFDE8u))
+        stop("ORIGINAL_3402C_EDGE_ARGUMENTS_CHANGED");
+    (void)code2::function_3402c(current->machine,vertex,state);
+    ++original_full_frame_trace->polygon_edges;
+}
+bool original_full_polygon_step() noexcept {
+    if(!original_full_frame_trace)
+        stop("ORIGINAL_33FB4_OUTSIDE_SOURCE_POLYGON");
+    ++original_full_frame_trace->polygon_steps;
+    return code2::function_33fb4(current->machine);
+}
+void original_full_polygon_scanline() noexcept {
+    if(!original_full_frame_trace || !current->original_vga)
+        stop("ORIGINAL_34110_OUTSIDE_SOURCE_POLYGON");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        const bool drawn=bridge.run_original_34110_polygon();
+        ++original_full_frame_trace->polygon_scanlines;
+        if(drawn)++original_full_frame_trace->polygon_drawn_scanlines;
+    } catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=34110_POLYGON_SCANLINE_FAILURE"
+                 <<" scan="<<code2::load_le32(current->data.data()+0xFD20u)
+                 <<" page="<<code2::load_le32(current->data.data()+0xFDBCu)
+                 <<" first="<<code2::load_le16(current->data.data()+0xFDE2u)
+                 <<" last="<<code2::load_le16(current->data.data()+0xFE06u)
+                 <<" reason="<<e.what()<<"\n"<<std::flush;
+        stop("ORIGINAL_34110_SOURCE_POLYGON_RASTER_FAILED");
+    }
+}
 void original_full_polygon_quad(
-        code2::Machine&,code2::Runtime103Boundary&,
+        code2::Machine& m,code2::Runtime103Boundary& raster,
         const u32* quad) noexcept {
     if(!original_full_frame_trace || !quad)
         stop("ORIGINAL_34DE8_SOURCE_STACK_QUAD_MISSING");
+    // Original local quad is eight source dwords. Materialize a bounded
+    // guest argument for synchronous 33E6C, then restore scratch bytes.
+    constexpr u32 scratch=0x2BA00u;
+    if(scratch+32u>current->data.size())
+        stop("ORIGINAL_33E6C_QUAD_GUEST_ARGUMENT_OUT_OF_BOUNDS");
+    std::array<u8,32u> previous{};
+    std::copy_n(current->data.data()+scratch,32u,previous.data());
+    for(u32 i=0u;i<8u;++i)
+        code2::store_le32(current->data.data()+scratch+4u*i,quad[i]);
     ++original_full_frame_trace->polygon_quads;
-    std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=34DE8_ORIGINAL_VERTEX_QUAD"
-             <<" ordinal="<<original_full_frame_trace->polygon_quads
-             <<" source=34DE8_35798_34BB0"
-             <<" vertex0_x="<<quad[0]
-             <<" vertex0_y="<<quad[1]
-             <<" original_guest=PRESERVED\n"<<std::flush;
-    stop("ORIGINAL_34DE8_33E6C_POLYGON_RASTER_PENDING");
+    code2::function_33e6c(m,raster,scratch);
+    std::copy(previous.begin(),previous.end(),
+              current->data.data()+scratch);
 }
 void original_full_exterior_polygon_source() noexcept {
     if(!original_full_frame_trace || !current->original_vga)
@@ -235,12 +285,18 @@ void original_full_exterior_polygon_source() noexcept {
     quad.call_2f29c=&original_full_frame_resource;
     quad.call_33e6c_local_quad=&original_full_polygon_quad;
     code2::Runtime103Boundary raster{};
+    raster.rep_movsd_ds_es=&original_full_polygon_copy;
+    raster.call_3402c=&original_full_polygon_edge;
+    raster.call_33fb4=&original_full_polygon_step;
+    raster.call_34110=&original_full_polygon_scanline;
     code2::function_34de8(current->machine,scan,quad,raster);
     ++original_full_frame_trace->polygon_scan_returns;
 }
 void original_full_1bdac_frontier() noexcept {
     if(!original_full_frame_trace ||
-       original_full_frame_trace->polygon_scan_returns!=1u)
+       original_full_frame_trace->polygon_scan_returns!=1u ||
+       original_full_frame_trace->polygon_quads==0u ||
+       original_full_frame_trace->polygon_scanlines==0u)
         stop("ORIGINAL_1BDAC_POLYGON_PREDECESSOR_MISSING");
     stop("ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING");
 }
@@ -329,9 +385,7 @@ void original_live_1f8fc_source_chain() noexcept {
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
     const char* const expected_stop=source_polygons?
-        (frame.polygon_quads!=0u?
-            "ORIGINAL_34DE8_33E6C_POLYGON_RASTER_PENDING":
-            "ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING"):
+        "ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING":
         (through_actor?
             "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
             "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
@@ -340,7 +394,10 @@ void original_live_1f8fc_source_chain() noexcept {
        frame.backgrounds!=2u || frame.releases!=2u ||
        frame.source_ids[0]!=expected || frame.source_ids[1]!=expected+1u ||
        exterior.active_actor_runs!=1u || exterior.subtractive_draws==0u ||
-       (source_polygons && frame.polygon_cells==0u) ||
+       (source_polygons &&
+           (frame.polygon_cells==0u || frame.polygon_quads==0u ||
+            frame.polygon_scan_returns!=1u || frame.polygon_scanlines==0u ||
+            frame.polygon_edges==0u || frame.polygon_steps==0u)) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -374,11 +431,16 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" polygon_source_projections="<<frame.polygon_projections
              <<" polygon_source_quads="<<frame.polygon_quads
              <<" polygon_scan_returns="<<frame.polygon_scan_returns
+             <<" polygon_vertex_copies="<<frame.polygon_vertex_copies
+             <<" polygon_edges="<<frame.polygon_edges
+             <<" polygon_steps="<<frame.polygon_steps
+             <<" polygon_scanlines="<<frame.polygon_scanlines
+             <<" polygon_drawn_scanlines="<<frame.polygon_drawn_scanlines
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next="<<(source_polygons?
-                 (frame.polygon_quads?"33E6C_POLYGON_RASTER":"1BDAC_ACTOR_UPDATE"):
+                 "1BDAC_ACTOR_UPDATE":
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
