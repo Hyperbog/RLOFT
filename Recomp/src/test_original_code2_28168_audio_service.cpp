@@ -42,6 +42,7 @@ int main() {
     try {
         std::vector<code2::u8> memory(code2::kObject2VirtualSize,0u);
         code2::Machine m{}; m.data=memory.data(); m.cpu.ds=0x30u;
+        check(memory.size()>0x22008u,"Original CODE2 synthetic guest is smaller than sample destination");
         const auto put=[&](code2::u32 a,code2::u32 b){
             code2::store_le32(memory.data()+a,b);
         };
@@ -76,7 +77,7 @@ int main() {
         // This test owns its synthetic sample packet and the fake AIL ABI.
         memory[0xEE70u]=1u;
         put(0xEE44u,2u);
-        put(0xEE60u,0x31000u);
+        put(0xEE60u,0x22000u);
         put(0xEE64u,0x1400u);
         put(0xEE6Cu,0x67u);
         put(0x20000u,8u);
@@ -87,7 +88,7 @@ int main() {
               observed.last_bank==2u && observed.status==1u &&
               observed.set_sample==1u && observed.set_rate==1u &&
               observed.start==1u && observed.last_device==0x67u &&
-              observed.last_source==0x31000u &&
+              observed.last_source==0x22000u &&
               observed.last_selector==0x30u &&
               observed.last_flags==0xFFFFFFFFu &&
               observed.last_format==0x1400u &&
@@ -95,7 +96,7 @@ int main() {
               get(0xEE54u)==0xFFFFFFFFu,
               "Compiled source 28168/27F24 selected the wrong driver ABI sequence");
         for(unsigned i=0;i<8u;++i)
-            check(memory[0x31000u+i]==static_cast<code2::u8>(0xA0u+i),
+            check(memory[0x22000u+i]==static_cast<code2::u8>(0xA0u+i),
                   "Original 27F24 payload transfer does not match synthetic bytes");
         std::cout<<"ORIGINAL_CODE2_28168_27F24_SOURCE_DISPATCH_PASS"
                  <<" muted_queue=SOURCE_CLEAR"
