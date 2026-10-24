@@ -744,6 +744,10 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_SCENE_SOURCE_RETURN"
              <<" page="<<page
              <<" scene_returns="<<current->original_1fc14_source_scene_returns
+             <<" source_keyboard_code="<<current->original_1fc14_last_scan_code
+             <<" heading="<<code2::load_le32(current->data.data()+0xC658u)
+             <<" camera_word_x="<<code2::load_le16(current->data.data()+0x255D0u)
+             <<" camera_word_y="<<code2::load_le16(current->data.data()+0x255D4u)
              <<" polygon_quads="<<t->polygon_quads
              <<" polygon_drawn_scanlines="<<t->polygon_drawn_scanlines
              <<" original_actor_returns="<<t->actor_update_returns
