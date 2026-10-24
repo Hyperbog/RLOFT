@@ -570,6 +570,18 @@ jobs:
           if (-not $combined.Contains("CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_DISTANT_RET")) {
             throw "Original 0D550 distant-actor source branch was not observed"
           }
+          $cycles = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_POST_SCENE_CYCLE_PROBE scenes=([0-9]+) pages=([0-9]+) observed_page_return=1 hud_return_before_audio=1 audio_actor_queries=1 audio_random_callbacks=1 keyboard_loop_reentry=SOURCE acceptance=BOUNDED_POST_SCENE full_1F8FC_frames=NOT_CLAIMED')
+          if ($cycles.Count -lt 5) {
+            throw "Expected five source-backed post-scene HUD/audio cycle returns; found $($cycles.Count)"
+          }
+          for ($i = 0; $i -lt 5; ++$i) {
+            $expected = [string]($i + 1)
+            if ($cycles[$i].Groups[1].Value -ne $expected -or
+                $cycles[$i].Groups[2].Value -ne $expected) {
+              throw "Source post-scene cycle/accounting mismatch at sequence $expected"
+            }
+          }
+          Write-Host "ORIGINAL_1FC14_POST_SCENE_SOURCE_LOOP_GATE_PASS scenes=$($scenes.Count) page_handoffs=$($pages.Count) source_loop_cycles=$($cycles.Count) source_hud_audio=BOUNDED_COMPLETE 1F8FC_presentations=SEPARATE indexed_dos_parity=OPEN"
           Write-Host "ORIGINAL_1FC14_FIVE_SCENE_SOURCE_GATE_PASS scene_returns=$($scenes.Count) page_handoffs=$($pages.Count) full_frames=NOT_CERTIFIED indexed_dos_parity=OPEN"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
