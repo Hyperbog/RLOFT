@@ -528,13 +528,14 @@ void original_full_2c294_source() noexcept {
 // 274A4 -> 29804 -> 29414 -> 2A380/2A6B0 and 273F0.
 // All source VGA ports operate through one Bridge::Scope. The source
 // raster callbacks use the same guest machine and resident RES0 image.
-void original_full_compass_clip(u32 top,u32 left,u32 bottom,u32 right) noexcept {
+u32 original_full_compass_clip(u32 top,u32 left,u32 bottom,u32 right) noexcept {
     if(!original_full_frame_trace)
         stop("ORIGINAL_274A4_CLIP_OUTSIDE_SOURCE");
     code2::function_296c0(current->machine,
         static_cast<code2::s32>(top),static_cast<code2::s32>(left),
         static_cast<code2::s32>(bottom),static_cast<code2::s32>(right));
     ++original_full_frame_trace->compass_clips;
+    return 0u;
 }
 u32 original_full_compass_unclipped(
         u32 frame,u32 top,u32 left,u32 image) noexcept {
