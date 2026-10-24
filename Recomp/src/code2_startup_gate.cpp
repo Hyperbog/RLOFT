@@ -85,6 +85,7 @@ struct Session {
     unsigned original_1fc14_source_scene_returns=0;
     unsigned original_1fc14_post_scene_cycles=0;
     u32 original_1fc14_last_scan_code=0u;
+    std::vector<u8> original_1fc14_source_keyboard_trace{};
     unsigned original_scene_res1_portrait_decodes=0;
     struct WorldMaterial {u32 begin=0,end=0,image=0;};
     std::map<u32,WorldMaterial> original_world_materials{};
@@ -1408,6 +1409,8 @@ u32 original_30b40_keyboard_poll() noexcept {
         if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
            live && std::strcmp(live,"1")==0) {
             current->original_1fc14_last_scan_code=0u;
+            current->original_1fc14_source_keyboard_trace.push_back(0u);
+            current->original_1fc14_source_keyboard_trace.push_back(0u);
             original_full_prepare_1fc14_source_tick();
         }
         return 0u;
@@ -1415,6 +1418,9 @@ u32 original_30b40_keyboard_poll() noexcept {
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
        live && std::strcmp(live,"1")==0) {
         current->original_1fc14_last_scan_code=response.ax & 0xFFFFu;
+        const u32 raw=current->original_1fc14_last_scan_code;
+        current->original_1fc14_source_keyboard_trace.push_back(static_cast<u8>(raw));
+        current->original_1fc14_source_keyboard_trace.push_back(static_cast<u8>(raw>>8u));
         original_full_prepare_1fc14_source_tick();
     }
     return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
