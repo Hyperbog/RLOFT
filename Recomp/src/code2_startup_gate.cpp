@@ -1951,6 +1951,10 @@ void original_scene_hud_298f0(u32 frame,u32 row,u32 x,
     }
 }
 void original_scene_res_blit(u32 frame,u32 row,u32 x,u32 image) noexcept {
+    // Canonical CODE.2 function_2939c returns immediately on a null image
+    // (shared RET at 2939A), even when the source 2E4A4 iteration reaches
+    // it. No VGA operation or fabricated replacement image is permitted.
+    if(image==0u)return;
     if(!current->original_vga)
         stop("ORIGINAL_1F8FC_NO_ORIGINAL_VGA_DEVICE");
     try {
