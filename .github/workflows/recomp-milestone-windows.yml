@@ -551,6 +551,10 @@ jobs:
           }
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE"] = "1"
+          # All private indexed buffers live only in runner temp, outside
+          # checked-out sources and published milestone artifact paths.
+          $privateFrames = Join-Path $env:RUNNER_TEMP "rloft-source-private-frame-$env:GITHUB_RUN_ID"
+          $cmd.Environment["RLOFT_RECOMP_PRIVATE_1FC14_FRAME_DIR"] = $privateFrames
           $proc = [System.Diagnostics.Process]::new()
           $proc.StartInfo = $cmd
           if (-not $proc.Start()) { throw "Could not start original 1FC14 source scene" }
@@ -598,6 +602,37 @@ jobs:
           }
           Write-Host "ORIGINAL_1FC14_POST_SCENE_SOURCE_LOOP_GATE_PASS scenes=$($scenes.Count) page_handoffs=$($pages.Count) source_loop_cycles=$($cycles.Count) source_hud_audio=BOUNDED_COMPLETE 1F8FC_presentations=SEPARATE indexed_dos_parity=OPEN"
           Write-Host "ORIGINAL_1FC14_FIVE_SCENE_SOURCE_GATE_PASS scene_returns=$($scenes.Count) page_handoffs=$($pages.Count) full_frames=NOT_CERTIFIED indexed_dos_parity=OPEN"
+          try {
+            for ($i=1; $i -le 5; ++$i) {
+              $stem = Join-Path $privateFrames "level22_source_tick_$i"
+              $idx = "$stem.idx"
+              $pal = "$stem.pal"
+              $jsonPath = "$stem.json"
+              if (-not (Test-Path $idx) -or -not (Test-Path $pal) -or -not (Test-Path $jsonPath)) {
+                throw "Private VGA source capture missing at original tick $i"
+              }
+              if ((Get-Item $idx).Length -ne 128000 -or (Get-Item $pal).Length -ne 768) {
+                throw "Original-source VGA/DAC private bytes differ from 320x400 RGB6 format"
+              }
+              $receipt = Get-Content -Raw $jsonPath | ConvertFrom-Json
+              if ($receipt.schema -ne 'rloft-vga-observation-v1' -or
+                  $receipt.role -ne 'compiled_recomp' -or
+                  $receipt.frame_boundary -ne '1FC14_1A510' -or
+                  $receipt.level -ne 22 -or
+                  $receipt.source_tick -ne $i -or
+                  $receipt.original_dos_executed -ne $false -or
+                  $receipt.indices_sha256 -ne (Get-FileHash $idx -Algorithm SHA256).Hash.ToLowerInvariant() -or
+                  $receipt.rgb6_sha256 -ne (Get-FileHash $pal -Algorithm SHA256).Hash.ToLowerInvariant()) {
+                throw "Private VGA source receipt/hash mismatch at scene tick $i"
+              }
+            }
+            Write-Host "ORIGINAL_1FC14_PRIVATE_SOURCE_FRAMES_PASS captured=5 indexed_bytes_each=128000 rgb6_bytes_each=768 export=HASH_ONLY_TO_LOG media_artifacts=EXCLUDED independent_dos_parity=OPEN"
+          }
+          finally {
+            if (Test-Path $privateFrames) {
+              Remove-Item $privateFrames -Recurse -Force
+            }
+          }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
