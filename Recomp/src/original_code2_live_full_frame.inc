@@ -687,6 +687,41 @@ void original_full_274a4_source() noexcept {
     }
     ++original_full_frame_trace->compass_source_returns;
 }
+void original_full_28168_audio_service() noexcept {
+    // Original 1FC14 invokes 28168 after party HUD. The compiled
+    // 28168 selects and consumes requests, then calls compiled 27F24.
+    // With an active AIL device and pending audio, the real driver
+    // callbacks are not implemented here: retain the queue and stop
+    // *before* the source would consume any game request.
+    if(!current || !original_full_frame_trace)
+        stop("ORIGINAL_28168_SOURCE_AUDIO_TRACE_MISSING");
+    const u32 enabled=code2::load_le32(current->data.data()+0xEE40u);
+    const u32 sound_enabled=current->data[0xEE70u];
+    const u32 request0=code2::load_le32(current->data.data()+0xEE48u);
+    const u32 request1=code2::load_le32(current->data.data()+0xEE54u);
+    const bool queued=request0!=0xFFFFFFFFu || request1!=0xFFFFFFFFu;
+    if(enabled && sound_enabled && queued) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_ACTIVE_AIL_PENDING"
+                 <<" slot0="<<request0<<" slot1="<<request1
+                 <<" source=28168_27F24"
+                 <<" AIL_driver=UNCONNECTED"
+                 <<" software_queue=PRESERVED\n"<<std::flush;
+        stop("ORIGINAL_28168_27F24_ACTIVE_AIL_DRIVER_UNCONNECTED");
+    }
+    code2::Application55Boundary audio{};
+    code2::function_28168(current->machine,audio);
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_SOURCE_SERVICE_RETURN"
+             <<" original_28168=EXECUTED"
+             <<" enabled="<<enabled
+             <<" audible="<<sound_enabled
+             <<" prior_queue0="<<request0
+             <<" prior_queue1="<<request1
+             <<" after_queue0="
+             <<code2::load_le32(current->data.data()+0xEE48u)
+             <<" after_queue1="
+             <<code2::load_le32(current->data.data()+0xEE54u)
+             <<" driver_playback=NOT_CERTIFIED\n"<<std::flush;
+}
 u32 original_full_1f120_actor_count() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->compass_source_returns!=1u)
