@@ -1,5 +1,6 @@
 // Defined below this include in the same startup translation unit.
 void original_world_sweep_335dc() noexcept;
+u32 original_world_sintab_end() noexcept;
 
 // Original 1F8FC chained into both original cache releases, full party
 // 1F494 and 1F1C8 until the independently verified first world sprite.
@@ -26,6 +27,11 @@ struct OriginalFullFrameTrace {
     u32 scene_extent_callbacks=0u;
     u32 scene_wall_passes=0u;
     u32 scene_sprite_calls=0u;
+    u32 scene_sprite_raster_returns=0u;
+    u32 scene_sprite_visible_runs=0u;
+    u32 scene_sprite_plane_passes=0u;
+    u32 scene_sprite_indexed_writes=0u;
+    u32 scene_sprite_off_aperture_writes=0u;
     u32 scene_projection_returns=0u;
     u32 source_ids[2]{};
 };
@@ -439,11 +445,59 @@ void original_full_scene_clip(u32,u32,u32,u32) noexcept {
 void original_full_scene_overlay(u32,u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_2C294_2978C_OVERLAY_PENDING");
 }
-void original_full_scene_sprite(u32,u32,u32,u32,u32,u32) noexcept {
-    if(!original_full_frame_trace)
-        stop("ORIGINAL_2C294_SPRITE_OUTSIDE_RETAINED_SCENE");
-    ++original_full_frame_trace->scene_sprite_calls;
-    stop("ORIGINAL_2C294_36CEC_SOURCE_SPRITE_PENDING");
+void original_full_scene_sprite(
+        u32 screen_x,u32 res3_id,u32 projected_size,u32 lookup_bias,
+        u32 vertical_mode,u32 ray_depth) noexcept {
+    if(!original_full_frame_trace || !current->original_vga ||
+       current->original_03838_completed!=1u ||
+       current->original_181b4_completed!=1u)
+        stop("ORIGINAL_2C294_36CEC_RETAINED_GUEST_UNAVAILABLE");
+    auto& trace=*original_full_frame_trace;
+    ++trace.scene_sprite_calls;
+    // Original 36D07 skips tiny projected sprites before loading RES3.
+    if((projected_size>>3u)==0u) {
+        ++trace.scene_sprite_raster_returns;
+        return;
+    }
+    const u32 image=original_full_frame_resource(res3_id,3u);
+    if(!image || std::uint64_t(image)+2u>current->data.size())
+        stop("ORIGINAL_36CEC_RES3_RESOURCE_UNAVAILABLE");
+    const u32 length=code2::load_le16(current->data.data()+image);
+    if(length<14u ||
+       std::uint64_t(image)+2u+length>current->data.size())
+        stop("ORIGINAL_36CEC_RES3_DECODED_BODY_INVALID");
+    const u32 code_end=original_world_sintab_end();
+    if(code_end<=0x100204u || code_end>current->data.size())
+        stop("ORIGINAL_36CEC_SINTAB_ARENA_INVALID");
+    try {
+        const rloft_recomp::Original36cecCall call{
+            screen_x,res3_id,projected_size,lookup_bias,
+            vertical_mode,ray_depth
+        };
+        const auto result=rloft_recomp::raster_original_36cec_scene(
+            current->data,*current->original_vga,call,
+            image+2u,length,0x100000u,code_end);
+        ++trace.scene_sprite_raster_returns;
+        trace.scene_sprite_visible_runs+=result.visible_runs;
+        trace.scene_sprite_plane_passes+=result.plane_passes;
+        trace.scene_sprite_indexed_writes+=result.indexed_writes;
+        trace.scene_sprite_off_aperture_writes+=
+            result.off_aperture_cpu_writes;
+    } catch(const std::exception& error) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=36CEC_SPRITE_RASTER_FAILURE"
+                 <<" source=2C294_36CEC_36B14_369D8"
+                 <<" res3_id="<<res3_id
+                 <<" screen_x="<<screen_x
+                 <<" projected_size="<<projected_size
+                 <<" lookup_bias="<<lookup_bias
+                 <<" vertical_mode="<<vertical_mode
+                 <<" ray_depth="<<ray_depth
+                 <<" source_image="<<image
+                 <<" decoded_length="<<length
+                 <<" sintab_end="<<code_end
+                 <<" reason="<<error.what()<<"\n"<<std::flush;
+        stop("ORIGINAL_36CEC_RETAINED_SPRITE_RASTER_FAILED");
+    }
 }
 void original_full_2c294_source() noexcept {
     if(!original_full_frame_trace ||
@@ -559,9 +613,7 @@ void original_live_1f8fc_source_chain() noexcept {
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
     const char* const expected_stop=source_polygons?
-        (frame.scene_sprite_calls!=0u?
-            "ORIGINAL_2C294_36CEC_SOURCE_SPRITE_PENDING":
-            "ORIGINAL_274A4_SOURCE_COMPASS_PENDING"):
+        "ORIGINAL_274A4_SOURCE_COMPASS_PENDING":
         (through_actor?
             "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
             "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
@@ -575,7 +627,10 @@ void original_live_1f8fc_source_chain() noexcept {
             frame.polygon_scan_returns!=1u || frame.polygon_scanlines==0u ||
             frame.polygon_edges==0u || frame.polygon_steps==0u ||
             frame.actor_update_returns!=1u ||
-            frame.scene_wall_passes!=1u)) ||
+            frame.scene_wall_passes!=1u ||
+            frame.scene_sprite_calls==0u ||
+            frame.scene_sprite_raster_returns!=frame.scene_sprite_calls ||
+            frame.scene_projection_returns!=1u)) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -619,13 +674,17 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" scene_extent_callbacks="<<frame.scene_extent_callbacks
              <<" scene_wall_passes="<<frame.scene_wall_passes
              <<" scene_sprite_calls="<<frame.scene_sprite_calls
+             <<" scene_sprite_raster_returns="<<frame.scene_sprite_raster_returns
+             <<" scene_sprite_visible_runs="<<frame.scene_sprite_visible_runs
+             <<" scene_sprite_plane_passes="<<frame.scene_sprite_plane_passes
+             <<" scene_sprite_indexed_writes="<<frame.scene_sprite_indexed_writes
+             <<" scene_sprite_off_aperture_writes="<<frame.scene_sprite_off_aperture_writes
              <<" scene_projection_returns="<<frame.scene_projection_returns
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next="<<(source_polygons?
-                 (frame.scene_sprite_calls?
-                     "36CEC_SPRITE_RASTER":"274A4_COMPASS_OVERLAY"):
+                 "274A4_COMPASS_OVERLAY":
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
