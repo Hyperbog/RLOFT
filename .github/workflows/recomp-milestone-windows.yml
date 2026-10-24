@@ -498,6 +498,21 @@ jobs:
             }
           }
           Write-Host "ORIGINAL_1FC14_29804_CLIP_AND_PAGE_HANDOFF_PASS authentic_full_draws=$($drawn.Count) authentic_full_culls=$($culled.Count) retained_crtc_page_handoffs=$($pageFlips.Count) same_guest=YES consecutive_scene_frames=NOT_YET_CONNECTED"
+      - name: Inspect bounded original 0D550 canonical source interface
+        shell: pwsh
+        run: |
+          $lines = [System.IO.File]::ReadAllLines((Resolve-Path "Code2/Code2.cpp").Path)
+          $positions = @(for ($i = 0; $i -lt $lines.Length; ++$i) {
+            if ($lines[$i] -match 'function_0d550\\s*\\(') { $i }
+          })
+          Write-Host "ORIGINAL_0D550_SOURCE_DECLARATIONS=$($positions.Count)"
+          foreach ($i in ($positions | Select-Object -First 6)) {
+            Write-Host "ORIGINAL_0D550_SOURCE_CONTEXT_BEGIN line=$($i + 1)"
+            for ($j = [Math]::Max(0, $i - 4); $j -lt [Math]::Min($lines.Length, $i + 25); ++$j) {
+              Write-Host ("{0}: {1}" -f ($j + 1), $lines[$j])
+            }
+            Write-Host "ORIGINAL_0D550_SOURCE_CONTEXT_END"
+          }
       - name: Diagnose authentic source 1FC14 persistent 1F1C8 scene frontier
         shell: pwsh
         timeout-minutes: 2
