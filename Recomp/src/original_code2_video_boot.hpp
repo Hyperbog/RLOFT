@@ -504,10 +504,10 @@ struct Bridge {
         const u32 clip=0xEF74u+depth*0x18u;
         if(std::uint64_t(clip)+0x18u>guest_extent)
             throw std::out_of_range("Original 29804 cursor clip stack outside guest");
-        const u32 clip_left=code2::load_le32(machine.data+0xEF55u);
-        const u32 clip_top=code2::load_le32(machine.data+0xEF5Du);
-        const u32 clip_right=code2::load_le32(machine.data+0xEF61u);
+        const u32 clip_top=code2::load_le32(machine.data+0xEF55u);
         const u32 clip_bottom=code2::load_le32(machine.data+0xEF59u);
+        const u32 clip_left=code2::load_le32(machine.data+0xEF5Du);
+        const u32 clip_right=code2::load_le32(machine.data+0xEF61u);
         const u32 result=code2::function_29804(machine,callbacks,frame,
                                                  static_cast<u32>(x),
                                                  static_cast<u32>(y),image);
