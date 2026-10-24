@@ -301,6 +301,10 @@ jobs:
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_FRONTIER"] = "1"
           $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_POLYGON_SOURCE"] = "1"
+          # Temporary private comparison media stays outside the checkout
+          # and is never uploaded as an engineering artifact.
+          $privateStem = Join-Path $env:RUNNER_TEMP "rloft-source-frame-private"
+          $cmd.Environment["RLOFT_RECOMP_PRIVATE_FRAME_STEM"] = $privateStem
           $child = [System.Diagnostics.Process]::new()
           $child.StartInfo = $cmd
           if (-not $child.Start()) { throw "Cannot launch original source second INIT experiment" }
@@ -319,8 +323,28 @@ jobs:
           }
           $result = $child.ExitCode
           $child.Dispose()
+          $indexFile = "$privateStem.idx"
+          $paletteFile = "$privateStem.pal"
+          $saved = (Test-Path $indexFile) -and (Test-Path $paletteFile)
+          $matchingPrivateCapture = $false
+          if ($saved) {
+            $receipt = [regex]::Match($combined, 'CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SOURCE_FRAME_FINGERPRINT indices_sha256=([0-9a-f]{64}) dac_rgb6_sha256=([0-9a-f]{64})')
+            $indexHash = (Get-FileHash -Algorithm SHA256 $indexFile).Hash.ToLowerInvariant()
+            $paletteHash = (Get-FileHash -Algorithm SHA256 $paletteFile).Hash.ToLowerInvariant()
+            $matchingPrivateCapture = $receipt.Success -and
+              (Get-Item $indexFile).Length -eq 128000 -and
+              (Get-Item $paletteFile).Length -eq 768 -and
+              $indexHash -eq $receipt.Groups[1].Value -and
+              $paletteHash -eq $receipt.Groups[2].Value
+          }
+          # Never publish the original indexed frame or DAC as CI artifacts.
+          Remove-Item -Force -ErrorAction SilentlyContinue $indexFile, $paletteFile
           if (-not $completed) { throw "Original 16D04 continuation timed out after 45 seconds" }
           if ($result -ne 0) { throw "Original second INIT source experiment exited $result" }
+          if (-not $matchingPrivateCapture) {
+            throw "Retained 1F8FC private indexed VGA or DAC bytes did not match reported hardware hashes"
+          }
+          Write-Host "ORIGINAL_1F8FC_PRIVATE_FRAME_EXPORT_PASS frame_bytes=128000 dac_bytes=768 raw_media=DELETED_FROM_RUNNER"
           if ($combined -notmatch 'ORIGINAL_CODE2_16810_168C8_RETAINED_CATALOGS_PASS.*npc_count=83.*object_count=336.*mace_graphic=37.*blue_robe_graphic=8.*original_bytes=INDEPENDENT_MATCH') {
             throw "Original NPCS/OBJECTS source loader did not populate the retained original Watcom heap"
           }
