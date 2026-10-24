@@ -2077,7 +2077,13 @@ void original_scene_pointer_sprite(u32 frame,code2::s32 x,
         rloft::source_video_boot::Bridge bridge(
             current->machine,*current->original_vga,current->data.size());
         bridge.run_original_29804_cursor_sprite(frame,x,y,image);
-    }catch(const std::exception&) {
+    }catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_29804_CURSOR_ABI_FAILURE"
+                 <<" frame="<<frame<<" x="<<x<<" y="<<y
+                 <<" image="<<image
+                 <<" cursor_frame_count="<<code2::load_le16(current->data.data()+0x880Fu)
+                 <<" source_page_depth="<<unsigned(current->data[0xF0D0u])
+                 <<" reason="<<e.what()<<"\n"<<std::flush;
         stop("ORIGINAL_1A5B0_29804_MOUSE_SPRITE_UNSUPPORTED");
     }
 }
