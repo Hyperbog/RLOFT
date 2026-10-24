@@ -668,3 +668,19 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_1f8fc_scene_and_17a68_postload_source
         COMMAND rloft_original_code2_scene_actor_source_test)
 endif()
+
+# Canonical original CODE.2 sampled SFX software queue (no AIL output).
+# Exercise actual 28110 source against isolated synthetic guest memory.
+add_executable(rloft_original_code2_28110_sound_queue_test
+    src/test_original_code2_28110_audio_queue.cpp)
+set_target_properties(rloft_original_code2_28110_sound_queue_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_28110_sound_queue_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_28110_sound_queue_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_28110_sampled_sound_queue
+        COMMAND rloft_original_code2_28110_sound_queue_test)
+endif()
