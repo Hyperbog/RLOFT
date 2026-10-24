@@ -39,5 +39,9 @@ std::uint32_t test_advance_through_original_video_mode(Opaque*);
 // table, then report the next observed service or real child completion.
 // Zero indicates no next resumable host-service request was observed.
 std::uint32_t test_advance_past_original_second_init(Opaque*);
+// Explicit experimental terminal input into the retained original 30B40
+// keyboard-host boundary. Host-translated WASD is NOT DOS IRQ9 parity.
+// Run only after test_advance_past_original_second_init returns service 11.
+std::uint32_t drive_console_keyboard(Opaque*);
 void destroy(Opaque*) noexcept;
 }} // namespace rloft::original_code2_session
