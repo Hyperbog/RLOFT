@@ -54,6 +54,8 @@ struct Session {
     code2::Runtime111Boundary entry{};
     code2::Application46Boundary game{};
     code2::Application45Boundary presentation{};
+    code2::Application43Boundary live_ui{};
+    code2::Application44Boundary live_scene{};
     rloft::graphics::OriginalVgaHost* original_vga=nullptr;
     unsigned original_source_video_modes=0;
     unsigned original_source_dac_streams=0;
@@ -1350,6 +1352,7 @@ void original_16d04_after_dos_open() noexcept {
 // Without this callback the reconstructed optional function pointer
 // yields key 0 in a busy loop, hiding the real live-gameplay frontier.
 void original_live_1f8fc_source_chain() noexcept;
+void original_full_prepare_1fc14_source_tick() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
     // Source 1FC14 re-enters keyboard polling after 1F8FC presents.
     // Account for actual extra 325B0 COLORS and 29234 DAC calls.
@@ -1392,6 +1395,9 @@ u32 original_30b40_keyboard_poll() noexcept {
         original_live_1f8fc_source_chain();
         return 0u;
     }
+    if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       live && std::strcmp(live,"1")==0)
+        original_full_prepare_1fc14_source_tick();
     return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
 }
 // Original 20440 direct dependencies. All file bytes arrive through the
@@ -4095,6 +4101,13 @@ void attach_original_vga(
     if(const char* trial=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF")) {
         if(std::strcmp(trial,"1")==0)
             source.presentation.call_1a510=&original_1fc14_source_page_handoff;
+    }
+    if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       live && std::strcmp(live,"1")==0) {
+        const char* page=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF");
+        if(!page || std::strcmp(page,"1")!=0)
+            stop("ORIGINAL_1FC14_SCENE_REQUIRES_ORIGINAL_1A510");
+        original_full_attach_1fc14_scene(source);
     }
     // Party RES0/RES1 source decoders and portrait blitters are attached
     // independently of enabling the incomplete full 1F8FC frame.
