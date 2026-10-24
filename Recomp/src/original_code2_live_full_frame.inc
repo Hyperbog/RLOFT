@@ -39,6 +39,9 @@ struct OriginalFullFrameTrace {
     u32 compass_images=0u;
     u32 compass_vga_writes=0u;
     u32 frame_audio_queries=0u;
+    u32 retained_page_returns=0u;
+    u32 post_hud_return_witness=0u;
+    u32 post_audio_random_callbacks=0u;
     u32 compositor_returns=0u;
     u32 source_ids[2]{};
 };
@@ -483,6 +486,11 @@ void original_full_scene_clear(u32 dst,u32 value,u32 count) noexcept {
     (void)code2::function_30d30(memory,dst,value,count);
 }
 u32 original_full_scene_random() noexcept {
+    // After 1A510, original 1F120 reaches 30CA2 only after
+    // its 2B1BC actor-count query and any intervening sound updates.
+    auto* t=original_full_frame_trace;
+    if(t && t->retained_page_returns==1u && t->frame_audio_queries==1u)
+        ++t->post_audio_random_callbacks;
     return code2::function_30ca2(current->machine);
 }
 void original_full_scene_seed(u32 seed) noexcept {
@@ -684,6 +692,8 @@ u32 original_full_1f120_actor_count() noexcept {
        original_full_frame_trace->compass_source_returns!=1u)
         stop("ORIGINAL_1F120_COMPASS_PREDECESSOR_MISSING");
     ++original_full_frame_trace->frame_audio_queries;
+    if(original_full_frame_trace->retained_page_returns==1u)
+        ++original_full_frame_trace->post_hud_return_witness;
     return code2::function_2b1bc(current->machine);
 }
 u32 original_full_1f120_audio_mode() noexcept {
@@ -785,6 +795,41 @@ void original_full_prepare_1fc14_source_tick() noexcept {
     original_1fc14_tick_exterior={};
     original_full_frame_trace=&original_1fc14_tick_frame;
     exterior_trace=&original_1fc14_tick_exterior;
+}
+void original_full_mark_1fc14_page_return() noexcept {
+    auto* t=original_full_frame_trace;
+    if(!t || t!=&original_1fc14_tick_frame || t->retained_page_returns!=0u)
+        stop("ORIGINAL_1FC14_POST_HANDOFF_SOURCE_TRACE_MISSING");
+    ++t->retained_page_returns;
+}
+void original_full_audit_1fc14_previous_tick() noexcept {
+    if(!current || current->original_1fc14_source_scene_returns==0u ||
+       current->original_1fc14_source_scene_returns==
+           current->original_1fc14_post_scene_cycles)
+        return;
+    auto* t=original_full_frame_trace;
+    const bool trace_present=t==&original_1fc14_tick_frame;
+    const u32 pages=trace_present?t->retained_page_returns:0u;
+    const u32 hud=trace_present?t->post_hud_return_witness:0u;
+    const u32 audio=trace_present?t->frame_audio_queries:0u;
+    const u32 rng=trace_present?t->post_audio_random_callbacks:0u;
+    const bool complete=trace_present && pages==1u && hud==1u &&
+        audio==1u && rng==1u &&
+        current->original_1fc14_source_scene_returns==
+            current->original_1fc14_source_page_handoffs &&
+        current->original_1fc14_source_scene_returns==
+            current->original_1fc14_post_scene_cycles+1u;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_POST_SCENE_CYCLE_PROBE"
+             <<" scenes="<<current->original_1fc14_source_scene_returns
+             <<" pages="<<current->original_1fc14_source_page_handoffs
+             <<" observed_page_return="<<pages
+             <<" hud_return_before_audio="<<hud
+             <<" audio_actor_queries="<<audio
+             <<" audio_random_callbacks="<<rng
+             <<" keyboard_loop_reentry=SOURCE"
+             <<" acceptance="<<(complete?"BOUNDED_POST_SCENE":"DIAGNOSTIC_ONLY")
+             <<" full_1F8FC_frames=NOT_CLAIMED\n"<<std::flush;
+    if(complete)++current->original_1fc14_post_scene_cycles;
 }
 void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
     auto* t=original_full_frame_trace;
