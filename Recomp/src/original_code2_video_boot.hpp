@@ -32,6 +32,7 @@ struct Bridge {
     u32 source_cursor_background_captures=0;
     u32 source_frame_background_captures=0;
     u32 source_cursor_sprite_draws=0;
+    u32 source_cursor_clipped_sprite_draws=0;
     explicit Bridge(code2::Machine& guest,
                     rloft::graphics::OriginalVgaHost& v,
                     std::size_t memory_bytes)
@@ -474,9 +475,21 @@ struct Bridge {
         ++b.source_cursor_sprite_draws;
         return 1u;
     }
-    static u32 cursor_clipped_not_yet_connected(u32,u32,u32,u32,u32) noexcept {
-        self().invalid_access=true;
-        return 0u;
+    static u32 cursor_source_2a6b0(u32 frame,u32 row,u32 x,
+                                    u32 clip,u32 image) noexcept {
+        auto& b=self();
+        if(image!=0x880Du || frame>=11u ||
+           std::uint64_t(clip)+0x18u>b.guest_extent ||
+           std::uint64_t(image)+8u>b.guest_extent ||
+           row>399u || x>319u) {
+            b.invalid_access=true;
+            return 0u;
+        }
+        auto vga=app61();
+        code2::function_2a6b0(b.machine,vga,frame,row,x,clip,image);
+        ++b.source_cursor_sprite_draws;
+        ++b.source_cursor_clipped_sprite_draws;
+        return 1u;
     }
     void run_original_29804_cursor_sprite(u32 frame,code2::s32 x,
                                           code2::s32 y,u32 image) {
@@ -486,12 +499,12 @@ struct Bridge {
         Scope scope(*this);
         code2::Application57Boundary callbacks{};
         callbacks.call_2a380=&cursor_source_2a380;
-        callbacks.call_2a6b0=&cursor_clipped_not_yet_connected;
+        callbacks.call_2a6b0=&cursor_source_2a6b0;
         (void)code2::function_29804(machine,callbacks,frame,
                                      static_cast<u32>(x),static_cast<u32>(y),image);
         if(invalid_access || video.unsupported_read() ||
            source_cursor_sprite_draws!=1u)
-            throw std::runtime_error("Original 29804/29414/2A380 cursor sprite not drawn");
+            throw std::runtime_error("Original 29804/29414/2A380-or-2A6B0 cursor sprite not drawn");
     }
     // Source 1F8FC -> 2E510 -> 2E4A4 -> 2939C -> 2A380.
     // Unlike the cursor-only 29804 wrapper, this accepts the actual
