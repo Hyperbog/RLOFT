@@ -1800,6 +1800,7 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
              <<" commands=W_FORWARD_A_LEFT_S_BACK_D_RIGHT_ENTER_IDLE_Q_QUIT\n"
              <<std::flush;
     unsigned events=0u, source_pose_updates=0u, source_velocity_updates=0u;
+    unsigned camera_displacements=0u, heading_rotations=0u;
     std::string line;
     // The terminal, not a synthetic scripted fixture, supplies these
     // commands. A line terminator is necessary: this is not a physical
@@ -1842,12 +1843,15 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
         const u32 after_heading=code2::load_le32(guest_base+0xC658u);
         const u16 after_speed=code2::load_le16(guest_base+0xC000u);
         const u16 after_turn=code2::load_le16(guest_base+0xC004u);
-        const bool pose_changed=after_x!=before_x ||
-             after_y!=before_y || after_heading!=before_heading;
+        const bool camera_displaced=after_x!=before_x || after_y!=before_y;
+        const bool heading_rotated=after_heading!=before_heading;
+        const bool pose_changed=camera_displaced || heading_rotated;
         const bool velocity_changed=after_speed!=before_speed ||
              after_turn!=before_turn;
         source_pose_updates+=pose_changed;
         source_velocity_updates+=velocity_changed;
+        camera_displacements+=camera_displaced;
+        heading_rotations+=heading_rotated;
         std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_GUEST_STATE_DELTA"
                  <<" event="<<events<<" original_scan_code="<<scan
                  <<" camera_x_before="<<before_x<<" camera_x_after="<<after_x
@@ -1857,6 +1861,8 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
                  <<" speed_before="<<before_speed<<" speed_after="<<after_speed
                  <<" turn_before="<<before_turn<<" turn_after="<<after_turn
                  <<" pose_changed="<<(pose_changed?1:0)
+                 <<" camera_displaced="<<(camera_displaced?1:0)
+                 <<" heading_rotated="<<(heading_rotated?1:0)
                  <<" velocity_changed="<<(velocity_changed?1:0)
                  <<" guest=UNCHANGED_BY_HOST\n"<<std::flush;
         std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_KEYBOARD_REENTERED"
@@ -1869,6 +1875,8 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
              <<" host_terminal_events="<<events
              <<" source_pose_updates="<<source_pose_updates
              <<" source_velocity_updates="<<source_velocity_updates
+             <<" camera_displacements="<<camera_displacements
+             <<" heading_rotations="<<heading_rotations
              <<" original_30B40_source=EXECUTED"
              <<" physical_irq9_parity=NOT_VERIFIED\n"<<std::flush;
     if(const char* expected=std::getenv("RLOFT_RECOMP_REQUIRE_CONSOLE_GUEST_MOTION");
@@ -1876,6 +1884,11 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
        (events==0u || (source_pose_updates==0u && source_velocity_updates==0u)))
         throw std::runtime_error(
             "Original CODE2 live console keys did not change retained guest state");
+    if(const char* required=std::getenv("RLOFT_RECOMP_REQUIRE_CONSOLE_REAL_POSE");
+       required && std::strcmp(required,"1")==0 &&
+       (events==0u || (camera_displacements==0u && heading_rotations==0u)))
+        throw std::runtime_error(
+            "Retained original guest did not physically displace its camera or heading");
     return c::pending_host_service(owner);
 }
 void dispatch_pending(Opaque* s) {
