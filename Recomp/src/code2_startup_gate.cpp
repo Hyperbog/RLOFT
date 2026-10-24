@@ -2119,11 +2119,12 @@ void original_scene_1a5b0(u32 page,code2::s32 cursor,u32 variant) noexcept {
 }
 void original_scene_palette(u32 palette,u32 first,u32 bank,
                             u32 filename,u32 count) noexcept {
-    // Retail Level 22 requests mode 4 while its retained palette mode is 3.
-    // Only the real original 325B0 COLORS reader may change the DAC
-    // source buffer; the subsequent 29234 applies it to the VGA device.
+    // The source compositor passes its live C034 mode, rather than
+    // overriding it with the startup mode-4 palette. For Level 22
+    // the retained 1F8FC source mode is 3; the original COLORS reader
+    // and the subsequent 29234 DAC stream must use that same bank.
     if(current->original_325b0_completed!=1u ||
-       !current->original_vga || bank!=4u ||
+       !current->original_vga || bank!=3u ||
        code2::load_le32(current->data.data()+0xC034u)!=bank)
         stop("ORIGINAL_1F8FC_SCENE_PALETTE_MODE_UNVERIFIED");
     original_325b0_live_palette(palette,first,bank,filename,count);
@@ -2702,7 +2703,7 @@ void original_325b0_live_palette(u32 palette,u32 first,u32 bank,
        !current->original_vga || current->original_16cd0_completed!=1u ||
        current->original_03838_completed!=1u ||
        current->original_325b0_completed>1u ||
-       (current->original_325b0_completed==1u && bank!=4u) ||
+       (current->original_325b0_completed==1u && bank!=3u) ||
        palette!=0xC054u || first!=0u || resource!=0x1128u ||
        colors!=0x100u || bank>=15u ||
        bank!=code2::load_le32(current->data.data()+0xC034u) ||
