@@ -160,9 +160,22 @@ u32 original_full_exterior_2a8a0(
     return 0u;
 }
 void original_full_exterior_actor(u32 view) noexcept {
-    if(!exterior_trace || view!=1u)
-        stop("ORIGINAL_314B0_FULL_VIEW_CHANGED");
+    // The original 1F1C8 passes the live 258A8 actor/landscape slot.
+    // 2B750 is a ten-entry word table ending at 2B764; 2B764 is
+    // the matching source pointer table. Slot 1 is the saved-frame
+    // baseline, but subsequent real key presses can select other slots.
+    if(!exterior_trace || view>=10u)
+        stop("ORIGINAL_314B0_SOURCE_VIEW_OUTSIDE_ORIGINAL_TABLE");
+    const u32 rows=code2::load_le32(
+        current->data.data()+0x2B764u+view*4u);
+    if(rows==0u || std::uint64_t(rows)+8u>current->data.size())
+        stop("ORIGINAL_314B0_SOURCE_VIEW_RECORDS_UNAVAILABLE");
     ++exterior_trace->active_actor_runs;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=314B0_SOURCE_VIEW"
+             <<" view="<<view<<" rows="<<rows
+             <<" heading="<<code2::load_le32(current->data.data()+0xC658u)
+             <<" original_table=2B750_2B764"
+             <<" source_actor=RETAINED\n"<<std::flush;
     code2::Application57Boundary b{};
     b.call_2f29c=&original_full_exterior_resource;
     b.call_2a380=&original_full_exterior_unclipped;
@@ -172,7 +185,9 @@ void original_full_exterior_actor(u32 view) noexcept {
     code2::Application73Boundary actor{};
     actor.app57=&b;
     code2::function_314b0(current->machine,actor,view);
-    if(exterior_trace->subtractive_draws==0u)
+    // The retained Level 22 baseline slot 1 has visible sprites.
+    // Other authentic source slots may legitimately be empty.
+    if(view==1u && exterior_trace->subtractive_draws==0u)
         stop("ORIGINAL_314B0_FULL_NO_SOURCE_SPRITES");
 }
 
