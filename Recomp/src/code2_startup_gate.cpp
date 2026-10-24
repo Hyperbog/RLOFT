@@ -4131,6 +4131,9 @@ void attach_original_vga(
     source.presentation.call_22d70=&original_scene_clear_event_ring;
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
+    if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       live && std::strcmp(live,"1")==0)
+        source.presentation.call_28168=&original_full_28168_audio_service;
     source.presentation.call_1a5b0=&original_scene_1a5b0;
     // Independent experimental source 1FC14 tick: the 29804 cursor clip
     // result is not yet accepted. Keep the validated default loop intact.
