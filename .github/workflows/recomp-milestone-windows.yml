@@ -586,7 +586,7 @@ jobs:
           $exitCode = $proc.ExitCode
           $proc.Dispose()
           foreach ($line in ($combined -split "`r?`n")) {
-            if ($line -match '1FC14_POST_SCENE_CYCLE_PROBE|1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|314B0_SOURCE_VIEW_BOUNDARY|1BDAC_0D550_ARGS|1BDAC_0D550_DISTANT_RET|1BDAC_30CD4_ARGS|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
+            if ($line -match '28168_SOURCE_SERVICE_RETURN|1FC14_POST_SCENE_CYCLE_PROBE|1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|314B0_SOURCE_VIEW_BOUNDARY|1BDAC_0D550_ARGS|1BDAC_0D550_DISTANT_RET|1BDAC_30CD4_ARGS|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
               Write-Host "ORIGINAL_1FC14_SCENE_PROBE: $line"
             }
           }
@@ -617,6 +617,11 @@ jobs:
               throw "Source post-scene cycle/accounting mismatch at sequence $expected"
             }
           }
+          $audioService = [regex]::Matches($combined,'CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_SOURCE_SERVICE_RETURN original_28168=EXECUTED')
+          if ($audioService.Count -lt 5) {
+            throw "Five original 28168 post-HUD software service returns were not executed"
+          }
+          Write-Host "ORIGINAL_CODE2_28168_LIVE_SOURCE_SERVICE_PASS source_returns=$($audioService.Count) active_AIL_playback=NOT_CONNECTED"
           Write-Host "ORIGINAL_1FC14_POST_SCENE_SOURCE_LOOP_GATE_PASS scenes=$($scenes.Count) page_handoffs=$($pages.Count) source_loop_cycles=$($cycles.Count) source_hud_audio=BOUNDED_COMPLETE 1F8FC_presentations=SEPARATE indexed_dos_parity=OPEN"
           Write-Host "ORIGINAL_1FC14_FIVE_SCENE_SOURCE_GATE_PASS scene_returns=$($scenes.Count) page_handoffs=$($pages.Count) full_frames=NOT_CERTIFIED indexed_dos_parity=OPEN"
           try {
