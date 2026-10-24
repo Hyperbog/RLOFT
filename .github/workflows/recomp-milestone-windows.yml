@@ -550,7 +550,7 @@ jobs:
           $exitCode = $proc.ExitCode
           $proc.Dispose()
           foreach ($line in ($combined -split "`r?`n")) {
-            if ($line -match '1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|314B0_SOURCE_VIEW_BOUNDARY|1BDAC_0D550_ARGS|1BDAC_30CD4_ARGS|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
+            if ($line -match '1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|314B0_SOURCE_VIEW_BOUNDARY|1BDAC_0D550_ARGS|1BDAC_0D550_DISTANT_RET|1BDAC_30CD4_ARGS|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
               Write-Host "ORIGINAL_1FC14_SCENE_PROBE: $line"
             }
           }
@@ -563,11 +563,14 @@ jobs:
           if ($scenes.Count -eq 0 -and -not $frontier.Success) {
             throw "Persistent 1FC14 scene did not return or record an authentic missing source callback"
           }
-          if ($scenes.Count -gt 0) {
-            Write-Host "ORIGINAL_1FC14_PERSISTENT_SCENE_PROBE_SOURCE_RETURNS=$($scenes.Count) acceptance=DIAGNOSTIC_ONLY"
-          } else {
-            Write-Host "ORIGINAL_1FC14_PERSISTENT_SCENE_FRONTIER=$($frontier.Groups[1].Value) acceptance=DIAGNOSTIC_ONLY"
+          $pages = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF page=([01])')
+          if ($scenes.Count -lt 5 -or $pages.Count -lt 5) {
+            throw "Expected five authentic retained 1FC14 scene returns and 1A510 page handoffs"
           }
+          if (-not $combined.Contains("CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_DISTANT_RET")) {
+            throw "Original 0D550 distant-actor source branch was not observed"
+          }
+          Write-Host "ORIGINAL_1FC14_FIVE_SCENE_SOURCE_GATE_PASS scene_returns=$($scenes.Count) page_handoffs=$($pages.Count) full_frames=NOT_CERTIFIED indexed_dos_parity=OPEN"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
