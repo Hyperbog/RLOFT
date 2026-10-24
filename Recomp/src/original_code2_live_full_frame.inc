@@ -164,8 +164,17 @@ void original_full_exterior_actor(u32 view) noexcept {
     // Canonical 314B0 dereferences the pointer at 2B764 first, then
     // indexes its heap table: rows=*( *(2B764)+view*4 ).
     // Do not mistake 2B764 itself for the table's first entry.
-    if(!exterior_trace || view>=10u)
+    if(!exterior_trace || view>=10u) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=314B0_SOURCE_VIEW_BOUNDARY"
+                 <<" view="<<view
+                 <<" camera_heading="<<code2::load_le32(current->data.data()+0xC658u)
+                 <<" view_state_258A8="<<code2::load_le32(current->data.data()+0x258A8u)
+                 <<" source_keyboard_code="<<current->original_1fc14_last_scan_code
+                 <<" scene_returns="<<current->original_1fc14_source_scene_returns
+                 <<" table_pointer="<<code2::load_le32(current->data.data()+0x2B764u)
+                 <<" original_heap_lookup=REQUIRED\n"<<std::flush;
         stop("ORIGINAL_314B0_SOURCE_VIEW_OUTSIDE_ORIGINAL_TABLE");
+    }
     const u32 table=code2::load_le32(
         current->data.data()+0x2B764u);
     if(!table || std::uint64_t(table)+4u*(view+1u)>current->data.size())
