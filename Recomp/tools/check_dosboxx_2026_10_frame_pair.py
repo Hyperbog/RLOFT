@@ -77,7 +77,14 @@ def main():
     arg.add_argument("--report", required=True, type=Path)
     arg.add_argument("--native-index", type=Path)
     arg.add_argument("--native-palette", type=Path)
+    arg.add_argument("--export-dos-index", type=Path,
+                     help="Private raw 320x400 DOS indices; requires synchronized screenshot")
+    arg.add_argument("--export-dos-palette", type=Path,
+                     help="Private 768-byte DOS RGB6 DAC; requires synchronized screenshot")
     opt = arg.parse_args()
+    require((opt.export_dos_index is None) ==
+            (opt.export_dos_palette is None),
+            "DOS indexed and palette export paths must be supplied together")
     with zipfile.ZipFile(opt.state) as archive:
         require(archive.read("DOSBox-X_Version") == VERSION,
                 "Unverified DOSBox-X save-state version")
@@ -110,6 +117,16 @@ def main():
     state_rgb = b"".join(colors[i] for i in indexed)
     shot, shot_format = screenshot_pixels(opt.screenshot)
     matched, rows = compare(state_rgb, shot)
+    # Export an original reference ONLY when the *independent* DOSBox-X
+    # screenshot and the serialized VGA state describe the exact same
+    # displayed frame. A mismatched animation tick is not a parity oracle.
+    if opt.export_dos_index is not None:
+        require(matched == PIXELS,
+                "Original DOS screenshot and saved VGA state are not pixel-synchronized")
+        require(opt.export_dos_index.resolve() != opt.export_dos_palette.resolve(),
+                "Indexed framebuffer and DAC must have different output paths")
+        opt.export_dos_index.write_bytes(indexed)
+        opt.export_dos_palette.write_bytes(pal)
     # Report world vs HUD separately. Skeleton animation and portrait
     # overlays can change while the largely static terrain/frame remains
     # unchanged. These are audits, not automatic parity verdicts.
@@ -164,6 +181,9 @@ def main():
             "strong" if matched == PIXELS else
             "partial/not exact; review timing, VGA scanout and game animation"),
         "dos_native_parity": "NOT_VERIFIED",
+        "private_dos_raw_export": (
+            "EXACT_SCREENSHOT_AND_STATE_AGREEMENT" if
+            opt.export_dos_index is not None else "NOT_REQUESTED"),
     }
     if opt.native_index or opt.native_palette:
         require(opt.native_index is not None and opt.native_palette is not None,
