@@ -640,17 +640,13 @@ void original_full_1f120_sound_event(u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_1F120_RARE_SOUND_EVENT_PENDING");
 }
 
-void original_live_1f8fc_source_chain() noexcept {
-    if(!current || !current->live_continuation ||
-       current->original_181b4_completed!=1u ||
-       !current->game_audio.app68 || !current->original_vga ||
-       code2::load_le32(current->data.data()+0xC034u)!=3u)
-        stop("ORIGINAL_1F8FC_CHAIN_NOT_ON_RETAINED_LEVEL22_GUEST");
-    OriginalFullFrameTrace frame{};
-    ExteriorSourceTrace exterior{};
-    original_full_frame_trace=&frame;
-    exterior_trace=&exterior;
-    code2::Application43Boundary ui{};
+// Both the single-frame diagnostic and the retained 1FC14 tick must
+// dispatch the same canonical CODE.2 Application43/44 source graph.
+bool original_full_configure_scene(
+        code2::Application43Boundary& ui,
+        code2::Application44Boundary& scene) noexcept {
+    ui={};
+    scene={};
     ui.call_19cc4=&original_live_hud_clock;
     ui.call_2f29c=&original_full_frame_resource;
     ui.call_29b40=&original_live_hud_rect;
@@ -664,7 +660,6 @@ void original_live_1f8fc_source_chain() noexcept {
     ui.call_2939c=&original_scene_res_blit;
     ui.divide_error=&original_live_hud_divide_error;
 
-    code2::Application44Boundary scene{};
     scene.app43=&ui;
     scene.call_291b0=&original_291b0_source_page;
     scene.call_ef14=&original_live_hud_hp;
@@ -703,6 +698,45 @@ void original_live_1f8fc_source_chain() noexcept {
     scene.call_28110=source_polygons?&original_full_1f120_sound_event:nullptr;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
+
+    return source_polygons;
+}
+
+// These counters are guest-worker-thread state; unlike the one-shot
+// diagnostic they survive across consecutive keyboard-driven source
+// iterations and reset at the exact 30B40 keyboard boundary.
+thread_local OriginalFullFrameTrace original_1fc14_tick_frame{};
+thread_local ExteriorSourceTrace original_1fc14_tick_exterior{};
+void original_full_prepare_1fc14_source_tick() noexcept {
+    original_1fc14_tick_frame={};
+    original_1fc14_tick_exterior={};
+    original_full_frame_trace=&original_1fc14_tick_frame;
+    exterior_trace=&original_1fc14_tick_exterior;
+}
+void original_full_attach_1fc14_scene(Guest& guest) noexcept {
+    if(!original_full_configure_scene(guest.live_ui,guest.live_scene))
+        stop("ORIGINAL_1FC14_SCENE_SOURCE_GRAPH_MISSING");
+    guest.presentation.app43=&guest.live_ui;
+    guest.presentation.app44=&guest.live_scene;
+}
+
+void original_live_1f8fc_source_chain() noexcept {
+    if(!current || !current->live_continuation ||
+       current->original_181b4_completed!=1u ||
+       !current->game_audio.app68 || !current->original_vga ||
+       code2::load_le32(current->data.data()+0xC034u)!=3u)
+        stop("ORIGINAL_1F8FC_CHAIN_NOT_ON_RETAINED_LEVEL22_GUEST");
+    OriginalFullFrameTrace frame{};
+    ExteriorSourceTrace exterior{};
+    original_full_frame_trace=&frame;
+    exterior_trace=&exterior;
+    code2::Application43Boundary ui{};
+    code2::Application44Boundary scene{};
+    const bool source_polygons=original_full_configure_scene(ui,scene);
+    const char* const polygon_advance=
+        std::getenv("RLOFT_RECOMP_EXPERIMENTAL_POLYGON_FRONTIER");
+    const bool through_actor=polygon_advance &&
+        std::strcmp(polygon_advance,"1")==0;
 
     code2::Application45Boundary compositor{};
     compositor.app43=&ui;
