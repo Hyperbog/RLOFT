@@ -713,6 +713,33 @@ void original_full_prepare_1fc14_source_tick() noexcept {
     original_full_frame_trace=&original_1fc14_tick_frame;
     exterior_trace=&original_1fc14_tick_exterior;
 }
+void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
+    auto* t=original_full_frame_trace;
+    auto* e=exterior_trace;
+    if(!t || !e || page>1u ||
+       t->polygon_scan_returns!=1u ||
+       t->polygon_drawn_scanlines==0u ||
+       t->actor_update_returns!=1u ||
+       t->scene_projection_returns!=1u ||
+       t->compass_source_returns!=1u ||
+       t->scene_sprite_calls==0u ||
+       t->scene_sprite_calls!=t->scene_sprite_raster_returns)
+        stop("ORIGINAL_1FC14_SCENE_SOURCE_RASTER_INCOMPLETE");
+    ++current->original_1fc14_source_scene_returns;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_SCENE_SOURCE_RETURN"
+             <<" page="<<page
+             <<" scene_returns="<<current->original_1fc14_source_scene_returns
+             <<" polygon_quads="<<t->polygon_quads
+             <<" polygon_drawn_scanlines="<<t->polygon_drawn_scanlines
+             <<" original_actor_returns="<<t->actor_update_returns
+             <<" res3_sprites="<<t->scene_sprite_calls
+             <<" sprite_indexed_writes="<<t->scene_sprite_indexed_writes
+             <<" original_compass_returns="<<t->compass_source_returns
+             <<" 1A510_page_handoff=SOURCE"
+             <<" HUD_and_sound_follow=NOT_YET_VERIFIED"
+             <<" original_guest=PRESERVED\n"<<std::flush;
+}
+
 void original_full_attach_1fc14_scene(Session& guest) noexcept {
     if(!original_full_configure_scene(guest.live_ui,guest.live_scene))
         stop("ORIGINAL_1FC14_SCENE_SOURCE_GRAPH_MISSING");
