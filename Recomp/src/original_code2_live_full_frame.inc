@@ -345,9 +345,42 @@ void original_full_exterior_polygon_source() noexcept {
 // Execute the original 1BDAC actor timers, state changes and record sweeps
 // in the live retained guest. Unimplemented movement/asset dependencies
 // stop at their real callback rather than returning fabricated values.
-void original_full_actor_0d550(u32 a,u32 b,u32 c) noexcept {
-    std::cerr<<"ORIGINAL_1BDAC_0D550_ARGS="<<a<<","<<b<<","<<c<<"\n"<<std::flush;
-    stop("ORIGINAL_1BDAC_0D550_SOURCE_PENDING");
+void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
+    // Original 0D550: type 15 has a special path; type 8 enters its
+    // special action when state high bits are 0x8000. Otherwise the
+    // original compares both signed absolute camera/actor differences
+    // with 0x15000 and returns immediately when either is greater.
+    if(std::uint64_t(actor)+0x16u>current->data.size())
+        stop("ORIGINAL_1BDAC_0D550_RECORD_OUT_OF_GUEST_BOUNDS");
+    const u32 type=code2::load_le16(current->data.data()+actor+0xEu);
+    const u32 state=code2::load_le16(current->data.data()+actor+0x14u);
+    if(type==15u || (type==8u && (state&0xC000u)==0x8000u))
+        stop("ORIGINAL_1BDAC_0D550_SPECIAL_ACTION_PENDING");
+    // Model the original 32-bit SUB, CDQ, XOR, SUB, signed JG.
+    // In particular INT_MIN must not be treated as a positive delta.
+    const auto out_of_range=[](u32 camera,u32 position) noexcept {
+        const u32 diff=camera-position;
+        const u32 mask=0u-(diff>>31u);
+        const u32 magnitude=(diff^mask)-mask;
+        return (magnitude&0x80000000u)==0u && magnitude>0x15000u;
+    };
+    const u32 cx=code2::load_le32(current->data.data()+0x255D0u);
+    const u32 cy=code2::load_le32(current->data.data()+0x255D4u);
+    const u32 x=code2::load_le32(current->data.data()+actor+4u);
+    const u32 y=code2::load_le32(current->data.data()+actor);
+    if(out_of_range(cx,x) || out_of_range(cy,y)) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_DISTANT_RET"
+                 <<" actor="<<actor<<" definition="<<definition
+                 <<" index="<<index<<" type="<<type
+                 <<" camera_x="<<cx<<" camera_y="<<cy
+                 <<" actor_x="<<x<<" actor_y="<<y
+                 <<" original_machine_exit=0DAC4_NO_SIDE_EFFECTS\\n"<<std::flush;
+        return;
+    }
+    std::cerr<<"ORIGINAL_1BDAC_0D550_NEAR_ARGS="<<actor<<","
+             <<definition<<","<<index<<" type="<<type
+             <<" state="<<state<<"\\n"<<std::flush;
+    stop("ORIGINAL_1BDAC_0D550_NEAR_ACTION_PENDING");
 }
 void original_full_actor_30cd4(u32 dst,u32 src,u32 count) noexcept {
     const auto capacity=current->data.size();
