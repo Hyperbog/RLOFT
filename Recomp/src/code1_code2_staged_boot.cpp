@@ -34,8 +34,10 @@ int run_stage(int (*entry)(int,char**),std::vector<std::string> text) {
 
 int main(int argc,char** argv) {
     try {
-        const bool advance_second_init=
-            argc==6 && std::string(argv[5])=="--advance-original-16d04";
+        const bool console_input=
+            argc==6 && std::string(argv[5])=="--console-input";
+        const bool advance_second_init=console_input ||
+            (argc==6 && std::string(argv[5])=="--advance-original-16d04");
         if((argc!=5 && !advance_second_init) ||
            std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root")
@@ -76,11 +78,13 @@ int main(int argc,char** argv) {
             std::unique_ptr<owner::Opaque,void(*)(owner::Opaque*)> game;
             owner::Evidence initial{};
             bool advance_second_source_init=false;
+            bool host_console_input=false;
             explicit PersistentCode2(const std::filesystem::path& r,
                                      const std::filesystem::path& d,
-                                     bool advance_init)
+                                     bool advance_init,bool use_console)
                 :game(owner::create(r,d,5u),&owner::destroy),
-                 advance_second_source_init(advance_init) {
+                 advance_second_source_init(advance_init),
+                 host_console_input(use_console) {
                 std::cerr<<"RLOFT_STAGED_TRACE=CANONICAL_RESOURCE_GUEST_CONSTRUCTED\n"<<std::flush;
                 initial=owner::inspect(game.get());
                 if(!initial.initialized || initial.resource_archives!=0u ||
@@ -114,6 +118,11 @@ int main(int argc,char** argv) {
                         const auto next=owner::test_advance_past_original_second_init(game.get());
                         std::cerr<<"RLOFT_STAGED_TRACE=REAL_SECOND_INIT_NEXT_SERVICE_"
                                  <<next<<"\n"<<std::flush;
+                        if(host_console_input) {
+                            if(next!=11u)
+                                throw std::runtime_error("Original CODE2 not paused at 30B40 console boundary");
+                            owner::drive_console_keyboard(game.get());
+                        }
                     }
                     const auto progressed=owner::inspect(game.get());
                     if(progressed.memory_address!=initial.memory_address ||
@@ -133,7 +142,7 @@ int main(int argc,char** argv) {
                 ->std::unique_ptr<runtime::ModulePort>{
                 if(which!=rloft::original_supervisor::Module::Code2 ||
                    chars.available())return nullptr;
-                return std::make_unique<PersistentCode2>(root,cd,advance_second_init);
+                return std::make_unique<PersistentCode2>(root,cd,advance_second_init,console_input);
             });
         std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_FIRST_STEP_BEGIN\n"<<std::flush;
         const auto first=session.step_once();
