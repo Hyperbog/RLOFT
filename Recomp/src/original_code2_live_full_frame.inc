@@ -827,6 +827,98 @@ void original_full_mark_1fc14_page_return() noexcept {
         stop("ORIGINAL_1FC14_POST_HANDOFF_SOURCE_TRACE_MISSING");
     ++t->retained_page_returns;
 }
+void original_full_private_capture_1fc14_tick() noexcept {
+    const char* raw=std::getenv("RLOFT_RECOMP_PRIVATE_1FC14_FRAME_DIR");
+    if(!raw || !*raw)return;
+    if(!current || !current->original_vga ||
+       code2::load_le32(current->data.data()+0xC6C8u)!=22u)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_LEVEL22_PRECONDITION");
+    const u32 crtc=current->original_vga->crtc_start();
+    if(crtc!=0u && crtc!=0x8000u)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_UNKNOWN_SCANOUT_PAGE");
+    const auto indices=current->original_vga->scanout_indices();
+    if(indices.size()!=320u*400u)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_WRONG_INDEXED_FRAME_SIZE");
+    std::vector<u8> palette;
+    palette.reserve(768u);
+    for(u32 i=0;i<256u;++i) {
+        const auto rgb=current->original_vga->palette(static_cast<u8>(i));
+        if(rgb.r>63u || rgb.g>63u || rgb.b>63u)
+            stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_DAC_NOT_RGB6");
+        palette.push_back(rgb.r);
+        palette.push_back(rgb.g);
+        palette.push_back(rgb.b);
+    }
+    const std::filesystem::path directory(raw);
+    std::error_code ec;
+    std::filesystem::create_directories(directory,ec);
+    if(ec || !std::filesystem::is_directory(directory,ec) || ec)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_DIRECTORY_NOT_WRITABLE");
+    const auto name=std::string("level22_source_tick_")+
+                    std::to_string(current->original_1fc14_post_scene_cycles);
+    const auto destination=directory/name;
+    const auto write_private=[&](const std::string& extension,
+                                 const std::vector<u8>& bytes) {
+        bool wrote=false;
+        {
+            std::ofstream out(destination.string()+extension,
+                              std::ios::binary|std::ios::trunc);
+            if(out) {
+                out.write(reinterpret_cast<const char*>(bytes.data()),
+                          static_cast<std::streamsize>(bytes.size()));
+                out.flush();
+                wrote=static_cast<bool>(out);
+            }
+        }
+        return wrote;
+    };
+    if(!write_private(".idx",indices) || !write_private(".pal",palette))
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_BYTES_WRITE_FAILED");
+    const auto input_hash=rloft_recomp::sha256_hex(
+        current->original_1fc14_source_keyboard_trace);
+    const auto idx_hash=rloft_recomp::sha256_hex(indices);
+    const auto palette_hash=rloft_recomp::sha256_hex(palette);
+    bool wrote_receipt=false;
+    {
+        std::ofstream json(destination.string()+".json",
+                           std::ios::binary|std::ios::trunc);
+        if(json) {
+            json<<"{\n"
+                <<"  \"schema\": \"rloft-vga-observation-v1\",\n"
+                <<"  \"role\": \"compiled_recomp\",\n"
+                <<"  \"level\": 22,\n"
+                <<"  \"frame_boundary\": \"1FC14_1A510\",\n"
+                <<"  \"camera_x_16_16\": "
+                <<code2::load_le32(current->data.data()+0x255D0u)<<",\n"
+                <<"  \"camera_y_16_16\": "
+                <<code2::load_le32(current->data.data()+0x255D4u)<<",\n"
+                <<"  \"heading\": "
+                <<code2::load_le32(current->data.data()+0xC658u)<<",\n"
+                <<"  \"crtc_start\": "<<crtc<<",\n"
+                <<"  \"source_tick\": "
+                <<current->original_1fc14_post_scene_cycles<<",\n"
+                <<"  \"keyboard_trace_sha256\": \""<<input_hash<<"\",\n"
+                <<"  \"indices_sha256\": \""<<idx_hash<<"\",\n"
+                <<"  \"rgb6_sha256\": \""<<palette_hash<<"\",\n"
+                <<"  \"capture_phase\": \"NEXT_30B40_AFTER_PRIOR_SOURCE_TICK\",\n"
+                <<"  \"input_origin\": \"HOST_30B40_EXPLICIT_REPLY\",\n"
+                <<"  \"original_dos_executed\": false\n"
+                <<"}\n";
+            json.flush();
+            wrote_receipt=static_cast<bool>(json);
+        }
+    }
+    if(!wrote_receipt)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_RECEIPT_WRITE_FAILED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_PRIVATE_FRAME_CAPTURE"
+             <<" source_tick="<<current->original_1fc14_post_scene_cycles
+             <<" crtc_start="<<crtc
+             <<" indices_sha256="<<idx_hash
+             <<" rgb6_sha256="<<palette_hash
+             <<" input_trace_sha256="<<input_hash
+             <<" private_only=YES"
+             <<" independent_dos_parity=NOT_CERTIFIED\n"<<std::flush;
+}
 void original_full_audit_1fc14_previous_tick() noexcept {
     if(!current || current->original_1fc14_source_scene_returns==0u ||
        current->original_1fc14_source_scene_returns==
@@ -854,7 +946,10 @@ void original_full_audit_1fc14_previous_tick() noexcept {
              <<" keyboard_loop_reentry=SOURCE"
              <<" acceptance="<<(complete?"BOUNDED_POST_SCENE":"DIAGNOSTIC_ONLY")
              <<" full_1F8FC_frames=NOT_CLAIMED\n"<<std::flush;
-    if(complete)++current->original_1fc14_post_scene_cycles;
+    if(complete) {
+        ++current->original_1fc14_post_scene_cycles;
+        original_full_private_capture_1fc14_tick();
+    }
 }
 void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
     auto* t=original_full_frame_trace;
