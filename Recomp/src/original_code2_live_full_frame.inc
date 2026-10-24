@@ -369,6 +369,11 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
     const u32 x=code2::load_le32(current->data.data()+actor+4u);
     const u32 y=code2::load_le32(current->data.data()+actor);
     if(out_of_range(cx,x) || out_of_range(cy,y)) {
+        // Execute the actual reconstructed original 0D550 on its proven
+        // callback-free distance-cull branch, not a host-side fake return.
+        // All non-cull behavior still stops before calling a partial ABI.
+        code2::Application19Boundary original_ai{};
+        code2::function_0d550(current->machine,original_ai,actor,definition,index);
         std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_DISTANT_RET"
                  <<" actor="<<actor<<" definition="<<definition
                  <<" index="<<index<<" type="<<type
