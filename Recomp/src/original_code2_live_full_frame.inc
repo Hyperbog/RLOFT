@@ -379,12 +379,12 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
                  <<" index="<<index<<" type="<<type
                  <<" camera_x="<<cx<<" camera_y="<<cy
                  <<" actor_x="<<x<<" actor_y="<<y
-                 <<" original_machine_exit=0DAC4_NO_SIDE_EFFECTS\\n"<<std::flush;
+                 <<" original_machine_exit=0DAC4_NO_SIDE_EFFECTS\n"<<std::flush;
         return;
     }
     std::cerr<<"ORIGINAL_1BDAC_0D550_NEAR_ARGS="<<actor<<","
              <<definition<<","<<index<<" type="<<type
-             <<" state="<<state<<"\\n"<<std::flush;
+             <<" state="<<state<<"\n"<<std::flush;
     stop("ORIGINAL_1BDAC_0D550_NEAR_ACTION_PENDING");
 }
 void original_full_actor_30cd4(u32 dst,u32 src,u32 count) noexcept {
