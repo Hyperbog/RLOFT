@@ -18,6 +18,7 @@ struct OriginalFullFrameTrace {
     u32 polygon_steps=0u;
     u32 polygon_scanlines=0u;
     u32 polygon_drawn_scanlines=0u;
+    u32 actor_update_returns=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -292,13 +293,77 @@ void original_full_exterior_polygon_source() noexcept {
     code2::function_34de8(current->machine,scan,quad,raster);
     ++original_full_frame_trace->polygon_scan_returns;
 }
-void original_full_1bdac_frontier() noexcept {
+// Execute the original 1BDAC actor timers, state changes and record sweeps
+// in the live retained guest. Unimplemented movement/asset dependencies
+// stop at their real callback rather than returning fabricated values.
+void original_full_actor_missing3(u32,u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_EXTERNAL_3_ARGUMENT_DEPENDENCY");
+}
+void original_full_actor_missing2(u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_EXTERNAL_2_ARGUMENT_DEPENDENCY");
+}
+void original_full_actor_missing1(code2::s32) noexcept {
+    stop("ORIGINAL_1BDAC_RECORD_REMOVE_DEPENDENCY");
+}
+u32 original_full_actor_missing_predicate(u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_RECORD_REMOVAL_PREDICATE_PENDING");
+}
+u32 original_full_actor_missing_collision(u32,u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_COLLISION_CHECK_PENDING");
+}
+void original_full_actor_missing_movement(u32,u32,u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_MOVE_PENDING");
+}
+void original_full_actor_missing_offsets(u32*,u32*,u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_MOVEMENT_VECTOR_PENDING");
+}
+void original_full_actor_missing_clear(u32,u32,u32) noexcept {
+    stop("ORIGINAL_1BDAC_CLEAR_PENDING");
+}
+u32 original_full_actor_missing_query() noexcept {
+    stop("ORIGINAL_1BDAC_MOVEMENT_QUERY_PENDING");
+}
+void original_full_actor_missing_update(u32) noexcept {
+    stop("ORIGINAL_1BDAC_MOVEMENT_UPDATE_PENDING");
+}
+void original_full_actor_divide_error() noexcept {
+    stop("ORIGINAL_1BDAC_SOURCE_DIVIDE_ERROR");
+}
+u32 original_full_actor_rand() noexcept {
+    return code2::function_30ca2(current->machine);
+}
+void original_full_1bdac_source() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->polygon_scan_returns!=1u ||
        original_full_frame_trace->polygon_quads==0u ||
        original_full_frame_trace->polygon_scanlines==0u)
         stop("ORIGINAL_1BDAC_POLYGON_PREDECESSOR_MISSING");
-    stop("ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING");
+    code2::Application36Boundary motion{};
+    motion.call_30d30=&original_full_actor_missing_clear;
+    motion.call_30ca2=&original_full_actor_rand;
+    motion.call_2d5d0=&original_full_actor_missing_collision;
+    motion.call_2df2c_local=&original_full_actor_missing_offsets;
+    motion.call_28110=&original_full_actor_missing_movement;
+    motion.call_311e0=&original_full_actor_missing_query;
+    motion.call_290d0=&original_full_actor_missing_update;
+    motion.divide_error=&original_full_actor_divide_error;
+    code2::Application38Boundary actor{};
+    actor.app36=&motion;
+    actor.call_0d550=&original_full_actor_missing3;
+    actor.call_2388c=&original_full_actor_missing_predicate;
+    actor.call_30cd4=&original_full_actor_missing3;
+    actor.call_22e90=&original_full_actor_missing2;
+    actor.call_08c88=&original_full_actor_missing1;
+    actor.call_09070=&original_full_actor_missing2;
+    actor.call_08cf4=&original_full_actor_missing2;
+    code2::function_1bdac(current->machine,actor);
+    ++original_full_frame_trace->actor_update_returns;
+}
+void original_full_2c294_frontier() noexcept {
+    if(!original_full_frame_trace ||
+       original_full_frame_trace->actor_update_returns!=1u)
+        stop("ORIGINAL_2C294_ACTOR_PREDECESSOR_MISSING");
+    stop("ORIGINAL_2C294_SCENE_PROJECTION_PENDING");
 }
 
 void original_live_1f8fc_source_chain() noexcept {
@@ -351,7 +416,8 @@ void original_live_1f8fc_source_chain() noexcept {
         std::strcmp(polygon_source,"1")==0;
     scene.call_34de8=source_polygons?
         &original_full_exterior_polygon_source:&original_exterior_polygon_frontier;
-    scene.call_1bdac=source_polygons?&original_full_1bdac_frontier:nullptr;
+    scene.call_1bdac=source_polygons?&original_full_1bdac_source:nullptr;
+    scene.call_2c294=source_polygons?&original_full_2c294_frontier:nullptr;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
 
@@ -385,7 +451,7 @@ void original_live_1f8fc_source_chain() noexcept {
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
     const char* const expected_stop=source_polygons?
-        "ORIGINAL_1BDAC_POST_POLYGON_ACTOR_CALLBACK_PENDING":
+        "ORIGINAL_2C294_SCENE_PROJECTION_PENDING":
         (through_actor?
             "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
             "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
@@ -397,7 +463,8 @@ void original_live_1f8fc_source_chain() noexcept {
        (source_polygons &&
            (frame.polygon_cells==0u || frame.polygon_quads==0u ||
             frame.polygon_scan_returns!=1u || frame.polygon_scanlines==0u ||
-            frame.polygon_edges==0u || frame.polygon_steps==0u)) ||
+            frame.polygon_edges==0u || frame.polygon_steps==0u ||
+            frame.actor_update_returns!=1u)) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -436,11 +503,12 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" polygon_steps="<<frame.polygon_steps
              <<" polygon_scanlines="<<frame.polygon_scanlines
              <<" polygon_drawn_scanlines="<<frame.polygon_drawn_scanlines
+             <<" actor_update_returns="<<frame.actor_update_returns
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next="<<(source_polygons?
-                 "1BDAC_ACTOR_UPDATE":
+                 "2C294_SCENE_PROJECTION":
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
