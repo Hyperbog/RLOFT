@@ -160,19 +160,23 @@ u32 original_full_exterior_2a8a0(
     return 0u;
 }
 void original_full_exterior_actor(u32 view) noexcept {
-    // The original 1F1C8 passes the live 258A8 actor/landscape slot.
-    // 2B750 is a ten-entry word table ending at 2B764; 2B764 is
-    // the matching source pointer table. Slot 1 is the saved-frame
-    // baseline, but subsequent real key presses can select other slots.
+    // The original 1F1C8 passes live 258A8 as the 314B0 view.
+    // Canonical 314B0 dereferences the pointer at 2B764 first, then
+    // indexes its heap table: rows=*( *(2B764)+view*4 ).
+    // Do not mistake 2B764 itself for the table's first entry.
     if(!exterior_trace || view>=10u)
         stop("ORIGINAL_314B0_SOURCE_VIEW_OUTSIDE_ORIGINAL_TABLE");
+    const u32 table=code2::load_le32(
+        current->data.data()+0x2B764u);
+    if(!table || std::uint64_t(table)+4u*(view+1u)>current->data.size())
+        stop("ORIGINAL_314B0_SOURCE_VIEW_POINTER_TABLE_MISSING");
     const u32 rows=code2::load_le32(
-        current->data.data()+0x2B764u+view*4u);
-    if(rows==0u || std::uint64_t(rows)+8u>current->data.size())
+        current->data.data()+table+view*4u);
+    if(!rows || std::uint64_t(rows)+8u>current->data.size())
         stop("ORIGINAL_314B0_SOURCE_VIEW_RECORDS_UNAVAILABLE");
     ++exterior_trace->active_actor_runs;
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=314B0_SOURCE_VIEW"
-             <<" view="<<view<<" rows="<<rows
+             <<" view="<<view<<" table="<<table<<" rows="<<rows
              <<" heading="<<code2::load_le32(current->data.data()+0xC658u)
              <<" original_table=2B750_2B764"
              <<" source_actor=RETAINED\n"<<std::flush;
