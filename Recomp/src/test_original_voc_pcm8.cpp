@@ -39,7 +39,7 @@ int main() {
         bad[0]='x'; reject(bad,"magic mismatch");
         bad=correct;bad[24]^=1u;reject(bad,"checksum mismatch");
         bad=correct;bad[31]=1u;reject(bad,"non-PCM codec");
-        bad=correct;bad[32]=3u; // unsupported sound block after first source block
+        bad=correct;bad[35]=3u; // unsupported sound block after first source block
         reject(bad,"unsupported block");
         bad=correct;bad[27]=255u;reject(bad,"oversized source block");
         bad=correct;bad.pop_back();reject(bad,"missing terminator");
