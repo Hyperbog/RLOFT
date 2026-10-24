@@ -684,3 +684,19 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_28110_sampled_sound_queue
         COMMAND rloft_original_code2_28110_sound_queue_test)
 endif()
+
+# Exact compiled original 28168 -> 27F24 sound dispatch to synthetic test
+# Miles callbacks. Verifies source ABI, NOT host-audible playback.
+add_executable(rloft_original_code2_28168_audio_service_test
+    src/test_original_code2_28168_audio_service.cpp)
+set_target_properties(rloft_original_code2_28168_audio_service_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_28168_audio_service_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_28168_audio_service_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_28168_27f24_driver_abi
+        COMMAND rloft_original_code2_28168_audio_service_test)
+endif()
