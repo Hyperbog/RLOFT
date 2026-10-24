@@ -528,6 +528,23 @@ jobs:
             }
             Write-Host "ORIGINAL_28110_SOURCE_END"
           }
+      - name: Inspect original 28168 service and 27F24 active-audio edge
+        shell: pwsh
+        run: |
+          $lines = [System.IO.File]::ReadAllLines((Resolve-Path "Code2/Code2.cpp").Path)
+          foreach ($needle in @("void function_28168(", "void function_27f24(", "struct Application55Boundary", "function_28168(m,")) {
+            $points = @(for ($i=0; $i -lt $lines.Length; ++$i) {
+              if ($lines[$i].Contains($needle)) { $i }
+            })
+            Write-Host "ORIGINAL_AUDIO_SOURCE_LOOKUP=$needle count=$($points.Count)"
+            foreach ($i in ($points | Select-Object -First 4)) {
+              Write-Host "ORIGINAL_AUDIO_SOURCE_CONTEXT_BEGIN line=$($i+1)"
+              for ($j=[Math]::Max(0,$i-2); $j -lt [Math]::Min($lines.Length,$i+55); ++$j) {
+                Write-Host ("{0}: {1}" -f ($j+1), $lines[$j])
+              }
+              Write-Host "ORIGINAL_AUDIO_SOURCE_CONTEXT_END"
+            }
+          }
       - name: Diagnose authentic source 1FC14 persistent 1F1C8 scene frontier
         shell: pwsh
         timeout-minutes: 2
