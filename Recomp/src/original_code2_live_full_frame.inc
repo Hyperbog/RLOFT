@@ -824,5 +824,28 @@ void original_live_1f8fc_source_chain() noexcept {
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames="<<(source_polygons?1u:0u)
              <<" DOS_VGA_PARITY=NOT_VERIFIED\n"<<std::flush;
+    // Fingerprint the actual selected 320x400 original planar VGA scanout
+    // and all 256 hardware DAC RGB6 triples. Never publish retail art or
+    // mistake these hashes for an independent DOS parity measurement.
+    if(source_polygons && current->original_vga) {
+        const auto indices=current->original_vga->scanout_indices();
+        if(indices.size()!=320u*400u)
+            stop("ORIGINAL_1F8FC_SCANOUT_DIMENSIONS_CHANGED");
+        std::vector<u8> rgb6;
+        rgb6.reserve(768u);
+        for(u32 i=0u;i<256u;++i) {
+            const auto c=current->original_vga->palette(static_cast<u8>(i));
+            if(c.r>63u || c.g>63u || c.b>63u)
+                stop("ORIGINAL_1F8FC_DAC_RGB6_RANGE_CHANGED");
+            rgb6.push_back(c.r); rgb6.push_back(c.g); rgb6.push_back(c.b);
+        }
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SOURCE_FRAME_FINGERPRINT"
+                 <<" indices_sha256="<<rloft_recomp::sha256_hex(indices)
+                 <<" dac_rgb6_sha256="<<rloft_recomp::sha256_hex(rgb6)
+                 <<" source_vga_pixels="<<indices.size()
+                 <<" dac_bytes="<<rgb6.size()
+                 <<" crtc_start="<<current->original_vga->crtc_start()
+                 <<" dos_reference_synchronized=NO\n"<<std::flush;
+    }
     current->stop_reason=nullptr;
 }
