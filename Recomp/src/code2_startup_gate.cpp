@@ -83,6 +83,7 @@ struct Session {
     unsigned original_scene_presentations=0;
     unsigned original_1fc14_source_page_handoffs=0;
     unsigned original_1fc14_source_scene_returns=0;
+    unsigned original_1fc14_post_scene_cycles=0;
     u32 original_1fc14_last_scan_code=0u;
     unsigned original_scene_res1_portrait_decodes=0;
     struct WorldMaterial {u32 begin=0,end=0,image=0;};
@@ -1355,6 +1356,7 @@ void original_16d04_after_dos_open() noexcept {
 // yields key 0 in a busy loop, hiding the real live-gameplay frontier.
 void original_live_1f8fc_source_chain() noexcept;
 void original_full_prepare_1fc14_source_tick() noexcept;
+void original_full_audit_1fc14_previous_tick() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
     // Source 1FC14 re-enters keyboard polling after 1F8FC presents.
     // Account for actual extra 325B0 COLORS and 29234 DAC calls.
@@ -1380,6 +1382,9 @@ u32 original_30b40_keyboard_poll() noexcept {
        code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
+    if(const char* source=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       source && std::strcmp(source,"1")==0)
+        original_full_audit_1fc14_previous_tick();
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_30B40_KEYBOARD_ENTRY\n"<<std::flush;
     rloft::guest_continuation::Reply response{};
     const rloft::guest_continuation::Request request{
@@ -2156,6 +2161,7 @@ void original_scene_1a5b0(u32 page,code2::s32 cursor,u32 variant) noexcept {
 // from 1F8FC's 1A5B0 compositor presentation. Neither operation
 // substitutes for the source 1F1C8 world draw.
 void original_full_validate_1fc14_scene_handoff(u32 page) noexcept;
+void original_full_mark_1fc14_page_return() noexcept;
 void original_1fc14_source_page_handoff(u32 page) noexcept {
     if(!current || page>1u || !current->live_continuation ||
        !current->original_vga || current->original_20440_mouse_inits!=1u)
@@ -2181,6 +2187,9 @@ void original_1fc14_source_page_handoff(u32 page) noexcept {
     if(const char* scene=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
        scene && std::strcmp(scene,"1")==0)
         original_full_validate_1fc14_scene_handoff(page);
+    if(const char* scene=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       scene && std::strcmp(scene,"1")==0)
+        original_full_mark_1fc14_page_return();
     ++current->original_1fc14_source_page_handoffs;
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF"
              <<" page="<<page
