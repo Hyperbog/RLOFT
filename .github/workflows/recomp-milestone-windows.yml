@@ -716,6 +716,68 @@ jobs:
             throw "No source guest camera, heading or velocity change was observed"
           }
           Write-Host "ORIGINAL_CODE2_STDIN_GUEST_MOTION_GATE_PASS source_input_events=3 source_loop_reentries=3 guest_state_changes=$($changed.Count) physical_IRQ9=NOT_CERTIFIED"
+      - name: Diagnose sustained original keyboard source for real camera displacement
+        # Separate research receipt: a missing movement result must NEVER
+        # cause a fabricated camera update or promote the gameplay gate.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cd = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $psi = [System.Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardInput = $true
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          foreach ($arg in @("--root", (Resolve-Path $media).Path, "--cd-root", (Resolve-Path $cd).Path, "--console-input")) {
+            [void]$psi.ArgumentList.Add($arg)
+          }
+          foreach ($flag in @("HUD","EXTERIOR","FRAME_ENTRY","FULL_COMPOSITOR","POLYGON_FRONTIER","POLYGON_SOURCE")) {
+            $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_$flag"] = "1"
+          }
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE"] = "1"
+          $proc = [System.Diagnostics.Process]::new()
+          $proc.StartInfo = $psi
+          if (-not $proc.Start()) { throw "Cannot start sustained guest input source probe" }
+          $stdout = $proc.StandardOutput.ReadToEndAsync()
+          $stderr = $proc.StandardError.ReadToEndAsync()
+          # No synthetic pose, time or velocity writes. Every character
+          # enters through the host's real stdin and original source poll.
+          foreach ($command in (@("s","d") + (@("w") * 48) + (@(" ") * 12) + @("q"))) {
+            $proc.StandardInput.WriteLine($command)
+          }
+          $proc.StandardInput.Close()
+          $exited = $proc.WaitForExit(95000)
+          if (-not $exited) { $proc.Kill($true); $proc.WaitForExit() }
+          $combined = @($stdout.GetAwaiter().GetResult(),$stderr.GetAwaiter().GetResult()) -join "`n"
+          $exitCode = $proc.ExitCode
+          $proc.Dispose()
+          $events = [regex]::Matches($combined,
+            'CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_GUEST_STATE_DELTA event=([0-9]+).*pose_changed=([01]) velocity_changed=([01]) camera_displaced=([01]) heading_rotated=([01])')
+          $displaced = @($events | Where-Object { $_.Groups[4].Value -eq '1' })
+          $turned = @($events | Where-Object { $_.Groups[5].Value -eq '1' })
+          Write-Host "ORIGINAL_1FC14_SUSTAINED_MOTION_DIAGNOSTIC event_returns=$($events.Count) camera_displacements=$($displaced.Count) heading_rotations=$($turned.Count) exit_code=$exitCode timeout=$(-not $exited) original_media=PRIVATE_ONLY"
+          foreach ($event in ($events | Select-Object -First 3)) {
+            Write-Host "ORIGINAL_1FC14_SUSTAINED_MOTION_FIRST $($event.Value)"
+          }
+          foreach ($event in ($events | Select-Object -Last 3)) {
+            Write-Host "ORIGINAL_1FC14_SUSTAINED_MOTION_LAST $($event.Value)"
+          }
+          if (-not $exited -or $exitCode -ne 0) {
+            $frontier = [regex]::Matches($combined,'LIVE_CODE2_SOURCE_STOP=[A-Z0-9_]+|STAGED_BOOT_FAIL: [^\n\r]+')
+            foreach ($item in ($frontier | Select-Object -Last 3)) {
+              Write-Host "ORIGINAL_1FC14_SUSTAINED_MOTION_FRONTIER $($item.Value)"
+            }
+            throw "Sustained native input reached an unsupported or failed original guest boundary"
+          }
+          if ($displaced.Count -gt 0 -or $turned.Count -gt 0) {
+            Write-Host "ORIGINAL_1FC14_CAMERA_POSITIVE_SOURCE_OBSERVED input=HOST_STDIN os_irq9=NOT_VERIFIED"
+          } else {
+            Write-Host "ORIGINAL_1FC14_CAMERA_POSITIVE=NOT_OBSERVED source_keyboard=RESPONDED"
+          }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
