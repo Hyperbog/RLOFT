@@ -345,8 +345,13 @@ void original_full_exterior_polygon_source() noexcept {
 // Execute the original 1BDAC actor timers, state changes and record sweeps
 // in the live retained guest. Unimplemented movement/asset dependencies
 // stop at their real callback rather than returning fabricated values.
-void original_full_actor_missing3(u32,u32,u32) noexcept {
-    stop("ORIGINAL_1BDAC_EXTERNAL_3_ARGUMENT_DEPENDENCY");
+void original_full_actor_0d550(u32 a,u32 b,u32 c) noexcept {
+    std::cerr<<"ORIGINAL_1BDAC_0D550_ARGS="<<a<<","<<b<<","<<c<<"\n"<<std::flush;
+    stop("ORIGINAL_1BDAC_0D550_SOURCE_PENDING");
+}
+void original_full_actor_30cd4(u32 a,u32 b,u32 c) noexcept {
+    std::cerr<<"ORIGINAL_1BDAC_30CD4_ARGS="<<a<<","<<b<<","<<c<<"\n"<<std::flush;
+    stop("ORIGINAL_1BDAC_30CD4_SOURCE_PENDING");
 }
 void original_full_actor_missing2(u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_EXTERNAL_2_ARGUMENT_DEPENDENCY");
@@ -414,9 +419,9 @@ void original_full_1bdac_source() noexcept {
     motion.divide_error=&original_full_actor_divide_error;
     code2::Application38Boundary actor{};
     actor.app36=&motion;
-    actor.call_0d550=&original_full_actor_missing3;
+    actor.call_0d550=&original_full_actor_0d550;
     actor.call_2388c=&original_full_actor_missing_predicate;
-    actor.call_30cd4=&original_full_actor_missing3;
+    actor.call_30cd4=&original_full_actor_30cd4;
     actor.call_22e90=&original_full_actor_missing2;
     actor.call_08c88=&original_full_actor_missing1;
     actor.call_09070=&original_full_actor_missing2;
