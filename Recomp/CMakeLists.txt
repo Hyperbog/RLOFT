@@ -700,3 +700,28 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_28168_27f24_driver_abi
         COMMAND rloft_original_code2_28168_audio_service_test)
 endif()
+
+# Owner-private narrow Creative Voice PCM8 and real WinMM playback probe.
+# No original VOC assets, silent audio-driver fixtures or software sound
+# synthesis are shipped. Only --play requests an actual OS device.
+add_executable(rloft_host_original_voc_waveout
+    src/host_original_voc_waveout.cpp)
+add_executable(rloft_original_voc_pcm8_tests
+    src/test_original_voc_pcm8.cpp)
+foreach(target IN ITEMS rloft_host_original_voc_waveout
+                        rloft_original_voc_pcm8_tests)
+    set_target_properties(${target} PROPERTIES
+        CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /Od /W3)
+    else()
+        target_compile_options(${target} PRIVATE -O0 -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_host_original_voc_waveout PRIVATE winmm)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_private_creative_voice_pcm8_strict_decode
+        COMMAND rloft_original_voc_pcm8_tests)
+endif()
