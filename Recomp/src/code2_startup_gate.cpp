@@ -79,6 +79,7 @@ struct Session {
     unsigned original_level_actor_random_calls=0;
     unsigned original_scene_page_copies=0;
     unsigned original_scene_presentations=0;
+    unsigned original_1fc14_source_page_handoffs=0;
     unsigned original_scene_res1_portrait_decodes=0;
     struct WorldMaterial {u32 begin=0,end=0,image=0;};
     std::map<u32,WorldMaterial> original_world_materials{};
@@ -2121,6 +2122,39 @@ void original_scene_1a5b0(u32 page,code2::s32 cursor,u32 variant) noexcept {
              <<" cursor_active="<<(code2::load_le16(current->data.data()+0x85FCu)!=0u)
              <<" original_guest=PRESERVED\\n"<<std::flush;
 }
+// Original 1FC14's per-tick 1A510 cursor/scanout handoff is distinct
+// from 1F8FC's 1A5B0 compositor presentation. Neither operation
+// substitutes for the source 1F1C8 world draw.
+void original_1fc14_source_page_handoff(u32 page) noexcept {
+    if(!current || page>1u || !current->live_continuation ||
+       !current->original_vga || current->original_20440_mouse_inits!=1u)
+        stop("ORIGINAL_1FC14_1A510_GUEST_UNAVAILABLE");
+    code2::Application33Boundary video=current->original_mouse_resources;
+    video.call_291c8=&original_scene_select_scanout;
+    video.call_2a020=&original_scene_copy_page;
+    video.call_30cd4=&original_scene_cursor_memory_copy;
+    code2::Application34Boundary mouse=current->original_mouse_init_callbacks;
+    mouse.app33=&video;
+    code2::Application35Boundary draw=current->original_mouse_draw_callbacks;
+    draw.app34=&mouse;
+    draw.call_2e590=&original_scene_page_push;
+    draw.call_2e5d4=&original_scene_page_pop;
+    draw.call_292bc=&original_scene_cursor_capture;
+    draw.call_2932c=&original_scene_cursor_restore;
+    draw.call_29804=&original_scene_pointer_sprite;
+    draw.call_2ae30=&original_20440_mouse_hit;
+    code2::function_1a510(current->machine,draw,page);
+    if(current->data[0xEF4Eu]!=page ||
+       current->original_vga->crtc_start()!=(page<<15u))
+        stop("ORIGINAL_1FC14_1A510_SCANOUT_DID_NOT_SELECT_PAGE");
+    ++current->original_1fc14_source_page_handoffs;
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF"
+             <<" page="<<page
+             <<" crtc_start="<<current->original_vga->crtc_start()
+             <<" calls="<<current->original_1fc14_source_page_handoffs
+             <<" world_scene_draw=NOT_CONNECTED"
+             <<" source_guest=PRESERVED\n"<<std::flush;
+}
 void original_scene_palette(u32 palette,u32 first,u32 bank,
                             u32 filename,u32 count) noexcept {
     // The source compositor passes its live C034 mode, rather than
@@ -4049,6 +4083,7 @@ void attach_original_vga(
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
     source.presentation.call_1a5b0=&original_scene_1a5b0;
+    source.presentation.call_1a510=&original_1fc14_source_page_handoff;
     // Party RES0/RES1 source decoders and portrait blitters are attached
     // independently of enabling the incomplete full 1F8FC frame.
     source.original_mouse_resources.call_2975c=&original_scene_hud_2975c;
