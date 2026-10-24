@@ -83,6 +83,7 @@ struct Session {
     unsigned original_scene_presentations=0;
     unsigned original_1fc14_source_page_handoffs=0;
     unsigned original_1fc14_source_scene_returns=0;
+    u32 original_1fc14_last_scan_code=0u;
     unsigned original_scene_res1_portrait_decodes=0;
     struct WorldMaterial {u32 begin=0,end=0,image=0;};
     std::map<u32,WorldMaterial> original_world_materials{};
@@ -1397,8 +1398,10 @@ u32 original_30b40_keyboard_poll() noexcept {
         return 0u;
     }
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
-       live && std::strcmp(live,"1")==0)
+       live && std::strcmp(live,"1")==0) {
+        current->original_1fc14_last_scan_code=response.ax & 0xFFFFu;
         original_full_prepare_1fc14_source_tick();
+    }
     return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
 }
 // Original 20440 direct dependencies. All file bytes arrive through the
