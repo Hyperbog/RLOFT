@@ -500,8 +500,34 @@ struct Bridge {
         code2::Application57Boundary callbacks{};
         callbacks.call_2a380=&cursor_source_2a380;
         callbacks.call_2a6b0=&cursor_source_2a6b0;
-        (void)code2::function_29804(machine,callbacks,frame,
-                                     static_cast<u32>(x),static_cast<u32>(y),image);
+        const u32 depth=code2::load_le32(machine.data+0xEFD4u);
+        const u32 clip=0xEF74u+depth*0x18u;
+        if(std::uint64_t(clip)+0x18u>guest_extent)
+            throw std::out_of_range("Original 29804 cursor clip stack outside guest");
+        const u32 clip_left=code2::load_le32(machine.data+0xEF55u);
+        const u32 clip_top=code2::load_le32(machine.data+0xEF5Du);
+        const u32 clip_right=code2::load_le32(machine.data+0xEF61u);
+        const u32 clip_bottom=code2::load_le32(machine.data+0xEF59u);
+        const u32 result=code2::function_29804(machine,callbacks,frame,
+                                                 static_cast<u32>(x),
+                                                 static_cast<u32>(y),image);
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_29804_SOURCE_CLIP"
+                 <<" original_return="<<result
+                 <<" draw_calls="<<source_cursor_sprite_draws
+                 <<" clipped_calls="<<source_cursor_clipped_sprite_draws
+                 <<" clip_depth_before="<<depth
+                 <<" clip_depth_after="<<code2::load_le32(machine.data+0xEFD4u)
+                 <<" clip_record="<<clip
+                 <<" bounds="<<clip_left<<","<<clip_top<<","
+                             <<clip_right<<","<<clip_bottom
+                 <<" cropped="<<code2::load_le32(machine.data+clip+8u)
+                             <<","<<code2::load_le32(machine.data+clip+0x14u)
+                 <<" sprite_rows="<<code2::load_le16(machine.data+image+4u)
+                 <<" sprite_width="<<unsigned(machine.data[image+6u])*8u
+                 <<" invalid_access="<<(invalid_access?1:0)
+                 <<" unsupported_vga_read="<<(video.unsupported_read()?1:0)
+                 <<" frame="<<frame<<" x="<<x<<" y="<<y
+                 <<" image="<<image<<"\n"<<std::flush;
         if(invalid_access || video.unsupported_read() ||
            source_cursor_sprite_draws!=1u)
             throw std::runtime_error("Original 29804/29414/2A380-or-2A6B0 cursor sprite not drawn");
