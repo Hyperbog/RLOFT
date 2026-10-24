@@ -528,9 +528,23 @@ struct Bridge {
                  <<" unsupported_vga_read="<<(video.unsupported_read()?1:0)
                  <<" frame="<<frame<<" x="<<x<<" y="<<y
                  <<" image="<<image<<"\n"<<std::flush;
+        const auto cropped_rows=static_cast<std::int32_t>(
+            code2::load_le32(machine.data+clip+8u));
+        const auto cropped_width=static_cast<std::int32_t>(
+            code2::load_le32(machine.data+clip+0x14u));
+        const bool authentically_culled=
+            result==0u && source_cursor_sprite_draws==0u &&
+            (cropped_rows<=0 || cropped_width<=0);
+        const bool authentically_drawn=
+            (result==1u || result==2u) &&
+            source_cursor_sprite_draws==1u &&
+            (result==1u ?
+                source_cursor_clipped_sprite_draws==1u:
+                source_cursor_clipped_sprite_draws==0u);
         if(invalid_access || video.unsupported_read() ||
-           source_cursor_sprite_draws!=1u)
-            throw std::runtime_error("Original 29804/29414/2A380-or-2A6B0 cursor sprite not drawn");
+           (!authentically_culled && !authentically_drawn))
+            throw std::runtime_error(
+                "Original 29804 return/draw mismatch or unsafe VGA access");
     }
     // Source 1F8FC -> 2E510 -> 2E4A4 -> 2939C -> 2A380.
     // Unlike the cursor-only 29804 wrapper, this accepts the actual
