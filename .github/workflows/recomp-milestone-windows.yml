@@ -498,6 +498,61 @@ jobs:
             }
           }
           Write-Host "ORIGINAL_1FC14_29804_CLIP_AND_PAGE_HANDOFF_PASS authentic_full_draws=$($drawn.Count) authentic_full_culls=$($culled.Count) retained_crtc_page_handoffs=$($pageFlips.Count) same_guest=YES consecutive_scene_frames=NOT_YET_CONNECTED"
+      - name: Diagnose authentic source 1FC14 persistent 1F1C8 scene frontier
+        shell: pwsh
+        timeout-minutes: 2
+        run: |
+          # A separate opt-in full-scene source invocation. Successful
+          # diagnostic probing is not a full input-driven gameplay acceptance.
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $cmd = [System.Diagnostics.ProcessStartInfo]::new()
+          $cmd.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $cmd.UseShellExecute = $false
+          $cmd.RedirectStandardOutput = $true
+          $cmd.RedirectStandardError = $true
+          [void]$cmd.ArgumentList.Add("--root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $media).Path)
+          [void]$cmd.ArgumentList.Add("--cd-root")
+          [void]$cmd.ArgumentList.Add((Resolve-Path $cdMedia).Path)
+          [void]$cmd.ArgumentList.Add("--advance-original-16d04")
+          foreach ($flag in @("HUD","EXTERIOR","FRAME_ENTRY","FULL_COMPOSITOR","POLYGON_FRONTIER","POLYGON_SOURCE")) {
+            $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_$flag"] = "1"
+          }
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
+          $cmd.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE"] = "1"
+          $proc = [System.Diagnostics.Process]::new()
+          $proc.StartInfo = $cmd
+          if (-not $proc.Start()) { throw "Could not start original 1FC14 source scene" }
+          $out = $proc.StandardOutput.ReadToEndAsync()
+          $err = $proc.StandardError.ReadToEndAsync()
+          $exited = $proc.WaitForExit(45000)
+          if (-not $exited) {
+            $proc.Kill($true)
+            $proc.WaitForExit()
+          }
+          $combined = @($out.GetAwaiter().GetResult(), $err.GetAwaiter().GetResult()) -join "`n"
+          $exitCode = $proc.ExitCode
+          $proc.Dispose()
+          foreach ($line in ($combined -split "`r?`n")) {
+            if ($line -match '1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
+              Write-Host "ORIGINAL_1FC14_SCENE_PROBE: $line"
+            }
+          }
+          if (-not $exited) { throw "Original 1FC14 persistent scene probe timed out" }
+          $scenes = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_SCENE_SOURCE_RETURN page=([01]) scene_returns=([0-9]+)')
+          $frontier = [regex]::Match($combined, 'LIVE_CODE2_SOURCE_STOP=(ORIGINAL_[A-Z0-9_]+)')
+          if (-not $combined.Contains("CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_30B40_KEYBOARD_ENTRY")) {
+            throw "Original 1FC14 guest did not enter its source keyboard loop"
+          }
+          if ($scenes.Count -eq 0 -and -not $frontier.Success) {
+            throw "Persistent 1FC14 scene did not return or record an authentic missing source callback"
+          }
+          if ($scenes.Count -gt 0) {
+            Write-Host "ORIGINAL_1FC14_PERSISTENT_SCENE_PROBE_SOURCE_RETURNS=$($scenes.Count) acceptance=DIAGNOSTIC_ONLY"
+          } else {
+            Write-Host "ORIGINAL_1FC14_PERSISTENT_SCENE_FRONTIER=$($frontier.Groups[1].Value) acceptance=DIAGNOSTIC_ONLY"
+          }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
