@@ -854,13 +854,20 @@ void original_live_1f8fc_source_chain() noexcept {
                                          const std::vector<u8>& bytes) {
                 const std::filesystem::path target=
                     std::string(stem)+ext;
-                std::ofstream output(target,
-                    std::ios::binary|std::ios::trunc);
-                if(!output ||
-                   !output.write(
-                       reinterpret_cast<const char*>(bytes.data()),
-                       static_cast<std::streamsize>(bytes.size())) ||
-                   !output.flush())
+                bool written=false;
+                {
+                    std::ofstream output(target,
+                        std::ios::binary|std::ios::trunc);
+                    if(output) {
+                        output.write(
+                            reinterpret_cast<const char*>(bytes.data()),
+                            static_cast<std::streamsize>(bytes.size()));
+                        output.flush();
+                        written=static_cast<bool>(output);
+                    }
+                }
+                // Close the file before any source stop/longjmp.
+                if(!written)
                     stop("ORIGINAL_1F8FC_PRIVATE_VGA_CAPTURE_WRITE_FAILED");
             };
             save_private(".idx",indices);
