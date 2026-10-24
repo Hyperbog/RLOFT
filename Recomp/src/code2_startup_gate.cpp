@@ -1350,12 +1350,16 @@ void original_16d04_after_dos_open() noexcept {
 // yields key 0 in a busy loop, hiding the real live-gameplay frontier.
 void original_live_1f8fc_source_chain() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
-    if(!current->live_continuation ||
+    // Source 1FC14 re-enters keyboard polling after 1F8FC presents.
+    // Account for actual extra 325B0 COLORS and 29234 DAC calls.
+    const bool rendered_frame=current->original_scene_presentations==1u;
+    if(current->original_scene_presentations>1u ||
+       !current->live_continuation ||
        current->original_16d04_completed!=1u ||
        current->original_03838_completed!=1u ||
        current->original_16cd0_completed!=1u ||
        current->original_181b4_completed!=1u ||
-       current->original_325b0_completed!=1u ||
+       current->original_325b0_completed!=(rendered_frame?2u:1u) ||
        current->original_boot_output_page_selects!=1u ||
        current->original_boot_scanout_page_selects!=1u ||
        current->original_20440_res_image_loads!=1u ||
@@ -1366,7 +1370,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_20440_mouse_draws==0u ||
        current->original_source_page_pushes!=3u ||
        current->original_source_page_pops!=3u ||
-       current->original_source_dac_streams!=2u ||
+       current->original_source_dac_streams!=(rendered_frame?3u:2u) ||
        code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
