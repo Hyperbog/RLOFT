@@ -119,6 +119,25 @@ int main() {
     }
     word(guest,list+2,0xfffe);
     word(guest,code+0x200u+2u,4u);
+    // Original 369D8 EDI can be ABOVE GUEST RAM but BELOW the VGA A0000
+    // aperture for a vertically shifted sprite: only the *effective*
+    // SINTAB MOV [EDI+disp32] address may reach visible VGA. Reject the
+    // truly out-of-aperture effective store, not this legal address base.
+    c.video_page=0u;
+    c.renderer_phase=-1; // EDI=A0000-80, generated +80=>A0000
+    guest[code+0x200u+12u]=80u; // first original store disp32
+    const auto reentered=execute_original_369d8(guest,vga,c);
+    assert(reentered.indexed_writes==2u);
+    assert(vga.indexed_scanout(2u,0u)==40u);
+    const auto clipped_before=vga.scanout_indices();
+    c.renderer_phase=-2; // generated +80 still writes at A0000-80
+    rejected=false;
+    try {(void)execute_original_369d8(guest,vga,c);}
+    catch(const std::runtime_error&) {rejected=true;}
+    assert(rejected && vga.scanout_indices()==clipped_before);
+    guest[code+0x200u+12u]=0u;
+    c.video_page=1u;
+    c.renderer_phase=4;
     // Retail x86 MOV [EDI+disp32] also writes outside the 64K A000
     // window when a vertically overflowing sprite uses draw page 1.
     // Preserve bounded B000 CPU writes without aliasing the visible
