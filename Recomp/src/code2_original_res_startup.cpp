@@ -1861,9 +1861,9 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
                  <<" speed_before="<<before_speed<<" speed_after="<<after_speed
                  <<" turn_before="<<before_turn<<" turn_after="<<after_turn
                  <<" pose_changed="<<(pose_changed?1:0)
+                 <<" velocity_changed="<<(velocity_changed?1:0)
                  <<" camera_displaced="<<(camera_displaced?1:0)
                  <<" heading_rotated="<<(heading_rotated?1:0)
-                 <<" velocity_changed="<<(velocity_changed?1:0)
                  <<" guest=UNCHANGED_BY_HOST\n"<<std::flush;
         std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_KEYBOARD_REENTERED"
                  <<" terminal_events="<<events
