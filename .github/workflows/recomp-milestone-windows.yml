@@ -535,7 +535,7 @@ jobs:
           $exitCode = $proc.ExitCode
           $proc.Dispose()
           foreach ($line in ($combined -split "`r?`n")) {
-            if ($line -match '1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
+            if ($line -match '1FC14_SCENE_SOURCE_RETURN|1FC14_1A510_SOURCE_PAGE_HANDOFF|1FC14_29804_SOURCE_CLIP|314B0_SOURCE_VIEW_BOUNDARY|36CEC_SPRITE_RASTER_FAILURE|RLOFT_CODE1_CODE2_STAGED_BOOT_FAIL') {
               Write-Host "ORIGINAL_1FC14_SCENE_PROBE: $line"
             }
           }
