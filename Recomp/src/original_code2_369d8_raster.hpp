@@ -95,8 +95,14 @@ inline Original369d8Report execute_original_369d8(
         // clipping instruction. Guest stores past AFFFF are legal
         // CPU writes into the adjacent bounded B0000-BFFFF region,
         // but are not evidence of pixels in the displayed VGA plane.
-        if(dest<0xA0000LL || dest+2>=0xC0000LL)
-            throw std::out_of_range("369D8 bounded video-address region exceeded");
+        // The initial retail EDI may precede A0000 when an actor is
+        // vertically offscreen. Generated SINTAB MOV [EDI+disp32] writes
+        // use effective addresses; those, not the EDI base, determine
+        // whether a VGA write is legal. The interpreter below still
+        // rejects every effective destination outside A0000-BFFFF.
+        if(dest<0LL || dest+2>=0xC0000LL)
+            throw std::out_of_range(
+                "369D8 bounded EDI base outside mapped guest");
         const unsigned offset=static_cast<unsigned>(x)&3u;
         std::size_t at=ctx.list_pointer;
         while(true) {
