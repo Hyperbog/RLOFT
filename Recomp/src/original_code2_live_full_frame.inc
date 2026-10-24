@@ -719,8 +719,33 @@ void original_full_1f120_audio_tempo(u32 value) noexcept {
     original_full_1f120_audio_guard();
     code2::function_29008(current->machine,current->audio_seed,value);
 }
-void original_full_1f120_sound_event(u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_1F120_RARE_SOUND_EVENT_PENDING");
+void original_full_1f120_sound_event(
+        u32 request_id,u32 aux,u32 channel,u32 priority) noexcept {
+    // Original 28110 accepts the four cdecl arguments in this exact order
+    // and updates the two twelve-byte source priority slots at EE48.
+    // This is the game's sound REQUEST queue, not an AIL device playback.
+    if(!current || channel>1u || !original_full_frame_trace)
+        stop("ORIGINAL_1F120_28110_SOUND_QUEUE_CHANNEL_UNVERIFIED");
+    const u32 offset=0xEE48u+channel*12u;
+    if(std::uint64_t(offset)+12u>current->data.size())
+        stop("ORIGINAL_1F120_28110_SOUND_QUEUE_OUT_OF_GUEST");
+    const u32 enabled=code2::load_le32(current->data.data()+0xEE40u);
+    const u32 prior_handle=code2::load_le32(current->data.data()+offset);
+    code2::function_28110(
+        current->machine,request_id,aux,channel,priority);
+    const u32 after_handle=code2::load_le32(current->data.data()+offset);
+    if(enabled==0u && after_handle!=prior_handle)
+        stop("ORIGINAL_1F120_28110_DISABLED_QUEUE_CHANGED");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1F120_28110_SOUND_REQUEST"
+             <<" channel="<<channel
+             <<" handle="<<request_id
+             <<" aux="<<aux
+             <<" priority="<<priority
+             <<" audio_queue_enabled="<<(enabled?1:0)
+             <<" before_handle="<<prior_handle
+             <<" after_handle="<<after_handle
+             <<" original_source=28110"
+             <<" hardware_playback=NOT_CERTIFIED\n"<<std::flush;
 }
 
 // Both the single-frame diagnostic and the retained 1FC14 tick must
