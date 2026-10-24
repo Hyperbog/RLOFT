@@ -349,9 +349,11 @@ void original_full_actor_0d550(u32 a,u32 b,u32 c) noexcept {
     std::cerr<<"ORIGINAL_1BDAC_0D550_ARGS="<<a<<","<<b<<","<<c<<"\n"<<std::flush;
     stop("ORIGINAL_1BDAC_0D550_SOURCE_PENDING");
 }
-void original_full_actor_30cd4(u32 a,u32 b,u32 c) noexcept {
-    std::cerr<<"ORIGINAL_1BDAC_30CD4_ARGS="<<a<<","<<b<<","<<c<<"\n"<<std::flush;
-    stop("ORIGINAL_1BDAC_30CD4_SOURCE_PENDING");
+void original_full_actor_30cd4(u32 dst,u32 src,u32 count) noexcept {
+    const auto capacity=current->data.size();
+    if(dst>capacity || src>capacity || count>capacity-dst || count>capacity-src)
+        stop("ORIGINAL_1BDAC_30CD4_COPY_OUT_OF_GUEST_BOUNDS");
+    (void)code2::function_30cd4(current->machine,dst,src,count);
 }
 void original_full_actor_missing2(u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_EXTERNAL_2_ARGUMENT_DEPENDENCY");
