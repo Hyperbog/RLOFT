@@ -33,6 +33,11 @@ struct OriginalFullFrameTrace {
     u32 scene_sprite_indexed_writes=0u;
     u32 scene_sprite_off_aperture_writes=0u;
     u32 scene_projection_returns=0u;
+    u32 compass_source_calls=0u;
+    u32 compass_source_returns=0u;
+    u32 compass_clips=0u;
+    u32 compass_images=0u;
+    u32 compass_vga_writes=0u;
     u32 source_ids[2]{};
 };
 thread_local OriginalFullFrameTrace* original_full_frame_trace=nullptr;
@@ -520,11 +525,89 @@ void original_full_2c294_source() noexcept {
     code2::function_2c294(current->machine,scene);
     ++original_full_frame_trace->scene_projection_returns;
 }
-void original_full_274a4_frontier() noexcept {
+// 274A4 -> 29804 -> 29414 -> 2A380/2A6B0 and 273F0.
+// All source VGA ports operate through one Bridge::Scope. The source
+// raster callbacks use the same guest machine and resident RES0 image.
+void original_full_compass_clip(u32 top,u32 left,u32 bottom,u32 right) noexcept {
+    if(!original_full_frame_trace)
+        stop("ORIGINAL_274A4_CLIP_OUTSIDE_SOURCE");
+    code2::function_296c0(current->machine,
+        static_cast<code2::s32>(top),static_cast<code2::s32>(left),
+        static_cast<code2::s32>(bottom),static_cast<code2::s32>(right));
+    ++original_full_frame_trace->compass_clips;
+}
+u32 original_full_compass_unclipped(
+        u32 frame,u32 top,u32 left,u32 image) noexcept {
+    if(!image || std::uint64_t(image)+8u>current->data.size())
+        stop("ORIGINAL_274A4_IMAGE_UNAVAILABLE");
+    auto gfx=rloft::source_video_boot::Bridge::cursor_gfx();
+    code2::function_2a380(current->machine,gfx,frame,top,left,image);
+    ++original_full_frame_trace->compass_images;
+    return 1u;
+}
+u32 original_full_compass_clipped(
+        u32 frame,u32 top,u32 left,u32 clip,u32 image) noexcept {
+    if(!image || std::uint64_t(image)+8u>current->data.size() ||
+       std::uint64_t(clip)+0x18u>current->data.size())
+        stop("ORIGINAL_274A4_CLIPPED_IMAGE_UNAVAILABLE");
+    auto gfx=rloft::source_video_boot::Bridge::app61();
+    code2::function_2a6b0(current->machine,gfx,frame,top,left,clip,image);
+    ++original_full_frame_trace->compass_images;
+    return 1u;
+}
+u32 original_full_compass_29804(
+        u32 frame,u32 top,u32 left,u32 image) noexcept {
+    if(code2::load_le32(current->data.data()+0xF0C8u)!=0u)
+        stop("ORIGINAL_274A4_IMAGE_DISPATCH_INTERRUPT_PENDING");
+    code2::Application57Boundary draw{};
+    draw.call_2a380=&original_full_compass_unclipped;
+    draw.call_2a6b0=&original_full_compass_clipped;
+    return code2::function_29804(
+        current->machine,draw,frame,top,left,image);
+}
+void original_full_compass_pixel(u32 at,u8 value) noexcept {
+    rloft::source_video_boot::Bridge::vga_write(at,value);
+    ++original_full_frame_trace->compass_vga_writes;
+}
+void original_full_274a4_source() noexcept {
     if(!original_full_frame_trace ||
-       original_full_frame_trace->scene_projection_returns!=1u)
+       original_full_frame_trace->scene_projection_returns!=1u ||
+       !current->original_vga)
         stop("ORIGINAL_274A4_SCENE_PREDECESSOR_MISSING");
-    stop("ORIGINAL_274A4_SOURCE_COMPASS_PENDING");
+    ++original_full_frame_trace->compass_source_calls;
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        {
+            rloft::source_video_boot::Bridge::Scope scope(bridge);
+            code2::Application52Boundary art{};
+            art.call_296c0=&original_full_compass_clip;
+            art.call_2f29c=&original_full_frame_resource;
+            art.call_29804=&original_full_compass_29804;
+            code2::Application54Boundary vga{};
+            vga.out16=&rloft::source_video_boot::Bridge::out16;
+            vga.phys_read8=&rloft::source_video_boot::Bridge::vga_read;
+            vga.phys_write8=&original_full_compass_pixel;
+            code2::function_274a4(current->machine,art,vga);
+        }
+        if(bridge.invalid_access || current->original_vga->unsupported_read())
+            stop("ORIGINAL_274A4_SOURCE_VGA_IO_INVALID");
+    } catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=274A4_COMPASS_FAILURE"
+                 <<" heading="<<code2::load_le32(current->data.data()+0xC658u)
+                 <<" page="<<unsigned(current->data[0xEF4Du])
+                 <<" image_calls="<<original_full_frame_trace->compass_images
+                 <<" vga_writes="<<original_full_frame_trace->compass_vga_writes
+                 <<" reason="<<e.what()<<"\n"<<std::flush;
+        stop("ORIGINAL_274A4_SOURCE_COMPASS_FAILED");
+    }
+    ++original_full_frame_trace->compass_source_returns;
+}
+u32 original_full_1f120_frontier() noexcept {
+    if(!original_full_frame_trace ||
+       original_full_frame_trace->compass_source_returns!=1u)
+        stop("ORIGINAL_1F120_COMPASS_PREDECESSOR_MISSING");
+    stop("ORIGINAL_1F120_AUDIO_FRAME_UPDATE_PENDING");
 }
 
 void original_live_1f8fc_source_chain() noexcept {
@@ -579,7 +662,8 @@ void original_live_1f8fc_source_chain() noexcept {
         &original_full_exterior_polygon_source:&original_exterior_polygon_frontier;
     scene.call_1bdac=source_polygons?&original_full_1bdac_source:nullptr;
     scene.call_2c294=source_polygons?&original_full_2c294_source:nullptr;
-    scene.call_274a4=source_polygons?&original_full_274a4_frontier:nullptr;
+    scene.call_274a4=source_polygons?&original_full_274a4_source:nullptr;
+    scene.call_2b1bc=source_polygons?&original_full_1f120_frontier:nullptr;
     scene.call_2f868=&original_scene_poll_source_events;
     scene.divide_error=&original_live_hud_divide_error;
 
@@ -613,7 +697,7 @@ void original_live_1f8fc_source_chain() noexcept {
     original_full_frame_trace=nullptr;
     exterior_trace=nullptr;
     const char* const expected_stop=source_polygons?
-        "ORIGINAL_274A4_SOURCE_COMPASS_PENDING":
+        "ORIGINAL_1F120_AUDIO_FRAME_UPDATE_PENDING":
         (through_actor?
             "ORIGINAL_1F1C8_34DE8_POLYGON_RASTER_PENDING":
             "ORIGINAL_1F1C8_314B0_FIRST_RES8_50_VGA_SPRITE_DRAWN");
@@ -630,7 +714,9 @@ void original_live_1f8fc_source_chain() noexcept {
             frame.scene_wall_passes!=1u ||
             frame.scene_sprite_calls==0u ||
             frame.scene_sprite_raster_returns!=frame.scene_sprite_calls ||
-            frame.scene_projection_returns!=1u)) ||
+            frame.scene_projection_returns!=1u ||
+            frame.compass_source_calls!=1u ||
+            frame.compass_source_returns!=1u)) ||
        exterior.resource_requests<exterior.subtractive_draws ||
        (exterior.angle_patches!=0u && exterior.angle_patches!=4u) ||
        current->data[0xC050u]!=initial_page ||
@@ -680,11 +766,16 @@ void original_live_1f8fc_source_chain() noexcept {
              <<" scene_sprite_indexed_writes="<<frame.scene_sprite_indexed_writes
              <<" scene_sprite_off_aperture_writes="<<frame.scene_sprite_off_aperture_writes
              <<" scene_projection_returns="<<frame.scene_projection_returns
+             <<" compass_source_calls="<<frame.compass_source_calls
+             <<" compass_source_returns="<<frame.compass_source_returns
+             <<" compass_clips="<<frame.compass_clips
+             <<" compass_images="<<frame.compass_images
+             <<" compass_vga_writes="<<frame.compass_vga_writes
              <<" angle_patches="<<exterior.angle_patches
              <<" presentations="<<frame.presentations
              <<" guest=PRESERVED"
              <<" next="<<(source_polygons?
-                 "274A4_COMPASS_OVERLAY":
+                 "1F120_FRAME_UPDATE":
                  (through_actor?"34DE8_POLYGON_RASTER":"EXTERIOR_REMAINING_SOURCE"))
              <<" complete_frames=0\n"<<std::flush;
     current->stop_reason=nullptr;
