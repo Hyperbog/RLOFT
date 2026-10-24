@@ -846,6 +846,31 @@ void original_live_1f8fc_source_chain() noexcept {
                  <<" dac_bytes="<<rgb6.size()
                  <<" crtc_start="<<current->original_vga->crtc_start()
                  <<" dos_reference_synchronized=NO\n"<<std::flush;
+        // Explicit local-only comparison output: no artwork enters logs,
+        // commits or CI artifacts. Default source execution writes none.
+        if(const char* stem=std::getenv("RLOFT_RECOMP_PRIVATE_FRAME_STEM");
+           stem && *stem) {
+            const auto save_private=[&](const std::string& ext,
+                                         const std::vector<u8>& bytes) {
+                const std::filesystem::path target=
+                    std::string(stem)+ext;
+                std::ofstream output(target,
+                    std::ios::binary|std::ios::trunc);
+                if(!output ||
+                   !output.write(
+                       reinterpret_cast<const char*>(bytes.data()),
+                       static_cast<std::streamsize>(bytes.size())) ||
+                   !output.flush())
+                    stop("ORIGINAL_1F8FC_PRIVATE_VGA_CAPTURE_WRITE_FAILED");
+            };
+            save_private(".idx",indices);
+            save_private(".pal",rgb6);
+            std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_PRIVATE_CAPTURE"
+                     <<" frame_bytes="<<indices.size()
+                     <<" palette_bytes="<<rgb6.size()
+                     <<" original_dos_reference=NOT_SUPPLIED"
+                     <<" media_payload=LOCAL_ONLY\n"<<std::flush;
+        }
     }
     current->stop_reason=nullptr;
 }
