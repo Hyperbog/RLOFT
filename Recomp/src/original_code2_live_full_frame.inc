@@ -320,8 +320,15 @@ void original_full_actor_missing_offsets(u32* dx,u32* dy,u32 radius,u32 heading)
     movement.call_35680=&code2::function_35680;
     code2::function_2df2c(current->machine,movement,dx,dy,radius,heading);
 }
-void original_full_actor_missing_clear(u32,u32,u32) noexcept {
-    stop("ORIGINAL_1BDAC_CLEAR_PENDING");
+void original_full_actor_fill_guest(u32 dst,u32 packed,u32 count) noexcept {
+    if(std::uint64_t(dst)+count>current->data.size())
+        stop("ORIGINAL_1BDAC_379D0_FILL_OUT_OF_BOUNDS");
+    code2::function_379d0(current->data.data()+dst,count,packed);
+}
+void original_full_actor_missing_clear(u32 dst,u32 value,u32 count) noexcept {
+    code2::Application72Boundary memory{};
+    memory.call_379d0=&original_full_actor_fill_guest;
+    (void)code2::function_30d30(memory,dst,value,count);
 }
 u32 original_full_actor_missing_query() noexcept {
     return code2::function_311e0(current->machine);
