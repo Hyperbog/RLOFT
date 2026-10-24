@@ -513,6 +513,21 @@ jobs:
             }
             Write-Host "ORIGINAL_0D550_SOURCE_CONTEXT_END"
           }
+      - name: Inspect reconstructed original 28110 sampled-audio queue ABI
+        shell: pwsh
+        run: |
+          $lines = [System.IO.File]::ReadAllLines((Resolve-Path "Code2/Code2.cpp").Path)
+          $points = @(for ($i=0; $i -lt $lines.Length; ++$i) {
+            if ($lines[$i].Contains('function_28110(')) { $i }
+          })
+          Write-Host "ORIGINAL_28110_SOURCE_DECLARATIONS=$($points.Count)"
+          foreach ($i in ($points | Select-Object -First 4)) {
+            Write-Host "ORIGINAL_28110_SOURCE_BEGIN line=$($i+1)"
+            for ($j=[Math]::Max(0,$i-2); $j -lt [Math]::Min($lines.Length,$i+22); ++$j) {
+              Write-Host ("{0}: {1}" -f ($j+1), $lines[$j])
+            }
+            Write-Host "ORIGINAL_28110_SOURCE_END"
+          }
       - name: Diagnose authentic source 1FC14 persistent 1F1C8 scene frontier
         shell: pwsh
         timeout-minutes: 2
