@@ -1,3 +1,6 @@
+// Defined below this include in the same startup translation unit.
+void original_world_sweep_335dc() noexcept;
+
 // Original 1F8FC chained into both original cache releases, full party
 // 1F494 and 1F1C8 until the independently verified first world sprite.
 // This is a source-worker diagnostic, invoked AFTER archive parity checks.
