@@ -503,7 +503,7 @@ jobs:
         run: |
           $lines = [System.IO.File]::ReadAllLines((Resolve-Path "Code2/Code2.cpp").Path)
           $positions = @(for ($i = 0; $i -lt $lines.Length; ++$i) {
-            if ($lines[$i] -match 'function_0d550\\s*\\(') { $i }
+            if ($lines[$i].Contains('function_0d550(')) { $i }
           })
           Write-Host "ORIGINAL_0D550_SOURCE_DECLARATIONS=$($positions.Count)"
           foreach ($i in ($positions | Select-Object -First 6)) {
