@@ -82,6 +82,7 @@ struct Session {
     unsigned original_scene_page_copies=0;
     unsigned original_scene_presentations=0;
     unsigned original_1fc14_source_page_handoffs=0;
+    unsigned original_1fc14_source_scene_returns=0;
     unsigned original_scene_res1_portrait_decodes=0;
     struct WorldMaterial {u32 begin=0,end=0,image=0;};
     std::map<u32,WorldMaterial> original_world_materials{};
@@ -2137,6 +2138,7 @@ void original_scene_1a5b0(u32 page,code2::s32 cursor,u32 variant) noexcept {
 // Original 1FC14's per-tick 1A510 cursor/scanout handoff is distinct
 // from 1F8FC's 1A5B0 compositor presentation. Neither operation
 // substitutes for the source 1F1C8 world draw.
+void original_full_validate_1fc14_scene_handoff(u32 page) noexcept;
 void original_1fc14_source_page_handoff(u32 page) noexcept {
     if(!current || page>1u || !current->live_continuation ||
        !current->original_vga || current->original_20440_mouse_inits!=1u)
@@ -2159,6 +2161,9 @@ void original_1fc14_source_page_handoff(u32 page) noexcept {
     if(current->data[0xEF4Eu]!=page ||
        current->original_vga->crtc_start()!=(page<<15u))
         stop("ORIGINAL_1FC14_1A510_SCANOUT_DID_NOT_SELECT_PAGE");
+    if(const char* scene=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+       scene && std::strcmp(scene,"1")==0)
+        original_full_validate_1fc14_scene_handoff(page);
     ++current->original_1fc14_source_page_handoffs;
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF"
              <<" page="<<page
