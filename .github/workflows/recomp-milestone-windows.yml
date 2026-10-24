@@ -482,7 +482,22 @@ jobs:
           if (-not $sourceStop -and -not $handoff) {
             throw "Original 29804 unexpected diagnostic completion / stop"
           }
-          Write-Host "ORIGINAL_1FC14_29804_CLIP_PROBE_PASS source_return=$($clip.Groups[1].Value) drawn=$($clip.Groups[2].Value) clipped=$($clip.Groups[3].Value) guest=PRESERVED acceptance=DIAGNOSTIC_ONLY"
+          $drawn = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_29804_SOURCE_CLIP original_return=2 draw_calls=1 clipped_calls=0 .*invalid_access=0 unsupported_vga_read=0')
+          $culled = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_29804_SOURCE_CLIP original_return=0 draw_calls=0 clipped_calls=0 .*cropped=4294967228,16 .*invalid_access=0 unsupported_vga_read=0')
+          $pageFlips = [regex]::Matches($combined, 'CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_1A510_SOURCE_PAGE_HANDOFF page=([01]) crtc_start=([0-9]+) calls=([0-9]+) world_scene_draw=NOT_CONNECTED source_guest=PRESERVED')
+          if ($drawn.Count -lt 1 -or $culled.Count -lt 1 -or $pageFlips.Count -lt 4) {
+            throw "Authentic 1FC14 29804 drawn/culled outcomes and four 1A510 VGA page handoffs are required"
+          }
+          for ($i = 0; $i -lt 4; ++$i) {
+            $expectedPage = if (($i % 2) -eq 0) { 1 } else { 0 }
+            $page = [int]$pageFlips[$i].Groups[1].Value
+            $start = [int]$pageFlips[$i].Groups[2].Value
+            $ordinal = [int]$pageFlips[$i].Groups[3].Value
+            if ($page -ne $expectedPage -or $start -ne ($page * 32768) -or $ordinal -ne ($i + 1)) {
+              throw "Original 1A510 page and physical CRTC sequence diverged at handoff $($i + 1)"
+            }
+          }
+          Write-Host "ORIGINAL_1FC14_29804_CLIP_AND_PAGE_HANDOFF_PASS authentic_full_draws=$($drawn.Count) authentic_full_culls=$($culled.Count) retained_crtc_page_handoffs=$($pageFlips.Count) same_guest=YES consecutive_scene_frames=NOT_YET_CONNECTED"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
