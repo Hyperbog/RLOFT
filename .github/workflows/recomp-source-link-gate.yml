@@ -43,6 +43,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Indexed-frame comparison tests failed" }
           python -m unittest discover -s Recomp/tools -p test_verify_synchronized_dos_frame_pair.py -v
           if ($LASTEXITCODE -ne 0) { throw "Independent DOS-frame synchronization tests failed" }
+          python -m unittest discover -s Recomp/tools -p test_create_original_dos_debugger_observation.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Original DOS debugger observation-provenance tests failed" }
       - name: Report recompilation progress from certified major acceptance gates
         if: success()
         shell: pwsh
