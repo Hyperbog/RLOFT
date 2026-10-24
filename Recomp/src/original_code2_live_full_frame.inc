@@ -713,7 +713,7 @@ void original_full_prepare_1fc14_source_tick() noexcept {
     original_full_frame_trace=&original_1fc14_tick_frame;
     exterior_trace=&original_1fc14_tick_exterior;
 }
-void original_full_attach_1fc14_scene(Guest& guest) noexcept {
+void original_full_attach_1fc14_scene(Session& guest) noexcept {
     if(!original_full_configure_scene(guest.live_ui,guest.live_scene))
         stop("ORIGINAL_1FC14_SCENE_SOURCE_GRAPH_MISSING");
     guest.presentation.app43=&guest.live_ui;
