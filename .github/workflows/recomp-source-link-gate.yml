@@ -36,6 +36,13 @@ jobs:
       - name: Execute compiled reconstruction leaf and entry-boundary tests
         shell: pwsh
         run: ctest --test-dir build/recomp -C Debug --output-on-failure
+      - name: Verify strict private DOS indexed comparison and synchronization (synthetic only)
+        shell: pwsh
+        run: |
+          python -m unittest discover -s Recomp/tools -p test_compare_dos_indexed_frames.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Indexed-frame comparison tests failed" }
+          python -m unittest discover -s Recomp/tools -p test_verify_synchronized_dos_frame_pair.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Independent DOS-frame synchronization tests failed" }
       - name: Report recompilation progress from certified major acceptance gates
         if: success()
         shell: pwsh
