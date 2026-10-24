@@ -4089,7 +4089,13 @@ void attach_original_vga(
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
     source.presentation.call_1a5b0=&original_scene_1a5b0;
-    source.presentation.call_1a510=&original_1fc14_source_page_handoff;
+    // Independent experimental source 1FC14 tick: the 29804 cursor clip
+    // result is not yet accepted. Keep the validated default loop intact.
+    // This flag enables diagnostic execution without claiming a drawn frame.
+    if(const char* trial=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF")) {
+        if(std::strcmp(trial,"1")==0)
+            source.presentation.call_1a510=&original_1fc14_source_page_handoff;
+    }
     // Party RES0/RES1 source decoders and portrait blitters are attached
     // independently of enabling the incomplete full 1F8FC frame.
     source.original_mouse_resources.call_2975c=&original_scene_hud_2975c;
