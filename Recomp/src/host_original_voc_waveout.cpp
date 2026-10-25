@@ -3,6 +3,7 @@
 // VOC codec guessing, Sound Blaster IRQ/DMA timing or source game callback
 // integration is implied. Never ships original game media.
 #include "original_voc_pcm8.hpp"
+#include "original_code2_pcm_packet.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -101,15 +102,21 @@ void output_and_verify_os_completion(const rloft::host_voc::Sample& s) {
 int main(int argc,char** argv) {
     try {
         const bool play=argc==4 && std::string(argv[3])=="--play";
-        if((argc!=3 && !play) || std::string(argv[1])!="--voc")
+        const bool direct=argc>=2 && std::string(argv[1])=="--voc";
+        const bool source_packet=argc>=2 && std::string(argv[1])=="--packet";
+        if((argc!=3 && !play) || (!direct && !source_packet))
             throw std::invalid_argument(
-                "usage: rloft_host_original_voc_waveout --voc PRIVATE_SAMPLE.voc [--play]");
+                "usage: rloft_host_original_voc_waveout "
+                "(--voc PRIVATE_SAMPLE.voc | --packet PRIVATE_27F24_PACKET.bin) [--play]");
         const auto data=owner_file(argv[2]);
-        const auto pcm=rloft::host_voc::decode_pcm8_mono(data);
+        const auto pcm=source_packet?
+            rloft::source_audio::decode_original_length_prefixed_voc(data):
+            rloft::host_voc::decode_pcm8_mono(data);
         std::cout<<"RLOFT_PRIVATE_VOC_PCM8_VERIFIED"
                  <<" pcm_bytes="<<pcm.pcm8.size()
                  <<" rate_hz="<<pcm.rate_hz
                  <<" decode=CREATIVE_VOC_TYPE1_PCM8"
+                 <<" original_27f24_packet="<<(source_packet?"YES":"NO")
                  <<" output_request="<<(play?"USER_EXPLICIT":"NONE")<<"\n";
         if(!play)return 0;
 #ifdef _WIN32
