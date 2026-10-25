@@ -713,8 +713,13 @@ u32 original_full_movement_marker(u32 tile) noexcept {
     code2::Application43Boundary originals{};
     return code2::function_1e930(current->machine,originals,tile);
 }
-void original_full_movement_event(u32) noexcept {
-    stop("ORIGINAL_2DBAC_MOVEMENT_LEVEL_TRANSITION_NOT_CONNECTED");
+void original_full_movement_event(u32 level) noexcept {
+    // The retail 181B4 loader is wired for preserved Level22 here.
+    // A different level needs its own original-media state, file lifecycle
+    // and source callbacks; refuse rather than treating the world as empty.
+    if(level!=22u)
+        stop("ORIGINAL_2DBAC_CROSS_LEVEL_TRANSITION_NOT_SOURCE_VERIFIED");
+    original_181b4_level_load(level);
 }
 void original_full_movement_effect(code2::s32,code2::s32,u32) noexcept {
     stop("ORIGINAL_2D5D0_SPECIAL_TILE_EFFECT_NOT_CONNECTED");
@@ -728,8 +733,19 @@ u32 original_full_movement_predicate(u32) noexcept {
 void original_full_movement_refresh() noexcept {
     stop("ORIGINAL_2DBAC_MOVEMENT_REFRESH_NOT_CONNECTED");
 }
-void original_full_movement_heading(u32) noexcept {
-    stop("ORIGINAL_2DBAC_SPECIAL_HEADING_HANDLER_NOT_CONNECTED");
+void original_full_movement_heading(u32 heading) noexcept {
+    // Original 1C0C0 quantizes heading only when the grid-mode byte
+    // requests it; no host-side pose assignment or guessed orientation.
+    code2::function_1c0c0(current->machine,heading);
+}
+u32 original_full_movement_bit_query(u32 bit) noexcept {
+    return code2::function_1c1dc(current->machine,bit);
+}
+void original_full_movement_bit_set(u32 bit) noexcept {
+    code2::function_1c124(current->machine,bit);
+}
+void original_full_movement_bit_clear(u32 bit) noexcept {
+    code2::function_1c160(current->machine,bit);
 }
 void original_full_2e120_movement_service() noexcept {
     if(!current || !current->original_vga ||
@@ -753,9 +769,18 @@ void original_full_2e120_movement_service() noexcept {
     collision.call_e0f8=&original_full_movement_predicate;
     collision.call_1c0c0=&original_full_movement_heading;
     collision.call_1ea78=&original_full_movement_refresh;
-    // The original secondary collision Application65 graph is not
-    // connected. This probe can test the source primary tile/actor
-    // collision but cannot certify all original interactions.
+    // Attach the original 2CC88 secondary record-object collision.
+    // This is not a "no objects" fallback: source 2CC88 sees the
+    // authentic 258A6 object count and 22238/2223C world coordinates.
+    // Rare transitions keep their original event callback, which stops
+    // unless the preserved level's source loader is supported.
+    code2::Application65Boundary secondary{};
+    secondary.call_181b4=&original_full_movement_event;
+    secondary.call_1c0c0=&original_full_movement_heading;
+    secondary.call_1c1dc=&original_full_movement_bit_query;
+    secondary.call_1c124=&original_full_movement_bit_set;
+    secondary.call_1c160=&original_full_movement_bit_clear;
+    collision.app65=&secondary;
     code2::Application67Boundary movement{};
     movement.app66=&collision;
     movement.call_35680=&code2::function_35680;
@@ -779,8 +804,9 @@ void original_full_2e120_movement_service() noexcept {
              <<" camera_displaced="<<((after_x!=before_x || after_y!=before_y)?1:0)
              <<" heading_changed="<<(after_heading!=before_heading?1:0)
              <<" source_2e120=EXECUTED"
-             <<" source_2dbac=PRIMARY_COLLISION_ONLY"
-             <<" secondary_actor_collision=NOT_CONNECTED"
+             <<" source_2dbac=PRIMARY_AND_SECONDARY_COLLISION"
+             <<" secondary_actor_collision=ORIGINAL_2CC88"
+             <<" cross_level_events=GUARDED"
              <<" host_pose_writes=NONE\n"<<std::flush;
 }
 void original_full_28168_audio_service() noexcept {
