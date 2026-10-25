@@ -4131,6 +4131,12 @@ void attach_original_vga(
     source.presentation.call_22d70=&original_scene_clear_event_ring;
     source.presentation.call_2f868=&original_scene_poll_source_events;
     source.presentation.call_30b2c=&original_scene_finish_keyboard;
+    // Opt-in actual original motion integration. Not a host camera
+    // assignment or an IRQ9 timing assertion; unsupported collision
+    // events/level transitions are hard stops until source-attested.
+    if(const char* motion=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE");
+       motion && std::strcmp(motion,"1")==0)
+        source.presentation.call_2e120=&original_full_2e120_movement_service;
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
        live && std::strcmp(live,"1")==0)
         source.presentation.call_28168=&original_full_28168_audio_service;
