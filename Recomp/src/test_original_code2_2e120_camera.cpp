@@ -43,8 +43,8 @@ void test_heading_turn_source() {
     auto b=original_movement_callbacks(collision);
     f.put32(0xC6ECu,80u);
     code2::function_2e120(f.machine,b);
-    check(f.get32(0xC658u)==356u,
-          "Original 2E120 failed signed 80/20 degree heading accumulator");
+    check(f.get32(0xC658u)==270u,
+          "Original 2E120 grid-mode 90-degree step deviated from original source");
     check(f.get32(0x255D0u)==0x48000u &&
           f.get32(0x255D4u)==0x48000u,
           "Original turn-only source unexpectedly moved camera");
