@@ -2232,6 +2232,8 @@ void original_scene_poll_source_events() noexcept {
     code2::Application70Boundary b{};
     code2::function_2f868(current->machine,b);
 }
+// Retained original 181B4 loader is defined below this include.
+void original_181b4_level_load(u32 requested) noexcept;
 #include "original_code2_live_full_frame.inc"
 // Original world ray reconstruction, attached to the *retained*
 // CODE.2 Machine rather than a second WorldRaySource fixture. All
