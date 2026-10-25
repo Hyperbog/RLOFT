@@ -22,10 +22,10 @@ jobs:
           from pathlib import Path
           lines=Path("Code2/Code2.cpp").read_text(encoding="utf-8").splitlines()
           needles=(
-              "function_1e4a0(", "function_2e120(",
-              "function_2e608(", "function_1ae30(",
-              "app45_scale_cwde(", "function_2df2c(",
-              "0xC6E8u", "0xC6ECu", "0xC6F0u",
+              "function_2dbac(", "function_2df2c(",
+              "function_369a7(", "struct Application66Boundary",
+              "struct Application67Boundary", "app67_store_heading(",
+              "function_2dc", "call_2e120=",
           )
           # Capture every *write* to original camera/heading, each tagged
           # with the nearest reconstructed function for call-graph audit.
