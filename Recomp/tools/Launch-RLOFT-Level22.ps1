@@ -1,11 +1,42 @@
 # Native CODE.2 Level22 experimental source host. Owner-local game media only.
 [CmdletBinding()]
 param(
- [string]$GameFolder = "D:\GOG Games\Ravenloft - Strahd's Possession\RLOFT",
+ [string]$GameFolder = "",
+ [switch]$Smoke,
  [string]$CdRoot = ""
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+# An explicit installation path wins. Otherwise auto-discover common GOG paths
+# and let the owner select a directory when their library is elsewhere.
+if([string]::IsNullOrWhiteSpace($GameFolder)) {
+  $paths=New-Object System.Collections.Generic.List[string]
+  if(-not [string]::IsNullOrWhiteSpace($env:RLOFT_GAME_FOLDER)) {
+    $paths.Add($env:RLOFT_GAME_FOLDER)
+  }
+  foreach($base in @('C:\GOG Games','D:\GOG Games','E:\GOG Games',
+                      "$env:ProgramFiles", "C:\Program Files (x86)")) {
+    if([string]::IsNullOrWhiteSpace($base)) { continue }
+    $paths.Add((Join-Path (Join-Path $base "Ravenloft - Strahd's Possession") 'RLOFT'))
+    $paths.Add((Join-Path (Join-Path $base "GOG Galaxy\Games\Ravenloft - Strahd's Possession") 'RLOFT'))
+  }
+  foreach($candidate in $paths) {
+    if((Test-Path -LiteralPath (Join-Path $candidate 'CODE.2') -PathType Leaf)) {
+      $GameFolder=$candidate
+      break
+    }
+  }
+}
+if([string]::IsNullOrWhiteSpace($GameFolder)) {
+  Write-Host 'Select the original Ravenloft RLOFT folder containing CODE.2.'
+  Add-Type -AssemblyName System.Windows.Forms
+  $dialog=New-Object System.Windows.Forms.FolderBrowserDialog
+  $dialog.Description='Choose the installed Ravenloft RLOFT folder (contains CODE.2)'
+  if($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
+    throw 'Original RLOFT installation selection cancelled.'
+  }
+  $GameFolder=$dialog.SelectedPath
+}
 $root=[IO.Path]::GetFullPath($GameFolder)
 $exe=Join-Path $PSScriptRoot 'rloft_code2_level22_window.exe'
 if(-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
@@ -37,7 +68,11 @@ try {
   }
   Write-Host "Native original Level22: W/S forward/back, A/D strafe, J/L or arrows turn, Esc quit."
   Write-Host "EXPERIMENTAL original-source window; unsupported game events stop execution."
-  & $exe --root $root --cd-root $sourceCd
+  if($Smoke) {
+    & $exe --root $root --cd-root $sourceCd --smoke
+  } else {
+    & $exe --root $root --cd-root $sourceCd
+  }
   if($LASTEXITCODE -ne 0) { throw "Level22 guest exited with code $LASTEXITCODE." }
 } finally {
   if($null -ne $private -and (Test-Path -LiteralPath $private -PathType Container)) {
