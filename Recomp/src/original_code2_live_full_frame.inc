@@ -693,9 +693,9 @@ void original_full_274a4_source() noexcept {
 // guest camera/heading occur here: only the compiled original routines
 // can change those values.
 u32 original_full_movement_record(code2::s32 x,code2::s32 y) noexcept {
-    const s32 width=static_cast<code2::s16>(
+    const code2::s32 width=static_cast<code2::s16>(
         code2::load_le16(current->data.data()+0x25619u));
-    const s32 height=static_cast<code2::s16>(
+    const code2::s32 height=static_cast<code2::s16>(
         code2::load_le16(current->data.data()+0x2561Bu));
     if(x<0 || y<0 || x>=width || y>=height)
         stop("ORIGINAL_2D5D0_MOVEMENT_RECORD_OUT_OF_MAP");
@@ -703,9 +703,9 @@ u32 original_full_movement_record(code2::s32 x,code2::s32 y) noexcept {
         current->machine,static_cast<u32>(x),static_cast<u32>(y));
 }
 u32 original_full_movement_marker(u32 tile) noexcept {
-    const s32 width=static_cast<code2::s16>(
+    const code2::s32 width=static_cast<code2::s16>(
         code2::load_le16(current->data.data()+0x25619u));
-    const s32 height=static_cast<code2::s16>(
+    const code2::s32 height=static_cast<code2::s16>(
         code2::load_le16(current->data.data()+0x2561Bu));
     if(width<=0 || height<=0 ||
        std::uint64_t(tile)>=std::uint64_t(width)*height)
@@ -716,7 +716,7 @@ u32 original_full_movement_marker(u32 tile) noexcept {
 void original_full_movement_event(u32) noexcept {
     stop("ORIGINAL_2DBAC_MOVEMENT_LEVEL_TRANSITION_NOT_CONNECTED");
 }
-void original_full_movement_effect(u32,u32,u32) noexcept {
+void original_full_movement_effect(code2::s32,code2::s32,u32) noexcept {
     stop("ORIGINAL_2D5D0_SPECIAL_TILE_EFFECT_NOT_CONNECTED");
 }
 void original_full_movement_script(code2::s32) noexcept {
