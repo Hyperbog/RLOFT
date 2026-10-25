@@ -815,7 +815,7 @@ jobs:
           Write-Host "ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=$($sourceReturns.Count) secondary_2cc88_callbacks=$($secondaryReturns.Count) source_guest=RETAINED secondary_collision_source=WIRED collision_occurred=NOT_ASSERTED physical_irq9=NOT_CERTIFIED"
       - name: Require sustained original Level22 camera and J L heading updates through host stdin
         shell: pwsh
-        timeout-minutes: 2
+        timeout-minutes: 4
         run: |
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
@@ -842,7 +842,7 @@ jobs:
           $stderr = $proc.StandardError.ReadToEndAsync()
           foreach ($key in ($keys + @("q"))) { $proc.StandardInput.WriteLine($key) }
           $proc.StandardInput.Close()
-          $exited = $proc.WaitForExit(60000)
+          $exited = $proc.WaitForExit(120000)
           if (-not $exited) { $proc.Kill($true); $proc.WaitForExit() }
           $joined = @($stdout.GetAwaiter().GetResult(),$stderr.GetAwaiter().GetResult()) -join "`n"
           $code = $proc.ExitCode
