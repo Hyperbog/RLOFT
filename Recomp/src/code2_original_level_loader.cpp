@@ -239,6 +239,202 @@ struct Session {
         code2::function_32954(s.machine,b);
     }
 
+
+    // Engineering-only source 171FC/181B4 transition adapter. DOS files
+    // are read-only; original WORK/LEV writes go to a bounded private map.
+    std::map<u32,std::vector<u8>> transition_overlays;
+    u32 trans_reader=0xFFFFFFFFu,trans_writer=0xFFFFFFFFu;
+    u32 trans_read_pos=0u,trans_write_pos=0u;
+    unsigned trans_write_calls=0u,trans_read_calls=0u;
+    static constexpr u32 trans_read_fd=0xF100u,trans_write_fd=0xF101u;
+    static bool transition_filename(u32 guest_name,u32& level) noexcept {
+        auto& s=now();
+        if(guest_name!=0x819Cu)return false;
+        const u8* b=s.guest.data()+guest_name;
+        constexpr char prefix[]="WORK\\LEV";
+        for(unsigned i=0;i<8u;++i)
+            if(b[i]!=static_cast<u8>(prefix[i]))return false;
+        if(b[8u]<'0'||b[8u]>'9'||b[9u]<'0'||b[9u]>'9'||
+           b[10u]<'0'||b[10u]>'9'||
+           b[11u]!='.'||b[12u]!='D'||b[13u]!='A'||
+           b[14u]!='T'||b[15u]!=0u)return false;
+        level=(b[8u]-'0')*100u+(b[9u]-'0')*10u+(b[10u]-'0');
+        return level<32u;
+    }
+    static u32 trans_open_read(u32 guest_name) noexcept {
+        auto& s=now();
+        u32 level=0u;
+        if(!transition_filename(guest_name,level)){s.failed=true;return ~0u;}
+        if(!s.transition_overlays.count(level))return ~0u;
+        if(s.trans_reader<32u){s.failed=true;return ~0u;}
+        s.trans_reader=level;s.trans_read_pos=0u;
+        return trans_read_fd;
+    }
+    static void trans_remove(u32 guest_name) noexcept {
+        u32 level=0u;
+        if(!transition_filename(guest_name,level)){now().failed=true;return;}
+        now().transition_overlays.erase(level);
+    }
+    static u32 trans_open_previous(u32 guest_name) noexcept {
+        u32 level=0u;
+        if(!transition_filename(guest_name,level))now().failed=true;
+        return 0u;
+    }
+    static u32 trans_open_write(u32 guest_name) noexcept {
+        auto& s=now();u32 level=0u;
+        if(!transition_filename(guest_name,level)||s.trans_writer<32u){
+            s.failed=true;return ~0u;
+        }
+        s.trans_writer=level;s.trans_write_pos=0u;
+        s.transition_overlays[level].clear();
+        return trans_write_fd;
+    }
+    static u32 trans_seek(u32 offset,u32 origin,u32 handle) noexcept {
+        if(handle!=trans_read_fd&&handle!=trans_write_fd)
+            return seek(offset,origin,handle);
+        auto& s=now();const bool write=handle==trans_write_fd;
+        const u32 level=write?s.trans_writer:s.trans_reader;
+        if(level>=32u||origin>2u||!s.transition_overlays.count(level)){
+            s.failed=true;return ~0u;
+        }
+        const u32 prior=write?s.trans_write_pos:s.trans_read_pos;
+        const std::uint64_t base=origin==0u?0u:origin==1u?
+            prior:s.transition_overlays[level].size();
+        const std::uint64_t pos=base+offset;
+        if(pos>0x400000u){s.failed=true;return ~0u;}
+        if(write)s.trans_write_pos=static_cast<u32>(pos);
+        else s.trans_read_pos=static_cast<u32>(pos);
+        return static_cast<u32>(pos);
+    }
+    static u32 trans_read_local(u8* out,u32 count,u32 handle) noexcept {
+        if(handle!=trans_read_fd)return read_local(out,count,handle);
+        auto& s=now();
+        if(s.trans_reader>=32u||(count&&!out)||
+           !s.transition_overlays.count(s.trans_reader)||
+           std::uint64_t(s.trans_read_pos)+count>
+             s.transition_overlays[s.trans_reader].size()){
+            s.failed=true;return 0u;
+        }
+        const auto& v=s.transition_overlays[s.trans_reader];
+        if(count)std::copy_n(v.data()+s.trans_read_pos,count,out);
+        s.trans_read_pos+=count;++s.trans_read_calls;
+        return count;
+    }
+    static u32 trans_read_guest(u32 dst,u32 count,u32 handle) noexcept {
+        auto& s=now();
+        if(std::uint64_t(dst)+count>s.guest.size()){
+            s.failed=true;return 0u;
+        }
+        return trans_read_local(s.guest.data()+dst,count,handle);
+    }
+    static u32 trans_write_local(const u8* in,u32 count,u32 handle) noexcept {
+        auto& s=now();
+        if(handle!=trans_write_fd||s.trans_writer>=32u||
+           (count&&!in)||std::uint64_t(s.trans_write_pos)+count>0x400000u){
+            s.failed=true;return 0u;
+        }
+        auto& v=s.transition_overlays[s.trans_writer];
+        const u32 end=s.trans_write_pos+count;
+        if(end>v.size())v.resize(end,0u);
+        if(count)std::copy_n(in,count,v.data()+s.trans_write_pos);
+        s.trans_write_pos=end;++s.trans_write_calls;
+        return count;
+    }
+    static u32 trans_write_guest(u32 src,u32 count,u32 handle) noexcept {
+        auto& s=now();
+        if(std::uint64_t(src)+count>s.guest.size()){
+            s.failed=true;return 0u;
+        }
+        return trans_write_local(s.guest.data()+src,count,handle);
+    }
+    static void trans_close(u32 handle) noexcept {
+        auto& s=now();
+        if(handle==0u)return; // 171FC closes absent previous file handle
+        if(handle==trans_read_fd){
+            if(s.trans_reader>=32u)s.failed=true;
+            s.trans_reader=~0u;return;
+        }
+        if(handle==trans_write_fd){
+            if(s.trans_writer>=32u)s.failed=true;
+            s.trans_writer=~0u;return;
+        }
+        close(handle);
+    }
+    static void trans_failure(u32) noexcept {now().failed=true;}
+    void transition_load(u32 target) {
+        code2::Application31Boundary save{};
+        save.call_31380=&trans_remove;
+        save.call_312c8=&trans_open_previous;
+        save.call_312b4=&trans_open_write;
+        save.call_3131c=&trans_seek;
+        save.call_31304=&trans_write_guest;
+        save.call_31304_local=&trans_write_local;
+        save.call_312dc=&trans_close;
+        save.call_2f580=&trans_failure;
+        code2::Application32Boundary load{};
+        load.app31=&save;
+        load.call_312a0=&trans_open_read;
+        load.call_312a0_local=&open_archive;
+        load.call_3131c=&trans_seek;
+        load.call_312ec=&trans_read_guest;
+        load.call_312ec_local=&trans_read_local;
+        load.call_312dc=&trans_close;
+        load.call_2f580=&trans_failure;
+        load.call_30d30=&fill;
+        load.call_3104c=&allocate;
+        load.call_310b0=&release;
+        load.call_29050=&graphic_bank;
+        load.call_29048=&graphic_mode;
+        code2::function_181b4(machine,load,static_cast<code2::s32>(target));
+        VERIFY(!failed&&files.open_handles()==0u&&
+               trans_reader==~0u&&trans_writer==~0u&&
+               code2::load_le32(guest.data()+0xC6C8u)==target);
+    }
+    void transition_roundtrip(const rloft::original_levels::LevelGrid& first,
+                              const rloft::original_levels::LevelGrid& second) {
+        VERIFY(first.level==22u&&second.level==23u);
+        constexpr char filename[]="WORK\\LEV000.DAT";
+        std::copy_n(filename,sizeof(filename),guest.data()+0x819Cu);
+        transition_load(22u);
+        VERIFY(code2::load_le16(guest.data()+0x25619u)==first.width);
+        VERIFY(code2::load_le16(guest.data()+0x2561Bu)==first.height);
+        const u32 tile=4u*first.width+4u;
+        VERIFY(tile<first.cells.size());
+        const u32 tile_at=0x198E0u+tile*2u;
+        guest[tile_at+1u]^=0x80u; // controlled PRIVATE world-state change
+        const u16 changed=code2::load_le16(guest.data()+tile_at);
+        const u32 scripts=code2::load_le32(guest.data()+0xCF44u);
+        VERIFY(scripts && std::uint64_t(scripts)+0x514u<=guest.size());
+        const std::vector<u8> events(
+            guest.begin()+scripts,guest.begin()+scripts+0x514u);
+        transition_load(23u); // source 171FC(22) saves; 181B4(23) loads
+        VERIFY(transition_overlays.count(22u)==1u&&trans_write_calls>7u);
+        const auto& saved=transition_overlays.at(22u);
+        const auto parsed=rloft::original_levels::decode_saved_grid(saved,22u);
+        VERIFY(parsed.width==first.width&&parsed.height==first.height&&
+               parsed.cells.at(tile)==changed);
+        const u32 script_end=rloft::original_levels::le32(
+            saved.data()+1u+6u*4u);
+        VERIFY(script_end>=0x514u &&
+               std::equal(events.begin(),events.end(),
+                          saved.begin()+script_end-0x514u));
+        VERIFY(code2::load_le16(guest.data()+0x25619u)==second.width);
+        VERIFY(code2::load_le16(guest.data()+0x2561Bu)==second.height);
+        transition_load(22u); // source 171FC(23), restore saved LEV022
+        VERIFY(transition_overlays.count(23u)==1u&&trans_read_calls>4u);
+        VERIFY(code2::load_le16(guest.data()+tile_at)==changed);
+        const u32 restored=code2::load_le32(guest.data()+0xCF44u);
+        VERIFY(restored&&std::uint64_t(restored)+0x514u<=guest.size()&&
+               std::equal(events.begin(),events.end(),
+                          guest.begin()+restored));
+        std::cout<<"CODE2_171FC_181B4_LEVEL22_23_22_SOURCE_ROUNDTRIP_PASS"
+                 <<" original_source_writes="<<trans_write_calls
+                 <<" original_source_reads="<<trans_read_calls
+                 <<" restored_cell="<<tile
+                 <<" source_guest=RETAINED"
+                 <<" original_media=READ_ONLY"
+                 <<" live_1FC14_reentry=NOT_CERTIFIED\n";
+    }
     void run(const rloft::original_levels::LevelGrid& grid,bool raycast=false,
              const std::vector<u8>* standalone=nullptr) {
         if(standalone) {
@@ -460,6 +656,16 @@ int main(int argc,char** argv) {
                      <<" facing="<<heading<<"\\n";
             std::cout<<"CODE2_COMPLETE_07938_SAVE_DESERIALIZER_EXECUTED=NO\\n";
             std::cout<<"CODE2_OUTDOOR_RENDERER_DOS_PARITY_ACCEPTED=NO\\n";
+            return 0;
+        }
+        if(argc==3 && std::string(argv[1])=="--transition-roundtrip") {
+            const std::filesystem::path file(argv[2]);
+            VERIFY(file.filename()=="LEVELS.DAT");
+            const auto original=rloft::original_levels::read_archive(file.string());
+            const auto source=rloft::original_levels::decode_grid(original,22u);
+            const auto destination=rloft::original_levels::decode_grid(original,23u);
+            auto runner=std::make_unique<Session>(file.parent_path());
+            runner->transition_roundtrip(source,destination);
             return 0;
         }
         const bool saved=argc==3 && std::string(argv[1])=="--saved-levels";
