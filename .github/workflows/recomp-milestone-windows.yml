@@ -26,6 +26,7 @@ on:
       - 'Recomp/src/code2_original_res_startup.cpp'
       - 'Recomp/src/code2_startup_gate.cpp'
       - 'Recomp/src/original_code2_live_full_frame.inc'
+      - 'Recomp/src/test_original_code2_2e120_camera.cpp'
       - 'Recomp/src/canonical_code2_runtime_owner.hpp'
       - 'Recomp/src/code1_code2_staged_boot.cpp'
       - 'Recomp/src/original_r_exe_supervisor.hpp'
