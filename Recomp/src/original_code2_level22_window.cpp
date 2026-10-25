@@ -11,6 +11,8 @@
 #include "code2_original_res_startup.cpp"
 #include <windows.h>
 #include <cstdint>
+#include <cstdio>
+#include <iterator>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -294,7 +296,8 @@ int main(int argc,char** argv){
         return live.show(GetModuleHandleA(nullptr));
     }catch(const std::exception& e){
         std::cerr<<"RLOFT_LEVEL22_NATIVE_HOST_FAIL: "<<e.what()<<"\n";
-        MessageBoxA(nullptr,e.what(),"Ravenloft experimental source host",MB_OK|MB_ICONERROR);
+        if(argc!=6 || std::string(argv[5])!="--smoke")
+            MessageBoxA(nullptr,e.what(),"Ravenloft experimental source host",MB_OK|MB_ICONERROR);
         return 1;
     }
 }
