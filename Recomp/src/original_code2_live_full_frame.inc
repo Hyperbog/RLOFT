@@ -809,12 +809,65 @@ void original_full_2e120_movement_service() noexcept {
              <<" cross_level_events=GUARDED"
              <<" host_pose_writes=NONE\n"<<std::flush;
 }
+// Stable, host-private adapter across consecutive original 1FC14 cycles.
+// No original bytes leave the active process, logs or published artifacts.
+thread_local rloft::source_audio::WinMMSourceSfx original_live_sfx_device{};
+thread_local u32 original_live_sfx_packet=0u;
+thread_local u32 original_live_sfx_length=0u;
+thread_local u32 original_live_sfx_bank=0u;
+thread_local u32 original_live_sfx_id=0u;
+thread_local bool original_live_sfx_staged=false;
+u32 original_live_sfx_resource(u32 id,u32 bank) noexcept {
+    if(!original_live_sfx_staged || id!=original_live_sfx_id ||
+       bank!=original_live_sfx_bank || !original_live_sfx_packet)
+        stop("ORIGINAL_27F24_SFX_RESOURCE_ID_CHANGED");
+    return original_live_sfx_packet;
+}
+u32 original_live_sfx_status(u32 device) noexcept {
+    if(device!=code2::load_le32(current->data.data()+0xEE6Cu))
+        stop("ORIGINAL_27F24_SFX_DEVICE_HANDLE_CHANGED");
+    const bool playing=original_live_sfx_device.status_playing();
+    return playing?2u:0u;  // Host WinMM emulation, NOT AIL status.
+}
+u32 original_live_sfx_stop(u32 device) noexcept {
+    if(device!=code2::load_le32(current->data.data()+0xEE6Cu))
+        stop("ORIGINAL_27F24_SFX_STOP_DEVICE_CHANGED");
+    original_live_sfx_device.stop_active();
+    return 0u;
+}
+u32 original_live_sfx_sample(u32 device,u32 dest,u32 ds,u32 flags) noexcept {
+    if(!original_live_sfx_staged ||
+       device!=code2::load_le32(current->data.data()+0xEE6Cu) ||
+       dest!=code2::load_le32(current->data.data()+0xEE60u) ||
+       ds!=static_cast<u32>(current->machine.cpu.ds) ||
+       flags!=0xFFFFFFFFu ||
+       std::uint64_t(dest)+original_live_sfx_length>current->data.size() ||
+       std::memcmp(current->data.data()+dest,
+           current->data.data()+original_live_sfx_packet+4u,
+           original_live_sfx_length)!=0)
+        stop("ORIGINAL_27F24_SFX_SOURCE_COPY_OR_ABI_MISMATCH");
+    return 0u;
+}
+u32 original_live_sfx_format(u32 device,u32 dest,u32 ds,u32 fmt,u32 flags) noexcept {
+    if(original_live_sfx_sample(device,dest,ds,flags)!=0u ||
+       fmt!=code2::load_le32(current->data.data()+0xEE64u))
+        stop("ORIGINAL_27F24_SFX_FORMAT_ABI_CHANGED");
+    return 0u;
+}
+u32 original_live_sfx_start(u32 device) noexcept {
+    if(!original_live_sfx_staged ||
+       device!=code2::load_le32(current->data.data()+0xEE6Cu))
+        stop("ORIGINAL_27F24_SFX_START_ABI_CHANGED");
+    try {
+        original_live_sfx_device.start_staged();
+    }catch(const std::exception& error) {
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SFX=HOST_SUBMIT_FAILED reason="
+                 <<error.what()<<" original_AIL=NOT_CERTIFIED\n"<<std::flush;
+        stop("ORIGINAL_27F24_SFX_HOST_DEVICE_SUBMIT_FAILED");
+    }
+    return 0u;
+}
 void original_full_28168_audio_service() noexcept {
-    // Original 1FC14 invokes 28168 after party HUD. The compiled
-    // 28168 selects and consumes requests, then calls compiled 27F24.
-    // With an active AIL device and pending audio, the real driver
-    // callbacks are not implemented here: retain the queue and stop
-    // *before* the source would consume any game request.
     if(!current || !original_full_frame_trace)
         stop("ORIGINAL_28168_SOURCE_AUDIO_TRACE_MISSING");
     const u32 enabled=code2::load_le32(current->data.data()+0xEE40u);
@@ -822,16 +875,90 @@ void original_full_28168_audio_service() noexcept {
     const u32 request0=code2::load_le32(current->data.data()+0xEE48u);
     const u32 request1=code2::load_le32(current->data.data()+0xEE54u);
     const bool queued=request0!=0xFFFFFFFFu || request1!=0xFFFFFFFFu;
-    if(enabled && sound_enabled && queued) {
-        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_ACTIVE_AIL_PENDING"
-                 <<" slot0="<<request0<<" slot1="<<request1
-                 <<" source=28168_27F24"
-                 <<" AIL_driver=UNCONNECTED"
-                 <<" software_queue=PRESERVED\n"<<std::flush;
-        stop("ORIGINAL_28168_27F24_ACTIVE_AIL_DRIVER_UNCONNECTED");
-    }
     code2::Application55Boundary audio{};
-    code2::function_28168(current->machine,audio);
+    if(enabled && sound_enabled && queued) {
+        const char* requested=std::getenv(
+            "RLOFT_RECOMP_EXPERIMENTAL_SOURCE_SFX_WINMM");
+        if(!requested || std::strcmp(requested,"1")!=0) {
+            std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_ACTIVE_AIL_PENDING"
+                     <<" slot0="<<request0<<" slot1="<<request1
+                     <<" AIL_driver=UNCONNECTED software_queue=PRESERVED\n"
+                     <<std::flush;
+            stop("ORIGINAL_28168_27F24_ACTIVE_AIL_DRIVER_UNCONNECTED");
+        }
+        if(!current->game_audio.app68 ||
+           !current->original_vga || original_live_sfx_staged)
+            stop("ORIGINAL_27F24_SFX_NOT_AT_RETAINED_GUEST");
+        // Mirror original signed-priority choice, but only for preflight.
+        // The compiled original 28168 still chooses and clears the queue.
+        const bool both=request0!=0xFFFFFFFFu&&request1!=0xFFFFFFFFu;
+        const bool select0=request1==0xFFFFFFFFu ||
+             (both && static_cast<std::int32_t>(
+               code2::load_le32(current->data.data()+0xEE50u)) <
+               static_cast<std::int32_t>(
+               code2::load_le32(current->data.data()+0xEE5Cu)));
+        const u32 id=select0?request0:request1;
+        const u32 bank=code2::load_le32(current->data.data()+0xEE44u);
+        const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+        if(bank>=16u || !catalog ||
+           std::uint64_t(catalog)+(std::uint64_t(bank)+1u)*16u>
+                   current->data.size())
+            stop("ORIGINAL_27F24_SOUND_RESOURCE_ARCHIVE_NOT_INITIALIZED");
+        const u32 catalog_record=catalog+bank*16u;
+        if(id>=code2::load_le32(current->data.data()+catalog_record+8u))
+            stop("ORIGINAL_27F24_SOUND_RESOURCE_ID_NOT_IN_ARCHIVE");
+        // Source-owned resource cache and exact original packet pointer.
+        const u32 packet=code2::function_2f29c(
+            current->machine,current->game_audio,id,bank);
+        if(!packet || std::uint64_t(packet)+4u>current->data.size())
+            stop("ORIGINAL_27F24_SOUND_RESOURCE_PACKET_MISSING");
+        const u32 len=code2::load_le32(current->data.data()+packet);
+        const u32 dest=code2::load_le32(current->data.data()+0xEE60u);
+        if(len==0u || len>16u*1024u*1024u ||
+           std::uint64_t(packet)+4u+len>current->data.size() ||
+           std::uint64_t(dest)+len>current->data.size())
+            stop("ORIGINAL_27F24_SFX_PACKET_OR_DEST_BOUNDS_INVALID");
+        std::vector<u8> payload(current->data.data()+packet,
+                                current->data.data()+packet+4u+len);
+        // Do not consume the source queue until the real Windows host
+        // device and exact VOC codec have passed all preflight checks.
+        try {
+            original_live_sfx_device.preflight(payload);
+        }catch(const std::exception& error) {
+            std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SFX=PRE_FLIGHT_REFUSED"
+                     <<" reason="<<error.what()
+                     <<" original_28168_queue=PRESERVED"
+                     <<" native_Miles_AIL=NOT_CERTIFIED\n"<<std::flush;
+            stop("ORIGINAL_27F24_SOUND_DEVICE_PREFLIGHT_NOT_VERIFIED");
+        }
+        original_live_sfx_packet=packet;
+        original_live_sfx_length=len;
+        original_live_sfx_bank=bank;
+        original_live_sfx_id=id;
+        original_live_sfx_staged=true;
+        audio.call_2f29c=&original_live_sfx_resource;
+        audio.call_36803=&original_live_sfx_status;
+        audio.call_36817=&original_live_sfx_stop;
+        audio.call_367f9=&original_live_sfx_sample;
+        audio.call_367ef=&original_live_sfx_format;
+        audio.call_3680d=&original_live_sfx_start;
+        // Runs unmodified 28168 -> 27F24 and its complete original
+        // callback sequence, not a host-side reimplementation of queue.
+        code2::function_28168(current->machine,audio);
+        original_live_sfx_staged=false;
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SFX=SOURCE_28168_27F24_WINMM_SUBMITTED"
+                 <<" selected_id="<<id<<" bank="<<bank
+                 <<" source_packet_bytes="<<len
+                 <<" host_device=WINMM_WAVEOUT"
+                 <<" native_Miles_AIL=NOT_CERTIFIED"
+                 <<" original_irq_dma=NOT_CERTIFIED"
+                 <<" completion=AWAIT_WAVEHDR_DONE\n"<<std::flush;
+    } else {
+        code2::function_28168(current->machine,audio);
+    }
+    // Status is only derived from actual WinMM WHDR_DONE on later ticks,
+    // never from a synthetic "playing" flag in the original guest RAM.
+    const auto completed=original_live_sfx_device.completions();
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_SOURCE_SERVICE_RETURN"
              <<" original_28168=EXECUTED"
              <<" enabled="<<enabled
@@ -842,7 +969,8 @@ void original_full_28168_audio_service() noexcept {
              <<code2::load_le32(current->data.data()+0xEE48u)
              <<" after_queue1="
              <<code2::load_le32(current->data.data()+0xEE54u)
-             <<" driver_playback=NOT_CERTIFIED\n"<<std::flush;
+             <<" host_winmm_completions="<<completed
+             <<" original_AIL_playback=NOT_CERTIFIED\n"<<std::flush;
 }
 u32 original_full_1f120_actor_count() noexcept {
     if(!original_full_frame_trace ||
