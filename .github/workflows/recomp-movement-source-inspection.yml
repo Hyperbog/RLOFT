@@ -1,0 +1,44 @@
+name: Original CODE2 camera integration source inspection
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - '.github/workflows/recomp-movement-source-inspection.yml'
+permissions:
+  contents: read
+jobs:
+  inspect-original-camera:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Bound original source movement definitions, writes and call graph
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          lines=Path("Code2/Code2.cpp").read_text(encoding="utf-8").splitlines()
+          needles=(
+              "function_20b40(", "function_1fc14(",
+              "function_1f120(", "call_20b40",
+              "0x255D0u", "0x255D4u",
+              "0xC658u", "0xC000u", "0xC004u",
+              "0x255D2u", "0x255D6u",
+              "0xBFF4u", "0xBFF8u",
+          )
+          print("ORIGINAL_CAMERA_SOURCE_AUDIT_BEGIN",len(lines))
+          for needle in needles:
+              matches=[i for i,line in enumerate(lines) if needle.lower() in line.lower()]
+              print("ORIGINAL_CAMERA_MATCH",needle,"count",len(matches))
+              for i in matches[:(5 if 'function_' in needle else 9)]:
+                  before=3 if 'function_' not in needle else 5
+                  after=10 if 'function_' not in needle else 115
+                  print("ORIGINAL_CAMERA_CONTEXT_BEGIN",needle,"line",i+1)
+                  for n in range(max(0,i-before),min(len(lines),i+after)):
+                      print(f"{n+1}: {lines[n]}")
+                  print("ORIGINAL_CAMERA_CONTEXT_END",needle,"line",i+1)
+          print("ORIGINAL_CAMERA_SOURCE_AUDIT_END")
+          PY
