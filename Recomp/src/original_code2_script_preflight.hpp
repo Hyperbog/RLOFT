@@ -25,6 +25,8 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
     const unsigned count=guest[entry];
     if(count>5u)return {false,"SOURCE_SCRIPT_COMMAND_COUNT_INVALID",count};
 
+    if(size<0x2561Du)
+        return {false,"SOURCE_SCRIPT_WORLD_DIMENSIONS_INVALID",count};
     const std::int32_t width=static_cast<std::int16_t>(
         std::uint16_t(guest[0x25619u]) |
         (std::uint16_t(guest[0x2561Au])<<8u));

@@ -779,6 +779,9 @@ void original_full_script_clear_bit(u32 bit,u32 /*original live EBX*/) noexcept 
 void original_full_script_toggle_bit(u32 bit) noexcept {
     code2::function_1c1a0(current->machine,bit);
 }
+void original_full_script_set_bit(u32 bit) noexcept {
+    code2::function_1c124(current->machine,bit);
+}
 void original_full_movement_script(code2::s32 index) noexcept {
     if(!current || !current->original_vga || !original_full_frame_trace)
         stop("ORIGINAL_002A8_SCRIPT_OUTSIDE_RETAINED_GAMEPLAY");
@@ -796,7 +799,7 @@ void original_full_movement_script(code2::s32 index) noexcept {
     dispatch.call_1e8c8=&original_full_script_record;
     dispatch.call_20c0c=&original_full_script_tile;
     dispatch.call_28110=&original_full_movement_special_audio;
-    dispatch.call_1c124=&original_full_movement_bit_set;
+    dispatch.call_1c124=&original_full_script_set_bit;
     dispatch.call_1c160=&original_full_script_clear_bit;
     dispatch.call_1c1a0=&original_full_script_toggle_bit;
     code2::function_002a8(current->machine,dispatch,index);
