@@ -844,7 +844,9 @@ void original_full_movement_script(code2::s32 index) noexcept {
     dispatch.call_1c1a0=&original_full_script_toggle_bit;
     dispatch.call_08a80=&original_full_script_moving_record;
     code2::EarlyBoundaries early{};
-    early.call_1c1dc=&original_full_movement_bit_query;
+    early.call_1c1dc=+[](u32 bit) noexcept -> u32 {
+        return code2::function_1c1dc(current->machine,bit);
+    };
     dispatch.early=&early;
     code2::function_002a8(current->machine,dispatch,index);
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SCRIPT=002A8_SOURCE_RETURN"
