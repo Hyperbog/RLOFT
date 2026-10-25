@@ -863,6 +863,8 @@ jobs:
         shell: pwsh
         timeout-minutes: 3
         run: |
+          # The native host sets source feature flags through MSVC CRT _putenv_s;
+          # assert its guest-produced result, not a synthetic host-frame fallback.
           # Private original media; no original pixels or resources are uploaded.
           $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
           $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
