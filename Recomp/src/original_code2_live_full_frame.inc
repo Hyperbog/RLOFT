@@ -721,8 +721,43 @@ void original_full_movement_event(u32 level) noexcept {
         stop("ORIGINAL_2DBAC_CROSS_LEVEL_TRANSITION_NOT_SOURCE_VERIFIED");
     original_181b4_level_load(level);
 }
-void original_full_movement_effect(code2::s32,code2::s32,u32) noexcept {
-    stop("ORIGINAL_2D5D0_SPECIAL_TILE_EFFECT_NOT_CONNECTED");
+// Original 20C0C is the precise animated-tile interaction path;
+// callbacks route into the original 2C800/2C8E4/2C9DC entity probes and
+// the original 28110 sound-queue setter. No host opens doors by hand.
+u32 original_full_movement_entity_probe(u32 y,u32 x,code2::s32 exclude) noexcept {
+    return code2::function_2c800(current->machine,y,x,
+                                 static_cast<u32>(exclude));
+}
+u32 original_full_movement_special_actor_probe(
+        u32 y,u32 x,code2::s32 exclude) noexcept {
+    code2::Application65Boundary actors{};
+    actors.call_2acdc=&code2::function_2acdc;
+    return code2::function_2c8e4(
+        current->machine,actors,y,x,static_cast<u32>(exclude));
+}
+u32 original_full_movement_party_probe(u32 y,u32 x) noexcept {
+    return code2::function_2c9dc(current->machine,y,x);
+}
+void original_full_movement_special_audio(
+        u32 request,u32 aux,u32 channel,u32 priority) noexcept {
+    if(channel>1u)stop("ORIGINAL_20A24_SOUND_CHANNEL_UNSUPPORTED");
+    code2::function_28110(current->machine,request,aux,channel,priority);
+}
+void original_full_movement_other_audio(u32,u32,u32) noexcept {
+    stop("ORIGINAL_20A24_UNRECONSTRUCTED_28164_DIRECT_AUDIO");
+}
+void original_full_movement_effect(
+        code2::s32 y,code2::s32 x,u32 record) noexcept {
+    if(!record || std::uint64_t(record)+10u>current->data.size())
+        stop("ORIGINAL_20C0C_TILE_RECORD_OUT_OF_GUEST");
+    code2::Application46Boundary source{};
+    source.call_2c800=&original_full_movement_entity_probe;
+    source.call_2c8e4=&original_full_movement_special_actor_probe;
+    source.call_2c9dc=&original_full_movement_party_probe;
+    source.call_28110=&original_full_movement_special_audio;
+    source.call_28164=&original_full_movement_other_audio;
+    (void)code2::function_20c0c(current->machine,source,
+            static_cast<u32>(y),static_cast<u32>(x),record);
 }
 void original_full_movement_script(code2::s32) noexcept {
     stop("ORIGINAL_2DBAC_MOVEMENT_SCRIPT_NOT_CONNECTED");
