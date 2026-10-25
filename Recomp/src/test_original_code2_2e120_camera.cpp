@@ -317,12 +317,12 @@ void test_original_002a8_moving_record_source() {
     // modifies the live flag or moving-record count.
     f.data[scripts]=2u;
     f.data[scripts+6u]=3u;
-    f.data[scripts+9u]=7u;
+    f.data[scripts+9u]=9u; // Outside original 08A80 sound-offset table (0..8).
     const u32 before_count=f.get32(0xC038u);
     check(!rloft::source_script::validate(
         f.data.data(),f.data.size(),scripts,0).accepted &&
           f.get32(0xC038u)==before_count,
-          "Original 08A80 unresolved type-7 collision path escaped preflight");
+          "Original 08A80 type-9 sound-table overread escaped preflight");
     f.data[scripts]=1u;
     f.put32(0xC038u,151u);
     check(!rloft::source_script::validate(
