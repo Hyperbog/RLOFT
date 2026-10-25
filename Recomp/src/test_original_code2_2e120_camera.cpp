@@ -211,6 +211,81 @@ void script_queue_sound(u32 id,u32 aux,u32 channel,u32 priority) {
     script_last_sound_id=id;
     ++script_sound_requests;
 }
+u32 source_moving_rng() {
+    return code2::function_30ca2(active_script_fixture->machine);
+}
+void source_moving_owner(u32 slot) {
+    check(slot==4u,"Original 002A8 changed the 08A80 owner argument");
+    code2::function_0e578(active_script_fixture->machine,slot);
+}
+unsigned source_spawn_sound_requests=0u;
+u32 source_spawn_sound_id=0u;
+void source_moving_sound(u32 id,u32 aux,u32 channel,u32 priority) {
+    check(aux==0xFFu && channel==0u && priority==1u,
+          "Original 08A80 source SFX ABI changed");
+    ++source_spawn_sound_requests;
+    source_spawn_sound_id=id;
+}
+void source_moving_ctor(u32 type,s32 angle,u32 owner,u32 x,u32 y) {
+    check(type==8u && owner==4u,"Original 002A8 moving record source ABI changed");
+    code2::Application12Boundary cb{};
+    cb.call_e578=&source_moving_owner;
+    cb.call_30ca2=&source_moving_rng;
+    cb.call_28110=&source_moving_sound;
+    code2::function_08a80(active_script_fixture->machine,cb,type,angle,
+                           static_cast<s32>(owner),x,y);
+}
+void test_original_002a8_moving_record_source() {
+    SyntheticGuest f;
+    active_script_fixture=&f;
+    constexpr u32 scripts=0x23000u;
+    f.put32(0xCF44u,scripts);
+    const u32 tile=0x198E0u+(6u*16u+7u)*2u;
+    f.data[tile]=0x40u; // Compiled 08A80 queues source SFX on marked cells.
+    f.put32(0xF6F4u,0x10203040u); // SOURCE 30CA2 LCG state.
+    f.put32(0x258D4u,0x120u);     // SOURCE sound archive base ID.
+    f.data[0x21A13u+4u*0x248u]=2u; // SOURCE 0E578 owner=4 flag.
+    f.data[scripts]=1u;
+    f.data[scripts+1u]=3u;
+    f.data[scripts+2u]=6u;
+    f.data[scripts+3u]=7u;
+    f.data[scripts+4u]=8u;
+    f.data[scripts+5u]=0u; // Source 002A8 deliberately uses following byte as orientation.
+    auto validation=rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0);
+    check(validation.accepted,"Bounded original 08A80 type-8 record rejected");
+    code2::Dispatch002A8Boundary dispatch{};
+    dispatch.call_08a80=&source_moving_ctor;
+    source_spawn_sound_requests=0u;
+    code2::function_002a8(f.machine,dispatch,0);
+    const u32 rec=0x248ECu;
+    check(f.get32(0xC038u)==1u &&
+          f.get32(rec)==0x68000u && f.get32(rec+4u)==0x78000u &&
+          code2::load_le16(f.data.data()+rec+0x0Cu)==6u*16u+7u &&
+          code2::load_le16(f.data.data()+rec+0x0Eu)==8u &&
+          code2::load_le16(f.data.data()+rec+0x12u)>=0x14u &&
+          code2::load_le16(f.data.data()+rec+0x12u)<=0x1Du &&
+          source_spawn_sound_requests==1u && source_spawn_sound_id==0x13Bu &&
+          (f.data[0x21A13u+4u*0x248u]&2u)==0u &&
+          f.get32(0xF6F4u)!=0x10203040u,
+          "Original compiled 002A8->08A80->0E578/30CA2/28110 records diverged");
+    // A later unsupported actor type rejects BEFORE a prior command
+    // modifies the live flag or moving-record count.
+    f.data[scripts]=2u;
+    f.data[scripts+6u]=3u;
+    f.data[scripts+9u]=7u;
+    const u32 before_count=f.get32(0xC038u);
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0).accepted &&
+          f.get32(0xC038u)==before_count,
+          "Original 08A80 unresolved type-7 collision path escaped preflight");
+    f.data[scripts]=1u;
+    f.put32(0xC038u,151u);
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0).accepted,
+          "Original 08A80 invalid moving-record count accepted");
+    active_script_fixture=nullptr;
+}
 void test_original_002a8_live_script_operations() {
     SyntheticGuest f;
     active_script_fixture=&f;
@@ -300,6 +375,7 @@ int main(){
         test_original_special_event_source_page_refresh();
         test_sustained_original_camera_and_heading();
         test_original_002a8_live_script_operations();
+        test_original_002a8_moving_record_source();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
                  <<" displacement=ORIGINAL_2DBAC"
@@ -308,6 +384,7 @@ int main(){
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" bounded_script_dispatch=ORIGINAL_002A8"
+                 <<" moving_record=ORIGINAL_08A80_TYPE8_SOURCE"
                  <<" page_handoff=ORIGINAL_1EA78_1A510"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"

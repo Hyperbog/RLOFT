@@ -780,6 +780,27 @@ void original_full_script_toggle_bit(u32 bit) noexcept {
 void original_full_script_set_bit(u32 bit) noexcept {
     code2::function_1c124(current->machine,bit);
 }
+// Only original 08A80 type-8 moving records are admitted by the
+// whole-descriptor preflight. No host actor or projectile is synthesized.
+void original_full_script_moving_owner(u32 slot) noexcept {
+    if(slot!=4u)
+        stop("ORIGINAL_08A80_MOVING_RECORD_OWNER_CHANGED");
+    code2::function_0e578(current->machine,slot);
+}
+u32 original_full_script_moving_random() noexcept {
+    return code2::function_30ca2(current->machine);
+}
+void original_full_script_moving_record(
+        u32 type,code2::s32 angle,u32 owner,u32 packed_x,u32 packed_y) noexcept {
+    if(type!=8u || owner!=4u)
+        stop("ORIGINAL_08A80_MOVING_RECORD_PRECHECK_BYPASSED");
+    code2::Application12Boundary b{};
+    b.call_e578=&original_full_script_moving_owner;
+    b.call_30ca2=&original_full_script_moving_random;
+    b.call_28110=&original_full_movement_special_audio;
+    code2::function_08a80(current->machine,b,type,angle,
+                           static_cast<code2::s32>(owner),packed_x,packed_y);
+}
 void original_full_movement_script(code2::s32 index) noexcept {
     if(!current || !current->original_vga || !original_full_frame_trace)
         stop("ORIGINAL_002A8_SCRIPT_OUTSIDE_RETAINED_GAMEPLAY");
@@ -800,6 +821,7 @@ void original_full_movement_script(code2::s32 index) noexcept {
     dispatch.call_1c124=&original_full_script_set_bit;
     dispatch.call_1c160=&original_full_script_clear_bit;
     dispatch.call_1c1a0=&original_full_script_toggle_bit;
+    dispatch.call_08a80=&original_full_script_moving_record;
     code2::function_002a8(current->machine,dispatch,index);
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SCRIPT=002A8_SOURCE_RETURN"
              <<" index="<<index<<" commands="<<checked.commands

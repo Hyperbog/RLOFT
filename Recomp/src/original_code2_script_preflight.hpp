@@ -37,6 +37,17 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
        std::uint64_t(width)*std::uint64_t(height)>32768u)
         return {false,"SOURCE_SCRIPT_WORLD_DIMENSIONS_INVALID",count};
 
+    // 08A80 appends 0x16-byte records at 248EC, up to original cap 150.
+    // Reserve across ALL commands: a later spawn must not overrun the
+    // guest after earlier spawns have already changed its state.
+    const std::uint32_t initial_moving=
+        std::uint32_t(guest[0xC038u]) |
+        (std::uint32_t(guest[0xC039u])<<8u) |
+        (std::uint32_t(guest[0xC03Au])<<16u) |
+        (std::uint32_t(guest[0xC03Bu])<<24u);
+    if(initial_moving>150u)
+        return {false,"SOURCE_MOVING_RECORD_COUNT_INVALID",count};
+    std::uint32_t reserved_moving=initial_moving;
     for(unsigned i=0;i<count;++i) {
         const std::uint32_t cmd=entry+i*5u;
         const unsigned opcode=guest[cmd+1u];
@@ -46,6 +57,27 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
             // Exact compiled 28110 sound queue, world event flags, BF44.
             case 5u: case 8u: case 9u: case 10u: case 12u:
                 break;
+            // Source 002A8 opcode 3 invokes ORIGINAL 08A80. Only type 8
+            // is safe with the currently connected callbacks: types 0..7
+            // can enter the unresolved 22E90 collision-reposition loop.
+            // The source's packed 16.16 coordinates are row/column bytes.
+            case 3u: {
+                const std::uint32_t type=guest[cmd+4u];
+                const std::uint32_t row=guest[cmd+2u];
+                const std::uint32_t col=guest[cmd+3u];
+                if(type!=8u)
+                    return {false,"SOURCE_MOVING_ACTOR_COLLISION_SERVICE_OPEN",count};
+                if(row>=static_cast<std::uint32_t>(height) ||
+                   col>=static_cast<std::uint32_t>(width))
+                    return {false,"SOURCE_MOVING_RECORD_TILE_OUT_OF_WORLD",count};
+                if(reserved_moving<150u) {
+                    if(std::uint64_t(0x248ECu)+
+                       std::uint64_t(reserved_moving+1u)*0x16u>size)
+                        return {false,"SOURCE_MOVING_RECORD_OUT_OF_GUEST",count};
+                    ++reserved_moving;
+                }
+                break;
+            }
             // Original tile's low six bits, with checked map addressing.
             case 4u: {
                 const std::uint32_t row=guest[cmd+2u];
@@ -57,8 +89,8 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
                     return {false,"SOURCE_SCRIPT_TILE_OUT_OF_WORLD",count};
                 break;
             }
-            // 3 actor teleport, 6 dialog, 7 synchronized display and
-            // 11 nested interaction/early handlers need source services
+            // 6 dialog, 7 synchronized display and 11 nested early handlers
+            // still need source services
             // not yet connected. Never execute them with null callbacks.
             default:
                 return {false,"SOURCE_SCRIPT_OPCODE_NEEDS_UNCONNECTED_SERVICE",count};
