@@ -933,6 +933,17 @@ jobs:
           if (!(Test-Path -LiteralPath "Recomp/tools/Play-RLOFT-Recomp-Preview.cmd")) {
             throw "Missing one-click batch launcher"
           }
+      - name: Parse owner-local Level22 Windows launcher and package inputs
+        shell: pwsh
+        run: |
+          $script = "Recomp/tools/Launch-RLOFT-Level22.ps1"
+          $bytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $script).Path)
+          if (@($bytes | Where-Object { $_ -gt 127 }).Count -ne 0) { throw "PS5.1 Level22 launcher must be ASCII" }
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$parseErrors)
+          if (@($parseErrors).Count -ne 0) { throw "Level22 PowerShell launcher has syntax errors" }
+          if (!(Test-Path "Recomp/tools/Play-RLOFT-Level22.cmd")) { throw "Level22 batch launcher is missing" }
       - name: Package verified engineering executables and checksums
         if: success()
         shell: pwsh
@@ -949,6 +960,7 @@ jobs:
           Copy-Item Recomp/tools/Play-RLOFT-Recomp-Preview.cmd $dir -ErrorAction Stop
           Copy-Item Recomp/tools/Launch-RLOFT-Level22.ps1 $dir -ErrorAction Stop
           Copy-Item Recomp/tools/Play-RLOFT-Level22.cmd $dir -ErrorAction Stop
+          Copy-Item Recomp/RLOFT_LEVEL22_EXPERIMENTAL_NATIVE_WINDOW_20261025.md $dir -ErrorAction Stop
           Copy-Item Recomp/tools/run_two_skeleton_complete_frame.ps1 $dir -ErrorAction Stop
           Copy-Item Recomp/tools/compare_dos_indexed_frames.py $dir -ErrorAction Stop
           Copy-Item build/windows-milestone/milestone-report.json $dir
