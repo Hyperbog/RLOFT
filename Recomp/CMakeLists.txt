@@ -725,3 +725,20 @@ if(BUILD_TESTING)
     add_test(NAME canonical_private_creative_voice_pcm8_strict_decode
         COMMAND rloft_original_voc_pcm8_tests)
 endif()
+
+# Part 30: test the exact compiled original CODE.2 2E120 movement
+# integrator, 2DF2C vector, 2DBAC camera and 2D5D0 collision path.
+# Synthetic guest RAM is test-only, never an independent DOS capture.
+add_executable(rloft_original_code2_2e120_camera_source_test
+    src/test_original_code2_2e120_camera.cpp)
+set_target_properties(rloft_original_code2_2e120_camera_source_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_2e120_camera_source_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_2e120_camera_source_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_2e120_2dbac_camera_source
+        COMMAND rloft_original_code2_2e120_camera_source_test)
+endif()
