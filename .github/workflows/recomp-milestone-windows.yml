@@ -26,6 +26,8 @@ on:
       - 'Recomp/src/code2_original_res_startup.cpp'
       - 'Recomp/src/code2_startup_gate.cpp'
       - 'Recomp/src/original_code2_live_full_frame.inc'
+      - 'Recomp/src/original_source_winmm_bridge.hpp'
+      - 'Recomp/src/original_code2_pcm_packet.hpp'
       - 'Recomp/src/test_original_code2_2e120_camera.cpp'
       - 'Recomp/src/canonical_code2_runtime_owner.hpp'
       - 'Recomp/src/code1_code2_staged_boot.cpp'
@@ -806,10 +808,9 @@ jobs:
           }
           Write-Host "ORIGINAL_2E120_CAMERA_INTEGRATION_SOURCE_PASS"
           Write-Host "ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=$($sourceReturns.Count) source_guest=RETAINED secondary_actor_collision=OPEN physical_irq9=NOT_CERTIFIED"
-      - name: Diagnose sustained original Level22 camera and J L heading updates through host stdin
+      - name: Require sustained original Level22 camera and J L heading updates through host stdin
         shell: pwsh
         timeout-minutes: 2
-        continue-on-error: true
         run: |
           $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
           $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
