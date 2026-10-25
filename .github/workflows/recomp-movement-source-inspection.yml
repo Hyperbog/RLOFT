@@ -22,10 +22,10 @@ jobs:
           from pathlib import Path
           lines=Path("Code2/Code2.cpp").read_text(encoding="utf-8").splitlines()
           needles=(
-              "function_2dbac(", "function_2df2c(",
-              "function_369a7(", "struct Application66Boundary",
-              "struct Application67Boundary", "app67_store_heading(",
-              "function_2dc", "call_2e120=",
+              "struct Application66Boundary", "struct Application67Boundary",
+              "function_2d5d0(", "function_2da7c(",
+              "function_2d3d8(", "function_35680(",
+              "function_1e8c8(", "function_2dbac(",
           )
           # Capture every *write* to original camera/heading, each tagged
           # with the nearest reconstructed function for call-graph audit.
@@ -57,7 +57,7 @@ jobs:
               print("ORIGINAL_CAMERA_MATCH",needle,"count",len(matches))
               for i in matches[:(2 if 'function_' in needle else 4)]:
                   before=3 if 'function_' not in needle else 5
-                  after=10 if 'function_' not in needle else 180
+                  after=115 if 'struct ' in needle else (12 if 'function_' not in needle else 235)
                   print("ORIGINAL_CAMERA_CONTEXT_BEGIN",needle,"line",i+1)
                   for n in range(max(0,i-before),min(len(lines),i+after)):
                       print(f"{n+1}: {lines[n]}")
