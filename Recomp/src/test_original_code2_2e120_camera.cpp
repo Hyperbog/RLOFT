@@ -150,6 +150,27 @@ void test_sustained_original_camera_and_heading() {
     check(f.get32(0xC658u)==0u,
           "Original turning accumulator failed to restore source heading");
 }
+unsigned original_page_returns=0u;
+u32 original_page_selected=0xFFFFFFFFu;
+void trace_original_page(u32 page) {
+    original_page_selected=page;
+    ++original_page_returns;
+}
+void test_original_special_event_source_page_refresh() {
+    SyntheticGuest f;
+    code2::Application43Boundary ui{};
+    ui.call_1a510=&trace_original_page;
+    original_page_returns=0u;
+    f.data[0xC050u]=0u;
+    code2::function_1ea78(f.machine,ui);
+    check(original_page_returns==1u && original_page_selected==0u &&
+          f.data[0xC050u]==1u,
+          "Source 1EA78 failed original 1A510 page handoff");
+    code2::function_1ea78(f.machine,ui);
+    check(original_page_returns==2u && original_page_selected==1u &&
+          f.data[0xC050u]==0u,
+          "Source 1EA78 failed second original C050 page flip");
+}
 unsigned original_tile_sound_requests=0u;
 void trace_original_tile_sound(u32,u32,u32,u32) {
     ++original_tile_sound_requests;
@@ -195,6 +216,7 @@ int main(){
         test_secondary_object_collision();
         test_original_secondary_level_event();
         test_original_20c0c_animated_tile_event();
+        test_original_special_event_source_page_refresh();
         test_sustained_original_camera_and_heading();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
@@ -203,6 +225,7 @@ int main(){
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
+                 <<" page_handoff=ORIGINAL_1EA78_1A510"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"
                  <<" synthetic_guest=ONLY"
