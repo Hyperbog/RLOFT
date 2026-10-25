@@ -68,6 +68,22 @@ User-owned screenshot, matching DOSBox-X 2026.10.01 SDL2 emulator VGA savestate,
 
 Original source `28110 → 28168 → 27F24` ABI is source-regression tested. The opt-in WinMM unsigned 8-bit Creative VOC decoder can request real host audio playback and verify WinMM `WHDR_DONE` on a device; it is **not** original Miles/AIL hardware or real source game driver completion. Original AIL/32 status, sample-finish callback, real-time service cadence and `RES6/RES10` resource provenance must be validated before claiming faithful CODE.2 audible playback. The old empty/disabled audio branches are genuine but do not prove any active sound.
 
+## Part 30 next-audio interface preparation (original 27F24 packet)
+
+`Recomp/src/original_code2_pcm_packet.hpp` now implements the strict original sampled-SFX resource boundary. The original `27F24` first reads a **little-endian 32-bit length**, copies exactly that many bytes from `packet+4`, then configures and starts its sample driver. The native preparatory adapter accepts only `LE32 length || Creative VOC` with an **exact** length match, a bounded maximum, and a narrowly decoded type-1 PCM8 VOC. Wrong lengths, extra bytes, compressed or extended formats fail before device output. This uses no original sound media in source tests and does not invent any AIL device result.
+
+The opt-in standalone Windows output tool now accepts **either** a raw owner-private VOC file or a source-shape `27F24` packet:
+
+```powershell
+# Parse and verify packet only:
+build\recomp\Debug\rloft_host_original_voc_waveout.exe --packet C:\Private\source_27f24_packet.bin
+
+# Explicit real WinMM device output, with real buffer completion:
+build\recomp\Debug\rloft_host_original_voc_waveout.exe --packet C:\Private\source_27f24_packet.bin --play
+```
+
+A genuine `source_27f24_packet.bin` must come from an independently read original `2F29C` resource pointer and its raw length-prefixed payload. Do not generate or copy a native fake sound packet and call it original. **No original gameplay-triggered sound has yet been sent to WinMM, and no real Miles/AIL32 sample-completion callback has been observed.** The retained `28168` active-driver guard remains fail-closed. This is source-format handoff preparation, not active-gameplay audio parity.
+
 ## Known bounded next steps
 
 1. Require sustained positive camera motion, heading, reentry and collision in the original-media Level 22 session before removing the experimental flag. Test both grid and smooth modes, repeated source input and safely handling actor collision/portal callbacks.
