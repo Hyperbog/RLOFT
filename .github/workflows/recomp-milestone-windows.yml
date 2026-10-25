@@ -716,6 +716,72 @@ jobs:
             throw "No source guest camera, heading or velocity change was observed"
           }
           Write-Host "ORIGINAL_CODE2_STDIN_GUEST_MOTION_GATE_PASS source_input_events=3 source_loop_reentries=3 guest_state_changes=$($changed.Count) physical_IRQ9=NOT_CERTIFIED"
+      - name: Probe compiled original 2E120 camera integration and primary tile collision
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 2
+        run: |
+          # This drives REAL redirected host stdin, but is a *test fixture*,
+          # NOT DOS IRQ9, a player-held key, nor playable native game input.
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $psi = [System.Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardInput = $true
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          foreach ($arg in @("--root", (Resolve-Path $media).Path, "--cd-root", (Resolve-Path $cdMedia).Path, "--console-input")) {
+            [void]$psi.ArgumentList.Add($arg)
+          }
+          foreach ($flag in @("HUD","EXTERIOR","FRAME_ENTRY","FULL_COMPOSITOR","POLYGON_FRONTIER","POLYGON_SOURCE")) {
+            $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_$flag"] = "1"
+          }
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE"] = "1"
+          $psi.Environment["RLOFT_RECOMP_REQUIRE_CONSOLE_GUEST_MOTION"] = "1"
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE"] = "1"
+          $psi.Environment["RLOFT_RECOMP_REQUIRE_CONSOLE_REAL_POSE"] = "1"
+          $proc = [System.Diagnostics.Process]::new()
+          $proc.StartInfo = $psi
+          if (-not $proc.Start()) { throw "Original guest keyboard process failed to start" }
+          $stdout = $proc.StandardOutput.ReadToEndAsync()
+          $stderr = $proc.StandardError.ReadToEndAsync()
+          # Oppose the earlier virtual forward/left fixture's motion
+          # accumulators, then move forward; no guest state is assigned.
+          foreach ($key in @("s","d","w","q")) { $proc.StandardInput.WriteLine($key) }
+          $proc.StandardInput.Close()
+          $exited = $proc.WaitForExit(45000)
+          if (-not $exited) { $proc.Kill($true); $proc.WaitForExit() }
+          $joined = @($stdout.GetAwaiter().GetResult(), $stderr.GetAwaiter().GetResult()) -join "`n"
+          $code = $proc.ExitCode
+          $proc.Dispose()
+          foreach ($line in ($joined -split "`r?`n")) {
+            if ($line -match 'CODE2_ORIGINAL_CONSOLE_INPUT=') { Write-Host $line }
+          }
+          if (-not $exited -or $code -ne 0) {
+            Write-Host ($joined -split "`r?`n" | Select-Object -Last 15 | Out-String)
+            throw "Original CODE2 stdin-to-guest test did not finish normally"
+          }
+          $deltas = [regex]::Matches($joined,'CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_GUEST_STATE_DELTA event=([0-9]+) original_scan_code=([0-9]+).*pose_changed=([01]) velocity_changed=([01])')
+          $reentries = [regex]::Matches($joined,'CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_KEYBOARD_REENTERED terminal_events=([0-9]+)')
+          if ($deltas.Count -ne 3 -or $reentries.Count -ne 3) {
+            throw "Three actual stdin commands did not complete three original 30B40 source polls"
+          }
+          if ($deltas[0].Groups[2].Value -ne "336" -or
+              $deltas[1].Groups[2].Value -ne "333" -or
+              $deltas[2].Groups[2].Value -ne "328") {
+            throw "Host S/D/W codes did not match original source navigation words"
+          }
+          $changed = @($deltas | Where-Object {
+            $_.Groups[3].Value -eq "1" -or $_.Groups[4].Value -eq "1"
+          })
+          if ($changed.Count -eq 0) {
+            throw "No source guest camera, heading or velocity change was observed"
+          }
+          $positive = [regex]::Matches($joined, 'camera_displaced=1|heading_rotated=1')
+          if ($positive.Count -eq 0) { throw "Original 2E120 has not produced actual source camera/heading movement" }
+          Write-Host "ORIGINAL_2E120_CAMERA_INTEGRATION_SOURCE_PASS source_input_events=3 actual_pose_updates=$($positive.Count) original_guest=RETAINED hardware_irq9=NOT_CERTIFIED secondary_collision=OPEN"
       - name: Diagnose sustained original keyboard source for real camera displacement
         # Separate research receipt: a missing movement result must NEVER
         # cause a fabricated camera update or promote the gameplay gate.
