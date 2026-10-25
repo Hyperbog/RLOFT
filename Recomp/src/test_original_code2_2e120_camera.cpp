@@ -76,6 +76,80 @@ void test_collision_prevents_camera_translation() {
           f.get32(0x255D0u)==0x48000u,
           "Original collision allowed camera movement through a blocked tile");
 }
+u32 transition_level=0u;
+void track_original_secondary_transition(u32 destination) {
+    transition_level=destination;
+}
+void test_secondary_object_collision() {
+    SyntheticGuest f;
+    // Original 2CC88 object table, distinct from 2C800 entity collision.
+    // One object at the destination, one 0x1000 fixed-point-radius record.
+    f.put16(0x258A6u,1u);
+    f.put32(0x255DCu,0x23000u);
+    f.put16(0x22246u,1u);
+    f.put16(0x23000u+7u+2u,0x1000u);
+    f.put32(0x2223Cu,0x48000u); // original object x
+    f.put32(0x22238u,0x58000u); // original object y
+    code2::Application65Boundary secondary{};
+    code2::Application66Boundary collision{};
+    collision.app65=&secondary;
+    auto b=original_movement_callbacks(collision);
+    f.put32(0xC6E8u,0xFFFFFFF6u);
+    code2::function_2e120(f.machine,b);
+    check(f.get32(0x255D0u)==0x48000u &&
+          f.get32(0x255D4u)==0x48000u,
+          "Original 2CC88 secondary object collision was not enforced");
+    // Move the object away; the same original 2E120/2DBAC call must
+    // succeed without injecting a host camera assignment.
+    f.put32(0x2223Cu,0xA8000u);
+    f.put32(0xC6E8u,0xFFFFFFF6u);
+    code2::function_2e120(f.machine,b);
+    check(f.get32(0x255D4u)==0x58000u,
+          "Original 2CC88 object removal did not unblock source movement");
+}
+void test_original_secondary_level_event() {
+    SyntheticGuest f;
+    f.put16(0x258A6u,1u);
+    f.put32(0x255DCu,0x23000u);
+    f.put16(0x22246u,0x54u);
+    f.put16(0x2224Cu,0x40u);
+    f.put16(0x23000u+0x54u*7u+2u,0x1000u);
+    f.put32(0x2223Cu,0x48000u);
+    f.put32(0x22238u,0x58000u);
+    f.put32(0xC6C8u,0x17u); // source special transition condition
+    code2::Application65Boundary secondary{};
+    secondary.call_181b4=&track_original_secondary_transition;
+    transition_level=0u;
+    const u32 r=code2::function_2cc88(
+        f.machine,secondary,0x58000u,0x48000u,0xFFFFFFFFu);
+    check(r==2u && transition_level==0x13u,
+          "Original 2CC88 special-object transition ID or callback changed");
+    check(f.get32(0x255D0u)==0x38000u &&
+          f.get32(0x255D4u)==0xA8000u,
+          "Original 2CC88 did not write source portal destination");
+}
+void test_sustained_original_camera_and_heading() {
+    SyntheticGuest f;
+    code2::Application65Boundary secondary{};
+    code2::Application66Boundary collision{};
+    collision.app65=&secondary;
+    auto b=original_movement_callbacks(collision);
+    const u32 original_y=f.get32(0x255D4u);
+    for(unsigned tick=0;tick<5u;++tick) {
+        f.put32(0xC6E8u,0xFFFFFFF6u);
+        code2::function_2e120(f.machine,b);
+        check(f.get32(0x255D4u)==original_y+(tick+1u)*0x10000u,
+              "Sustained original 2E120 movement did not advance every tick");
+    }
+    f.put32(0xC6ECu,80u);
+    code2::function_2e120(f.machine,b);
+    check(f.get32(0xC658u)==270u,
+          "Sustained original movement failed quarter-turn source integration");
+    f.put32(0xC6ECu,0xFFFFFFB0u); // signed -80, reverse quarter-turn
+    code2::function_2e120(f.machine,b);
+    check(f.get32(0xC658u)==0u,
+          "Original turning accumulator failed to restore source heading");
+}
 void test_signed_accumulation_and_absolute_motion() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -95,10 +169,17 @@ int main(){
         test_unblocked_camera_translation();
         test_collision_prevents_camera_translation();
         test_signed_accumulation_and_absolute_motion();
+        test_secondary_object_collision();
+        test_original_secondary_level_event();
+        test_sustained_original_camera_and_heading();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
                  <<" displacement=ORIGINAL_2DBAC"
                  <<" tile_collision=ORIGINAL_2D5D0"
+                 <<" secondary_collision=ORIGINAL_2CC88"
+                 <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
+                 <<" sustained_motion_ticks=5"
+                 <<" heading_turns=2"
                  <<" synthetic_guest=ONLY"
                  <<" real_level22_camera=NOT_YET_CERTIFIED"
                  <<" dos_indexed_parity=OPEN\n";
