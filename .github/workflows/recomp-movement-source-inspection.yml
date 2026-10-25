@@ -30,15 +30,27 @@ jobs:
           # Capture every *write* to original camera/heading, each tagged
           # with the nearest reconstructed function for call-graph audit.
           import re
-          writer=re.compile(r"(?:store_le(?:16|32)\\(dg\\(m,0x(?:255D0|255D2|255D4|255D6|C658)u\\))",re.I)
-          definitions=[(i,re.search(r"function_([0-9a-f]+)\\(",line,re.I).group(1))
-                       for i,line in enumerate(lines)
-                       if re.search(r"^(?:(?:\\[\\[noreturn\\]\\])\\s*)?(?:void|u32|s32|bool|s16) function_([0-9a-f]+)\\(",line.strip(),re.I)]
+          # Bound scan: source lines are C++ and reconstructed offsets are
+          # literal; avoid interpreting declaration formatting as provenance.
+          import re
+          defs=[]
+          for n,line in enumerate(lines):
+              if "function_" not in line or "(" not in line:
+                  continue
+              x=re.search(r"function_([0-9a-f]+)\\(",line,re.I)
+              if x and not line.lstrip().startswith("//") and (
+                      line.lstrip().startswith(("void ", "u32 ", "s32 ", "bool ",
+                                               "s16 ", "[[noreturn]]"))):
+                  defs.append((n,x.group(1)))
           for i,line in enumerate(lines):
-              if writer.search(line):
-                  owners=[(n,fn) for n,fn in definitions if n<=i]
-                  print("ORIGINAL_CAMERA_GUEST_STORE",i+1,
-                        "function_"+(owners[-1][1] if owners else "UNKNOWN"),line.strip())
+              if "store_le" not in line: continue
+              if not any("dg(m,0x"+addr+"u" in line
+                         for addr in ("255D0","255D2","255D4","255D6","C658")):
+                  continue
+              owners=[(n,fn) for n,fn in defs if n<=i]
+              print("ORIGINAL_CAMERA_GUEST_STORE",i+1,
+                    "function_"+(owners[-1][1] if owners else "UNKNOWN"),
+                    line.strip())
           print("ORIGINAL_CAMERA_SOURCE_AUDIT_BEGIN",len(lines))
           for needle in needles:
               matches=[i for i,line in enumerate(lines) if needle.lower() in line.lower()]
