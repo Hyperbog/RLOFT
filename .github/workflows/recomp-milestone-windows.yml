@@ -884,6 +884,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Source 334C4 original 32-level view preparation failed" }
           & "build/windows-milestone/Debug/rloft_original_code2_level_loader.exe" "$file"
           if ($LASTEXITCODE -ne 0) { throw "Original 181B4 DOS archive file load failed" }
+          # Original 181B4 -> 171FC -> 181B4 22/23/22 persistence,
+          # owner-media read-only, WORK/LEV snapshots private in-memory.
+          & "build/windows-milestone/Debug/rloft_original_code2_level_loader.exe" --transition-roundtrip "$file"
+          if ($LASTEXITCODE -ne 0) { throw "Source 171FC/181B4 saved-level roundtrip failed" }
           $sintab = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB"
           $sinHash = (Get-FileHash -Path $sintab -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($sinHash -ne "19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87") {
