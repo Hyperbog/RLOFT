@@ -806,6 +806,53 @@ jobs:
           }
           Write-Host "ORIGINAL_2E120_CAMERA_INTEGRATION_SOURCE_PASS"
           Write-Host "ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=$($sourceReturns.Count) source_guest=RETAINED secondary_actor_collision=OPEN physical_irq9=NOT_CERTIFIED"
+      - name: Diagnose sustained original Level22 camera and J L heading updates through host stdin
+        shell: pwsh
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          $media = "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT"
+          $cdMedia = "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT"
+          $psi = [System.Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName = (Resolve-Path "build/windows-milestone/Debug/rloft_code1_code2_staged_boot.exe").Path
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardInput = $true
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          foreach ($arg in @("--root", (Resolve-Path $media).Path, "--cd-root", (Resolve-Path $cdMedia).Path, "--console-input")) {
+            [void]$psi.ArgumentList.Add($arg)
+          }
+          foreach ($flag in @("HUD","EXTERIOR","FRAME_ENTRY","FULL_COMPOSITOR","POLYGON_FRONTIER","POLYGON_SOURCE")) {
+            $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_$flag"] = "1"
+          }
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF"] = "1"
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE"] = "1"
+          $psi.Environment["RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE"] = "1"
+          $keys = @("w","w","w","w","w","j","j","j","j","l","l","l","l","w","w","w")
+          $proc = [System.Diagnostics.Process]::new()
+          $proc.StartInfo = $psi
+          if (-not $proc.Start()) { throw "Source 1FC14 input process could not start" }
+          $stdout = $proc.StandardOutput.ReadToEndAsync()
+          $stderr = $proc.StandardError.ReadToEndAsync()
+          foreach ($key in ($keys + @("q"))) { $proc.StandardInput.WriteLine($key) }
+          $proc.StandardInput.Close()
+          $exited = $proc.WaitForExit(60000)
+          if (-not $exited) { $proc.Kill($true); $proc.WaitForExit() }
+          $joined = @($stdout.GetAwaiter().GetResult(),$stderr.GetAwaiter().GetResult()) -join "`n"
+          $code = $proc.ExitCode
+          $proc.Dispose()
+          $deltas = [regex]::Matches($joined,
+             'CODE2_ORIGINAL_CONSOLE_INPUT=SOURCE_GUEST_STATE_DELTA event=([0-9]+) original_scan_code=([0-9]+) camera_x_before=([0-9]+) camera_x_after=([0-9]+) camera_y_before=([0-9]+) camera_y_after=([0-9]+) heading_before=([0-9]+) heading_after=([0-9]+).*camera_displaced=([01]) heading_rotated=([01])')
+          $moved = @($deltas | Where-Object {$_.Groups[9].Value -eq "1"})
+          $turned = @($deltas | Where-Object {$_.Groups[10].Value -eq "1"})
+          Write-Host "ORIGINAL_LEVEL22_2CC88_SUSTAINED_DIAGNOSTIC exit=$code exited=$exited source_polls=$($deltas.Count) camera_displacements=$($moved.Count) heading_rotations=$($turned.Count)"
+          foreach ($row in ($deltas | Select-Object -First 3)) {Write-Host "ORIGINAL_LEVEL22_SUSTAINED_FIRST $($row.Value)"}
+          foreach ($row in ($deltas | Select-Object -Last 4)) {Write-Host "ORIGINAL_LEVEL22_SUSTAINED_LAST $($row.Value)"}
+          if (-not $exited -or $code -ne 0 -or $deltas.Count -ne $keys.Count -or $moved.Count -lt 2 -or $turned.Count -lt 2) {
+            Write-Host ($joined -split "`r?`n" | Select-Object -Last 14 | Out-String)
+            throw "Original source sustained translation and J/L heading were not fully attested"
+          }
+          Write-Host "ORIGINAL_LEVEL22_2CC88_SUSTAINED_HEADING_SOURCE_PASS source_polls=$($deltas.Count) camera_displacements=$($moved.Count) heading_rotations=$($turned.Count) physical_irq9=NOT_CERTIFIED"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
