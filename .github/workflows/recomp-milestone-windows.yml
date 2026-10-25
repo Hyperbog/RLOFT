@@ -859,6 +859,15 @@ jobs:
             throw "Original source sustained translation and J/L heading were not fully attested"
           }
           Write-Host "ORIGINAL_LEVEL22_2CC88_SUSTAINED_HEADING_SOURCE_PASS source_polls=$($deltas.Count) camera_displacements=$($moved.Count) heading_rotations=$($turned.Count) physical_irq9=NOT_CERTIFIED"
+      - name: Verify retained CODE2 Level22 native scanout and source input host
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          # Private original media; no original pixels or resources are uploaded.
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root $root --cd-root $cd --smoke
+          if ($LASTEXITCODE -ne 0) { throw "Native CODE2 Level22 scanout/keyboard smoke failed" }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
@@ -931,13 +940,15 @@ jobs:
           $source = "build/windows-milestone/Debug"
           $dir = "build/windows-milestone/package"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_code1_code2_staged_boot.exe", "rloft_original_supervisor_test.exe", "rloft_gog_cd_extract.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe")) {
+          foreach ($exe in @("rloft_recomp_link_gate.exe", "rloft_code1_startup_gate.exe", "rloft_code2_startup_gate.exe", "rloft_original_image_gate.exe", "rloft_original_vga_host_tests.exe", "rloft_original_code2_graphics_frame.exe", "rloft_original_37700_control_tests.exe", "rloft_original_code2_init_resources.exe", "rloft_code1_code2_staged_boot.exe", "rloft_original_supervisor_test.exe", "rloft_gog_cd_extract.exe", "rloft_original_code2_level_view.exe", "rloft_original_code2_level_loader.exe", "rloft_original_code2_save_game.exe", "rloft_original_code2_world_frame.exe", "rloft_code2_level22_window.exe")) {
             Copy-Item (Join-Path $source $exe) $dir -ErrorAction Stop
           }
           # Ship the owner-local frame runner with its matching executable;
           # this avoids a stale PowerShell script masking native diagnostics.
           Copy-Item Recomp/tools/Launch-RLOFT-Recomp-Preview.ps1 $dir -ErrorAction Stop
           Copy-Item Recomp/tools/Play-RLOFT-Recomp-Preview.cmd $dir -ErrorAction Stop
+          Copy-Item Recomp/tools/Launch-RLOFT-Level22.ps1 $dir -ErrorAction Stop
+          Copy-Item Recomp/tools/Play-RLOFT-Level22.cmd $dir -ErrorAction Stop
           Copy-Item Recomp/tools/run_two_skeleton_complete_frame.ps1 $dir -ErrorAction Stop
           Copy-Item Recomp/tools/compare_dos_indexed_frames.py $dir -ErrorAction Stop
           Copy-Item build/windows-milestone/milestone-report.json $dir
@@ -953,7 +964,9 @@ jobs:
             'Original binary R.EXE is a 16-bit DOS supervisor, starts CODE.2 first, runs CODE.1 only on CODE.2 child exit status 10, and handles status 12 restart/CHARS deletion. This preview does not impersonate the missing child-process return status.'
             'If there is no Level-5 saved-game pair, the script prompts to choose one. A DOSBox-X 1.sav is not a substitute for original Ravenloft SAVE.DAT.'
 
-            'NOT A PLAYABLE GAME; no original commercial game files included.'
+            'EXPERIMENTAL NATIVE LEVEL22 WINDOW: double-click Play-RLOFT-Level22.cmd after extracting the complete ZIP. W/S move, A/D strafe, J/L or arrow keys turn; Esc closes.'
+            'The original CODE2 1FC14 loop and source VGA are guest-authentic; host real-time input, retail DOS framebuffer parity, complex events and cross-level transitions remain uncertified.'
+            'NOT A COMPLETED GAME; no original commercial game files included.'
             'No successful DOS/4GW runtime parity or game completion is implied.'
             'Private two-skeleton visual approval requires two positive active-page viewport sprite footprints, 400 original RES0 base frames, and owner-local screenshot inspection.'
             'Original 1F494/1EA90 four-character HUD now executes with source RES1 masked 298F0 -> 2A584 portraits, hands, original HP bars, and status borders.'
