@@ -1797,7 +1797,7 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
              <<" input=HOST_TERMINAL_TRANSLATED"
              <<" dos_keyboard_irq9=NOT_CONNECTED"
              <<" active_audio_driver=NOT_CONNECTED"
-             <<" commands=W_FORWARD_A_LEFT_S_BACK_D_RIGHT_ENTER_IDLE_Q_QUIT\n"
+             <<" commands=W_FORWARD_A_STRAFE_LEFT_S_BACK_D_STRAFE_RIGHT_J_TURN_LEFT_L_TURN_RIGHT_ENTER_IDLE_Q_QUIT\n"
              <<std::flush;
     unsigned events=0u, source_pose_updates=0u, source_velocity_updates=0u;
     unsigned camera_displacements=0u, heading_rotations=0u;
@@ -1821,6 +1821,10 @@ std::uint32_t drive_console_keyboard(Opaque* s) {
             case 'a':case 'A':scan=0x14Bu;break;
             case 's':case 'S':scan=0x150u;break;
             case 'd':case 'D':scan=0x14Du;break;
+            // Original 1FC14 cases 147h/149h set angular
+            // accumulator C002; A/D are lateral movement C004.
+            case 'j':case 'J':scan=0x147u;break;
+            case 'l':case 'L':scan=0x149u;break;
             case ' ':scan=0u;break;
             default:
                 std::cerr<<"CODE2_ORIGINAL_CONSOLE_INPUT=UNRECOGNIZED_COMMAND\n";
