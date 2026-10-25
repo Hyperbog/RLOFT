@@ -714,11 +714,29 @@ u32 original_full_movement_marker(u32 tile) noexcept {
     return code2::function_1e930(current->machine,originals,tile);
 }
 void original_full_movement_event(u32 level) noexcept {
-    // The retail 181B4 loader is wired for preserved Level22 here.
-    // A different level needs its own original-media state, file lifecycle
-    // and source callbacks; refuse rather than treating the world as empty.
+    if(!current || !current->original_vga ||
+       current->original_181b4_completed!=1u ||
+       !original_full_frame_trace)
+        stop("ORIGINAL_2DBAC_EVENT_OUTSIDE_RETAINED_LEVEL22");
+    // Same-level portal calls are legal: original 181B4 checks old==target
+    // and returns before file I/O, world release or guest mutation.
+    const u32 previous=code2::load_le32(current->data.data()+0xC6C8u);
+    if(level==previous && level==22u) {
+        code2::Application32Boundary original{};
+        code2::function_181b4(current->machine,original,
+                              static_cast<code2::s32>(level));
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_SAME_LEVEL_SOURCE_RETURN"
+                 <<" target="<<level<<" media_read=NO state_reset=NO\n"
+                 <<std::flush;
+        return;
+    }
+    // Cross-level source 171FC must first save mutable old-world records;
+    // original 181B4 then releases map/script allocs, reads target data,
+    // runs 17A68 NPC transforms, and rebinds graphics/music. Startup's
+    // one-shot Level22 loader cannot yet guarantee those live callbacks.
+    // Fail closed; do not invoke it on another level or fake a world load.
     if(level!=22u)
-        stop("ORIGINAL_2DBAC_CROSS_LEVEL_TRANSITION_NOT_SOURCE_VERIFIED");
+        stop("ORIGINAL_2DBAC_CROSS_LEVEL_TRANSITION_NEEDS_171FC_181B4_SERVICES");
     original_181b4_level_load(level);
 }
 // Original 20C0C is the precise animated-tile interaction path;

@@ -129,6 +129,20 @@ void test_original_secondary_level_event() {
           f.get32(0x255D4u)==0xA8000u,
           "Original 2CC88 did not write source portal destination");
 }
+void test_original_same_level_181b4_source_short_circuit() {
+    SyntheticGuest f;
+    f.put32(0xC6C8u,22u);
+    f.put32(0xCF44u,0x23000u);
+    f.put32(0xC038u,4u);
+    f.data[0x198E0u]=0x41u;
+    code2::Application32Boundary original{};
+    code2::function_181b4(f.machine,original,22);
+    check(f.get32(0xC6C8u)==22u &&
+          f.get32(0xCF44u)==0x23000u &&
+          f.get32(0xC038u)==4u &&
+          f.data[0x198E0u]==0x41u,
+          "Original 181B4 same-level branch unexpectedly reset world data");
+}
 void test_sustained_original_camera_and_heading() {
     SyntheticGuest f;
     code2::Application65Boundary secondary{};
@@ -371,6 +385,7 @@ int main(){
         test_signed_accumulation_and_absolute_motion();
         test_secondary_object_collision();
         test_original_secondary_level_event();
+        test_original_same_level_181b4_source_short_circuit();
         test_original_20c0c_animated_tile_event();
         test_original_special_event_source_page_refresh();
         test_sustained_original_camera_and_heading();
@@ -382,6 +397,7 @@ int main(){
                  <<" tile_collision=ORIGINAL_2D5D0"
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
+                 <<" same_level_source=ORIGINAL_181B4_NO_RELOAD"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" bounded_script_dispatch=ORIGINAL_002A8"
                  <<" moving_record=ORIGINAL_08A80_TYPE8_SOURCE"
