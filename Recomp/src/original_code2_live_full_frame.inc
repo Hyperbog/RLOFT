@@ -766,7 +766,14 @@ u32 original_full_movement_predicate(u32) noexcept {
     stop("ORIGINAL_2D5D0_SPECIAL_TILE_PREDICATE_NOT_CONNECTED");
 }
 void original_full_movement_refresh() noexcept {
-    stop("ORIGINAL_2DBAC_MOVEMENT_REFRESH_NOT_CONNECTED");
+    // Original 1EA78 swaps the retained display page and invokes the
+    // original 1A510 source presentation callback. A special-event
+    // redraw is still bounded by the source page-handoff trace checks.
+    if(!current || !current->original_vga || !original_full_frame_trace)
+        stop("ORIGINAL_2DBAC_MOVEMENT_REFRESH_OUTSIDE_SOURCE_FRAME");
+    code2::Application43Boundary ui{};
+    ui.call_1a510=&original_1fc14_source_page_handoff;
+    code2::function_1ea78(current->machine,ui);
 }
 void original_full_movement_heading(u32 heading) noexcept {
     // Original 1C0C0 quantizes heading only when the grid-mode byte
