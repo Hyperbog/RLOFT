@@ -40,9 +40,25 @@ The source callback reports `CODE2_ORIGINAL_LIVE_GAMEPLAY=2E120_MOVEMENT_SOURCE_
 
 A separate source CTest `canonical_code2_original_2e120_2dbac_camera_source` **compiles the actual reconstructed original source** and tests synthetic guest movement. It verifies a real source-driven guest camera coordinate update, 90° grid turning, and rejection of a solid map tile; no host code assigns the resulting game pose and no original copyright media are embedded in this test. [Canonical Windows #40165919417](https://github.com/Hyperbog/RLOFT/actions/runs/40165919417) **PASS (90/90)** and [Linux #40165919419](https://github.com/Hyperbog/RLOFT/actions/runs/40165919419) **PASS**.
 
+### Level 22 authentic retained-source camera acceptance — PASSED
+
+[Windows original-media run #40166031393](https://github.com/Hyperbog/RLOFT/actions/runs/40166031393) proved **three** actual camera changes from host terminal `S,D,W`, with original keyboard polling, original guest pointers retained, `2E120` vector integration, and no host-side camera writes:
+
+| Original scan | Guest X before → after | Guest Y before → after | Heading |
+| --- | --- | --- | --- |
+| `0x150` (S) | `298661 → 296162` | `295911 → 295911` | `270 → 270` |
+| `0x14D` (D) | `296162 → 296162` | `295911 → 294912` | `270 → 270` |
+| `0x148` (W) | `296162 → 299911` | `294912 → 294912` | `270 → 270` |
+
+This is native **retained reconstructed-original CODE.2 source running against original preserved Level22 game assets**, not an independently executed retail DOS oracle. The heading did **not** rotate for this three-key sequence. Original collision logic only uses its **primary tile tests** in this probe; second-stage actor collision/teleport/scene transitions remain open.
+
+The bounded positive movement gate was promoted from a non-gating diagnostic to a **required CI step** in `.github/workflows/recomp-milestone-windows.yml`, which validates all three original source-owned camera deltas individually, their matching displacement flags, and at least three source `2E120` callback returns. [Windows run #40166339566](https://github.com/Hyperbog/RLOFT/actions/runs/40166339566) **PASS**, `ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=8`; 90/90 original source CTests also passed. The redundant previous 95-second 60-poll *hook-disabled* negative search was removed from recurring CI; its earlier forensic observation is preserved in Part 29 notes.
+
+**Certification is strictly scoped** to positive native Level22 source-camera displacement under CI-supplied stdin, not a real player-held key/IRQ9, turning/heading change, complete collision, audible original AIL playback, or independent DOS pixel parity.
+
 ### Live original media Level 22 acceptance
 
-The Windows milestone has a **separate opt-in** original-media `S,D,W` probe with the 2E120 flag and `RLOFT_RECOMP_REQUIRE_CONSOLE_REAL_POSE=1`. It passes only if the retained original guest itself changes `255D0/255D4/C658`, not merely `C000/C004` accumulators. This remains separately assessed from source-only CTest; do not automatically equate original source synthetic fixtures with the authentic Level 22. Run-specific result must be read from the milestone CI log.
+The Windows milestone has a **separate opt-in** original-media `S,D,W` probe with the 2E120 flag and `RLOFT_RECOMP_REQUIRE_CONSOLE_REAL_POSE=1`. It passes only if the retained original guest itself changes `255D0/255D4/C658`, not merely `C000/C004` accumulators. This remains separately assessed from source-only CTest; do not automatically equate original source synthetic fixtures with the authentic Level 22. The positive three-key native Level22 camera-source test is now a required Windows CI acceptance step; inspect the actual `ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS` log and do not promote broader gameplay/dos-parity gates.
 
 ## Parallel retail DOS oracle remains independent
 
