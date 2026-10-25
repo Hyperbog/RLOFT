@@ -22,15 +22,23 @@ jobs:
           from pathlib import Path
           lines=Path("Code2/Code2.cpp").read_text(encoding="utf-8").splitlines()
           needles=(
-              "function_1e534(", "function_0893c(",
-              "function_1e75c(", "function_1f86c(",
-              "struct Application43Boundary",
-              "struct Application12Boundary",
-              "call_2df2c", "call_2c8e4",
-              "store_le32(dg(m,0x255D0u)",
-              "store_le32(dg(m,0x255D4u)",
-              "store_le32(dg(m,0xC658u)",
+              "function_1e4a0(", "function_2e120(",
+              "function_2e608(", "function_1ae30(",
+              "app45_scale_cwde(", "function_2df2c(",
+              "0xC6E8u", "0xC6ECu", "0xC6F0u",
           )
+          # Capture every *write* to original camera/heading, each tagged
+          # with the nearest reconstructed function for call-graph audit.
+          import re
+          writer=re.compile(r"(?:store_le(?:16|32)\\(dg\\(m,0x(?:255D0|255D2|255D4|255D6|C658)u\\))",re.I)
+          definitions=[(i,re.search(r"function_([0-9a-f]+)\\(",line,re.I).group(1))
+                       for i,line in enumerate(lines)
+                       if re.search(r"^(?:(?:\\[\\[noreturn\\]\\])\\s*)?(?:void|u32|s32|bool|s16) function_([0-9a-f]+)\\(",line.strip(),re.I)]
+          for i,line in enumerate(lines):
+              if writer.search(line):
+                  owners=[(n,fn) for n,fn in definitions if n<=i]
+                  print("ORIGINAL_CAMERA_GUEST_STORE",i+1,
+                        "function_"+(owners[-1][1] if owners else "UNKNOWN"),line.strip())
           print("ORIGINAL_CAMERA_SOURCE_AUDIT_BEGIN",len(lines))
           for needle in needles:
               matches=[i for i,line in enumerate(lines) if needle.lower() in line.lower()]
