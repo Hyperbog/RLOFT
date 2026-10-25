@@ -953,6 +953,11 @@ void original_full_28168_audio_service() noexcept {
            std::uint64_t(packet)+4u+len>current->data.size() ||
            std::uint64_t(dest)+len>current->data.size())
             stop("ORIGINAL_27F24_SFX_PACKET_OR_DEST_BOUNDS_INVALID");
+        // Reject aliases: CODE.2 uses a forward MOVSD/MOVSB copy, and
+        // sharing source/destination can destroy the authenticated packet.
+        if(std::uint64_t(dest)<std::uint64_t(packet)+4u+len &&
+           std::uint64_t(packet)<std::uint64_t(dest)+len)
+            stop("ORIGINAL_27F24_SFX_RESOURCE_DESTINATION_ALIAS");
         std::vector<u8> payload(current->data.data()+packet,
                                 current->data.data()+packet+4u+len);
         // Do not consume the source queue until the real Windows host
@@ -991,8 +996,11 @@ void original_full_28168_audio_service() noexcept {
     } else {
         code2::function_28168(current->machine,audio);
     }
-    // Status is only derived from actual WinMM WHDR_DONE on later ticks,
-    // never from a synthetic "playing" flag in the original guest RAM.
+    // Poll real host completion even on source ticks without a new SFX
+    // request; WHDR_DONE (not a source queue empty condition) owns status.
+    if(const char* host=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_SOURCE_SFX_WINMM");
+       host && std::strcmp(host,"1")==0)
+        (void)original_live_sfx_device.status_playing();
     const auto completed=original_live_sfx_device.completions();
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=28168_SOURCE_SERVICE_RETURN"
              <<" original_28168=EXECUTED"
