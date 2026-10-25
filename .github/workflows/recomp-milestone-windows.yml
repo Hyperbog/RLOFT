@@ -807,7 +807,12 @@ jobs:
             throw "Original 2E120 source camera integrator did not complete all three input cycles"
           }
           Write-Host "ORIGINAL_2E120_CAMERA_INTEGRATION_SOURCE_PASS"
-          Write-Host "ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=$($sourceReturns.Count) source_guest=RETAINED secondary_actor_collision=OPEN physical_irq9=NOT_CERTIFIED"
+          $secondaryReturns = [regex]::Matches($joined,
+              'source_2e120=EXECUTED source_2dbac=PRIMARY_AND_SECONDARY_COLLISION secondary_actor_collision=ORIGINAL_2CC88')
+          if ($secondaryReturns.Count -lt 3) {
+            throw "Original 2CC88 secondary actor-collision callback did not remain wired for source keyboard cycles"
+          }
+          Write-Host "ORIGINAL_LEVEL22_THREE_HOST_KEYS_SOURCE_CAMERA_DISPLACED_PASS source_keyboard_events=3 source_camera_displacements=3 source_2e120_returns=$($sourceReturns.Count) secondary_2cc88_callbacks=$($secondaryReturns.Count) source_guest=RETAINED secondary_collision_source=WIRED collision_occurred=NOT_ASSERTED physical_irq9=NOT_CERTIFIED"
       - name: Require sustained original Level22 camera and J L heading updates through host stdin
         shell: pwsh
         timeout-minutes: 2
