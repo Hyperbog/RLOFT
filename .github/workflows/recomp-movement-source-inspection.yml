@@ -37,11 +37,11 @@ jobs:
           for n,line in enumerate(lines):
               if "function_" not in line or "(" not in line:
                   continue
-              x=re.search(r"function_([0-9a-f]+)\\(",line,re.I)
-              if x and not line.lstrip().startswith("//") and (
+              x=line.split("function_",1)[1].split("(",1)[0].lower()
+              if x and all(k in "0123456789abcdef" for k in x) and not line.lstrip().startswith("//") and (
                       line.lstrip().startswith(("void ", "u32 ", "s32 ", "bool ",
                                                "s16 ", "[[noreturn]]"))):
-                  defs.append((n,x.group(1)))
+                  defs.append((n,x))
           for i,line in enumerate(lines):
               if "store_le" not in line: continue
               if not any("dg(m,0x"+addr+"u" in line
