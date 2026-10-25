@@ -810,12 +810,15 @@ u32 original_full_script_moving_random() noexcept {
 }
 void original_full_script_moving_record(
         u32 type,code2::s32 angle,u32 owner,u32 packed_x,u32 packed_y) noexcept {
-    if(type!=8u || owner!=4u)
+    if(type>8u || owner!=4u)
         stop("ORIGINAL_08A80_MOVING_RECORD_PRECHECK_BYPASSED");
     code2::Application12Boundary b{};
     b.call_e578=&original_full_script_moving_owner;
     b.call_30ca2=&original_full_script_moving_random;
     b.call_28110=&original_full_movement_special_audio;
+    b.call_2c9dc=&original_full_movement_party_probe;
+    // No 22E90 surrogate is installed. The all-command preflight
+    // excluded any non-type-8 moving record near the party.
     code2::function_08a80(current->machine,b,type,angle,
                            static_cast<code2::s32>(owner),packed_x,packed_y);
 }
@@ -840,6 +843,9 @@ void original_full_movement_script(code2::s32 index) noexcept {
     dispatch.call_1c160=&original_full_script_clear_bit;
     dispatch.call_1c1a0=&original_full_script_toggle_bit;
     dispatch.call_08a80=&original_full_script_moving_record;
+    code2::EarlyBoundaries early{};
+    early.call_1c1dc=&original_full_movement_bit_query;
+    dispatch.early=&early;
     code2::function_002a8(current->machine,dispatch,index);
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SCRIPT=002A8_SOURCE_RETURN"
              <<" index="<<index<<" commands="<<checked.commands

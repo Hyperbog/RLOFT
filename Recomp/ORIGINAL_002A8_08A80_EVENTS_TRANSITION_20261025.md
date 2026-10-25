@@ -4,9 +4,11 @@
 
 ## Original source branches connected
 
-- Original `002A8` script opcode **3**, guarded for **type-8 moving records**, runs the compiled original `08A80` constructor against the retained guest. Original `0E578` clears the source owner-state flags, `30CA2` advances the original random generator, and any sound request is passed to the original `28110` queue. The `0x248EC` moving-record array and `0xC038` count are mutated **by CODE.2**, never by host code.
+- Original `002A8` script opcode **3**, guarded for **type-0 through type-8 moving records**, runs the compiled original `08A80` constructor against the retained guest. Original `0E578` clears the source owner-state flags, `30CA2` advances the original random generator, and any sound request is passed to the original `28110` queue. The `0x248EC` moving-record array and `0xC038` count are mutated **by CODE.2**, never by host code.
 - Preflight validates all instructions in the descriptor before executing any of them; invalid actor types, off-map coordinates, overflowing record counts, and unimplemented script callbacks are still rejected. Original `08A80` types **0–7** are excluded because they can require original `22E90` collision repositioning and source redraw callbacks.
 - An in-world portal targeting the **already-active Level 22** now follows the real `181B4` equal-level return instead of incorrectly re-running the one-shot boot loader. This path performs no new file reads and leaves the level's script table, object list, and tiles intact.
+
+- Original \`002A8\` nested opcode **11** executes the latched return branches for source \`000B8\` (event bit \`0x3D\`) and \`001FC\` (bit \`0x46\`) through compiled source. All other early handlers require UI/selection callback work and remain guarded.
 
 ## Cross-level frontier (not accepted)
 

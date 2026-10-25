@@ -57,19 +57,38 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
             // Exact compiled 28110 sound queue, world event flags, BF44.
             case 5u: case 8u: case 9u: case 10u: case 12u:
                 break;
-            // Source 002A8 opcode 3 invokes ORIGINAL 08A80. Only type 8
-            // is safe with the currently connected callbacks: types 0..7
-            // can enter the unresolved 22E90 collision-reposition loop.
+            // Source 002A8 opcode 3 invokes ORIGINAL 08A80. All types 0..8
+            // use the original source, but 0..7 are guarded against
+            // entering the unresolved 22E90 collision-reposition loop.
             // The source's packed 16.16 coordinates are row/column bytes.
             case 3u: {
                 const std::uint32_t type=guest[cmd+4u];
                 const std::uint32_t row=guest[cmd+2u];
                 const std::uint32_t col=guest[cmd+3u];
-                if(type!=8u)
-                    return {false,"SOURCE_MOVING_ACTOR_COLLISION_SERVICE_OPEN",count};
+                if(type>8u)
+                    return {false,"SOURCE_MOVING_ACTOR_TYPE_OUT_OF_SOUND_TABLE",count};
                 if(row>=static_cast<std::uint32_t>(height) ||
                    col>=static_cast<std::uint32_t>(width))
                     return {false,"SOURCE_MOVING_RECORD_TILE_OUT_OF_WORLD",count};
+                if(type!=8u && reserved_moving<150u) {
+                    // Original 08A80 calls 2C9DC(packed_row,packed_col)
+                    // and needs 22E90 repositioning if the projectile
+                    // overlaps the current party. Admit only the already
+                    // collision-free original branch.
+                    const auto word32=[&](std::uint32_t at)->std::uint32_t {
+                        return std::uint32_t(guest[at]) |
+                          (std::uint32_t(guest[at+1u])<<8u) |
+                          (std::uint32_t(guest[at+2u])<<16u) |
+                          (std::uint32_t(guest[at+3u])<<24u);
+                    };
+                    const auto cam_x=word32(0x255D0u);
+                    const auto cam_y=word32(0x255D4u);
+                    const std::uint32_t raw_y=(row<<16u)|0x8000u;
+                    const std::uint32_t raw_x=(col<<16u)|0x8000u;
+                    if(raw_x>=cam_x-0x8FA0u && raw_x<=cam_x+0x8FA0u &&
+                       raw_y>=cam_y-0x8FA0u && raw_y<=cam_y+0x8FA0u)
+                        return {false,"SOURCE_MOVING_ACTOR_NEEDS_22E90_REPOSITION",count};
+                }
                 if(reserved_moving<150u) {
                     if(std::uint64_t(0x248ECu)+
                        std::uint64_t(reserved_moving+1u)*0x16u>size)
@@ -89,9 +108,29 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
                     return {false,"SOURCE_SCRIPT_TILE_OUT_OF_WORLD",count};
                 break;
             }
-            // 6 dialog, 7 synchronized display and 11 nested early handlers
-            // still need source services
-            // not yet connected. Never execute them with null callbacks.
+            // Narrow original 11h early-handler branches that return
+            // from source before requesting actor selection or UI.
+            // Require opcode 11 to be first: earlier commands can change
+            // the latch bits and invalidate the preflight guarantee.
+            case 11u: {
+                const std::uint32_t sub=guest[cmd+4u];
+                if(i!=0u)
+                    return {false,"SOURCE_EARLY_SCRIPT_DEPENDS_ON_PRIOR_MUTATION",count};
+                const std::uint32_t bit=
+                    sub==0x0Cu?0x3Du:(sub==0x0Du?0x46u:0xFFFFFFFFu);
+                if(bit==0xFFFFFFFFu)
+                    return {false,"SOURCE_EARLY_SCRIPT_UNCONNECTED_SUBTYPE",count};
+                const std::uint32_t addr=0x22200u+(bit/32u)*4u;
+                const std::uint32_t value=
+                    std::uint32_t(guest[addr]) |
+                    (std::uint32_t(guest[addr+1u])<<8u) |
+                    (std::uint32_t(guest[addr+2u])<<16u) |
+                    (std::uint32_t(guest[addr+3u])<<24u);
+                if((value&(1u<<(bit%32u)))==0u)
+                    return {false,"SOURCE_EARLY_SCRIPT_REQUIRES_UNCONNECTED_UI",count};
+                break;
+            }
+            // 6 dialogue and 7 synchronized display are not connected.
             default:
                 return {false,"SOURCE_SCRIPT_OPCODE_NEEDS_UNCONNECTED_SERVICE",count};
         }

@@ -240,12 +240,16 @@ void source_moving_sound(u32 id,u32 aux,u32 channel,u32 priority) {
     ++source_spawn_sound_requests;
     source_spawn_sound_id=id;
 }
+u32 script_moving_party_probe(u32 row,u32 col) {
+    return code2::function_2c9dc(active_script_fixture->machine,row,col);
+}
 void source_moving_ctor(u32 type,s32 angle,u32 owner,u32 x,u32 y) {
-    check(type==8u && owner==4u,"Original 002A8 moving record source ABI changed");
+    check(type<=8u && owner==4u,"Original 002A8 moving record source ABI changed");
     code2::Application12Boundary cb{};
     cb.call_e578=&source_moving_owner;
     cb.call_30ca2=&source_moving_rng;
     cb.call_28110=&source_moving_sound;
+    cb.call_2c9dc=&script_moving_party_probe;
     code2::function_08a80(active_script_fixture->machine,cb,type,angle,
                            static_cast<s32>(owner),x,y);
 }
@@ -283,6 +287,32 @@ void test_original_002a8_moving_record_source() {
           (f.data[0x21A13u+4u*0x248u]&2u)==0u &&
           f.get32(0xF6F4u)!=0x10203040u,
           "Original compiled 002A8->08A80->0E578/30CA2/28110 records diverged");
+    // An original type-7 moving record away from party also follows
+    // the original 08A80 non-RNG branch, including the actual 2C9DC test.
+    f.data[scripts]=1u;
+    f.data[scripts+4u]=7u;
+    source_spawn_sound_requests=0u;
+    const auto before_seed=f.get32(0xF6F4u);
+    validation=rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0);
+    check(validation.accepted,"Original distant type-7 08A80 record rejected");
+    code2::function_002a8(f.machine,dispatch,0);
+    const u32 second=0x248ECu+0x16u;
+    check(f.get32(0xC038u)==2u &&
+          code2::load_le16(f.data.data()+second+0x0Eu)==7u &&
+          f.get32(0xF6F4u)==before_seed &&
+          source_spawn_sound_requests==1u &&
+          source_spawn_sound_id==0x158u,
+          "Compiled original 08A80 non-type-8 moving record diverged");
+    // Near-party original 22E90 reposition is still unconnected, and
+    // must be rejected BEFORE any guest record has been appended.
+    f.data[scripts+2u]=4u;f.data[scripts+3u]=4u;
+    const auto count_before_overlap=f.get32(0xC038u);
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0).accepted &&
+          f.get32(0xC038u)==count_before_overlap,
+          "Original near-party 22E90 moving-record collision escaped preflight");
+    f.data[scripts+2u]=6u;f.data[scripts+3u]=7u;
     // A later unsupported actor type rejects BEFORE a prior command
     // modifies the live flag or moving-record count.
     f.data[scripts]=2u;
@@ -298,6 +328,48 @@ void test_original_002a8_moving_record_source() {
     check(!rloft::source_script::validate(
         f.data.data(),f.data.size(),scripts,0).accepted,
           "Original 08A80 invalid moving-record count accepted");
+    active_script_fixture=nullptr;
+}
+u32 source_early_query(u32 bit) {
+    return code2::function_1c1dc(active_script_fixture->machine,bit);
+}
+void test_original_002a8_latched_early_handlers() {
+    SyntheticGuest f;
+    active_script_fixture=&f;
+    constexpr u32 table=0x23000u;
+    f.put32(0xCF44u,table);
+    code2::EarlyBoundaries early{};
+    early.call_1c1dc=&source_early_query;
+    code2::Dispatch002A8Boundary dispatch{};
+    dispatch.early=&early;
+    f.data[table]=1u;
+    f.data[table+1u]=11u;
+    f.data[table+4u]=0x0Cu;
+    code2::function_1c124(f.machine,0x3Du);
+    auto checked=rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0);
+    check(checked.accepted,"Latched original 000B8 early handler rejected");
+    const auto before=f.get32(0xBF44u);
+    code2::function_002a8(f.machine,dispatch,0);
+    check(f.get32(0xBF44u)==before &&
+          code2::function_1c1dc(f.machine,0x3Du)==1u,
+          "Original 000B8 latched source branch altered state");
+    code2::function_1c160(f.machine,0x3Du);
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0).accepted,
+          "Unlatched original 000B8 branch escaped preflight");
+    f.data[table+4u]=0x0Du;
+    code2::function_1c124(f.machine,0x46u);
+    checked=rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0);
+    check(checked.accepted,"Latched original 001FC early handler rejected");
+    code2::function_002a8(f.machine,dispatch,0);
+    check(code2::function_1c1dc(f.machine,0x46u)!=0u,
+          "Original 001FC latched source branch altered quest state");
+    f.data[table+4u]=0x0Bu;
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0).accepted,
+          "Unconnected 00074 display/menu path escaped preflight");
     active_script_fixture=nullptr;
 }
 void test_original_002a8_live_script_operations() {
@@ -391,6 +463,7 @@ int main(){
         test_sustained_original_camera_and_heading();
         test_original_002a8_live_script_operations();
         test_original_002a8_moving_record_source();
+        test_original_002a8_latched_early_handlers();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
                  <<" displacement=ORIGINAL_2DBAC"
@@ -400,7 +473,8 @@ int main(){
                  <<" same_level_source=ORIGINAL_181B4_NO_RELOAD"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" bounded_script_dispatch=ORIGINAL_002A8"
-                 <<" moving_record=ORIGINAL_08A80_TYPE8_SOURCE"
+                 <<" moving_record=ORIGINAL_08A80_TYPE0_TO8_GUARDED"
+                 <<" latched_early=ORIGINAL_000B8_001FC_SOURCE"
                  <<" page_handoff=ORIGINAL_1EA78_1A510"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"
