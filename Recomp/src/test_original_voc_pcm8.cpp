@@ -1,5 +1,6 @@
 // Asset-free Creative Voice PCM8 parser test, no OS audio device.
 #include "original_voc_pcm8.hpp"
+#include "original_code2_pcm_packet.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <exception>
@@ -35,6 +36,38 @@ int main() {
         const auto data=rloft::host_voc::decode_pcm8_mono(correct);
         check(data.rate_hz==8000u && data.pcm8==std::vector<Byte>({0u,127u,255u,64u}),
               "Original Creative Voice type-1/2 PCM sample contents diverged");
+        // The real original CODE.2 27F24 resource carries LE32 data size
+        // immediately before the VOC bytes copied to its driver buffer.
+        std::vector<Byte> packet{
+            Byte(correct.size()), Byte(correct.size()>>8u),
+            Byte(correct.size()>>16u), Byte(correct.size()>>24u)};
+        packet.insert(packet.end(),correct.begin(),correct.end());
+        const auto decoded_packet=
+            rloft::source_audio::decode_original_length_prefixed_voc(packet);
+        check(decoded_packet.pcm8==data.pcm8 &&
+              decoded_packet.rate_hz==data.rate_hz,
+              "Original 27F24 resource length prefix changed PCM payload");
+        auto wrong_packet=packet;
+        wrong_packet[0]=static_cast<Byte>(wrong_packet[0]+1u);
+        try {
+            (void)rloft::source_audio::decode_original_length_prefixed_voc(wrong_packet);
+            throw std::logic_error("Original sound packet's mismatched size was accepted");
+        } catch(const std::runtime_error&) {}
+        wrong_packet=packet;
+        wrong_packet.pop_back();
+        try {
+            (void)rloft::source_audio::decode_original_length_prefixed_voc(wrong_packet);
+            throw std::logic_error("Truncated original sound packet was accepted");
+        } catch(const std::runtime_error&) {}
+        wrong_packet=packet;
+        wrong_packet[0]=0xFFu;
+        wrong_packet[1]=0xFFu;
+        wrong_packet[2]=0xFFu;
+        wrong_packet[3]=0xFFu;
+        try {
+            (void)rloft::source_audio::decode_original_length_prefixed_voc(wrong_packet);
+            throw std::logic_error("Overflowing original sound packet was accepted");
+        } catch(const std::runtime_error&) {}
         auto bad=correct;
         bad[0]='x'; reject(bad,"magic mismatch");
         bad=correct;bad[24]^=1u;reject(bad,"checksum mismatch");
@@ -46,6 +79,7 @@ int main() {
         bad=correct;bad.push_back(0x42u);reject(bad,"non-padding after terminator");
         std::cout<<"RLOFT_PRIVATE_VOC_PCM8_STRICT_SOURCE_TEST_PASS"
                  <<" type1_and_type2=VERIFIED"
+                 <<" original_27F24_packet_length=VERIFIED"
                  <<" rate_hz=8000"
                  <<" unsupported_formats=REJECTED"
                  <<" sample_bytes=SYNTHETIC_ONLY"
