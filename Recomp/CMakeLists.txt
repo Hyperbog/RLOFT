@@ -773,3 +773,18 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_28168_host_sfx_status_boundary
         COMMAND rloft_original_source_winmm_boundary_test)
 endif()
+
+# First native Level22 window: original CODE2 module and Win32 VGA scanout.
+if(WIN32)
+    add_executable(rloft_code2_level22_window
+        src/original_code2_level22_window.cpp src/original_le_image.cpp)
+    set_target_properties(rloft_code2_level22_window PROPERTIES
+        CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    if(MSVC)
+        target_compile_options(rloft_code2_level22_window PRIVATE /Od /bigobj /W3)
+    else()
+        target_compile_options(rloft_code2_level22_window PRIVATE -O0 -Wall -Wextra -Wpedantic)
+    endif()
+    target_link_libraries(rloft_code2_level22_window
+        PRIVATE Threads::Threads winmm user32 gdi32)
+endif()
