@@ -11,6 +11,7 @@
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_scene.hpp"
 #include "original_source_winmm_bridge.hpp"
+#include "original_code2_script_preflight.hpp"
 #include "../../Code2/graphics/original_res_type6.hpp"
 #include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
