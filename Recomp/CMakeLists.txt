@@ -753,3 +753,23 @@ if(BUILD_TESTING)
     add_test(NAME canonical_code2_original_2e120_2dbac_camera_source
         COMMAND rloft_original_code2_2e120_camera_source_test)
 endif()
+
+# Source 28168->27F24 real host driver boundary. This test does NOT
+# request a host sound device; it proves no fake status/completion on
+# invalid/unprepared digital SFX before native output is available.
+add_executable(rloft_original_source_winmm_boundary_test
+    src/test_original_source_winmm_bridge.cpp)
+set_target_properties(rloft_original_source_winmm_boundary_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(WIN32)
+    target_link_libraries(rloft_original_source_winmm_boundary_test PRIVATE winmm)
+endif()
+if(MSVC)
+    target_compile_options(rloft_original_source_winmm_boundary_test PRIVATE /Od /W3)
+else()
+    target_compile_options(rloft_original_source_winmm_boundary_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_28168_host_sfx_status_boundary
+        COMMAND rloft_original_source_winmm_boundary_test)
+endif()
