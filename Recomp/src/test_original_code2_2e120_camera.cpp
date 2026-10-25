@@ -1,3 +1,4 @@
+#include "original_code2_script_preflight.hpp"
 // Compile and execute ORIGINAL reconstructed CODE.2 movement, camera,
 // and tile-collision functions. All guest bytes here are synthetic test
 // fixtures, never mistaken for original Level 22 retail framebuffer parity.
@@ -194,6 +195,86 @@ void test_original_20c0c_animated_tile_event() {
     check(again==0u && original_tile_sound_requests==1u,
           "Source tile transition fired SFX twice without a state change");
 }
+
+SyntheticGuest* active_script_fixture=nullptr;
+void script_set_bit(u32 bit) {
+    code2::function_1c124(active_script_fixture->machine,bit);
+}
+void script_toggle_bit(u32 bit) {
+    code2::function_1c1a0(active_script_fixture->machine,bit);
+}
+unsigned script_sound_requests=0u;
+u32 script_last_sound_id=0u;
+void script_queue_sound(u32 id,u32 aux,u32 channel,u32 priority) {
+    if(aux!=0xFFu || channel!=0u || priority!=0u)
+        throw std::runtime_error("Original 002A8 sound callback arguments changed");
+    script_last_sound_id=id;
+    ++script_sound_requests;
+}
+void test_original_002a8_live_script_operations() {
+    SyntheticGuest f;
+    active_script_fixture=&f;
+    constexpr u32 scripts=0x23000u; // 50 x 26 original descriptor bytes.
+    f.put32(0xCF44u,scripts);
+    code2::Dispatch002A8Boundary dispatch{};
+    dispatch.call_1c124=&script_set_bit;
+    dispatch.call_1c1a0=&script_toggle_bit;
+    dispatch.call_28110=&script_queue_sound;
+    // Original tile setter + bit setter + BF44: all write via compiled 002A8.
+    f.data[scripts]=3u;
+    f.data[scripts+1u]=4u;
+    f.data[scripts+2u]=5u; f.data[scripts+3u]=4u;
+    f.data[scripts+4u]=0x23u;
+    f.data[scripts+6u]=8u; f.data[scripts+9u]=0x3Au;
+    f.data[scripts+11u]=12u; f.data[scripts+14u]=0x2Eu;
+    const u32 tile=0x198E0u+(5u*16u+4u)*2u;
+    f.put16(tile,0xFFC0u);
+    auto ok=rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,0);
+    check(ok.accepted && ok.commands==3u,"Original 002A8 script unexpectedly rejected");
+    code2::function_002a8(f.machine,dispatch,0);
+    check((code2::load_le16(f.data.data()+tile)&0x3Fu)==0x23u &&
+          code2::function_1c1dc(f.machine,0x3Au)!=0u &&
+          f.get32(0xBF44u)==0x2Eu,
+          "Original compiled 002A8 failed tile/bit/BF44 side effects");
+
+    // Original sound opcode passes the LE32 payload to the 28110 callback.
+    const u32 second=scripts+0x1Au;
+    f.data[second]=1u;f.data[second+1u]=5u;
+    f.put32(second+4u,0x35u);
+    ok=rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,1);
+    check(ok.accepted,"Original 002A8 source sound event rejected");
+    script_sound_requests=0u; script_last_sound_id=0u;
+    code2::function_002a8(f.machine,dispatch,1);
+    check(script_sound_requests==1u && script_last_sound_id==0x35u,
+          "Original compiled 002A8 sound opcode did not queue exact request");
+
+    // Whole-descriptor preflight blocks 7 (unconnected frame/dialog path)
+    // even if an earlier command would otherwise change a live flag.
+    const u32 third=scripts+2u*0x1Au;
+    f.data[third]=2u;
+    f.data[third+1u]=8u;f.data[third+4u]=0x3Bu;
+    f.data[third+6u]=7u;
+    ok=rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,2);
+    check(!ok.accepted && code2::function_1c1dc(f.machine,0x3Bu)==0u,
+          "Unconnected original 002A8 opcode was partially executed");
+    f.data[third]=6u;
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,2).accepted,
+          "Oversized original 1A-byte script descriptor accepted");
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),scripts,50).accepted,
+          "Beyond 50 fixed original script descriptors was accepted");
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),0u,0).accepted,
+          "Missing original CF44 script table was accepted");
+    check(rloft::source_script::validate(
+        f.data.data(),f.data.size(),0u,-1).accepted,
+          "Original -1 no-script sentinel was rejected");
+    active_script_fixture=nullptr;
+}
 void test_signed_accumulation_and_absolute_motion() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -218,6 +299,7 @@ int main(){
         test_original_20c0c_animated_tile_event();
         test_original_special_event_source_page_refresh();
         test_sustained_original_camera_and_heading();
+        test_original_002a8_live_script_operations();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
                  <<" displacement=ORIGINAL_2DBAC"
@@ -225,6 +307,7 @@ int main(){
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
+                 <<" bounded_script_dispatch=ORIGINAL_002A8"
                  <<" page_handoff=ORIGINAL_1EA78_1A510"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"

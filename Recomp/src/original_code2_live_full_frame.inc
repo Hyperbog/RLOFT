@@ -1,3 +1,5 @@
+#include "original_code2_script_preflight.hpp"
+
 // Defined below this include in the same startup translation unit.
 void original_world_sweep_335dc() noexcept;
 u32 original_world_sintab_end() noexcept;
@@ -759,8 +761,49 @@ void original_full_movement_effect(
     (void)code2::function_20c0c(current->machine,source,
             static_cast<u32>(y),static_cast<u32>(x),record);
 }
-void original_full_movement_script(code2::s32) noexcept {
-    stop("ORIGINAL_2DBAC_MOVEMENT_SCRIPT_NOT_CONNECTED");
+// Connect the original fixed-size 002A8 descriptor dispatcher. A rejected
+// script is refused BEFORE any source opcode has changed the guest.
+u32 original_full_script_record(u32 row,u32 col) noexcept {
+    const u32 record=code2::function_1e8c8(current->machine,row,col);
+    if(record && std::uint64_t(record)+10u>current->data.size())
+        stop("ORIGINAL_002A8_SOURCE_OBJECT_RECORD_OUT_OF_GUEST");
+    return record;
+}
+void original_full_script_tile(u32 row,u32 col,u32 record) noexcept {
+    original_full_movement_effect(static_cast<code2::s32>(row),
+                                  static_cast<code2::s32>(col),record);
+}
+void original_full_script_clear_bit(u32 bit,u32 /*original live EBX*/) noexcept {
+    code2::function_1c160(current->machine,bit);
+}
+void original_full_script_toggle_bit(u32 bit) noexcept {
+    code2::function_1c1a0(current->machine,bit);
+}
+void original_full_movement_script(code2::s32 index) noexcept {
+    if(!current || !current->original_vga || !original_full_frame_trace)
+        stop("ORIGINAL_002A8_SCRIPT_OUTSIDE_RETAINED_GAMEPLAY");
+    const auto table=code2::load_le32(current->data.data()+0xCF44u);
+    const auto checked=rloft::source_script::validate(
+        current->data.data(),current->data.size(),table,index);
+    if(!checked.accepted) {
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SCRIPT=PRE_EXECUTION_REJECTED"
+                 <<" index="<<index<<" reason="<<checked.reason
+                 <<" original_guest_mutated=NO\n"<<std::flush;
+        stop("ORIGINAL_002A8_SCRIPT_REQUIRES_UNCONNECTED_SOURCE");
+    }
+    if(index==-1)return; // Original 002A8 sentinel.
+    code2::Dispatch002A8Boundary dispatch{};
+    dispatch.call_1e8c8=&original_full_script_record;
+    dispatch.call_20c0c=&original_full_script_tile;
+    dispatch.call_28110=&original_full_movement_special_audio;
+    dispatch.call_1c124=&original_full_movement_bit_set;
+    dispatch.call_1c160=&original_full_script_clear_bit;
+    dispatch.call_1c1a0=&original_full_script_toggle_bit;
+    code2::function_002a8(current->machine,dispatch,index);
+    std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_SCRIPT=002A8_SOURCE_RETURN"
+             <<" index="<<index<<" commands="<<checked.commands
+             <<" supported_event_scope=BOUNDED"
+             <<" source_guest=RETAINED\n"<<std::flush;
 }
 u32 original_full_movement_predicate(u32) noexcept {
     stop("ORIGINAL_2D5D0_SPECIAL_TILE_PREDICATE_NOT_CONNECTED");
