@@ -481,8 +481,13 @@ target_link_libraries(rloft_code1_code2_staged_boot PRIVATE Threads::Threads)
 # Experimental original CODE.2 28168 -> 27F24 host SFX adapter links to
 # actual WinMM APIs. Never link a fake device on non-Windows platforms.
 if(WIN32)
-    target_link_libraries(rloft_code2_startup_gate PRIVATE winmm)
-    target_link_libraries(rloft_code1_code2_staged_boot PRIVATE winmm)
+    foreach(target IN ITEMS
+            rloft_code2_startup_gate
+            rloft_code1_code2_staged_boot
+            rloft_original_code2_init_resources
+            rloft_original_code2_stackful_mouse_gate)
+        target_link_libraries(${target} PRIVATE winmm)
+    endforeach()
 endif()
 target_link_libraries(rloft_original_code2_stackful_mouse_gate PRIVATE Threads::Threads)
 add_executable(rloft_original_guest_continuation_test
