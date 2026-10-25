@@ -822,6 +822,8 @@ void original_full_2e120_movement_service() noexcept {
     secondary.call_1c1dc=&original_full_movement_bit_query;
     secondary.call_1c124=&original_full_movement_bit_set;
     secondary.call_1c160=&original_full_movement_bit_clear;
+    secondary.call_2acdc=&code2::function_2acdc;
+    secondary.call_1ea78=&original_full_movement_refresh;
     collision.app65=&secondary;
     code2::Application67Boundary movement{};
     movement.app66=&collision;
