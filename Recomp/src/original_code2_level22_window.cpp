@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <cstring>
 #include <filesystem>
@@ -52,8 +53,11 @@ struct LiveWindow final {
            "RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF",
            "RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE",
            "RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE"}) {
-            if(!SetEnvironmentVariableA(name,"1"))
-                throw std::runtime_error(std::string("Failed to enable original-source mode: ")+name);
+            // MSVC std::getenv reads the CRT-owned _environ array.
+            // SetEnvironmentVariableA alone does not synchronize it.
+            if(_putenv_s(name,"1")!=0 || !std::getenv(name) ||
+               std::strcmp(std::getenv(name),"1")!=0)
+                throw std::runtime_error(std::string("Failed to enable original-source CRT mode: ")+name);
         }
         // Do not opt into digital SFX automatically. Its native driver
         // acceptance boundary remains distinct from rendering/playback.
