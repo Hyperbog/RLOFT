@@ -687,6 +687,102 @@ void original_full_274a4_source() noexcept {
     }
     ++original_full_frame_trace->compass_source_returns;
 }
+// Original CODE.2 1FC14 -> 2E120 -> 2DF2C -> 2DBAC movement
+// edge. Opt-in only, because retail collision event/teleport callbacks
+// and original time progression remain incomplete. No host writes to
+// guest camera/heading occur here: only the compiled original routines
+// can change those values.
+u32 original_full_movement_record(code2::s32 x,code2::s32 y) noexcept {
+    const s32 width=static_cast<code2::s16>(
+        code2::load_le16(current->data.data()+0x25619u));
+    const s32 height=static_cast<code2::s16>(
+        code2::load_le16(current->data.data()+0x2561Bu));
+    if(x<0 || y<0 || x>=width || y>=height)
+        stop("ORIGINAL_2D5D0_MOVEMENT_RECORD_OUT_OF_MAP");
+    return code2::function_1e8c8(
+        current->machine,static_cast<u32>(x),static_cast<u32>(y));
+}
+u32 original_full_movement_marker(u32 tile) noexcept {
+    const s32 width=static_cast<code2::s16>(
+        code2::load_le16(current->data.data()+0x25619u));
+    const s32 height=static_cast<code2::s16>(
+        code2::load_le16(current->data.data()+0x2561Bu));
+    if(width<=0 || height<=0 ||
+       std::uint64_t(tile)>=std::uint64_t(width)*height)
+        stop("ORIGINAL_2D5D0_MOVEMENT_MARKER_OUT_OF_MAP");
+    code2::Application43Boundary originals{};
+    return code2::function_1e930(current->machine,originals,tile);
+}
+void original_full_movement_event(u32) noexcept {
+    stop("ORIGINAL_2DBAC_MOVEMENT_LEVEL_TRANSITION_NOT_CONNECTED");
+}
+void original_full_movement_effect(u32,u32,u32) noexcept {
+    stop("ORIGINAL_2D5D0_SPECIAL_TILE_EFFECT_NOT_CONNECTED");
+}
+void original_full_movement_script(code2::s32) noexcept {
+    stop("ORIGINAL_2DBAC_MOVEMENT_SCRIPT_NOT_CONNECTED");
+}
+u32 original_full_movement_predicate(u32) noexcept {
+    stop("ORIGINAL_2D5D0_SPECIAL_TILE_PREDICATE_NOT_CONNECTED");
+}
+void original_full_movement_refresh() noexcept {
+    stop("ORIGINAL_2DBAC_MOVEMENT_REFRESH_NOT_CONNECTED");
+}
+void original_full_movement_heading(u32) noexcept {
+    stop("ORIGINAL_2DBAC_SPECIAL_HEADING_HANDLER_NOT_CONNECTED");
+}
+void original_full_2e120_movement_service() noexcept {
+    if(!current || !current->original_vga ||
+       !current->game_audio.app68 ||
+       !original_full_frame_trace)
+        stop("ORIGINAL_2E120_MOVEMENT_NOT_AT_RETAINED_GUEST");
+    const auto* const guest=current->data.data();
+    const u32 before_x=code2::load_le32(guest+0x255D0u);
+    const u32 before_y=code2::load_le32(guest+0x255D4u);
+    const u32 before_heading=code2::load_le32(guest+0xC658u);
+    const u32 before_dx=code2::load_le32(guest+0xC6E8u);
+    const u32 before_dy=code2::load_le32(guest+0xC6ECu);
+    const u32 before_turn=code2::load_le32(guest+0xC6F0u);
+
+    code2::Application66Boundary collision{};
+    collision.call_1e8c8=&original_full_movement_record;
+    collision.call_1e930=&original_full_movement_marker;
+    collision.call_20c0c=&original_full_movement_effect;
+    collision.call_002a8=&original_full_movement_script;
+    collision.call_181b4=&original_full_movement_event;
+    collision.call_e0f8=&original_full_movement_predicate;
+    collision.call_1c0c0=&original_full_movement_heading;
+    collision.call_1ea78=&original_full_movement_refresh;
+    // The original secondary collision Application65 graph is not
+    // connected. This probe can test the source primary tile/actor
+    // collision but cannot certify all original interactions.
+    code2::Application67Boundary movement{};
+    movement.app66=&collision;
+    movement.call_35680=&code2::function_35680;
+    movement.call_369a7=&code2::function_369a7;
+    code2::function_2e120(current->machine,movement);
+    if(current->data.data()!=guest)
+        stop("ORIGINAL_2E120_MOVEMENT_GUEST_RELOCATED");
+    const u32 after_x=code2::load_le32(guest+0x255D0u);
+    const u32 after_y=code2::load_le32(guest+0x255D4u);
+    const u32 after_heading=code2::load_le32(guest+0xC658u);
+    if(after_heading>=360u)
+        stop("ORIGINAL_2E120_MOVEMENT_HEADING_OUT_OF_RANGE");
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2E120_MOVEMENT_SOURCE_RETURN"
+             <<" pre_x="<<before_x<<" post_x="<<after_x
+             <<" pre_y="<<before_y<<" post_y="<<after_y
+             <<" pre_heading="<<before_heading
+             <<" post_heading="<<after_heading
+             <<" input_dx="<<before_dx
+             <<" input_dy="<<before_dy
+             <<" input_turn="<<before_turn
+             <<" camera_displaced="<<((after_x!=before_x || after_y!=before_y)?1:0)
+             <<" heading_changed="<<(after_heading!=before_heading?1:0)
+             <<" source_2e120=EXECUTED"
+             <<" source_2dbac=PRIMARY_COLLISION_ONLY"
+             <<" secondary_actor_collision=NOT_CONNECTED"
+             <<" host_pose_writes=NONE\n"<<std::flush;
+}
 void original_full_28168_audio_service() noexcept {
     // Original 1FC14 invokes 28168 after party HUD. The compiled
     // 28168 selects and consumes requests, then calls compiled 27F24.
