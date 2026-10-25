@@ -150,6 +150,29 @@ void test_sustained_original_camera_and_heading() {
     check(f.get32(0xC658u)==0u,
           "Original turning accumulator failed to restore source heading");
 }
+unsigned original_tile_sound_requests=0u;
+void trace_original_tile_sound(u32,u32,u32,u32) {
+    ++original_tile_sound_requests;
+}
+void test_original_20c0c_animated_tile_event() {
+    SyntheticGuest f;
+    constexpr u32 rec=0x23000u;
+    f.data[rec+1u]=5u; // original active bit + type 1
+    f.data[rec+4u]=5u; // original cell row
+    f.data[rec+5u]=4u; // original cell column
+    f.data[rec+6u]=0u;
+    f.data[rec+7u]=0u;
+    code2::Application46Boundary b{};
+    b.call_28110=&trace_original_tile_sound;
+    original_tile_sound_requests=0u;
+    const u32 changed=code2::function_20c0c(f.machine,b,5u,4u,rec);
+    check(changed==1u && f.data[rec+7u]==1u &&
+          f.data[0xCF50u]==1u && original_tile_sound_requests==1u,
+          "Source 20C0C did not activate animated tile and enqueue 20A24 SFX");
+    const u32 again=code2::function_20c0c(f.machine,b,5u,4u,rec);
+    check(again==0u && original_tile_sound_requests==1u,
+          "Source tile transition fired SFX twice without a state change");
+}
 void test_signed_accumulation_and_absolute_motion() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -171,6 +194,7 @@ int main(){
         test_signed_accumulation_and_absolute_motion();
         test_secondary_object_collision();
         test_original_secondary_level_event();
+        test_original_20c0c_animated_tile_event();
         test_sustained_original_camera_and_heading();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
@@ -178,6 +202,7 @@ int main(){
                  <<" tile_collision=ORIGINAL_2D5D0"
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
+                 <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"
                  <<" synthetic_guest=ONLY"
