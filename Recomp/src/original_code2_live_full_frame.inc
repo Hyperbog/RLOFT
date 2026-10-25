@@ -822,6 +822,26 @@ void original_full_script_moving_record(
     code2::function_08a80(current->machine,b,type,angle,
                            static_cast<code2::s32>(owner),packed_x,packed_y);
 }
+// Original opcode 6 music stop/reset/play. These only run while original
+// EE78 is disabled; source 28DCC/28EF0/28C54 themselves short-circuit.
+void original_full_script_music_stop(u32 arg) noexcept {
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+        stop("ORIGINAL_002A8_MUSIC_DEVICE_ACTIVATED_DURING_SCRIPT");
+    code2::Application56Boundary b{};
+    code2::function_28dcc(current->machine,b,arg);
+}
+void original_full_script_music_reset() noexcept {
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+        stop("ORIGINAL_002A8_MUSIC_DEVICE_ACTIVATED_DURING_SCRIPT");
+    code2::Application56Boundary b{};
+    code2::function_28ef0(current->machine,b);
+}
+void original_full_script_music_play(u32 resource,u32 slot) noexcept {
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+        stop("ORIGINAL_002A8_MUSIC_DEVICE_ACTIVATED_DURING_SCRIPT");
+    code2::Application56Boundary b{};
+    code2::function_28c54(current->machine,b,resource,slot);
+}
 void original_full_movement_script(code2::s32 index) noexcept {
     if(!current || !current->original_vga || !original_full_frame_trace)
         stop("ORIGINAL_002A8_SCRIPT_OUTSIDE_RETAINED_GAMEPLAY");
@@ -843,6 +863,9 @@ void original_full_movement_script(code2::s32 index) noexcept {
     dispatch.call_1c160=&original_full_script_clear_bit;
     dispatch.call_1c1a0=&original_full_script_toggle_bit;
     dispatch.call_08a80=&original_full_script_moving_record;
+    dispatch.call_28dcc=&original_full_script_music_stop;
+    dispatch.call_28ef0=&original_full_script_music_reset;
+    dispatch.call_28c54=&original_full_script_music_play;
     code2::EarlyBoundaries early{};
     early.call_1c1dc=+[](u32 bit) noexcept -> u32 {
         return code2::function_1c1dc(current->machine,bit);

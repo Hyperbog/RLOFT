@@ -10,6 +10,8 @@
 
 - Original \`002A8\` nested opcode **11** executes the latched return branches for source \`000B8\` (event bit \`0x3D\`) and \`001FC\` (bit \`0x46\`) through compiled source. All other early handlers require UI/selection callback work and remain guarded.
 
+- Original script opcode **6** (music stop/reset/play) now executes compiled \`28DCC\`, \`28EF0\` and \`28C54\` when the actual source \`EE78\` music device is disabled. An active driver still requires genuine audio callbacks and is guarded; no audible claim is made.
+
 ## Cross-level frontier (not accepted)
 
 A transition to another level is more than a change to `C6C8`. Source `181B4` first invokes original `171FC` persistence of the departing level, then closes old graphic/actor/script allocations, reads the destination `LEVxxx.DAT` or `LEVELS.DAT`, performs `17A68` NPC transformations, and refreshes display/music mode. The retained live loader remains boot-scoped to Level 22 and has one-shot scene-state counter assertions. Executing those callbacks against an unverified live world risks irreversible mid-level guest mutation.

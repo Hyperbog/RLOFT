@@ -333,6 +333,51 @@ void test_original_002a8_moving_record_source() {
 u32 source_early_query(u32 bit) {
     return code2::function_1c1dc(active_script_fixture->machine,bit);
 }
+unsigned original_music_callback_count=0u;
+void source_music_stop(u32 id) {
+    check(id==0x9C4u,"Original 002A8 changed source music stop handle");
+    code2::Application56Boundary b{};
+    code2::function_28dcc(active_script_fixture->machine,b,id);
+    ++original_music_callback_count;
+}
+void source_music_reset() {
+    code2::Application56Boundary b{};
+    code2::function_28ef0(active_script_fixture->machine,b);
+    ++original_music_callback_count;
+}
+void source_music_play(u32 resource,u32 slot) {
+    check(resource==0x123u && slot==1u,"Original 002A8 music resource/slot changed");
+    code2::Application56Boundary b{};
+    code2::function_28c54(active_script_fixture->machine,b,resource,slot);
+    ++original_music_callback_count;
+}
+void test_original_002a8_disabled_music_source() {
+    SyntheticGuest f;
+    active_script_fixture=&f;
+    constexpr u32 table=0x23000u;
+    f.put32(0xCF44u,table);
+    f.put32(0xEE78u,0u); // Real source music device disabled.
+    f.put32(0xEF24u,0x1234u);
+    f.data[table]=1u;
+    f.data[table+1u]=6u;
+    f.put32(table+4u,0x123u);
+    code2::Dispatch002A8Boundary dispatch{};
+    dispatch.call_28dcc=&source_music_stop;
+    dispatch.call_28ef0=&source_music_reset;
+    dispatch.call_28c54=&source_music_play;
+    auto checked=rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0);
+    check(checked.accepted,"Original disabled music 002A8 operation rejected");
+    original_music_callback_count=0u;
+    code2::function_002a8(f.machine,dispatch,0);
+    check(original_music_callback_count==3u && f.get32(0xEF24u)==0x1234u,
+          "Original 28DCC/28EF0/28C54 disabled device short-circuit changed");
+    f.put32(0xEE78u,1u);
+    check(!rloft::source_script::validate(
+        f.data.data(),f.data.size(),table,0).accepted,
+          "Unconnected active original music device escaped source preflight");
+    active_script_fixture=nullptr;
+}
 void test_original_002a8_latched_early_handlers() {
     SyntheticGuest f;
     active_script_fixture=&f;
@@ -464,6 +509,7 @@ int main(){
         test_original_002a8_live_script_operations();
         test_original_002a8_moving_record_source();
         test_original_002a8_latched_early_handlers();
+        test_original_002a8_disabled_music_source();
         std::cout<<"ORIGINAL_CODE2_2E120_2DBAC_CAMERA_SOURCE_TEST_PASS"
                  <<" heading=ORIGINAL_2E120"
                  <<" displacement=ORIGINAL_2DBAC"
@@ -475,6 +521,7 @@ int main(){
                  <<" bounded_script_dispatch=ORIGINAL_002A8"
                  <<" moving_record=ORIGINAL_08A80_TYPE0_TO8_GUARDED"
                  <<" latched_early=ORIGINAL_000B8_001FC_SOURCE"
+                 <<" disabled_music=ORIGINAL_28DCC_28EF0_28C54_SOURCE"
                  <<" page_handoff=ORIGINAL_1EA78_1A510"
                  <<" sustained_motion_ticks=5"
                  <<" heading_turns=2"

@@ -57,6 +57,14 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
             // Exact compiled 28110 sound queue, world event flags, BF44.
             case 5u: case 8u: case 9u: case 10u: case 12u:
                 break;
+            // Source 28DCC/28EF0/28C54 all short-circuit without
+            // touching guest state if the ORIGINAL EE78 music device
+            // handle is disabled. Do not pretend music is audible.
+            case 6u:
+                if(guest[0xEE78u]!=0u || guest[0xEE79u]!=0u ||
+                   guest[0xEE7Au]!=0u || guest[0xEE7Bu]!=0u)
+                    return {false,"SOURCE_SCRIPT_MUSIC_DEVICE_CALLBACK_OPEN",count};
+                break;
             // Source 002A8 opcode 3 invokes ORIGINAL 08A80. All types 0..8
             // use the original source, but 0..7 are guarded against
             // entering the unresolved 22E90 collision-reposition loop.
@@ -130,7 +138,7 @@ inline Validation validate(const std::uint8_t* guest, std::size_t size,
                     return {false,"SOURCE_EARLY_SCRIPT_REQUIRES_UNCONNECTED_UI",count};
                 break;
             }
-            // 6 dialogue and 7 synchronized display are not connected.
+            // 7 synchronized display/dialogue remains unconnected.
             default:
                 return {false,"SOURCE_SCRIPT_OPCODE_NEEDS_UNCONNECTED_SERVICE",count};
         }
