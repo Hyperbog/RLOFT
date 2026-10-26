@@ -5,6 +5,8 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <new>
+#include <utility>
 #include <stdexcept>
 #include <vector>
 namespace {
@@ -83,6 +85,19 @@ void test_read_write() {
 }
 void test_saved_snapshot_install() {
     using rloft::live_level_files::Overlay;
+    // Deterministic allocation-failure injection exercises the exact
+    // exception handler used by Overlay::install_saved_snapshot.
+    struct NoMemoryMap {
+        std::pair<int,bool> try_emplace(std::uint32_t,
+                                         std::vector<std::uint8_t>&&) {
+            throw std::bad_alloc();
+        }
+    };
+    NoMemoryMap no_memory{};
+    std::vector<std::uint8_t> rejected{0x11u,0x22u};
+    verify(!Overlay::try_install_into(no_memory,23u,rejected) &&
+           rejected==std::vector<std::uint8_t>({0x11u,0x22u}),
+           "Allocation failure escaped noexcept snapshot handler or consumed saved source bytes");
     Overlay owner;
     std::vector<std::uint8_t> authentic_fixture{1u,2u,3u,4u};
     verify(owner.install_saved_snapshot(23u,authentic_fixture) &&

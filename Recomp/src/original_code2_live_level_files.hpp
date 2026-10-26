@@ -67,14 +67,23 @@ struct Overlay {
             failed=true;
             return false;
         }
-        try {
-            const auto inserted=levels.try_emplace(level,std::move(bytes));
-            if(!inserted.second) {failed=true;return false;}
-        }catch(const std::exception&) {
+        if(!try_install_into(levels,level,bytes)) {
             failed=true;
             return false;
         }
         return true;
+    }
+    // The same actual noexcept insertion boundary can be exercised with
+    // a deterministic throwing map in media-free CTests. This is not a
+    // fallback guest snapshot or an allocation bypass in production.
+    template<class Map>
+    static bool try_install_into(Map& target,std::uint32_t level,
+                                 std::vector<std::uint8_t>& bytes) noexcept {
+        try {
+            return target.try_emplace(level,std::move(bytes)).second;
+        }catch(const std::exception&) {
+            return false;
+        }
     }
     bool has(std::uint32_t level) const noexcept {
         return levels.find(level)!=levels.end();
