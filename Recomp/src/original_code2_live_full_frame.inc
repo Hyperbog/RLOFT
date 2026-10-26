@@ -506,9 +506,15 @@ void original_full_scene_clear(u32 dst,u32 value,u32 count) noexcept {
        std::uint64_t(dst)+count>current->data.size() ||
        count!=0x1130u)
         stop("ORIGINAL_2C294_RECORD_CLEAR_CHANGED");
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_30D30_RECORD_CLEAR_ENTER"
+                 <<" dst="<<dst<<" count="<<count<<"\n"<<std::flush;
     code2::Application72Boundary memory{};
     memory.call_379d0=&original_full_actor_fill_guest;
     (void)code2::function_30d30(memory,dst,value,count);
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_30D30_RECORD_CLEAR_RETURN"
+                 <<" dst="<<dst<<"\n"<<std::flush;
 }
 u32 original_full_scene_random() noexcept {
     // After 1A510, original 1F120 reaches 30CA2 only after
@@ -664,6 +670,12 @@ void original_full_2c294_source() noexcept {
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
         std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_LEVEL23_SOURCE_ENTER"
                  <<" actor_returns="<<original_full_frame_trace->actor_update_returns
+                 <<" guest_C050="<<code2::load_le32(current->data.data()+0xC050u)
+                 <<" count_C038="<<code2::load_le32(current->data.data()+0xC038u)
+                 <<" family_258A2="<<code2::load_le16(current->data.data()+0x258A2u)
+                 <<" family_258A4="<<code2::load_le16(current->data.data()+0x258A4u)
+                 <<" family_258A6="<<code2::load_le16(current->data.data()+0x258A6u)
+                 <<" scene_count_F038="<<code2::load_le16(current->data.data()+0xF038u)
                  <<"\n"<<std::flush;
     code2::function_2c294(current->machine,scene);
     ++original_full_frame_trace->scene_projection_returns;
