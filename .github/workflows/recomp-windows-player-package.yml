@@ -58,15 +58,15 @@ jobs:
             'Run Play-RLOFT-Level22.cmd or Launch-RLOFT-Level22.ps1 with -GameFolder and optionally -CdRoot.'
             'Full portal framebuffer and independent original DOS parity are NOT certified.'
           ) | Set-Content -Path (Join-Path $out 'README-BUILD.txt')
-          Get-ChildItem -File $out | Get-FileHash -Algorithm SHA256 |
+          Get-ChildItem -File $out | Sort-Object Name | Get-FileHash -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash.ToLowerInvariant()) *$([IO.Path]::GetFileName($_.Path))" } |
             Set-Content -Path (Join-Path $out 'SHA256SUMS.txt')
-          $zip = "build/player/RLOFT-Recomp-Player-${{ github.run_number }}.zip"
-          Compress-Archive -Path "$out/*" -DestinationPath $zip -Force
-          Write-Host "BUILD_SOURCE_SHA=${{ github.sha }} archive=$zip"
+          # Actions artifacts download as a ZIP already. Upload contents
+          # directly to avoid an unnecessary ZIP nested inside another ZIP.
+          Write-Host "BUILD_SOURCE_SHA=${{ github.sha }} package_dir=$out"
       - uses: actions/upload-artifact@v4
         with:
           name: RLOFT-Recomp-Player-Windows-${{ github.run_number }}
-          path: build/player/RLOFT-Recomp-Player-*.zip
+          path: build/player/RLOFT-Recomp-Player/*
           if-no-files-found: error
           retention-days: 30
