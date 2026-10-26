@@ -106,7 +106,10 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // automap from the live map/record flags before 171FC writes it.
     // Skipping this step would serialize stale annotations.
     code2::Application04Boundary explored{};
-    explored.call_1e8c8=&original_full_movement_record;
+    explored.call_1e8c8=+[](u32 a,u32 b) noexcept -> u32 {
+        return original_full_movement_record(
+            static_cast<code2::s32>(a),static_cast<code2::s32>(b));
+    };
     explored.call_1e930=&original_full_movement_marker;
     save.app04=&explored;
     save.call_1c1dc=&original_level_actor_quest;
