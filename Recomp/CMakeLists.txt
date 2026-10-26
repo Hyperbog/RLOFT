@@ -759,6 +759,22 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_saved_level_policy_test)
 endif()
 
+# Original 1C77C dialogue input text 1C368 indexed C-runtime / DOS reader.
+# Does not simulate modal user input or certify finished conversations.
+add_executable(rloft_original_code2_1c368_dialogue_text_test
+    src/test_original_code2_1c368_dialogue_text.cpp)
+set_target_properties(rloft_original_code2_1c368_dialogue_text_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_1c368_dialogue_text_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_1c368_dialogue_text_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_1c368_dialogue_indexed_dos_text_source
+        COMMAND rloft_original_code2_1c368_dialogue_text_test)
+endif()
+
 # Original 002A8 shared interpreter across mixed guest map/script opcodes.
 # Unsupported later dialogue is rejected before earlier guest mutations.
 add_executable(rloft_original_code2_002a8_script_source_test
