@@ -276,9 +276,23 @@ void original_181b4_live_transition(u32 requested) noexcept {
         render.call_22d70=&original_scene_clear_event_ring;
         render.call_2f868=&original_scene_poll_source_events;
         render.call_30b2c=&original_scene_finish_keyboard;
+        const u32 old_mode=code2::load_le32(current->data.data()+0xC034u);
+        const auto prior_frames=current->original_scene_presentations;
+        const auto prior_dac=current->original_source_dac_streams;
         code2::function_1f8e0(current->machine,render,mode);
         if(code2::load_le32(current->data.data()+0xC034u)!=mode)
             stop("ORIGINAL_181B4_1F8FC_GRAPHICS_MODE_NOT_COMMITTED");
+        if(old_mode!=mode) {
+            // The source 1F8FC compositor must really present a new VGA
+            // frame and stream the source 29234 palette once; host-side
+            // incrementing without those witnesses would be imitation.
+            if(current->original_scene_presentations!=prior_frames+1u ||
+               current->original_source_dac_streams!=prior_dac+1u)
+                stop("ORIGINAL_181B4_1F8FC_SOURCE_COMPOSITOR_INCOMPLETE");
+            ++current->original_live_graphics_mode_switches;
+        } else if(current->original_scene_presentations!=prior_frames ||
+                  current->original_source_dac_streams!=prior_dac)
+            stop("ORIGINAL_181B4_1F8E0_UNCHANGED_MODE_MUTATED_VGA");
         std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1F8E0_SOURCE_RETURN"
                  <<" mode="<<mode<<" source_compositor=1F8FC"
                  <<" framebuffer_parity=NOT_CERTIFIED\n"<<std::flush;

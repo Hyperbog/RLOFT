@@ -168,6 +168,7 @@ struct Session {
     rloft::live_level_files::Overlay level_overlay{};
     bool original_level_transition_active=false;
     unsigned original_live_level_transitions=0u;
+    unsigned original_live_graphics_mode_switches=0u;
     u32 original_pending_level_frame=0xFFFFFFFFu;
     bool original_pending_level_scene_returned=false;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
@@ -1368,10 +1369,17 @@ void original_live_1f8fc_source_chain() noexcept;
 void original_full_prepare_1fc14_source_tick() noexcept;
 void original_full_audit_1fc14_previous_tick() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
-    // Source 1FC14 re-enters keyboard polling after 1F8FC presents.
-    // Account for actual extra 325B0 COLORS and 29234 DAC calls.
-    const bool rendered_frame=current->original_scene_presentations==1u;
-    if(current->original_scene_presentations>1u ||
+    // 1FC14 returns to this ORIGINAL 30B40 poll after 1F8FC's
+    // initial mode compositor. A real cross-level 1F8E0/1F8FC mode
+    // change presents another frame and streams another original 29234
+    // RGB6 palette. Count those genuine calls; rejecting a second
+    // 1F8FC would make every legal graphics-changing portal halt here.
+    const u32 mode_switches=current->original_live_graphics_mode_switches;
+    const bool rendered_frame=current->original_scene_presentations!=0u;
+    const u32 expected_presentations=rendered_frame?1u+mode_switches:0u;
+    const u32 expected_dac_streams=(rendered_frame?3u:2u)+mode_switches;
+    if(current->original_scene_presentations!=expected_presentations ||
+       mode_switches>current->original_live_level_transitions ||
        !current->live_continuation ||
        current->original_16d04_completed!=1u ||
        current->original_03838_completed!=1u ||
@@ -1388,7 +1396,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_20440_mouse_draws==0u ||
        current->original_source_page_pushes!=3u ||
        current->original_source_page_pops!=3u ||
-       current->original_source_dac_streams!=(rendered_frame?3u:2u) ||
+       current->original_source_dac_streams!=expected_dac_streams ||
        code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
