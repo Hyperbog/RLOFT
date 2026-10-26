@@ -203,6 +203,11 @@ struct Session {
     code2::Runtime39d4dBoundary heap_growth{};
     bool source_host_heap=false;
     unsigned host_heap_allocs=0,host_heap_growths=0,host_heap_releases=0;
+    // Owner-only diagnostic for authentic Level23 RES4:579 8,194-byte
+    // source allocation. It must never synthesize a successful pointer.
+    bool original_res4_579_heap_active=false;
+    unsigned original_res4_579_heap_retries=0;
+    unsigned original_res4_579_heap_growths=0;
 
     u32 arena_start=0x2C000u,arena_end=0x2D500u;
     u32 arena_header=0x2B800u;
@@ -339,6 +344,9 @@ void fixture_fill(u32 off,u8 value,u32 count) noexcept {
 // checked 0501 memory service and bounded arena-chain dispatch.
 code2::Runtime142Boundary::Dpmi0501Result host_heap_0501(u32 bytes) noexcept {
     auto& s=*current;
+    if(s.original_res4_579_heap_active && s.original_res4_579_heap_growths<=12u)
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_0501_ENTER bytes="<<bytes
+                 <<" host_allocs="<<s.host_heap_allocs<<"\n"<<std::flush;
     // Explicit 0501 failure drives the original CODE.2 39C7B DOS fallback.
     if(s.source_dos_fallback) {
         ++s.source_dpmi_denials;
@@ -351,6 +359,11 @@ code2::Runtime142Boundary::Dpmi0501Result host_heap_0501(u32 bytes) noexcept {
              s.data.data()+r.linear)
         stop("SOURCE_HEAP_DPMI_PAGE_MAPPING_FAILED");
     ++s.host_heap_allocs;
+    if(s.original_res4_579_heap_active && s.original_res4_579_heap_growths<=12u)
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_0501_RETURN"
+                 <<" linear="<<r.linear<<" committed="<<b->committed
+                 <<" growth_attempt="<<s.original_res4_579_heap_growths
+                 <<"\n"<<std::flush;
     return {false,r.linear,static_cast<u16>(r.handle>>16u),
             static_cast<u16>(r.handle)};
 }
@@ -422,8 +435,14 @@ bool host_heap_owned(u32 linear,std::size_t size) noexcept {
     return host_heap_owned(*current,linear,size);
 }
 u32 host_heap_39c7b(u32 n) noexcept {
+    if(current->original_res4_579_heap_active && current->original_res4_579_heap_growths<=12u)
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39C7B_ENTER requested="<<n
+                 <<"\n"<<std::flush;
     if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_ENTER requested="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39c7b(current->machine,current->heap_provider,n);
+    if(current->original_res4_579_heap_active && current->original_res4_579_heap_growths<=12u)
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39C7B_RETURN owner="<<result
+                 <<"\n"<<std::flush;
     if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39C7B_RETURN ptr="<<result<<"\n"<<std::flush;
     return result;
 }
@@ -474,13 +493,41 @@ u32 host_heap_39e1c(u32 n) noexcept {
 }
 u32 host_heap_39d4d(u32 n) noexcept {
     ++current->host_heap_growths;
+    if(current->original_res4_579_heap_active) {
+        const unsigned attempt=++current->original_res4_579_heap_growths;
+        if(attempt<=12u || attempt%16u==0u)
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39D4D_ENTER"
+                     <<" attempt="<<attempt<<" request="<<n
+                     <<" arena_root="<<code2::load_le32(current->data.data()+0x12624u)
+                     <<" growth_count="<<current->host_heap_growths
+                     <<"\n"<<std::flush;
+        // 37B42 loops until the ORIGINAL 39838 finds a usable block.
+        // Stop a demonstrably excessive repeated growth sequence rather
+        // than hanging native smoke. This never returns fabricated success.
+        if(attempt>64u)stop("ORIGINAL_RES4_579_37B42_HEAP_GROWTH_NO_PROGRESS");
+    }
     if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_ENTER bytes="<<n<<"\n"<<std::flush;
     const auto result=code2::function_39d4d(current->machine,current->heap_growth,n);
+    if(current->original_res4_579_heap_active &&
+       (current->original_res4_579_heap_growths<=12u ||
+        current->original_res4_579_heap_growths%16u==0u))
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39D4D_RETURN"
+                 <<" attempt="<<current->original_res4_579_heap_growths
+                 <<" success="<<result
+                 <<" root="<<code2::load_le32(current->data.data()+0x12624u)
+                 <<"\n"<<std::flush;
     if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39D4D_GROW_RETURN ptr="<<result<<"\n"<<std::flush;
     return result;
 }
 u32 host_heap_alloc(u32 root,u32 req) noexcept {
     auto& s=*current;
+    if(s.original_res4_579_heap_active &&
+       (++s.original_res4_579_heap_retries<=12u ||
+        s.original_res4_579_heap_retries%16u==0u))
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39838_SCAN"
+                 <<" retry="<<s.original_res4_579_heap_retries
+                 <<" root="<<code2::load_le32(s.data.data()+root)
+                 <<" req="<<req<<"\n"<<std::flush;
     if(root!=0x12624u || !req || req>0xFFFFFFD4u)
         stop("SOURCE_HEAP_ALLOC_ABI_CHANGED");
     if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=ARENA_ALLOC_ENTER bytes="<<req
@@ -495,6 +542,14 @@ u32 host_heap_alloc(u32 root,u32 req) noexcept {
         if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_ENTER node="<<node
                              <<" next="<<next<<"\n"<<std::flush;
         const u32 p=code2::function_39838(s.machine,node,req);
+        if(s.original_res4_579_heap_active &&
+           (s.original_res4_579_heap_retries<=12u ||
+            s.original_res4_579_heap_retries%16u==0u))
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_39838_RETURN"
+                     <<" retry="<<s.original_res4_579_heap_retries
+                     <<" node="<<node
+                     <<" arena_bytes="<<code2::load_le32(s.data.data()+node)
+                     <<" next="<<next<<" payload="<<p<<"\n"<<std::flush;
         if(tracing_original_136_byte_heap)std::cerr<<"CODE2_ORIGINAL_HEAP_TRACE=39838_RETURN ptr="<<p<<"\n"<<std::flush;
         if(p) {
             if(!host_heap_owned(p,req))
@@ -4688,6 +4743,17 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     current=&s;
     const bool previous_heap_trace=tracing_original_136_byte_heap;
     tracing_original_136_byte_heap=(bytes==136u);
+    const bool was_res4_heap=s.original_res4_579_heap_active;
+    s.original_res4_579_heap_active=(bytes==8194u &&
+        code2::load_le32(s.data.data()+0xC6C8u)==23u);
+    if(s.original_res4_579_heap_active) {
+        s.original_res4_579_heap_retries=0u;
+        s.original_res4_579_heap_growths=0u;
+        std::cerr<<"CODE2_ORIGINAL_RES4_579_HEAP_37B42_ENTER bytes="<<bytes
+                 <<" guest_size="<<s.data.size()
+                 <<" root="<<code2::load_le32(s.data.data()+0x12624u)
+                 <<"\n"<<std::flush;
+    }
     std::jmp_buf host_escape;
     auto* const previous_escape=s.active_escape;
     s.active_escape=&host_escape;
@@ -4700,6 +4766,7 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     if(boundary!=0) {
         s.active_escape=previous_escape;
         tracing_original_136_byte_heap=previous_heap_trace;
+        s.original_res4_579_heap_active=was_res4_heap;
         current=previous;
         throw std::runtime_error(std::string(
             "Original CODE.2 37B42 host heap stopped: ")+s.stop_reason);
@@ -4712,11 +4779,13 @@ std::uint32_t allocate_source_heap(Opaque* owner,std::uint32_t bytes) {
     }catch(...) {
         s.active_escape=previous_escape;
         tracing_original_136_byte_heap=previous_heap_trace;
+        s.original_res4_579_heap_active=was_res4_heap;
         current=previous;
         throw;
     }
     s.active_escape=previous_escape;
     tracing_original_136_byte_heap=previous_heap_trace;
+    s.original_res4_579_heap_active=was_res4_heap;
     current=previous;
     if(!value || std::uint64_t(value)+bytes>s.data.size())
         throw std::runtime_error("Canonical CODE.2 37B42 heap exhausted");
