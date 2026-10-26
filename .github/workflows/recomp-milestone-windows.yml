@@ -915,9 +915,37 @@ jobs:
           $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
           $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
           $slot = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
-          & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root "$root" --cd-root "$cd" --smoke-save23 "$slot"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Retained CODE2 07938 Level23 -> 26 -> 23 source VGA full-cycle NOT_CERTIFIED"
+          # A stopping original callback can leave a native worker
+          # active; own and bound the process separately from the CI
+          # step timeout, and always print source diagnostics on failure.
+          $exe = (Resolve-Path "build/windows-milestone/Debug/rloft_code2_level22_window.exe").Path
+          $processInfo = [Diagnostics.ProcessStartInfo]::new()
+          $processInfo.FileName = $exe
+          $processInfo.UseShellExecute = $false
+          $processInfo.CreateNoWindow = $true
+          $processInfo.RedirectStandardOutput = $true
+          $processInfo.RedirectStandardError = $true
+          foreach ($arg in @('--root',$root,'--cd-root',$cd,'--smoke-save23',$slot)) {
+            [void]$processInfo.ArgumentList.Add($arg)
+          }
+          $process = [Diagnostics.Process]::Start($processInfo)
+          $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+          $stderrTask = $process.StandardError.ReadToEndAsync()
+          try {
+            $exited = $process.WaitForExit(90000)
+            if (-not $exited) {
+              $process.Kill($true)
+              $process.WaitForExit()
+            }
+            $all = @($stdoutTask.GetAwaiter().GetResult(),$stderrTask.GetAwaiter().GetResult()) -join "`n"
+            $tail = @($all -split "`r?`n" | Where-Object { $_ -match '07938|181B4|LEVEL23|LEVEL26|STOP|FAIL|FULL_CYCLE|SCANOUT|PORTAL|SOURCE_RETURN' })
+            $tail | Select-Object -Last 85 | ForEach-Object { Write-Host "RETAINED_07938: $_" }
+            if (-not $exited -or $process.ExitCode -ne 0 -or
+                $all -notmatch 'CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS') {
+              throw "Retained CODE2 07938 Level23/26/23 native frame NOT_CERTIFIED: exited=$exited code=$($process.ExitCode)"
+            }
+          } finally {
+            $process.Dispose()
           }
       - name: Probe genuine original CODE2 23-26-23 portal and resumed 1FC14 VGA
         # Separate acceptance: an actual post-portal VGA frame is not

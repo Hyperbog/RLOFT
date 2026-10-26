@@ -100,6 +100,15 @@ void live_07938_level(u32 requested) noexcept {
     ++current->original_live_save_level_callbacks;
     if(requested!=23u || !current->level_overlay.has(23u))
         stop("ORIGINAL_07938_SOURCE_SAVED_LEVEL_NOT_23");
+    // Capture authentic source 07938 -> 181B4 ABI and guest state.
+    // The level current at this moment is source-owned; it is not
+    // inferred to be 23 simply because SAVE.DAT stores 23 at 0x52.
+    std::cerr<<"CODE2_ORIGINAL_07938_LIVE_LEVEL_DISPATCH"
+             <<" requested="<<requested
+             <<" guest_prior="<<code2::load_le32(current->data.data()+0xC6C8u)
+             <<" saved_world_overlay="<<current->level_overlay.has(23u)
+             <<" save_reads="<<current->original_live_save_reads
+             <<" same_guest=YES\\n"<<std::flush;
     // Original 181B4 performs the actual level load on the same guest,
     // using the saved-world overlay before the archive fallback.
     original_181b4_live_transition(requested);

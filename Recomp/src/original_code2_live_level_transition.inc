@@ -204,8 +204,21 @@ void original_181b4_live_transition(u32 requested) noexcept {
        !((prior==22u && requested==23u)||
          (prior==23u && requested==22u)||
          (prior==23u && requested==26u)||
-         (prior==26u && requested==23u)))
+         (prior==26u && requested==23u))) {
+        // Exact original 07938 pre-181B4 state is needed before any
+        // adjustment to this guarded transition. Preserve failure
+        // semantics; do not invent a source current-level value.
+        std::cerr<<"CODE2_ORIGINAL_07938_LIVE_LEVEL_PAIR_DIAGNOSTIC"
+                 <<" prior="<<prior
+                 <<" requested="<<requested
+                 <<" restore_active="<<current->original_live_restore_active
+                 <<" save_level_callbacks="<<current->original_live_save_level_callbacks
+                 <<" saved_lev023_present="<<current->level_overlay.has(23u)
+                 <<" save_reads="<<current->original_live_save_reads
+                 <<" source_C6C8="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" continuing_1FC14=NO\\n"<<std::flush;
         stop("ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR");
+    }
     if(restore_same_level)
         std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_181B4_SAVED_LEVEL23_DISPATCH"
                  <<" from_guest_C6C8=23 to=23"
