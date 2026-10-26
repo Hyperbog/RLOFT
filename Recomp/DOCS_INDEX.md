@@ -6,6 +6,7 @@ The [current README](README.md) is the entry point for building, launching, bran
 
 - [Current build, tests, experimental native Windows window](README.md)
 - [R01–R12 acceptance ledger](ACCEPTANCE_GATES.json)
+- [Current C++ code audit, CI inventory and prioritized refactor boundaries](CODE_AUDIT_20261026.md)
 - [Retained source `07938` saved Level 23 — active failure and continuation](ORIGINAL_RETAINED_07938_LEVEL23_20261026.md)
 - [Live Level 23/26 portal frame gate](ORIGINAL_LIVE_PORTAL_1FC14_FULL_CYCLE_GATE_20261026.md)
 - [Windows strict acceptance workflow](../.github/workflows/recomp-retained-07938-level23.yml)
