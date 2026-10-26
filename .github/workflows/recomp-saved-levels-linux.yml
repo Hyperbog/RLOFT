@@ -35,6 +35,7 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10
             MASTER/Ravenloft - Strahd's Possession/RLOFT/SINTAB
             MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/LEVELS.DAT
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Execute original 181B4 direct-save path for all 17 levels
@@ -43,6 +44,12 @@ jobs:
           set -euo pipefail
           folder="original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE10"
           test -f "$folder/SAVE.DAT"
+          level_archive="original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/LEVELS.DAT"
+          test -f "$level_archive"
+          # One identical reconstructed original 181B4 loader must accept
+          # every indexed source level, without level-specific host code.
+          build/saved-levels/rloft_original_code2_level_loader "$level_archive" | tee build/saved-levels/all-32-original-levels.log
+          grep -q 'CODE2_181B4_ORIGINAL_32_LEVEL_FILE_GATE_PASS' build/saved-levels/all-32-original-levels.log
           test "$(find "$folder" -maxdepth 1 -name 'LEV[0-9][0-9][0-9].DAT' | wc -l)" -eq 17
           build/saved-levels/rloft_original_code2_level_loader --saved-levels "$folder" | tee build/saved-levels/verification.log
           grep -q 'CODE2_181B4_SAVED_LEVELS_ORIGINAL_SOURCE_GATE_PASS count=17' build/saved-levels/verification.log
