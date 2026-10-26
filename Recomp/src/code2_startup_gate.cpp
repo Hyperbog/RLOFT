@@ -2435,6 +2435,10 @@ void original_181b4_level_load(u32 requested) noexcept;
 void original_181b4_live_transition(u32 requested) noexcept;
 void original_restore_181b4_archive_literal() noexcept;
 u32 original_live_actor_reposition(u32 index) noexcept;
+// Defined by the retained original source-level transition adapter below.
+// The 1BDAC frame actor graph reuses this same compiled 2D5D0 collision
+// graph instead of a second host-owned collision model.
+code2::s16 original_live_actor_2d5d0(u32 y,u32 x,u32 index) noexcept;
 #include "original_code2_live_full_frame.inc"
 // Original world ray reconstruction, attached to the *retained*
 // CODE.2 Machine rather than a second WorldRaySource fixture. All

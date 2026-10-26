@@ -405,8 +405,13 @@ void original_full_actor_missing1(code2::s32) noexcept {
 u32 original_full_actor_missing_predicate(u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_RECORD_REMOVAL_PREDICATE_PENDING");
 }
-u32 original_full_actor_missing_collision(u32,u32,u32) noexcept {
-    stop("ORIGINAL_1BDAC_COLLISION_CHECK_PENDING");
+u32 original_full_actor_original_collision(u32 y,u32 x,u32 index) noexcept {
+    // This is original CODE.2 2D5D0 with its verified Application66/65
+    // record, world-event, quest and movement callback graph, shared with
+    // the original 20850 postload actor path. No fabricated collision
+    // flag or invented actor position is returned.
+    const code2::s16 response=original_live_actor_2d5d0(y,x,index);
+    return static_cast<u32>(static_cast<code2::s32>(response));
 }
 void original_full_actor_missing_movement(u32,u32,u32,u32) noexcept {
     stop("ORIGINAL_1BDAC_MOVE_PENDING");
@@ -454,7 +459,7 @@ void original_full_1bdac_source() noexcept {
     code2::Application36Boundary motion{};
     motion.call_30d30=&original_full_actor_missing_clear;
     motion.call_30ca2=&original_full_actor_rand;
-    motion.call_2d5d0=&original_full_actor_missing_collision;
+    motion.call_2d5d0=&original_full_actor_original_collision;
     motion.call_2df2c_local=&original_full_actor_missing_offsets;
     motion.call_28110=&original_full_actor_missing_movement;
     motion.call_311e0=&original_full_actor_missing_query;
