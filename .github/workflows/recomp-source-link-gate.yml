@@ -40,6 +40,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Recomp source inventory unit tests failed" }
           python Recomp/tools/audit_recomp_source_layout.py --root .
           if ($LASTEXITCODE -ne 0) { throw "Recomp source inventory audit failed" }
+          python Recomp/tools/audit_original_source_callbacks.py --root . --out build/recomp/original-source-call-graph.json
+          if ($LASTEXITCODE -ne 0) { throw "Original CODE2 callback graph inventory failed" }
       - name: Execute compiled reconstruction leaf and entry-boundary tests
         shell: pwsh
         run: ctest --test-dir build/recomp -C Debug --output-on-failure
@@ -91,6 +93,7 @@ jobs:
             build/recomp/Debug/rloft_original_voc_pcm8_tests.exe
             build/recomp/Debug/build-source-sha.txt
             build/recomp/Debug/recomp-progress.txt
+            build/recomp/original-source-call-graph.json
             build/recomp/Debug/README-RECOMP.txt
           if-no-files-found: error
           retention-days: 7
