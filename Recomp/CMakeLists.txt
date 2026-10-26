@@ -737,6 +737,16 @@ if(BUILD_TESTING)
         COMMAND rloft_original_voc_pcm8_tests)
 endif()
 
+# Per-owner private 171FC/181B4 source file transport contract.
+add_executable(rloft_original_code2_live_level_files_test
+    src/test_original_code2_live_level_files.cpp)
+set_target_properties(rloft_original_code2_live_level_files_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_171fc_181b4_live_private_files
+        COMMAND rloft_original_code2_live_level_files_test)
+endif()
+
 # Part 30: test the exact compiled original CODE.2 2E120 movement
 # integrator, 2DF2C vector, 2DBAC camera and 2D5D0 collision path.
 # Synthetic guest RAM is test-only, never an independent DOS capture.
