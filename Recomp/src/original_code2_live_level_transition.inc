@@ -1,3 +1,84 @@
+// Original 20850 actor reposition callback graph. It operates on the
+// destination world's compiled CODE2 actor, tile and RNG functions. The
+// result is not a host-selected "safe" or "no collision" surrogate.
+code2::s16 original_live_actor_2d5d0(
+        u32 y,u32 x,u32 index) noexcept {
+    if(index>=0x190u)
+        stop("ORIGINAL_20850_SOURCE_ACTOR_INDEX_OUT_OF_BOUNDS");
+    code2::Application66Boundary collision{};
+    collision.call_1e8c8=&original_full_movement_record;
+    collision.call_1e930=&original_full_movement_marker;
+    collision.call_20c0c=&original_full_movement_effect;
+    collision.call_181b4=&original_full_movement_event;
+    collision.call_002a8=&original_full_movement_script;
+    collision.call_e0f8=&original_full_movement_predicate;
+    collision.call_1c0c0=&original_full_movement_heading;
+    collision.call_1ea78=&original_full_movement_refresh;
+    code2::Application65Boundary secondary{};
+    secondary.call_181b4=&original_full_movement_event;
+    secondary.call_1c0c0=&original_full_movement_heading;
+    secondary.call_1c1dc=&original_full_movement_bit_query;
+    secondary.call_1c124=&original_full_movement_bit_set;
+    secondary.call_1c160=&original_full_movement_bit_clear;
+    secondary.call_2acdc=&code2::function_2acdc;
+    secondary.call_1ea78=&original_full_movement_refresh;
+    collision.app65=&secondary;
+    return static_cast<code2::s16>(
+        code2::function_2d5d0(current->machine,collision,y,x,
+                              static_cast<code2::s32>(index)));
+}
+u32 original_live_actor_random_direction(u32& /*x*/,u32& /*y*/) noexcept {
+    // The encoded 20850 call returns the source's 15-bit RNG value;
+    // existing x/y registers are intentionally preserved.
+    return code2::function_30ca2(current->machine);
+}
+void original_live_actor_vector(
+        u32& x,u32& y,u32 distance,u32 heading) noexcept {
+    code2::Application67Boundary vector{};
+    vector.call_35680=&code2::function_35680;
+    code2::function_2df2c(current->machine,vector,&x,&y,distance,heading);
+}
+void original_live_actor_seed(u32 value) noexcept {
+    code2::function_30cc4(current->machine,value);
+}
+void original_live_actor_music_rng(u32 seed) noexcept {
+    code2::Application56Boundary source{};
+    source.call_30cc4=&original_live_actor_seed;
+    (void)code2::function_290d0(current->machine,source,seed);
+}
+u32 original_live_actor_roll(
+        u32 count,u32 sides,u32 add,u32 flat) noexcept {
+    return original_level_actor_roll(count,sides,add,flat);
+}
+u32 original_live_actor_reposition(u32 index) noexcept {
+    if(index>=static_cast<u32>(
+          code2::load_le16(current->data.data()+0x258A2u)) ||
+       index>=150u)
+        stop("ORIGINAL_0E0F8_ACTOR_INDEX_INVALID");
+    code2::Application19Boundary source{};
+    source.call_30700=+[]() noexcept -> u32 {
+        return code2::function_30700(current->machine);
+    };
+    source.call_290d0=&original_live_actor_music_rng;
+    source.call_30ca2=&original_level_actor_random;
+    source.call_1c328=&original_live_actor_roll;
+    return code2::function_0e0f8(current->machine,source,index);
+}
+void original_live_actor_reposition_void(u32 index) noexcept {
+    (void)original_live_actor_reposition(index);
+}
+void original_live_actor_20850() noexcept {
+    const auto count=code2::load_le16(current->data.data()+0x258A2u);
+    if(count>150u)
+        stop("ORIGINAL_20850_UNBOUNDED_ACTOR_COUNT");
+    code2::Application46Boundary source{};
+    source.call_2acdc=&code2::function_2acdc;
+    source.call_2d5d0=&original_live_actor_2d5d0;
+    source.call_30ca2=&original_live_actor_random_direction;
+    source.call_2df2c=&original_live_actor_vector;
+    source.call_e0f8=&original_live_actor_reposition_void;
+    code2::function_20850(current->machine,source);
+}
 // Owner-live source 171FC / 181B4 transition.
 using live_transition_s32=code2::s32;
 void original_181b4_live_transition(u32 requested) noexcept {
@@ -78,8 +159,8 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->data[0x81ACu+requested*3u]!=3u)
         stop("ORIGINAL_181B4_LIVE_DESTINATION_GRAPHICS_MODE_OPEN");
     const u16 future_moving=code2::load_le16(target.header.data()+0x28Au);
-    if(current->data[0xC02Fu]!=0u && future_moving!=0u)
-        stop("ORIGINAL_181B4_LIVE_20850_NPC_REPOSITION_OPEN");
+    if(future_moving>150u)
+        stop("ORIGINAL_181B4_LIVE_ACTOR_COUNT_ABOVE_SOURCE_MAX");
     // When the authentic EE78 AIL device is disabled, the compiled
     // 28DCC, 28EF0 and 28E58 functions all immediately return, even if
     // the destination changes music bank. Keep that source behavior;
@@ -155,13 +236,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
     load.call_19ccc=&original_level_19ccc_push;
     load.call_19cf4=&original_level_19cf4_pop;
     load.call_0ccf4=&original_level_0ccf4_party_terminal;
-    load.call_20850=+[]() noexcept {
-        if(code2::load_le16(current->data.data()+0x258A2u)!=0u)
-            stop("ORIGINAL_181B4_LIVE_20850_ACTOR_CALLBACK_PENDING");
-        code2::Application46Boundary actor{};
-        actor.call_2acdc=&code2::function_2acdc;
-        code2::function_20850(current->machine,actor);
-    };
+    load.call_20850=&original_live_actor_20850;
     load.call_1f8e0=+[](u32 mode) noexcept {
         if(mode!=3u || code2::load_le32(current->data.data()+0xC034u)!=mode)
             stop("ORIGINAL_181B4_LIVE_1F8FC_MODE_REDRAW_PENDING");
