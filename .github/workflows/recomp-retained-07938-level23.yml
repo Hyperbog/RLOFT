@@ -76,7 +76,7 @@ jobs:
             }
             $joined = @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()) -join "`n"
             $selected = @($joined -split "`r?`n" | Where-Object {
-              $_ -match '07938|181B4|171FC|LEVEL23|LEVEL26|PORTAL|SOURCE_STOP|NATIVE_HOST_FAIL|FULL_CYCLE_SCANOUT'
+              $_ -match '07938|181B4|171FC|LEVEL23|LEVEL26|PORTAL|SOURCE_STOP|NATIVE_HOST_FAIL|FULL_CYCLE_SCANOUT|1BDAC|2D5D0|1FC14'
             })
             $selected | Select-Object -Last 90 | ForEach-Object { Write-Host "SOURCE_07938: $_" }
             $restored = $joined -match 'CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_LEVEL23_RESTORE_PASS'

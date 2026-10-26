@@ -410,7 +410,21 @@ u32 original_full_actor_original_collision(u32 y,u32 x,u32 index) noexcept {
     // record, world-event, quest and movement callback graph, shared with
     // the original 20850 postload actor path. No fabricated collision
     // flag or invented actor position is returned.
+    // Diagnostic-only, bounded observation of the *actual* original
+    // collision callback. Never alter the guest, skip AI or guess a
+    // collision result to make a frame pass.
+    static thread_local unsigned diagnostic_calls=0u;
+    const unsigned call=++diagnostic_calls;
+    if(call<=8u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_2D5D0_SOURCE_ENTER"
+                 <<" call="<<call<<" y="<<y<<" x="<<x<<" index="<<index
+                 <<" level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" source=COMPILED_ORIGINAL\n"<<std::flush;
     const code2::s16 response=original_live_actor_2d5d0(y,x,index);
+    if(call<=8u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_2D5D0_SOURCE_RETURN"
+                 <<" call="<<call<<" result="<<static_cast<int>(response)
+                 <<" original_guest=PRESERVED\n"<<std::flush;
     return static_cast<u32>(static_cast<code2::s32>(response));
 }
 void original_full_actor_missing_movement(u32,u32,u32,u32) noexcept {
@@ -474,8 +488,14 @@ void original_full_1bdac_source() noexcept {
     actor.call_08c88=&original_full_actor_missing1;
     actor.call_09070=&original_full_actor_missing2;
     actor.call_08cf4=&original_full_actor_missing2;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_LEVEL23_SOURCE_ENTER"
+                 <<" retained_actor_graph=YES\n"<<std::flush;
     code2::function_1bdac(current->machine,actor);
     ++original_full_frame_trace->actor_update_returns;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_LEVEL23_SOURCE_RETURN"
+                 <<" native_actor_update=YES\n"<<std::flush;
 }
 // Original 2C294 sprite-scene sorting, entity projections and wall pass.
 // All projected vertices, source resource lookups and scene records remain
