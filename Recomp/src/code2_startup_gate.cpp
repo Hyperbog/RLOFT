@@ -2519,7 +2519,9 @@ void original_world_camera_334c4() noexcept {
 // The previous native world harness used a SECOND guest; these callback
 // closures consume the retained 181B4, 03838, RES4 and VGA memory.
 u32 original_world_material(u32 id,u32 slot) noexcept {
-    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (current->original_world_source_flushes<4u ||
+        (current->original_world_source_flushes&0xFFu)==0u))
         std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_ENTER"
                  <<" id="<<id<<" slot="<<slot
                  <<" loaded_materials="<<current->original_world_materials.size()
@@ -2537,7 +2539,9 @@ u32 original_world_material(u32 id,u32 slot) noexcept {
        std::uint64_t(ptr)+2u+bytes>current->data.size())
         stop("ORIGINAL_335DC_RES4_TEXTURE_SOURCE_FORMAT");
     current->original_world_materials[id]={ptr+2u,ptr+2u+bytes,ptr};
-    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (current->original_world_source_flushes<4u ||
+        (current->original_world_source_flushes&0xFFu)==0u))
         std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_RETURN"
                  <<" id="<<id<<" decoded_bytes="<<bytes<<"\n"<<std::flush;
     return ptr;
@@ -2624,7 +2628,9 @@ u32 original_world_338c8(u32 shade,u32 height,u32 src,u32 dst) noexcept {
     return 1u;
 }
 void original_world_flush_3263c() noexcept {
-    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (current->original_world_source_flushes<4u ||
+        (current->original_world_source_flushes&0xFFu)==0u))
         std::cerr<<"CODE2_335DC_LEVEL23_3263C_FLUSH_ENTER"
                  <<" material_count="<<current->original_world_materials.size()
                  <<"\n"<<std::flush;
@@ -2653,7 +2659,9 @@ void original_world_flush_3263c() noexcept {
            bridge.invalid_access || current->original_vga->unsupported_read())
             stop("ORIGINAL_3263C_RETAINED_SOURCE_RASTER_FAILED");
         ++current->original_world_source_flushes;
-        if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+           (current->original_world_source_flushes<4u ||
+            (current->original_world_source_flushes&0xFFu)==0u))
             std::cerr<<"CODE2_335DC_LEVEL23_3263C_FLUSH_RETURN"
                      <<" flush_count="<<current->original_world_source_flushes
                      <<"\n"<<std::flush;
