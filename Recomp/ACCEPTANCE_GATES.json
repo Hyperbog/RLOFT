@@ -57,28 +57,28 @@
       "scope": "Original CODE.2 VGA, palette, audio and resource renderer pipelines execute correctly as compiled reconstructed source",
       "accepted": false,
       "evidence": "",
-      "limitation": "Source routines reconstructed; end-to-end running presentation unverified"
+      "limitation": "Original source RES, VGA and native 1FC14 320x400 indexed/RGB6 frame paths pass the scoped Level23→26→23 saved-slot diagnostic (strict Windows #40321360454, 3 frame receipts). Whole-game renderer coverage, independently synchronized retail DOS pixels and genuine audible AIL parity remain unverified."
     },
     {
       "id": "R09",
       "scope": "Actual compiled CODE.2 gameplay loop boots first real in-game level with interactive movement and input",
       "accepted": false,
       "evidence": "",
-      "limitation": "Original game entry reached but no playable level"
+      "limitation": "Original 1FC14 retains Level22 interactive native window and the saved Level23→26→23 private keyboard diagnostic returns to original 30B40 with 3 audited native frames. Physical portal entry through game-visible DOS keyboard/mouse/IRQ behavior and full player-input equivalence remain unverified."
     },
     {
       "id": "R10",
       "scope": "All shipped levels, creatures, spells, scripted events and game completion paths operate in the recompilation",
       "accepted": false,
       "evidence": "",
-      "limitation": "DAT and resource reverse engineering completed separately, gameplay not executed"
+      "limitation": "Levels 22, 23 and 26 execute scoped original-source paths; not all 32 shipped levels, creatures, spells, scripts or game-completion behavior have run on the native recomp."
     },
     {
       "id": "R11",
       "scope": "Authentic game saves, loads and CODE.1/CODE.2 transitions round-trip through full gameplay scenarios",
       "accepted": false,
       "evidence": "",
-      "limitation": "Data structures and handoff researched, compiled full play flows missing"
+      "limitation": "Authenticated original SAVE.DAT/LEV023.DAT restoration through compiled 07938 and genuine 23→26→23 original 171FC/181B4/2D3D8 private source-file roundtrip pass on one retained guest (strict Windows #40321360454). This is not full DOS save-menu/user-initiated save/load, CODE.1 character handoff or representative full-game save scenarios."
     },
     {
       "id": "R12",
