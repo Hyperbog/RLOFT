@@ -34,9 +34,9 @@ jobs:
           from pathlib import Path
           import re
           src=Path("source/Code2/Code2.cpp").read_text(encoding="utf-8")
-          for symbol in ("function_2ecb4","function_2fd9c","function_2fb04",
-                         "function_2f960","function_2f96c","function_39d4d",
-                         "function_39e1c","function_37b42"):
+          for symbol in ("function_2eb60","function_2f2a0","function_2ecb4",
+                         "function_2f960","function_2f96c","function_37590",
+                         "function_37b42"):
               candidates=list(re.finditer(r"\b"+symbol+r"\s*\(",src))
               print("ORIGINAL_LOADER_SYMBOL",symbol,"references",len(candidates))
               for match in candidates:
