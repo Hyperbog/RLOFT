@@ -27,6 +27,7 @@
 #include "dos_paragraph_memory.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <chrono>
 #include <array>
 #include <csetjmp>
 #include <cstdint>
@@ -103,6 +104,7 @@ struct Session {
     u32 original_world_active_ray_sweep_serial=0;
     unsigned original_world_source_pixels=0;
     unsigned original_world_source_sintab_calls=0;
+    std::uint64_t original_world_source_sintab_instructions=0u;
     unsigned original_world_legacy_sampler_calls=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
@@ -2610,6 +2612,7 @@ u32 original_world_sintab_execute(
         });
     if(!result.ok)current->original_world_raster_invalid=true;
     ++current->original_world_source_sintab_calls;
+    current->original_world_source_sintab_instructions+=result.instructions;
     current->original_world_source_pixels+=result.pixels;
     return result.ok?1u:0u;
 }
@@ -2656,6 +2659,11 @@ void original_world_flush_3263c() noexcept {
        !original_world_sintab_end() ||
        current->original_world_raster_invalid)
         stop("ORIGINAL_3263C_VGA_OR_CODE_UNAVAILABLE");
+    const auto perf_start=std::chrono::steady_clock::now();
+    const u32 sintab_before=current->original_world_source_sintab_calls;
+    const u32 legacy_before=current->original_world_legacy_sampler_calls;
+    const auto pixels_before=current->original_world_source_pixels;
+    const auto instruction_before=current->original_world_source_sintab_instructions;
     try {
         rloft::source_video_boot::Bridge bridge(
             current->machine,*current->original_vga,current->data.size());
@@ -2677,6 +2685,20 @@ void original_world_flush_3263c() noexcept {
            bridge.invalid_access || current->original_vga->unsupported_read())
             stop("ORIGINAL_3263C_RETAINED_SOURCE_RASTER_FAILED");
         ++current->original_world_source_flushes;
+        const auto elapsed_us=std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now()-perf_start).count();
+        const u32 flush_local=current->original_world_source_flushes-
+            current->original_world_active_ray_sweep_start;
+        if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+           (flush_local==1u || (flush_local&0x1Fu)==0u))
+            std::cerr<<"CODE2_335DC_LEVEL23_3263C_PERF"
+                     <<" local_flush="<<flush_local
+                     <<" duration_us="<<elapsed_us
+                     <<" sintab_callbacks="<<(current->original_world_source_sintab_calls-sintab_before)
+                     <<" interpreted_instructions="<<(current->original_world_source_sintab_instructions-instruction_before)
+                     <<" legacy_callbacks="<<(current->original_world_legacy_sampler_calls-legacy_before)
+                     <<" planar_pixels="<<(current->original_world_source_pixels-pixels_before)
+                     <<"\n"<<std::flush;
         if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
            (current->original_world_source_flushes<4u ||
             (current->original_world_source_flushes&0xFFu)==0u))
