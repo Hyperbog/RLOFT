@@ -223,3 +223,60 @@ A zero-quad original polygon scan is a real source result, not permission
 to skip other `1FC14` render, page, HUD or audio callbacks.
 The persistent `Concurrent host access to a running original guest`
 secondary supervisor message still needs separate lifecycle diagnosis.
+
+
+## 2026-10-26 Level 26 `1FC14` source scene and indexed scanout — strict PASS
+
+The historical failed investigations above remain as provenance; their
+`SOURCE_RASTER_INCOMPLETE` frontier is **closed for this authenticated
+Level 23/26 owner-media diagnostic**, not for all shipped levels.
+
+1. [Diagnostic source commit `46b5c2cb`](https://github.com/Hyperbog/RLOFT/commit/46b5c2cbc0ecf75629eab965e79884dabda43b33),
+   [strict Windows #40320502623](https://github.com/Hyperbog/RLOFT/actions/runs/40320502623),
+   captured original Level 26 `1FC14` source conditions: page `0`,
+   correct tick/exterior owners, one `34DE8` completion, 540 cell queries,
+   16 `35798` projections, zero polygon quads/scanlines, one actor,
+   one scene, one wall pass, zero sprites and zero sprite rasters,
+   one compass; level `26` and pending transition `26`.
+   Both zero-raster cases were authentic source outputs, not missing
+   callback returns.
+2. [Fix `b9c07cea`](https://github.com/Hyperbog/RLOFT/commit/b9c07cea4d440af1c9b790588e590e2943f4cc2a)
+   preserves source ownership and requires real polygon cells/projections,
+   complete actor/wall/scene/compass callbacks, exact sprite/raster counts,
+   and valid source-only empty-quad/empty-sprite conditions. It does not
+   inject geometry, force sprite callbacks or suppress original output.
+   [Strict Windows #40320888276](https://github.com/Hyperbog/RLOFT/actions/runs/40320888276)
+   returned `restored=True portal_full_cycle=True exited=True code=0`.
+3. [CI logging `bc7caf26`](https://github.com/Hyperbog/RLOFT/commit/bc7caf26f9f079fa33e39516fba090cb6f43e8a2)
+   retains per-level native receipts even when texture/ray messages fill
+   the log's last-90 window. [Strict Windows #40321360454](https://github.com/Hyperbog/RLOFT/actions/runs/40321360454)
+   **passed**, with exact `SOURCE_PORTAL_FRAME` lines in its job log:
+
+| Source event | CRTC page | 320×400 indexed frame SHA-256 | RGB6 palette SHA-256 |
+| --- | --- | --- | --- |
+| Post-restore Level 23 `1FC14`, scenes/post cycles/pages `6/6/6` | `32768` | `5560e3395b79eb19bc7034bc539eca0c4d0f24dcb014fbf8f309b1480f0345d5` | `0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812` |
+| Post-portal Level 26 `1FC14`, scenes/post cycles/pages `8/8/8` | `0` | `24c5a5c9d022db9f17e623f394b41ef61a80eaf3b122488dbace8d24ba1feace` | `546331d1ac5e96419f019e7b654bae64a8707c4b14a06b8cafeb2e4ffa71996a` |
+| After reciprocal portal Level 23 `1FC14`, scenes/post cycles/pages `10/10/10` | `32768` | `84f349176897e539b283e1657a0d78f11bd52132647629017b755f5be33cdae0` | `0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812` |
+
+Authentic `2D3D8` portal records on the same guest:
+`23→26` from tile `(9,1)` to `(68,29)`, and `26→23`
+from tile `(68,30)` to `(9,2)`. After the private saved-slot
+restore, `audited_portal_roundtrip()` requires **six original
+keyboard ticks** total, **three transitions, three audited native
+post-level frames**, no pending level transition, destination back at
+Level 23, 320×400 scanout and balanced original source
+scene/post-cycle/page handoffs. The output is:
+
+```text
+CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS original_07938=YES original_2D3D8=YES transitions=3 audited_frames=3 live_guest=UNCHANGED owner_files=READ_ONLY independent_DOS_frame_parity=OPEN
+RETAINED_07938_ACCEPTANCE_SOURCE restored=True portal_full_cycle=True exited=True code=0
+```
+
+**Acceptance boundaries:** PASS is a **bounded native original-source
+save/portal/frame diagnostic**, not literal human-controlled movement
+onto the portal, a full DOS peripheral implementation, synchronized
+original DOS indexed-pixel parity, audible AIL parity, release-mode
+runtime stability, or all-level gameplay. Keep the whole-game
+`R01–R12` ledger at **3 accepted / 12** until the scope of an
+individual coarse gate is independently met. A separate source-side
+guest-worker lifecycle/refactor and retail DOS oracle remain open.
