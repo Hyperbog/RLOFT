@@ -12,6 +12,8 @@ python Recomp/tools/audit_original_source_callbacks.py --root . --out build/orig
 python Recomp/tools/audit_recomp_source_layout.py --root .
 ```
 
+The [Windows source-link workflow](../../.github/workflows/recomp-source-link-gate.yml) now also emits the same versioned **`original-source-call-graph.json`** inside its successful engineering artifact. It contains actual per-function direct source callees and indirect ABI-address references, plus guest owner, source lines, nullable assignments and fail-closed guards. It is regenerable source analysis, not hand-maintained prose or binary media.
+
 The first command emits a JSON dependency ledger covering:
 - canonical reconstructed `Code2/Code2.cpp` `function_XXXXX` tokens and per-function **direct** calls;
 - separately listed indirect `call_XXXXX` callback ABI references, which are not assumed to be resolved direct calls;
