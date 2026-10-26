@@ -105,6 +105,8 @@ struct Session {
     unsigned original_world_source_pixels=0;
     unsigned original_world_source_sintab_calls=0;
     std::uint64_t original_world_source_sintab_instructions=0u;
+    std::chrono::steady_clock::time_point original_world_previous_flush_time{};
+    std::chrono::steady_clock::time_point original_world_sweep_begin_time{};
     unsigned original_world_legacy_sampler_calls=0;
     u32 original_level_state_saved=0;
     unsigned original_325b0_completed=0;
@@ -2535,8 +2537,22 @@ u32 original_world_material(u32 id,u32 slot) noexcept {
     if(slot!=4u || !current->game_audio.app68 ||
        current->original_181b4_completed!=1u)
         stop("ORIGINAL_335DC_RES4_RETAINED_SOURCE_PRECONDITION");
+    const auto material_start=std::chrono::steady_clock::now();
     const u32 ptr=code2::function_2f29c(
         current->machine,current->game_audio,id,slot);
+    const auto material_us=std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()-material_start).count();
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (current->original_world_source_flushes-
+        current->original_world_active_ray_sweep_start <4u ||
+        ((current->original_world_source_flushes-
+          current->original_world_active_ray_sweep_start)&0x1Fu)==0u))
+        std::cerr<<"CODE2_335DC_LEVEL23_2F29C_MATERIAL_PERF"
+                 <<" id="<<id<<" lookup_us="<<material_us
+                 <<" ptr="<<ptr
+                 <<" flush_index="<<(current->original_world_source_flushes-
+                                      current->original_world_active_ray_sweep_start)
+                 <<"\n"<<std::flush;
     if(!ptr || std::uint64_t(ptr)+2u>current->data.size())
         stop("ORIGINAL_335DC_RES4_37590_DECODE_FAILED");
     const u32 bytes=code2::load_le16(current->data.data()+ptr);
@@ -2637,6 +2653,11 @@ void original_world_flush_3263c() noexcept {
     // A single original 335DC traversal of N ray records has two
     // consecutive source passes and at most 2*N+1 flushes. Track
     // per-entry progress rather than cumulative previous gameplay.
+    const auto now=std::chrono::steady_clock::now();
+    const auto previous=current->original_world_previous_flush_time;
+    current->original_world_previous_flush_time=now;
+    const auto gap_us=std::chrono::duration_cast<std::chrono::microseconds>(
+        now-previous).count();
     const u32 local_flushed = current->original_world_active_ray_sweep_serial
         ? current->original_world_source_flushes -
           current->original_world_active_ray_sweep_start : 0u;
@@ -2647,6 +2668,7 @@ void original_world_flush_3263c() noexcept {
                  <<" source_ray_index="<<code2::load_le32(current->data.data()+0xC6F8u)
                  <<" total="<<current->original_world_active_ray_sweep_count
                  <<" per_sweep_flushes="<<local_flushed
+                 <<" gap_us="<<gap_us
                  <<" source_run_count="<<code2::load_le32(current->data.data()+0xC6F4u)
                  <<"\n"<<std::flush;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
@@ -2712,6 +2734,8 @@ void original_world_flush_3263c() noexcept {
 void original_world_sweep_335dc() noexcept {
     const u32 rays=code2::load_le32(current->data.data()+0xC6D8u);
     current->original_world_active_ray_sweep_start=current->original_world_source_flushes;
+    current->original_world_sweep_begin_time=std::chrono::steady_clock::now();
+    current->original_world_previous_flush_time=current->original_world_sweep_begin_time;
     current->original_world_active_ray_sweep_count=rays;
     ++current->original_world_active_ray_sweep_serial;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
