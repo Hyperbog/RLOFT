@@ -38,6 +38,14 @@ struct Evidence {
     std::uint32_t original_boot_render_page_selects=0;
     std::uint32_t original_boot_scanout_page_selects=0;
     bool source_290f4_320x400_video_initialized=false;
+    // Count only source 1FC14 scene+page+HUD+audio cycles that also
+    // passed the native VGA/RGB6 audit after a live 181B4 transition.
+    std::uint32_t original_live_portal_full_cycle_frames=0;
+    std::uint32_t original_live_pending_portal_level=0xFFFFFFFFu;
+    std::uint32_t original_live_level_transitions=0;
+    std::uint32_t original_1fc14_source_scene_returns=0;
+    std::uint32_t original_1fc14_post_scene_cycles=0;
+    std::uint32_t original_1fc14_page_handoffs=0;
 };
 Opaque* start(const std::filesystem::path& original_code2);
 Opaque* start_stackful(const std::filesystem::path& original_code2);

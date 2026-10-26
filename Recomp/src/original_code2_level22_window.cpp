@@ -297,13 +297,29 @@ int main(int argc,char** argv){
             for(const auto scan:{0xFFFDu,0u,0xFFFCu,0u,0xFFFBu,0u})
                 live.tick(scan);
             const u32 final_level=code2::load_le32(live.guest_bytes()+0xC6C8u);
+            const auto proof=machine::inspect(live.game->canonical.get());
+            // A 320x400 VGA buffer alone can be the stale pre-portal
+            // frame. Require all THREE distinct authenticated 181B4
+            // transitions to pass compiled 1FC14 scene, page, HUD,
+            // audio and native indexed/RGB6 scanout audit.
             if(live.failed || live.ticks!=6u || final_level!=23u ||
-               live.scanout_rgba.size()!=kGameWidth*kGameHeight)
+               live.scanout_rgba.size()!=kGameWidth*kGameHeight ||
+               proof.original_live_level_transitions!=3u ||
+               proof.original_live_portal_full_cycle_frames!=3u ||
+               proof.original_live_pending_portal_level!=0xFFFFFFFFu ||
+               proof.original_1fc14_source_scene_returns!=
+                   proof.original_1fc14_post_scene_cycles ||
+               proof.original_1fc14_page_handoffs!=
+                   proof.original_1fc14_post_scene_cycles)
                 throw std::runtime_error(
                     "Authentic CODE2 23-26-23 portal continuation or VGA scanout failed");
             std::cout<<"RLOFT_2D3D8_AUTHENTIC_PORTAL_NATIVE_SMOKE_PASS"
                      <<" source_levels=23_26_23"
                      <<" full_1FC14_ticks="<<live.ticks
+                     <<" original_live_level_transitions="<<proof.original_live_level_transitions
+                     <<" audited_post_portal_frames="<<proof.original_live_portal_full_cycle_frames
+                     <<" original_1FC14_scene_returns="<<proof.original_1fc14_source_scene_returns
+                     <<" original_1FC14_post_cycles="<<proof.original_1fc14_post_scene_cycles
                      <<" native_scanout_pixels="<<live.scanout_rgba.size()
                      <<" no_fabricated_level22_portal=YES"
                      <<" physical_DOS_retail_frame_parity=OPEN\n"<<std::flush;

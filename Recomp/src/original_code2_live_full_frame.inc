@@ -1434,6 +1434,9 @@ void original_full_audit_1fc14_previous_tick() noexcept {
                 <<" palette_sha256="<<rloft_recomp::sha256_hex(palette)
                 <<" unchanged_owner_guest=YES"
                 <<" dos_retail_frame_parity=NOT_CERTIFIED\n"<<std::flush;
+            // This counter is a native source witness, not a renderer-
+            // independent host approximation or a retail DOS parity test.
+            ++current->original_portal_full_cycle_frames;
             current->original_pending_level_frame=0xFFFFFFFFu;
             current->original_pending_level_scene_returned=false;
         }

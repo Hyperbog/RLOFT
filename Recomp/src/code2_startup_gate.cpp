@@ -88,6 +88,7 @@ struct Session {
     unsigned original_1fc14_source_page_handoffs=0;
     unsigned original_1fc14_source_scene_returns=0;
     unsigned original_1fc14_post_scene_cycles=0;
+    unsigned original_portal_full_cycle_frames=0;
     u32 original_1fc14_last_scan_code=0u;
     std::vector<u8> original_1fc14_source_keyboard_trace{};
     unsigned original_scene_res1_portrait_decodes=0;
@@ -4521,6 +4522,12 @@ Evidence inspect(const Opaque* owner) {
     out.original_source_page_pushes=s.original_source_page_pushes;
     out.original_source_page_pops=s.original_source_page_pops;
     out.original_source_page_selects=s.original_source_page_selects;
+    out.original_live_portal_full_cycle_frames=s.original_portal_full_cycle_frames;
+    out.original_live_pending_portal_level=s.original_pending_level_frame;
+    out.original_live_level_transitions=s.original_live_level_transitions;
+    out.original_1fc14_source_scene_returns=s.original_1fc14_source_scene_returns;
+    out.original_1fc14_post_scene_cycles=s.original_1fc14_post_scene_cycles;
+    out.original_1fc14_page_handoffs=s.original_1fc14_source_page_handoffs;
     out.original_source_planar_fills=s.original_source_planar_fills;
     out.original_source_video_mode_calls=s.original_source_video_modes;
     out.original_source_palette_streams=s.original_source_dac_streams;
