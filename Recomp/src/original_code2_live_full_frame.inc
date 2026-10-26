@@ -1296,7 +1296,9 @@ void original_full_private_capture_1fc14_tick() noexcept {
     std::filesystem::create_directories(directory,ec);
     if(ec || !std::filesystem::is_directory(directory,ec) || ec)
         stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_DIRECTORY_NOT_WRITABLE");
-    const auto name=std::string("level22_source_tick_")+
+    const auto name=std::string("level")+
+                    std::to_string(code2::load_le32(current->data.data()+0xC6C8u))+
+                    "_source_tick_"+
                     std::to_string(current->original_1fc14_post_scene_cycles);
     const auto destination=directory/name;
     const auto write_private=[&](const std::string& extension,
@@ -1328,7 +1330,8 @@ void original_full_private_capture_1fc14_tick() noexcept {
             json<<"{\n"
                 <<"  \"schema\": \"rloft-vga-observation-v1\",\n"
                 <<"  \"role\": \"compiled_recomp\",\n"
-                <<"  \"level\": 22,\n"
+                <<"  \"level\": "
+                <<code2::load_le32(current->data.data()+0xC6C8u)<<",\n"
                 <<"  \"frame_boundary\": \"1FC14_1A510\",\n"
                 <<"  \"camera_x_16_16\": "
                 <<code2::load_le32(current->data.data()+0x255D0u)<<",\n"
@@ -1390,7 +1393,54 @@ void original_full_audit_1fc14_previous_tick() noexcept {
              <<" full_1F8FC_frames=NOT_CLAIMED\n"<<std::flush;
     if(complete) {
         ++current->original_1fc14_post_scene_cycles;
+        if(current->original_pending_level_frame!=0xFFFFFFFFu) {
+            if(!current->original_pending_level_scene_returned ||
+               !current->original_vga ||
+               !current->level_overlay.idle() ||
+               code2::load_le32(current->data.data()+0xC6C8u)!=
+                    current->original_pending_level_frame ||
+               !code2::load_le32(current->data.data()+0xCF44u))
+                stop("ORIGINAL_1FC14_AFTER_PORTAL_FULL_CYCLE_PRECONDITION");
+            // A source-return alone is NOT a displayed frame. The
+            // complete 1FC14 cycle must reach the original 1A510
+            // page, HUD and audio handoff, then produce the retained
+            // VGA host's actual 320x400 indexed scanout and RGB6 DAC.
+            const u32 crtc=current->original_vga->crtc_start();
+            if(crtc!=0u && crtc!=0x8000u)
+                stop("ORIGINAL_1FC14_AFTER_PORTAL_CRTC_PAGE_INVALID");
+            const auto indexed=current->original_vga->scanout_indices();
+            if(indexed.size()!=320u*400u)
+                stop("ORIGINAL_1FC14_AFTER_PORTAL_INDEXED_FRAME_INVALID");
+            std::vector<u8> palette;
+            palette.reserve(768u);
+            for(u32 i=0u;i<256u;++i) {
+                const auto rgb=current->original_vga->palette(static_cast<u8>(i));
+                if(rgb.r>63u || rgb.g>63u || rgb.b>63u)
+                    stop("ORIGINAL_1FC14_AFTER_PORTAL_RGB6_INVALID");
+                palette.push_back(rgb.r);
+                palette.push_back(rgb.g);
+                palette.push_back(rgb.b);
+            }
+            const u32 level=current->original_pending_level_frame;
+            std::cerr
+                <<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS"
+                <<" level="<<level
+                <<" source_scenes="<<current->original_1fc14_source_scene_returns
+                <<" source_post_cycles="<<current->original_1fc14_post_scene_cycles
+                <<" original_1A510_pages="<<current->original_1fc14_source_page_handoffs
+                <<" crtc_start="<<crtc
+                <<" width=320 height=400 RGB6=768"
+                <<" frame_sha256="<<rloft_recomp::sha256_hex(indexed)
+                <<" palette_sha256="<<rloft_recomp::sha256_hex(palette)
+                <<" unchanged_owner_guest=YES"
+                <<" dos_retail_frame_parity=NOT_CERTIFIED\n"<<std::flush;
+            current->original_pending_level_frame=0xFFFFFFFFu;
+            current->original_pending_level_scene_returned=false;
+        }
         original_full_private_capture_1fc14_tick();
+    } else if(current->original_pending_level_frame!=0xFFFFFFFFu &&
+              current->original_pending_level_scene_returned) {
+        stop("ORIGINAL_1FC14_AFTER_PORTAL_FULL_CYCLE_INCOMPLETE");
     }
 }
 void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
@@ -1411,11 +1461,13 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
         if(level!=current->original_pending_level_frame ||
            !current->level_overlay.idle())
             stop("ORIGINAL_1FC14_CROSS_LEVEL_SCENE_RETURN_DIVERGED");
-        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1FC14_AFTER_181B4_FRAME_RETURN"
+        if(current->original_pending_level_scene_returned)
+            stop("ORIGINAL_1FC14_AFTER_PORTAL_MULTIPLE_SCENES_BEFORE_FULL_CYCLE");
+        current->original_pending_level_scene_returned=true;
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1FC14_AFTER_181B4_SCENE_RETURN"
                  <<" level="<<level
-                 <<" source_frame=EXECUTED"
-                 <<" dos_frame_parity=OPEN\n"<<std::flush;
-        current->original_pending_level_frame=0xFFFFFFFFu;
+                 <<" source_scene=OBSERVED"
+                 <<" complete_frame=PENDING_HUD_AUDIO_PAGE\n"<<std::flush;
     }
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_SCENE_SOURCE_RETURN"
              <<" page="<<page

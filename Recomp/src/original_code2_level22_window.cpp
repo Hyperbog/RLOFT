@@ -157,7 +157,8 @@ struct LiveWindow final {
             if(hwnd) {
                 char title[256]{};
                 std::snprintf(title,sizeof(title),
-                    "Ravenloft CODE.2 - Level 22 [EXPERIMENTAL] | x:%ld y:%ld heading:%u | ticks:%u moves:%u turns:%u",
+                    "Ravenloft CODE.2 - Level %u [EXPERIMENTAL] | x:%ld y:%ld heading:%u | ticks:%u moves:%u turns:%u",
+                    static_cast<unsigned>(code2::load_le32(mem+0xC6C8u)),
                     static_cast<long>(static_cast<std::int32_t>(nx)>>16u),
                     static_cast<long>(static_cast<std::int32_t>(ny)>>16u),
                     static_cast<unsigned>(nh),ticks,

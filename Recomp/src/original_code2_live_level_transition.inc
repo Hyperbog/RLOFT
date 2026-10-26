@@ -92,8 +92,13 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->original_level_transition_active)
         stop("ORIGINAL_181B4_LIVE_OWNER_PREREQUISITE_MISSING");
     const u32 prior=code2::load_le32(current->data.data()+0xC6C8u);
+    // 22/23 have a preserved-source save/restore gate. 23/26 have
+    // an independently authenticated *real portal record* 2D3D8
+    // roundtrip gate. No other arbitrary transitions are enabled.
     if(!((prior==22u && requested==23u)||
-         (prior==23u && requested==22u)))
+         (prior==23u && requested==22u)||
+         (prior==23u && requested==26u)||
+         (prior==26u && requested==23u)))
         stop("ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR");
     if(!current->level_overlay.idle() || current->data[0xA79Du]!=0u ||
        current->data[0xA7ECu]>=14u)
@@ -307,6 +312,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
         stop("ORIGINAL_181B4_LIVE_SOURCE_TRANSITION_DIVERGED");
     ++current->original_live_level_transitions;
     current->original_pending_level_frame=requested;
+    current->original_pending_level_scene_returned=false;
     current->original_level_transition_active=false;
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=171FC_181B4_LIVE_SOURCE_RETURN"
              <<" from="<<prior<<" to="<<requested

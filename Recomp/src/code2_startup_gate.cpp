@@ -169,6 +169,7 @@ struct Session {
     bool original_level_transition_active=false;
     unsigned original_live_level_transitions=0u;
     u32 original_pending_level_frame=0xFFFFFFFFu;
+    bool original_pending_level_scene_returned=false;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
     std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;

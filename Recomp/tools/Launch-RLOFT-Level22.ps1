@@ -3,6 +3,7 @@
 param(
  [string]$GameFolder = "",
  [switch]$Smoke,
+ [switch]$ExperimentalPortals,
  [string]$CdRoot = ""
 )
 Set-StrictMode -Version Latest
@@ -65,6 +66,12 @@ try {
     $sourceCd=$private
   } else {
     $sourceCd=[IO.Path]::GetFullPath($CdRoot)
+  }
+  if($ExperimentalPortals) {
+    # Host process environment is inherited by the Windows executable.
+    # The original guest uses _putenv/getenv to read the opt-in gate.
+    $env:RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS='1'
+    Write-Warning 'Live portal traversal is EXPERIMENTAL. Back up your saves; this host never writes the retail WORK directory.'
   }
   Write-Host "Native original Level22: W/S forward/back, A/D strafe, J/L or arrows turn, Esc quit."
   Write-Host "EXPERIMENTAL original-source window; unsupported game events stop execution."
