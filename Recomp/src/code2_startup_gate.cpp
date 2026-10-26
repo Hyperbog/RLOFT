@@ -12,6 +12,8 @@
 #include "original_code2_36cec_scene.hpp"
 #include "original_source_winmm_bridge.hpp"
 #include "original_code2_script_preflight.hpp"
+#include "original_code2_live_level_files.hpp"
+#include "../../Code2/graphics/original_levels_grid.hpp"
 #include "../../Code2/graphics/original_res_type6.hpp"
 #include "original_code2_5e38_game_options.hpp"
 #include "original_dpmi_real_mode_mouse.hpp"
@@ -163,6 +165,9 @@ struct Session {
     // remain explicit; this is not a complete DOS runtime.
     std::unique_ptr<rloft_recomp::ReadOnlyDosFiles> host_files;
     std::map<u32,u32> host_descriptor_flags;
+    rloft::live_level_files::Overlay level_overlay{};
+    bool original_level_transition_active=false;
+    unsigned original_live_level_transitions=0u;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
     std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;
@@ -1516,28 +1521,110 @@ void original_16cd0_chars_load() noexcept {
 // Original 20440 -> 181B4: preserved archive fallback and unchanged
 // CODE.2 Machine/DGROUP/Watcom allocations. WORK saved-level writes are
 // intentionally unsupported here; a missing WORK file is a DOS miss.
+// Original 171FC/181B4 mutable-level file services. Only the original
+// WORK\LEVnnn.DAT guest pathname is accepted; source writes are private
+// session-owned bytes, never copies placed in the original installation.
+u32 original_live_level_filename(u32 name) noexcept {
+    if(name!=0x819Cu)stop("ORIGINAL_LIVE_171FC_FILENAME_ABI_CHANGED");
+    u32 level=0u;
+    if(!rloft::live_level_files::Overlay::level_name(
+           current->data.data()+name,current->data.size()-name,level))
+        stop("ORIGINAL_LIVE_171FC_UNEXPECTED_WORK_FILENAME");
+    return level;
+}
+void original_live_level_no_real_save(u32 level) noexcept {
+    const auto filename=current->original_installation_root/"WORK"/(
+        std::string("LEV")+(level<10u?"00":"0")+std::to_string(level)+".DAT");
+    std::error_code ec;
+    const auto status=std::filesystem::symlink_status(filename,ec);
+    if(!ec&&std::filesystem::exists(status))
+        stop("ORIGINAL_LIVE_171FC_REFUSES_OWNED_WORK_FILE_OVERWRITE");
+    if(ec&&ec!=std::errc::no_such_file_or_directory)
+        stop("ORIGINAL_LIVE_171FC_WORK_PATH_STAT_FAILED");
+}
+void original_live_level_remove(u32 path) noexcept {
+    const u32 level=original_live_level_filename(path);
+    original_live_level_no_real_save(level);
+    if(!current->level_overlay.erase(level))
+        stop("ORIGINAL_LIVE_171FC_OVERLAY_REMOVE_BUSY");
+}
+u32 original_live_level_old_open(u32 path) noexcept {
+    const u32 level=original_live_level_filename(path);
+    original_live_level_no_real_save(level);
+    return 0u; // original 312C8: no open handle, original 312DC(0) is ignored.
+}
+u32 original_live_level_create(u32 path) noexcept {
+    const u32 level=original_live_level_filename(path);
+    original_live_level_no_real_save(level);
+    const auto result=current->level_overlay.create(level);
+    if(result==rloft::live_level_files::Overlay::invalid)
+        stop("ORIGINAL_LIVE_171FC_OVERLAY_CREATE_REJECTED");
+    return result;
+}
+u32 original_live_level_open_saved(u32 path) noexcept {
+    const u32 level=original_live_level_filename(path);
+    original_live_level_no_real_save(level);
+    if(!current->level_overlay.has(level))return 0xFFFFFFFFu;
+    const auto result=current->level_overlay.open(level);
+    if(result==rloft::live_level_files::Overlay::invalid)
+        stop("ORIGINAL_LIVE_181B4_OVERLAY_OPEN_REJECTED");
+    return result;
+}
+u32 original_live_level_seek(u32 offset,u32 origin,u32 handle) noexcept {
+    if(handle==rloft::live_level_files::Overlay::read_handle ||
+       handle==rloft::live_level_files::Overlay::write_handle) {
+        const auto result=current->level_overlay.seek(handle,offset,origin);
+        if(result==rloft::live_level_files::Overlay::invalid)
+            stop("ORIGINAL_LIVE_171FC_OVERLAY_SEEK_REJECTED");
+        return result;
+    }
+    return original_level_source_seek(offset,origin,handle);
+}
+void original_live_level_close(u32 handle) noexcept {
+    if(handle==0u)return; // Source 171FC opens no previous handle.
+    if(handle==rloft::live_level_files::Overlay::read_handle ||
+       handle==rloft::live_level_files::Overlay::write_handle){
+        if(!current->level_overlay.close(handle))
+            stop("ORIGINAL_LIVE_171FC_OVERLAY_CLOSE_REJECTED");
+        return;
+    }
+    original_boot_file_close(handle);
+}
+u32 original_live_level_write_local(const u8* src,u32 size,u32 handle) noexcept {
+    if(handle!=rloft::live_level_files::Overlay::write_handle)
+        stop("ORIGINAL_LIVE_171FC_UNEXPECTED_SAVE_HANDLE");
+    const auto written=current->level_overlay.write(src,size);
+    if(written!=size)stop("ORIGINAL_LIVE_171FC_PRIVATE_SAVE_SHORT_WRITE");
+    return written;
+}
+u32 original_live_level_write_guest(u32 src,u32 size,u32 handle) noexcept {
+    if(std::uint64_t(src)+size>current->data.size())
+        stop("ORIGINAL_LIVE_171FC_SOURCE_WRITE_OUT_OF_GUEST");
+    return original_live_level_write_local(current->data.data()+src,size,handle);
+}
+u32 original_live_level_read_local(u8* dst,u32 size,u32 handle) noexcept {
+    if(handle!=rloft::live_level_files::Overlay::read_handle)
+        return original_level_read_local(dst,size,handle);
+    const auto read=current->level_overlay.read(dst,size);
+    if(read!=size)stop("ORIGINAL_LIVE_181B4_PRIVATE_SAVE_SHORT_READ");
+    return read;
+}
+u32 original_live_level_read_guest(u32 dst,u32 size,u32 handle) noexcept {
+    if(std::uint64_t(dst)+size>current->data.size())
+        stop("ORIGINAL_LIVE_181B4_SOURCE_READ_OUT_OF_GUEST");
+    if(handle!=rloft::live_level_files::Overlay::read_handle)
+        return original_boot_file_read(dst,size,handle);
+    return original_live_level_read_local(current->data.data()+dst,size,handle);
+}
+void original_live_level_io_error(u32) noexcept {
+    stop("ORIGINAL_LIVE_171FC_181B4_IO_SOURCE_ERROR");
+}
 u32 original_level_missing_standalone(u32 name) noexcept {
     if(name!=0x819Cu || !current->host_files)
         stop("ORIGINAL_181B4_STANDALONE_FILENAME_POINTER");
-    // Original WORK\\LEVnnn.DAT contains a directory component and is
-    // longer than a DOS 8.3 basename; do not use guest_dos_basename.
-    // The original source itself already filled the three level digits.
-    const char* const guest=reinterpret_cast<const char*>(
-        segment(0x30u,name,16u));
-    if(std::memcmp(guest,"work\\lev022.dat",16u)!=0 &&
-       std::memcmp(guest,"WORK\\LEV022.DAT",16u)!=0)
-        stop("ORIGINAL_181B4_STANDALONE_NAME_UNEXPECTED");
-    // The default original installation has no mutable WORK level.
-    // If one exists, this read-only archive gate cannot skip that branch.
-    const auto filename=current->original_installation_root/
-        "WORK"/"LEV022.DAT";
-    std::error_code ec;
-    const auto status=std::filesystem::symlink_status(filename,ec);
-    if(!ec && std::filesystem::exists(status))
-        stop("ORIGINAL_181B4_SAVED_LEVEL_BRANCH_NOT_CONNECTED");
-    if(ec && ec!=std::errc::no_such_file_or_directory)
-        stop("ORIGINAL_181B4_WORK_STAT_FAILED");
-    return 0xFFFFFFFFu;
+    // Source 181B4 selects any session-owned saved level first.
+    // The default first-load Level22 still falls back to LEVELS.DAT.
+    return original_live_level_open_saved(name);
 }
 u32 original_level_archive_open_local(const u8* name) noexcept {
     if(!name || std::memcmp(name,"levels.dat",11u)!=0 ||
