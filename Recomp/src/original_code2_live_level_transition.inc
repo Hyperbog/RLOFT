@@ -1,3 +1,99 @@
+// Diagnostic-only entry into an AUTHENTIC type-8 portal record from the
+// owner's unmodified original LEVELS.DAT. The host does not construct a
+// destination or synthesize movement; compiled CODE2 2D3D8 owns the
+// camera, heading, 181B4 transition and post-portal actor checks.
+void original_live_archived_portal_entry(u32 requested) noexcept {
+    if(!current || !current->original_vga || !current->live_continuation ||
+       !current->host_files ||
+       !current->level_overlay.idle() ||
+       current->original_level_transition_active)
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_OWNER_NOT_READY");
+    const u32 source=code2::load_le32(current->data.data()+0xC6C8u);
+    if(!((source==23u&&requested==26u)||
+         (source==26u&&requested==23u)))
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_PAIR_NOT_VERIFIED");
+    std::vector<u8> archive{};
+    rloft::original_levels::LevelGrid world{};
+    rloft::original_levels::LevelGrid dest{};
+    try {
+        archive=rloft::original_levels::read_archive(
+            (current->original_installation_root/"LEVELS.DAT").string());
+        world=rloft::original_levels::decode_grid(archive,source);
+        dest=rloft::original_levels::decode_grid(archive,requested);
+    } catch(const std::exception&) {
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_MEDIA_INVALID");
+    }
+    if(code2::load_le16(current->data.data()+0x25619u)!=world.width ||
+       code2::load_le16(current->data.data()+0x2561Bu)!=world.height)
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_LIVE_LEVEL_LAYOUT_CHANGED");
+    const u32 start=rloft::original_levels::le32(
+        archive.data()+4u+source*4u);
+    const u32 end=(source+1u<32u)?
+        rloft::original_levels::le32(archive.data()+4u+(source+1u)*4u):
+        static_cast<u32>(archive.size());
+    std::uint64_t at=std::uint64_t(start)+0x1Du+0x2A4u+
+                     2u*world.width*world.height;
+    bool found=false;
+    u32 portal_col=0u,portal_row=0u,exit_x=0u,exit_y=0u,turn=0u;
+    for(u32 col=0u;col<world.width&&!found;++col) {
+        if(at+2u>end)stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_COUNT_TRUNCATED");
+        const u32 count=rloft::original_levels::le16(
+            archive.data()+static_cast<std::size_t>(at));
+        at+=2u;
+        if(count>512u || at+std::uint64_t(count)*10u>end)
+            stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_RECORDS_TRUNCATED");
+        for(u32 j=0u;j<count;++j) {
+            const u8* rec=archive.data()+at+j*10u;
+            if(rec[0]!=8u || rec[6]!=requested)continue;
+            if(rec[5]!=col || rec[4]>=world.height ||
+               rec[7]>=dest.width || rec[8]>=dest.height)
+                stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_COORDINATES_INVALID");
+            // Verify that this ORIGINAL portal still exists in the
+            // source guest's own dynamic record column. A removed or
+            // altered in-game portal cannot be resurrected by the host.
+            const u32 list=code2::load_le32(
+                current->data.data()+0xCB3Cu+col*4u);
+            if(!list)continue;
+            bool in_guest=false;
+            for(u32 k=0u;k<4096u;++k) {
+                const std::uint64_t p=std::uint64_t(list)+k*10u;
+                if(p+10u>current->data.size())
+                    stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_GUEST_LIST_INVALID");
+                const u8* guest=current->data.data()+p;
+                if(guest[0u]==0u && (guest[1u]&0x10u)==0u)break;
+                if(guest[0u]==8u && guest[4u]==rec[4u] &&
+                   guest[5u]==rec[5u] && guest[6u]==rec[6u] &&
+                   guest[7u]==rec[7u] && guest[8u]==rec[8u] &&
+                   guest[9u]==rec[9u]) {
+                    in_guest=true;break;
+                }
+            }
+            if(!in_guest)continue;
+            portal_col=col;portal_row=rec[4u];
+            exit_x=rec[7u];exit_y=rec[8u];turn=rec[9u];
+            found=true;break;
+        }
+        at+=std::uint64_t(count)*10u;
+    }
+    if(!found)stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_NOT_PRESENT_IN_GUEST");
+    code2::Application66Boundary b{};
+    b.call_181b4=&original_full_movement_event;
+    b.call_1c0c0=&original_full_movement_heading;
+    b.call_e0f8=&original_live_actor_reposition;
+    code2::function_2d3d8(
+        current->machine,b,portal_col,portal_row,
+        exit_x,exit_y,turn,requested);
+    if(code2::load_le32(current->data.data()+0xC6C8u)!=requested ||
+       current->original_pending_level_frame!=requested)
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_SOURCE_DID_NOT_TRANSFER");
+    std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN"
+             <<" from="<<source<<" to="<<requested
+             <<" portal_x="<<portal_col<<" portal_y="<<portal_row
+             <<" target_x="<<exit_x<<" target_y="<<exit_y
+             <<" turn="<<turn
+             <<" source_portal_record=UNMODIFIED_LEVELS_DAT"
+             <<" next_1FC14_frame=NOT_YET_OBSERVED\n"<<std::flush;
+}
 // Original 20850 actor reposition callback graph. It operates on the
 // destination world's compiled CODE2 actor, tile and RNG functions. The
 // result is not a host-selected "safe" or "no collision" surrogate.
