@@ -921,6 +921,20 @@ jobs:
           } finally {
             Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
           }
+      - name: Probe retained original 07938 saved Level23 and native 23-26-23 framebuffer
+        # This is deliberately independent of the isolated original save
+        # loader test. A timeout or unsupported callback is NOT success.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          $slot = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
+          & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root "$root" --cd-root "$cd" --smoke-save23 "$slot"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Retained CODE2 07938 Level23 -> 26 -> 23 source VGA full-cycle NOT_CERTIFIED"
+          }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |

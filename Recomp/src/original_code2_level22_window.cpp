@@ -270,16 +270,32 @@ int main(int argc,char** argv){
             std::string(argv[5])=="--smoke-portal";
         const bool ordinary_smoke=argc==6 &&
             std::string(argv[5])=="--smoke";
-        if((argc!=5 && argc!=6) || std::string(argv[1])!="--root" ||
+        const bool saved_smoke=argc==7 &&
+            std::string(argv[5])=="--smoke-save23";
+        const bool saved_interactive=argc==7 &&
+            std::string(argv[5])=="--load-save23";
+        const bool saved_start=saved_smoke || saved_interactive;
+        if((argc!=5 && argc!=6 && argc!=7) ||
+           std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root" ||
-           (argc==6 && !ordinary_smoke && !portal_smoke))
+           (argc==6 && !ordinary_smoke && !portal_smoke) ||
+           (argc==7 && !saved_start))
             throw std::invalid_argument(
-                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-portal]");
+                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-portal|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
         const auto root=std::filesystem::absolute(argv[2]);
         const auto cd=std::filesystem::absolute(argv[4]);
         if(!std::filesystem::is_regular_file(root/"CODE.2"))
             throw std::runtime_error("Original CODE.2 not found");
-        if(portal_smoke) {
+        if(saved_start) {
+            const auto saved=std::filesystem::absolute(argv[6]);
+            if(!std::filesystem::is_regular_file(saved/"SAVE.DAT") ||
+               !std::filesystem::is_regular_file(saved/"LEV023.DAT"))
+                throw std::runtime_error("Original saved Level23 slot must contain SAVE.DAT and LEV023.DAT");
+            if(_putenv_s("RLOFT_RECOMP_ORIGINAL_LEVEL23_SAVE_DIR",saved.string().c_str())!=0 ||
+               _putenv_s("RLOFT_RECOMP_EXPERIMENTAL_LEVEL23_SAVE_RESTORE","1")!=0)
+                throw std::runtime_error("Cannot configure private original 07938 save restore");
+        }
+        if(portal_smoke || saved_start) {
             // Explicit diagnostic mode. These values are consumed by
             // retained original 30B40 source worker, never by a fake
             // host player engine.
@@ -289,6 +305,39 @@ int main(int argc,char** argv){
         }
         LiveWindow live;
         live.open_original_guest(root,cd);
+        if(saved_start) {
+            // FFFA is an owner-only request into compiled source 07938,
+            // never a retail keyboard code or invented Level23 camera.
+            // The original saved LEV023 is read from the private overlay.
+            // Subsequent frame generation must still run to 30B40.
+            live.tick(0xFFFAu);
+            if(live.failed ||
+               code2::load_le32(live.guest_bytes()+0xC6C8u)!=23u)
+                throw std::runtime_error("Retained 07938 Level23 save restore or first native 1FC14 frame failed");
+            if(saved_smoke) {
+                for(const auto scan:{0u,0xFFFCu,0u,0xFFFBu,0u})
+                    live.tick(scan);
+                const auto proof=machine::inspect(live.game->canonical.get());
+                if(live.failed || live.ticks!=6u ||
+                   code2::load_le32(live.guest_bytes()+0xC6C8u)!=23u ||
+                   proof.original_live_level_transitions!=3u ||
+                   proof.original_live_portal_full_cycle_frames!=3u ||
+                   proof.original_live_pending_portal_level!=0xFFFFFFFFu ||
+                   proof.original_1fc14_source_scene_returns!=
+                       proof.original_1fc14_post_scene_cycles ||
+                   proof.original_1fc14_page_handoffs!=
+                       proof.original_1fc14_post_scene_cycles)
+                    throw std::runtime_error(
+                        "Original 07938 saved Level23 to archived 26/23 native full-cycle frame gate failed");
+                std::cout<<"CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS"
+                         <<" original_07938=YES original_2D3D8=YES"
+                         <<" transitions="<<proof.original_live_level_transitions
+                         <<" audited_frames="<<proof.original_live_portal_full_cycle_frames
+                         <<" live_guest=UNCHANGED owner_files=READ_ONLY"
+                         <<" independent_DOS_frame_parity=OPEN\n"<<std::flush;
+                return 0;
+            }
+        }
         if(portal_smoke) {
             // 0xFFFD selects a SOURCE 181B4(23) starting level. This is
             // NOT a retail Level22 portal. FFFC/FFFB enter authentic
