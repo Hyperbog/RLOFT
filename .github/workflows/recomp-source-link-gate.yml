@@ -33,6 +33,13 @@ jobs:
       - name: Compile and link both complete reconstruction files
         shell: pwsh
         run: cmake --build build/recomp --config Debug --parallel 2
+      - name: Audit CMake source inventory and compiled code fragments
+        shell: pwsh
+        run: |
+          python -m unittest discover -s Recomp/tools -p test_audit_recomp_source_layout.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Recomp source inventory unit tests failed" }
+          python Recomp/tools/audit_recomp_source_layout.py --root .
+          if ($LASTEXITCODE -ne 0) { throw "Recomp source inventory audit failed" }
       - name: Execute compiled reconstruction leaf and entry-boundary tests
         shell: pwsh
         run: ctest --test-dir build/recomp -C Debug --output-on-failure

@@ -31,6 +31,10 @@ jobs:
           sudo apt-get install -y ninja-build cmake g++ python3
       - name: Validate milestone evidence generator
         run: python3 -m unittest discover -s Recomp/tools -p test_milestone_report.py -v
+      - name: Audit CMake sources and retained CODE2 include graph
+        run: |
+          python3 -m unittest discover -s Recomp/tools -p test_audit_recomp_source_layout.py -v
+          python3 Recomp/tools/audit_recomp_source_layout.py --root .
       - name: Compile and test portable C++ through the same developer script
         run: bash dev/linux.sh test
       - name: Archive failure evidence for diagnosis
