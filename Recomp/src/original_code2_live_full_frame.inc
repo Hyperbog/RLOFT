@@ -480,10 +480,14 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
                     // strings. Authenticate bounds without changing
                     // its original lexical comparison semantics.
                     const auto valid=+[](u32 ptr) noexcept -> bool {
-                        if(ptr>=current->data.size())return false;
+                        // Source 27C70 reads up to 16 bytes at a
+                        // time. Admit only a guest range with a valid
+                        // trailing full load, not just a one-byte NUL.
+                        if(std::uint64_t(ptr)+16u>
+                           current->data.size())return false;
                         const u32 limit=static_cast<u32>(
                             std::min<std::size_t>(
-                                current->data.size()-ptr,0x400u));
+                                current->data.size()-ptr-15u,0x400u));
                         for(u32 j=0u;j<limit;++j)
                             if(current->data[ptr+j]==0u)return true;
                         return false;
