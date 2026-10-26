@@ -1368,6 +1368,8 @@ void original_16d04_after_dos_open() noexcept {
 void original_live_1f8fc_source_chain() noexcept;
 void original_full_prepare_1fc14_source_tick() noexcept;
 void original_full_audit_1fc14_previous_tick() noexcept;
+void original_181b4_live_transition(u32 requested) noexcept;
+void original_live_archived_portal_entry(u32 requested) noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
     // 1FC14 returns to this ORIGINAL 30B40 poll after 1F8FC's
     // initial mode compositor. A real cross-level 1F8E0/1F8FC mode
@@ -1415,6 +1417,40 @@ u32 original_30b40_keyboard_poll() noexcept {
         0u,0u,0u,0u,0u};
     if(!current->live_continuation->suspend(request,response))
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_SHUTDOWN");
+    // Private engineering source-entry probes, NOT retail scan codes.
+    // FFFD: initialize Level23 with authentic 181B4 on the retained
+    // player guest; FFFC/FFFB: replay the matching REAL type-8 portal
+    // record using compiled 2D3D8, then resume original 1FC14.
+    // This never fabricates a Level22 portal or original DOS input.
+    if(response.ax==0xFFFDu ||
+       response.ax==0xFFFCu ||
+       response.ax==0xFFFBu) {
+        const char* diag=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_PORTAL_SOURCE_PROBE");
+        const char* transition=std::getenv(
+            "RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS");
+        const char* trace=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
+        if(!diag || std::strcmp(diag,"1")!=0 ||
+           !transition || std::strcmp(transition,"1")!=0 ||
+           !trace || std::strcmp(trace,"1")!=0)
+            stop("ORIGINAL_2D3D8_PRIVATE_PORTAL_PROBE_NOT_ENABLED");
+        if(response.ax==0xFFFDu) {
+            if(code2::load_le32(current->data.data()+0xC6C8u)!=22u)
+                stop("ORIGINAL_181B4_PRIVATE_LEVEL23_START_NOT_LEVEL22");
+            original_181b4_live_transition(23u);
+            std::cerr
+                <<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_LEVEL23_DIAGNOSTIC_START"
+                <<" owner_source=YES"
+                <<" genuine_level22_portal=NO\n"<<std::flush;
+        } else {
+            original_live_archived_portal_entry(
+                response.ax==0xFFFCu?26u:23u);
+        }
+        current->original_1fc14_last_scan_code=0u;
+        current->original_1fc14_source_keyboard_trace.push_back(0u);
+        current->original_1fc14_source_keyboard_trace.push_back(0u);
+        original_full_prepare_1fc14_source_tick();
+        return 0u;
+    }
     // Private source-test handshake (not a DOS keyboard scan code):
     // authenticate archives and input dispatch first, then run the full
     // original compositor callback graph on the SAME worker and guest.
