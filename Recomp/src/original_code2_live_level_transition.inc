@@ -424,7 +424,47 @@ void original_181b4_live_transition(u32 requested) noexcept {
         const u32 old_mode=code2::load_le32(current->data.data()+0xC034u);
         const auto prior_frames=current->original_scene_presentations;
         const auto prior_dac=current->original_source_dac_streams;
+        // Original 181B4 may invoke a complete 1F8FC compositor while
+        // the previous 1FC14 keyboard tick's trace is still live.
+        // Give this NESTED source frame an independent host-only trace.
+        // It keeps the same original Machine, guest RAM, RES caches,
+        // VGA device and callback order. The caller's tick is restored
+        // afterward; no game counter or guest register is changed.
+        OriginalFullFrameTrace nested_frame{};
+        ExteriorSourceTrace nested_exterior{};
+        auto* const previous_frame=original_full_frame_trace;
+        auto* const previous_exterior=exterior_trace;
+        if(old_mode!=mode) {
+            if(!previous_frame || !previous_exterior)
+                stop("ORIGINAL_181B4_NESTED_1F8FC_TRACE_OWNER_MISSING");
+            std::cerr<<"CODE2_ORIGINAL_181B4_NESTED_1F8FC_TRACE_ENTER"
+                     <<" source_level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                     <<" from_mode="<<old_mode<<" to_mode="<<mode
+                     <<" prior_polygon_returns="<<previous_frame->polygon_scan_returns
+                     <<" prior_actor_returns="<<previous_frame->actor_update_returns
+                     <<" prior_scene_returns="<<previous_frame->scene_projection_returns
+                     <<"\n"<<std::flush;
+            original_full_frame_trace=&nested_frame;
+            exterior_trace=&nested_exterior;
+        }
         code2::function_1f8e0(current->machine,render,mode);
+        if(old_mode!=mode) {
+            original_full_frame_trace=previous_frame;
+            exterior_trace=previous_exterior;
+            std::cerr<<"CODE2_ORIGINAL_181B4_NESTED_1F8FC_SOURCE_RETURN"
+                     <<" polygon_returns="<<nested_frame.polygon_scan_returns
+                     <<" actor_returns="<<nested_frame.actor_update_returns
+                     <<" scene_returns="<<nested_frame.scene_projection_returns
+                     <<" wall_passes="<<nested_frame.scene_wall_passes
+                     <<" quads="<<nested_frame.polygon_quads
+                     <<" original_guest=PRESERVED"
+                     <<" native_1FC14_full_cycle=NOT_YET_OBSERVED\n"<<std::flush;
+            if(nested_frame.polygon_scan_returns!=1u ||
+               nested_frame.actor_update_returns!=1u ||
+               nested_frame.scene_projection_returns!=1u ||
+               nested_frame.scene_wall_passes!=1u)
+                stop("ORIGINAL_181B4_NESTED_1F8FC_SOURCE_PHASE_INCOMPLETE");
+        }
         if(code2::load_le32(current->data.data()+0xC034u)!=mode)
             stop("ORIGINAL_181B4_1F8FC_GRAPHICS_MODE_NOT_COMMITTED");
         if(old_mode!=mode) {
