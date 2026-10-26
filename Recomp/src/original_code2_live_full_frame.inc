@@ -1565,14 +1565,26 @@ void original_full_audit_1fc14_previous_tick() noexcept {
 void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
     auto* t=original_full_frame_trace;
     auto* e=exterior_trace;
+    // The source Level26 mode-4 view genuinely returns from 34DE8
+    // with 540 source cell queries, 16 original 35798 projections,
+    // and no generated polygon quads or visible sprite calls. An
+    // empty raster is not a missing callback. Preserve the original
+    // 1FC14 tick owner and require all nonvisual source returns.
+    const bool source_polygon_complete=t && t->polygon_scan_returns==1u &&
+        t->polygon_cells!=0u && t->polygon_projections!=0u &&
+        (t->polygon_quads==0u?
+            (t->polygon_scanlines==0u && t->polygon_drawn_scanlines==0u):
+            t->polygon_drawn_scanlines!=0u);
+    const bool source_scene_complete=t &&
+        t->actor_update_returns==1u &&
+        t->scene_projection_returns==1u &&
+        t->scene_wall_passes==1u &&
+        t->compass_source_returns==1u &&
+        t->scene_sprite_calls==t->scene_sprite_raster_returns;
     if(!t || !e || page>1u ||
-       t->polygon_scan_returns!=1u ||
-       t->polygon_drawn_scanlines==0u ||
-       t->actor_update_returns!=1u ||
-       t->scene_projection_returns!=1u ||
-       t->compass_source_returns!=1u ||
-       t->scene_sprite_calls==0u ||
-       t->scene_sprite_calls!=t->scene_sprite_raster_returns) {
+       t!=&original_1fc14_tick_frame ||
+       e!=&original_1fc14_tick_exterior ||
+       !source_polygon_complete || !source_scene_complete) {
         // Diagnostic only: distinguish a real empty source polygon/
         // sprite view from a missing callback or a wrong frame owner.
         // No trace counter, guest field, or acceptance condition changes.
