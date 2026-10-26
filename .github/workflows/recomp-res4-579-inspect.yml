@@ -19,6 +19,40 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
           sparse-checkout-cone-mode: false
           persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: Recomp
+          path: source
+          sparse-checkout: |
+            Code2/Code2.cpp
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Inspect compiled original resource-loader source callback chain
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path("source/Code2/Code2.cpp").read_text(encoding="utf-8")
+          for symbol in ("function_2f29c","function_2fd9c","function_37590",
+                         "function_37b42","function_37c37"):
+              candidates=list(re.finditer(r"\b"+symbol+r"\s*\(",src))
+              print("ORIGINAL_LOADER_SYMBOL",symbol,"references",len(candidates))
+              for match in candidates:
+                  head=src[max(0,match.start()-100):match.start()]
+                  if not re.search(r"(?:void|u32|s32|s16)\s+$",head):continue
+                  brace=src.find("{",match.end())
+                  end=brace+1
+                  depth=1
+                  while depth and end<len(src):
+                      if src[end]=="{":depth+=1
+                      elif src[end]=="}":depth-=1
+                      end+=1
+                  print("ORIGINAL_LOADER_BEGIN",symbol)
+                  print(src[max(0,match.start()-100):min(end,match.start()+22000)])
+                  print("ORIGINAL_LOADER_END",symbol)
+                  break
+          PY
       - name: Inspect original RES4 directory, types and neighboring records
         shell: bash
         run: |
