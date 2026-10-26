@@ -157,3 +157,69 @@ monotonic or per-invocation source witnesses; do not zero live counters,
 synthesize actor updates, omit original callbacks, or accept a portal
 without the strict native full-cycle marker. This is a diagnostic
 and acceptance-boundary issue, **not** evidence of original DOS parity.
+
+
+## 2026-10-26 Level 26 actor/frame-boundary verification — native portal source return
+
+**Current source result:** [strict run #40310813259](https://github.com/Hyperbog/RLOFT/actions/runs/40310813259)
+at `9cbf6960` failed its overall full-cycle requirement, **but did prove
+compiled original `2D3D8(23→26)` returned** on the retained guest.
+It printed `2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN from=23 to=26
+portal_x=9 portal_y=1 target_x=68 target_y=29` from the unmodified
+`LEVELS.DAT` portal record. This is a private diagnostic record
+invocation, not physical walking onto the tile.
+
+### Verified host-trace accounting defect and correction
+
+- At [diagnostic run #40309915040](https://github.com/Hyperbog/RLOFT/actions/runs/40309915040)
+  on `f2ad779e`, the Level 26 `1BDAC` actor source returned, but
+  the shared trace reported `actor_returns=2 polygon_returns=2
+  scene_returns=1 wall_passes=1`, because the prior Level 23
+  `1FC14` scene and the nested `181B4 → 1F8FC` compositor both
+  used the same host trace.
+- [Commit `15217767`](https://github.com/Hyperbog/RLOFT/commit/15217767ac53e02789a995065eca4b3851c78bc9)
+  gives the mode-changing nested `1F8FC` its own stack-local
+  `OriginalFullFrameTrace`/`ExteriorSourceTrace`. Prior trace pointers
+  are restored on normal source return. The guest `Machine`, original
+  callback order, resource cache, heap, VGA and level data are unchanged.
+- At [strict run #40310346793](https://github.com/Hyperbog/RLOFT/actions/runs/40310346793),
+  the isolated Level 26 mode-4 `34DE8` **returned genuinely**, visiting
+  `540` map cells and calling `35798` for `16` projections, yet
+  legitimately yielded `0` quads and `0` scanlines. The former
+  `1BDAC` guard incorrectly insisted on nonempty raster geometry.
+- [Commit `9cbf6960`](https://github.com/Hyperbog/RLOFT/commit/9cbf6960491337ba5aa8fa3066d31ec9801f2715)
+  checks original completed polygon scan **and real cell/projection
+  callbacks**, instead of inventing or requiring visible polygons.
+
+### New exact original-source witnesses
+
+Strict [run #40310813259](https://github.com/Hyperbog/RLOFT/actions/runs/40310813259)
+recorded:
+
+```text
+CODE2_ORIGINAL_LEVEL26_1BDAC_SOURCE_RETURN actor_returns=1 polygon_returns=1 scene_returns=0 transition_active=1
+CODE2_ORIGINAL_LIVE_BOOT=1A5B0_SOURCE_VGA_PRESENT scanout=1
+CODE2_ORIGINAL_181B4_NESTED_1F8FC_SOURCE_RETURN polygon_returns=1 actor_returns=1 scene_returns=1 wall_passes=1 quads=0
+CODE2_ORIGINAL_GAMEPLAY_LEVEL=171FC_181B4_LIVE_SOURCE_RETURN from=23 to=26 source_write_calls=228 no_departing_level=NO source_read_calls=219
+CODE2_ORIGINAL_GAMEPLAY_LEVEL=2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN from=23 to=26 portal_x=9 portal_y=1 target_x=68 target_y=29
+CODE2_ORIGINAL_LEVEL26_1BDAC_SOURCE_RETURN actor_returns=1 polygon_returns=1 scene_returns=0 transition_active=0
+LIVE_CODE2_SOURCE_STOP=ORIGINAL_1FC14_SCENE_SOURCE_RASTER_INCOMPLETE
+```
+
+The original `1F8FC` VGA compositor and `171FC/181B4/2D3D8`
+portal source have therefore returned **without synthetic guest
+state or callbacks**. This is not the later `1FC14` full-cycle
+destination frame. There is no `1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS
+level=26` marker, no Level 26→23 source return, and no retail DOS
+frame comparison; the mandatory strict CI run correctly failed.
+Linux regressions, canonical source link and Windows player-package
+build passed on `9cbf6960`.
+
+**Next bounded boundary:** inspect the actual `original_full_validate_1fc14_scene_handoff`
+predicates for the non-polygon Level 26 view. Instrument each independent
+condition (polygon-scan/cells/projections, actor and scene returns,
+compass, sprite-raster returns, page) before changing acceptance.
+A zero-quad original polygon scan is a real source result, not permission
+to skip other `1FC14` render, page, HUD or audio callbacks.
+The persistent `Concurrent host access to a running original guest`
+secondary supervisor message still needs separate lifecycle diagnosis.
