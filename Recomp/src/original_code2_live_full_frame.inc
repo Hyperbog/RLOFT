@@ -512,6 +512,13 @@ void original_full_1bdac_source() noexcept {
                  <<" retained_actor_graph=YES\n"<<std::flush;
     code2::function_1bdac(current->machine,actor);
     ++original_full_frame_trace->actor_update_returns;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==26u)
+        std::cerr<<"CODE2_ORIGINAL_LEVEL26_1BDAC_SOURCE_RETURN"
+                 <<" actor_returns="<<original_full_frame_trace->actor_update_returns
+                 <<" polygon_returns="<<original_full_frame_trace->polygon_scan_returns
+                 <<" scene_returns="<<original_full_frame_trace->scene_projection_returns
+                 <<" transition_active="<<current->original_level_transition_active
+                 <<"\n"<<std::flush;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
         std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_LEVEL23_SOURCE_RETURN"
                  <<" native_actor_update=YES\n"<<std::flush;
@@ -670,8 +677,19 @@ void original_full_scene_sprite(
 }
 void original_full_2c294_source() noexcept {
     if(!original_full_frame_trace ||
-       original_full_frame_trace->actor_update_returns!=1u)
+       original_full_frame_trace->actor_update_returns!=1u) {
+        const auto* t=original_full_frame_trace;
+        std::cerr<<"CODE2_ORIGINAL_2C294_ACTOR_PREDECESSOR_DIAGNOSTIC"
+                 <<" guest_level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" actor_returns="<<(t?t->actor_update_returns:0u)
+                 <<" polygon_returns="<<(t?t->polygon_scan_returns:0u)
+                 <<" scene_returns="<<(t?t->scene_projection_returns:0u)
+                 <<" wall_passes="<<(t?t->scene_wall_passes:0u)
+                 <<" pending_level="<<current->original_pending_level_frame
+                 <<" transition_active="<<current->original_level_transition_active
+                 <<"\n"<<std::flush;
         stop("ORIGINAL_2C294_ACTOR_PREDECESSOR_MISSING");
+    }
     code2::Application64Boundary projection{};
     projection.call_30ca2=&original_full_scene_random;
     projection.call_30cc4=&original_full_scene_seed;
