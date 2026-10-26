@@ -43,7 +43,7 @@ void test_signed_dos_seek_contract() {
            "SET 0 failed");
     verify(compute(0xFFFFFFFEu,2u,0u,9288u,9288u,result) &&
            result==9286u,"END -2 failed");
-    verify(compute(0xFFFFFFFFu,1u,9288u,9288u,result)&&
+    verify(compute(0xFFFFFFFFu,1u,9288u,9288u,9288u,result)&&
            result==9287u,"CUR -1 failed");
     const auto before=result;
     verify(!compute(1u,2u,0u,9288u,9288u,result)&&result==before,
