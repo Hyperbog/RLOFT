@@ -11,7 +11,7 @@ code2::s16 original_live_actor_2d5d0(
     collision.call_20c0c=&original_full_movement_effect;
     collision.call_181b4=&original_full_movement_event;
     collision.call_002a8=&original_full_movement_script;
-    collision.call_e0f8=&original_full_movement_predicate;
+    collision.call_e0f8=&original_live_actor_reposition;
     collision.call_1c0c0=&original_full_movement_heading;
     collision.call_1ea78=&original_full_movement_refresh;
     code2::Application65Boundary secondary{};

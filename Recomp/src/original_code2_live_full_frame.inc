@@ -865,8 +865,10 @@ void original_full_movement_script(code2::s32 index) noexcept {
              <<" supported_event_scope=BOUNDED"
              <<" source_guest=RETAINED\n"<<std::flush;
 }
-u32 original_full_movement_predicate(u32) noexcept {
-    stop("ORIGINAL_2D5D0_SPECIAL_TILE_PREDICATE_NOT_CONNECTED");
+u32 original_full_movement_predicate(u32 index) noexcept {
+    // Original 2D5D0 and 2D3D8 call 0E0F8 for source actor reposition;
+    // the compiled 0E0F8 changes the retained guest, not host state.
+    return original_live_actor_reposition(index);
 }
 void original_full_movement_refresh() noexcept {
     // Original 1EA78 swaps the retained display page and invokes the

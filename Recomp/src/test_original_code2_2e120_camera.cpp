@@ -70,6 +70,72 @@ void test_original_181b4_disabled_ail_music_source() {
           f.get32(0xEF2Cu)==0xFFFFFFFFu,
           "Original 28DCC/28EF0/28E58 disabled-AIL source changed music state");
 }
+code2::Machine* test_live_actor_fixture=nullptr;
+u32 test_source_actor_seed_clock_value() {
+    return code2::function_30700(*test_live_actor_fixture);
+}
+void test_source_actor_seed(u32 seed) {
+    code2::function_30cc4(*test_live_actor_fixture,seed);
+}
+void test_source_actor_rng_init(u32 seed) {
+    code2::Application56Boundary cb{};
+    cb.call_30cc4=&test_source_actor_seed;
+    (void)code2::function_290d0(*test_live_actor_fixture,cb,seed);
+}
+u32 test_source_actor_rng() {
+    return code2::function_30ca2(*test_live_actor_fixture);
+}
+u32 test_source_actor_roll(u32 count,u32 sides,u32 add,u32 flat) {
+    code2::Application39Boundary cb{};
+    cb.call_30ca2=&test_source_actor_rng;
+    return code2::function_1c328(*test_live_actor_fixture,cb,count,sides,add,flat);
+}
+code2::s16 test_source_actor_collision(u32 y,u32 x,u32 index) {
+    code2::Application66Boundary source{};
+    return static_cast<code2::s16>(code2::function_2d5d0(
+        *test_live_actor_fixture,source,y,x,static_cast<s32>(index)));
+}
+void test_original_20850_0e0f8_actor_source() {
+    SyntheticGuest f;
+    test_live_actor_fixture=&f.machine;
+    // Type 0 is a real actor per compiled 2ACDC.
+    f.put16(0x258A2u,1u);
+    f.put16(0x14D8Eu,0u);
+    f.put32(0x14D80u,0x00078000u);
+    f.put32(0x14D84u,0x00068000u);
+    f.data[0x14D8Bu]=0u;
+    f.put16(0x14D94u,0xFFFFu);
+    code2::Application46Boundary callbacks{};
+    callbacks.call_2acdc=&code2::function_2acdc;
+    callbacks.call_2d5d0=&test_source_actor_collision;
+    code2::function_20850(f.machine,callbacks);
+    check(f.get32(0x14D80u)==0x8000u &&
+          f.get32(0x14D84u)==0x8000u &&
+          (code2::load_le16(f.data.data()+0x14D94u)&0x0008u)==0u,
+          "Compiled original 20850 actor state/2D5D0 branch diverged");
+    // Separate deterministic original 0E0F8 reposition source entry:
+    // the actual 30700->290D0->30CA2->1C328 graph is executed.
+    f.put16(0x25619u,32u);
+    f.put16(0x2561Bu,32u);
+    f.put16(0x255D2u,0u);
+    f.put16(0x255D6u,0u);
+    f.put32(0xF58Cu,0x1234u);
+    f.put32(0x22230u,0x26000u);
+    f.data[0x26000u+0x1Du]=1u;
+    code2::Application19Boundary rescue{};
+    rescue.call_30700=&test_source_actor_seed_clock_value;
+    rescue.call_290d0=&test_source_actor_rng_init;
+    rescue.call_30ca2=&test_source_actor_rng;
+    rescue.call_1c328=&test_source_actor_roll;
+    const u32 relocated=code2::function_0e0f8(f.machine,rescue,0u);
+    check(relocated==1u &&
+          code2::load_le16(f.data.data()+0x14D82u)==18u &&
+          code2::load_le16(f.data.data()+0x14D86u)==19u &&
+          code2::load_le16(f.data.data()+0x14D8Cu)==18u*32u+19u &&
+          f.get32(0xF6F4u)!=0x1234u,
+          "Original 0E0F8 failed deterministic 30700 RNG actor reposition");
+    test_live_actor_fixture=nullptr;
+}
 void test_heading_turn_source() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -530,6 +596,7 @@ int main(){
     try{
         test_heading_turn_source();
         test_original_01558_saved_exploration_map();
+        test_original_20850_0e0f8_actor_source();
         test_original_181b4_disabled_ail_music_source();
         test_unblocked_camera_translation();
         test_collision_prevents_camera_translation();
@@ -551,6 +618,7 @@ int main(){
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
                  <<" explored_map_save=ORIGINAL_01558"
+                 <<" actor_reposition=ORIGINAL_20850_2D5D0_0E0F8"
                  <<" disabled_music_transition=ORIGINAL_28DCC_28EF0_28E58"
                  <<" same_level_source=ORIGINAL_181B4_NO_RELOAD"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
