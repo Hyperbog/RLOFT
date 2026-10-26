@@ -138,7 +138,7 @@ u32 original_full_exterior_unclipped(
     original_scene_res_blit(frame,row,x,image);
     return 0u;
 }
-u32 original_full_exterior_unsupported_raster(
+u32 original_full_exterior_clipped_raster_source(
     u32 frame,u32 row,u32 x,u32 clip,u32 image) noexcept {
     // Original CODE.2 2A6B0 executes transparent planar clipping.
     // Its 24-byte descriptor and record are sourced from 29414 and
@@ -232,7 +232,7 @@ void original_full_exterior_actor(u32 view) noexcept {
     b.call_2f29c=&original_full_exterior_resource;
     b.call_2a380=&original_full_exterior_unclipped;
     b.call_2a478=&original_full_exterior_subtractive;
-    b.call_2a6b0=&original_full_exterior_unsupported_raster;
+    b.call_2a6b0=&original_full_exterior_clipped_raster_source;
     b.call_2a8a0=&original_full_exterior_2a8a0;
     code2::Application73Boundary actor{};
     actor.app57=&b;
@@ -674,7 +674,7 @@ void original_full_scene_overlay(
     code2::Application57Boundary draw{};
     draw.call_2f29c=&original_full_frame_resource;
     draw.call_2a380=&original_full_exterior_unclipped;
-    draw.call_2a6b0=&original_full_exterior_unsupported_raster;
+    draw.call_2a6b0=&original_full_exterior_clipped_raster_source;
     draw.call_2a478=&original_full_exterior_subtractive;
     draw.call_2a8a0=&original_full_exterior_2a8a0;
     (void)code2::function_2978c(
