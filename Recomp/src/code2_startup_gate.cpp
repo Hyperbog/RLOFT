@@ -98,6 +98,9 @@ struct Session {
     std::map<u32,WorldMaterial> original_world_materials{};
     bool original_world_raster_invalid=false;
     unsigned original_world_source_flushes=0;
+    unsigned original_world_active_ray_sweep_start=0;
+    u32 original_world_active_ray_sweep_count=0;
+    u32 original_world_active_ray_sweep_serial=0;
     unsigned original_world_source_pixels=0;
     unsigned original_world_source_sintab_calls=0;
     unsigned original_world_legacy_sampler_calls=0;
@@ -2628,6 +2631,21 @@ u32 original_world_338c8(u32 shade,u32 height,u32 src,u32 dst) noexcept {
     return 1u;
 }
 void original_world_flush_3263c() noexcept {
+    // A single original 335DC traversal of N ray records has two
+    // consecutive source passes and at most 2*N+1 flushes. Track
+    // per-entry progress rather than cumulative previous gameplay.
+    const u32 local_flushed = current->original_world_active_ray_sweep_serial
+        ? current->original_world_source_flushes -
+          current->original_world_active_ray_sweep_start : 0u;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (local_flushed<4u || (local_flushed&0x1Fu)==0u))
+        std::cerr<<"CODE2_335DC_LEVEL23_SOURCE_RAY_PROGRESS"
+                 <<" source_pass="<<code2::load_le32(current->data.data()+0xFCD0u)
+                 <<" source_ray_index="<<code2::load_le32(current->data.data()+0xC6F8u)
+                 <<" total="<<current->original_world_active_ray_sweep_count
+                 <<" per_sweep_flushes="<<local_flushed
+                 <<" source_run_count="<<code2::load_le32(current->data.data()+0xC6F4u)
+                 <<"\n"<<std::flush;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
        (current->original_world_source_flushes<4u ||
         (current->original_world_source_flushes&0xFFu)==0u))
@@ -2670,6 +2688,10 @@ void original_world_flush_3263c() noexcept {
     }
 }
 void original_world_sweep_335dc() noexcept {
+    const u32 rays=code2::load_le32(current->data.data()+0xC6D8u);
+    current->original_world_active_ray_sweep_start=current->original_world_source_flushes;
+    current->original_world_active_ray_sweep_count=rays;
+    ++current->original_world_active_ray_sweep_serial;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
         std::cerr<<"CODE2_335DC_LEVEL23_SOURCE_PREFLIGHT"
                  <<" postload="<<current->original_181b4_completed
@@ -2683,6 +2705,13 @@ void original_world_sweep_335dc() noexcept {
     b.call_2f29c=&original_world_material;
     b.call_3263c=&original_world_flush_3263c;
     code2::function_335dc(current->machine,b);
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_TWO_SOURCE_PASSES_COMPLETED"
+                 <<" total_rays="<<rays
+                 <<" flush_delta="<<(current->original_world_source_flushes-
+                                      current->original_world_active_ray_sweep_start)
+                 <<" source_pass="<<code2::load_le32(current->data.data()+0xFCD0u)
+                 <<"\n"<<std::flush;
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
         std::cerr<<"CODE2_335DC_LEVEL23_SOURCE_RETURN"
                  <<" ray_count="<<code2::load_le32(current->data.data()+0xC6D8u)
