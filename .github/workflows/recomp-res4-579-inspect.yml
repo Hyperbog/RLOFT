@@ -25,6 +25,8 @@ jobs:
           path: source
           sparse-checkout: |
             Code2/Code2.cpp
+            Code2/graphics/original_res_type6.hpp
+            Code2/graphics/original_res_image_archive.hpp
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Inspect compiled original resource-loader source callback chain
@@ -55,6 +57,31 @@ jobs:
                   print("ORIGINAL_LOADER_END",symbol)
                   break
           PY
+      - name: Independently decompress authentic RES4 type-6 item 579
+        shell: bash
+        run: |
+          cat > /tmp/check_original_res4_579.cpp <<'CPP'
+          #include "Code2/graphics/original_res_type6.hpp"
+          #include <cstdint>
+          #include <iostream>
+          int main(int argc,char**argv) {
+              if(argc!=2)return 2;
+              const auto archive=rloft::original_res::read_only(argv[1]);
+              for(const unsigned id:{220u,221u,223u,578u,579u,580u}) {
+                  auto tex=rloft::original_res::decode_type6(archive,id);
+                  std::uint64_t checksum=14695981039346656037ull;
+                  for(const auto byte:tex.column_major) {
+                      checksum^=byte;checksum*=1099511628211ull;
+                  }
+                  std::cout<<"INDEPENDENT_ORIGINAL_RES4_TYPE6_PASS item="<<id
+                           <<" decoded="<<tex.decoded_bytes
+                           <<" columns="<<tex.columns
+                           <<" fnv64="<<checksum<<"\n";
+              }
+          }
+          CPP
+          c++ -std=c++17 -O2 -I source /tmp/check_original_res4_579.cpp -o /tmp/check_original_res4_579
+          /tmp/check_original_res4_579 "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4"
       - name: Inspect original RES4 directory, types and neighboring records
         shell: bash
         run: |
