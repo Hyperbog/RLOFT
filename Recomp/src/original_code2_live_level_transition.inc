@@ -255,10 +255,29 @@ void original_181b4_live_transition(u32 requested) noexcept {
                 if(!end)stop("ORIGINAL_171FC_LIVE_COLUMN_LIST_UNTERMINATED");
             }
         }
-        for(const u32 at:{0x258A2u,0x258A4u,0x258A6u}) {
-            const live_transition_s32 count=static_cast<code2::s16>(code2::load_le16(g+at));
-            if(count<0 || count>150)
-                stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
+        // These are distinct original 22-byte families, not three
+        // 150-entry NPC arrays: A=actors, C=loose items, B=placed items.
+        // Authentic LEVELS.DAT level 23 has A=34, C=28, B=213;
+        // level 26 has A=47, C=11, B=183. The former blanket
+        // 150-record guard incorrectly rejected valid source B data.
+        // Family B occupies DGROUP 0x22238..0x255D8, ahead of the
+        // original OBJECTS.DAT pointer: at most 600 complete records.
+        constexpr live_transition_s32 family_b_capacity=
+            static_cast<live_transition_s32>((0x255D8u-0x22238u)/22u);
+        const auto family_a=static_cast<live_transition_s32>(
+            static_cast<code2::s16>(code2::load_le16(g+0x258A2u)));
+        const auto family_c=static_cast<live_transition_s32>(
+            static_cast<code2::s16>(code2::load_le16(g+0x258A4u)));
+        const auto family_b=static_cast<live_transition_s32>(
+            static_cast<code2::s16>(code2::load_le16(g+0x258A6u)));
+        if(family_a<0 || family_a>150 ||
+           family_c<0 || family_c>150 ||
+           family_b<0 || family_b>family_b_capacity) {
+            std::cerr<<"CODE2_ORIGINAL_171FC_FAMILY_COUNT_PREFLIGHT"
+                     <<" A="<<family_a<<" C="<<family_c
+                     <<" B="<<family_b<<" B_capacity="<<family_b_capacity
+                     <<"\n"<<std::flush;
+            stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
         }
     }
     // Source I/O is preflighted before writing the old level. This is
