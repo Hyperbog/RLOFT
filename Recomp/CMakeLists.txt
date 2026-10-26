@@ -748,6 +748,17 @@ if(BUILD_TESTING)
         COMMAND rloft_original_scene_palette_selection_test)
 endif()
 
+# Source-selected 181B4 archive index policy: every valid original level,
+# with no hard-coded 22/23/26 pair selection. No original media needed.
+add_executable(rloft_original_code2_saved_level_policy_test
+    src/test_original_code2_saved_level_policy.cpp)
+set_target_properties(rloft_original_code2_saved_level_policy_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_source_selected_all_32_level_indices
+        COMMAND rloft_original_code2_saved_level_policy_test)
+endif()
+
 # Per-owner private 171FC/181B4 source file transport contract.
 add_executable(rloft_original_code2_live_level_files_test
     src/test_original_code2_live_level_files.cpp)
