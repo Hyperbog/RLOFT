@@ -110,6 +110,9 @@ def main() -> int:
             census = catalog(args.root)
             result["original_source_callback_inventory"] = {
                 "canonical_function_address_tokens": census["canonical_function_address_tokens"],
+                "canonical_function_bodies": census["canonical_function_bodies"],
+                "canonical_direct_call_edges": census["canonical_direct_call_edges"],
+                "canonical_callback_abi_occurrences": census["canonical_callback_abi_occurrences"],
                 "live_guest_callback_wirings": census["live_guest_callback_wirings"],
                 "nullable_wirings": census["conditional_or_explicit_null_wirings"],
                 "unresolved_guard_sites": census["unresolved_guard_sites"],
