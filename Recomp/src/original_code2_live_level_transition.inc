@@ -195,16 +195,16 @@ void original_181b4_live_transition(u32 requested) noexcept {
         rloft::original_saved_level_policy::authenticated_no_departing_level(
             prior,requested,current->original_live_restore_active,
             current->original_live_save_level_callbacks,
-            current->level_overlay.has(23u),
+            current->level_overlay.has(requested),
             current->original_live_save_reads,
             current->original_live_save_opens);
     if(!restore_without_departure &&
-       !rloft::original_saved_level_policy::archived_pair(prior,requested)) {
+       !rloft::original_saved_level_policy::source_selected_transition(prior,requested)) {
         std::cerr<<"CODE2_ORIGINAL_07938_LIVE_LEVEL_PAIR_DIAGNOSTIC"
                  <<" prior="<<prior<<" requested="<<requested
                  <<" restore_active="<<current->original_live_restore_active
                  <<" save_level_callbacks="<<current->original_live_save_level_callbacks
-                 <<" saved_lev023_present="<<current->level_overlay.has(23u)
+                 <<" saved_level_present="<<current->level_overlay.has(requested)
                  <<" save_reads="<<current->original_live_save_reads
                  <<" source_C6C8="<<code2::load_le32(current->data.data()+0xC6C8u)
                  <<" continuing_1FC14=NO\n"<<std::flush;
@@ -212,9 +212,9 @@ void original_181b4_live_transition(u32 requested) noexcept {
     }
     if(restore_without_departure)
         std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_181B4_NO_DEPARTING_LEVEL_PASS"
-                 <<" from_guest_C6C8=4294967295 to=23"
+                 <<" from_guest_C6C8=4294967295 to="<<requested
                  <<" source_read_calls="<<current->original_live_save_reads
-                 <<" saved_world=ORIGINAL_LEV023"
+                 <<" saved_world=ORIGINAL_LEV_INDEXED"
                  <<" no_depending_departure=YES\n"<<std::flush;
     if(!current->level_overlay.idle() ||
        (!restore_without_departure &&
@@ -285,14 +285,23 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // rebuilt or synthetic world.
     rloft::original_levels::LevelGrid target{};
     try {
+        // Authenticate the actual source archive index and both original
+        // world layouts before the original 171FC mutates the departing
+        // world. Do not assume any particular level numbers or portals.
+        const auto archive=rloft::original_levels::read_archive(
+            (current->original_installation_root/"LEVELS.DAT").string());
+        if(!restore_without_departure) {
+            const auto departure=
+                rloft::original_levels::decode_grid(archive,prior);
+            if(departure.width!=code2::load_le16(g+0x25619u) ||
+               departure.height!=code2::load_le16(g+0x2561Bu))
+                stop("ORIGINAL_181B4_LIVE_DEPARTURE_ARCHIVE_LAYOUT_MISMATCH");
+        }
         if(current->level_overlay.has(requested))
             target=rloft::original_levels::decode_saved_grid(
                 current->level_overlay.levels.at(requested),requested);
         else
-            target=rloft::original_levels::decode_grid(
-                rloft::original_levels::read_archive(
-                    (current->original_installation_root/"LEVELS.DAT").string()),
-                requested);
+            target=rloft::original_levels::decode_grid(archive,requested);
     }catch(const std::exception&) {
         stop("ORIGINAL_181B4_LIVE_DESTINATION_MEDIA_PREFLIGHT_FAILED");
     }
