@@ -50,6 +50,15 @@ jobs:
           # every indexed source level, without level-specific host code.
           build/saved-levels/rloft_original_code2_level_loader "$level_archive" | tee build/saved-levels/all-32-original-levels.log
           grep -q 'CODE2_181B4_ORIGINAL_32_LEVEL_FILE_GATE_PASS' build/saved-levels/all-32-original-levels.log
+          # Independently census every shipped 002A8 descriptor and
+          # opcode in source content. These are game data, not 32
+          # distinct scripted engine implementations.
+          python3 DatFiles/LEVELS.DAT/analyze_event_scripts.py "$level_archive" | tee build/saved-levels/script-dispatch-census.log
+          grep -qx 'levels=32' build/saved-levels/script-dispatch-census.log
+          grep -qx 'physical_slots=1600' build/saved-levels/script-dispatch-census.log
+          grep -qx 'active_slots=394' build/saved-levels/script-dispatch-census.log
+          grep -qx 'active_commands=555' build/saved-levels/script-dispatch-census.log
+          grep -qx 'opcode_counts=0:67 1:111 2:188 3:42 4:44 5:20 6:2 7:0 8:4 9:0 10:0 11:6 12:71' build/saved-levels/script-dispatch-census.log
           test "$(find "$folder" -maxdepth 1 -name 'LEV[0-9][0-9][0-9].DAT' | wc -l)" -eq 17
           build/saved-levels/rloft_original_code2_level_loader --saved-levels "$folder" | tee build/saved-levels/verification.log
           grep -q 'CODE2_181B4_SAVED_LEVELS_ORIGINAL_SOURCE_GATE_PASS count=17' build/saved-levels/verification.log
