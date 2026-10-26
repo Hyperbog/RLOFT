@@ -4,6 +4,8 @@ param(
  [string]$GameFolder = "",
  [switch]$Smoke,
  [switch]$ExperimentalPortals,
+ [string]$SavedLevel23Folder = "",
+ [switch]$SavedPortalSmoke,
  [string]$CdRoot = ""
 )
 Set-StrictMode -Version Latest
@@ -73,9 +75,19 @@ try {
     $env:RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS='1'
     Write-Warning 'Live portal traversal is EXPERIMENTAL. Back up your saves; this host never writes the retail WORK directory.'
   }
-  Write-Host "Native original Level22: W/S forward/back, A/D strafe, J/L or arrows turn, Esc quit."
-  Write-Host "EXPERIMENTAL original-source window; unsupported game events stop execution."
-  if($Smoke) {
+  if(-not [string]::IsNullOrWhiteSpace($SavedLevel23Folder)) {
+    $slot=[IO.Path]::GetFullPath($SavedLevel23Folder)
+    if(-not (Test-Path -LiteralPath (Join-Path $slot 'SAVE.DAT') -PathType Leaf) -or
+       -not (Test-Path -LiteralPath (Join-Path $slot 'LEV023.DAT') -PathType Leaf)) {
+      throw 'Saved Level23 folder must contain untouched SAVE.DAT and LEV023.DAT.'
+    }
+    if($Smoke) { throw '-Smoke is a Level22-only fixture. Use -SavedPortalSmoke for Level23.' }
+    $sourceMode=if($SavedPortalSmoke){'--smoke-save23'}else{'--load-save23'}
+    Write-Host "Authentic original Level23 save restore: $slot (source 07938)."
+    & $exe --root $root --cd-root $sourceCd $sourceMode $slot
+  } elseif($SavedPortalSmoke) {
+    throw '-SavedPortalSmoke requires -SavedLevel23Folder.'
+  } elseif($Smoke) {
     & $exe --root $root --cd-root $sourceCd --smoke
   } else {
     & $exe --root $root --cd-root $sourceCd

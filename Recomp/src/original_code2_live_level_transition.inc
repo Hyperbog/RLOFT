@@ -188,14 +188,30 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->original_level_transition_active)
         stop("ORIGINAL_181B4_LIVE_OWNER_PREREQUISITE_MISSING");
     const u32 prior=code2::load_le32(current->data.data()+0xC6C8u);
-    // 22/23 have a preserved-source save/restore gate. 23/26 have
-    // an independently authenticated *real portal record* 2D3D8
-    // roundtrip gate. No other arbitrary transitions are enabled.
-    if(!((prior==22u && requested==23u)||
+    // Original 07938 first copies the saved current level (23) into
+    // C6C8, then calls 181B4(23) to load WORK/LEV023.DAT. This is a
+    // genuine SAME-level saved-game restoration, not a host-invented
+    // 23->23 portal. Only allow it while source 07938 is executing,
+    // with its authenticated private LEV023 input already present.
+    const bool restore_same_level=
+        current->original_live_restore_active &&
+        prior==23u && requested==23u &&
+        current->original_live_save_level_callbacks==1u &&
+        current->level_overlay.has(23u);
+    // Ordinary source 171FC/181B4 cross-level transitions are
+    // constrained to independently verified original level pairs.
+    if(!restore_same_level &&
+       !((prior==22u && requested==23u)||
          (prior==23u && requested==22u)||
          (prior==23u && requested==26u)||
          (prior==26u && requested==23u)))
         stop("ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR");
+    if(restore_same_level)
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_181B4_SAVED_LEVEL23_DISPATCH"
+                 <<" from_guest_C6C8=23 to=23"
+                 <<" archived_save=WORK_LEV023"
+                 <<" bypassed_cross_level_pair_guard=SOURCE_AUTHENTIC\n"
+                 <<std::flush;
     if(!current->level_overlay.idle() || current->data[0xA79Du]!=0u ||
        current->data[0xA7ECu]>=14u)
         stop("ORIGINAL_171FC_LIVE_SAVE_STACK_UNSAFE");
