@@ -41,8 +41,10 @@ void test_original_saved_level_policy() {
     using namespace rloft::original_saved_level_policy;
     verify(authenticated_no_departing_level(0xFFFFFFFFu,23u,true,1u,true,156u,1u),
            "Authentic source 07938 saved-level sentinel rejected");
-    verify(!authenticated_no_departing_level(0xFFFFFFFFu,26u,true,1u,true,156u,1u),
-           "Sentinel enabled arbitrary destination");
+    verify(authenticated_no_departing_level(0xFFFFFFFFu,26u,true,1u,true,156u,1u),
+           "Valid original saved-level index was rejected");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,32u,true,1u,true,156u,1u),
+           "Sentinel enabled a destination outside LEVELS.DAT index");
     verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,false,1u,true,156u,1u),
            "Sentinel accepted without 07938 restoration");
     verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,true,2u,true,156u,1u),
@@ -55,9 +57,12 @@ void test_original_saved_level_policy() {
            "Sentinel accepted no source save opens");
     verify(!authenticated_no_departing_level(22u,23u,true,1u,true,156u,1u),
            "Sentinel invented a previous level");
-    verify(archived_pair(23u,26u) && archived_pair(26u,23u) &&
-           !archived_pair(0xFFFFFFFFu,23u),
-           "Ordinary portal accepted saved-game sentinel");
+    verify(source_selected_transition(23u,26u) &&
+           source_selected_transition(26u,23u) &&
+           source_selected_transition(1u,31u) &&
+           !source_selected_transition(31u,31u) &&
+           !source_selected_transition(0xFFFFFFFFu,23u),
+           "Original source-selected transition bounds changed");
 }
 void test_signed_dos_seek_contract() {
     // Unlike the writable WORK overlay, restored SAVE.DAT does not
