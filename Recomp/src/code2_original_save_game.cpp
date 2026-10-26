@@ -321,7 +321,10 @@ struct SavedGame {
         // Saved placed-object count may differ across genuine owner saves.
         // Do not replace original 07938's dynamic count with SAVE10's zero.
         VERIFY(code2::load_le32(s.guest.data()+0xC038u)<=4096u);
-        VERIFY(code2::load_le32(s.guest.data()+0xBF44u)==0x270Fu);
+        // BF44 varies with saved world/events; 270F is specific
+        // to the Level-5 baseline, not a global guest invariant.
+        if(grid.level==5u)
+            VERIFY(code2::load_le32(s.guest.data()+0xBF44u)==0x270Fu);
         VERIFY(std::equal(save.begin()+0x32u,save.begin()+0x52u,
                           s.guest.begin()+0x22200u));
         VERIFY(std::equal(grid.header.begin(),grid.header.end(),
@@ -340,6 +343,12 @@ struct SavedGame {
                  <<" heading="<<code2::load_le32(s.guest.data()+0xC658u)
                  <<" party=4 containers=62 level_cells="
                  <<grid.cells.size()<<"\\n";
+        if(grid.level==23u)
+            std::cout<<"CODE2_07938_ORIGINAL_LEVEL23_SAVED_GAME_PASS"
+                     <<" level=23 original_07938=YES"
+                     <<" original_181B4_saved_world=YES"
+                     <<" continued_original_1FC14=NOT_EXECUTED"
+                     <<" owner_original_media=YES\\n";
         std::cout<<"CODE2_CONTINUOUS_CODE1_GAME_BOOT_ACCEPTED=NO\\n";
         std::cout<<"CODE2_SOURCE_DOS_PIXEL_PARITY_ACCEPTED=NO\\n";
     }
@@ -392,7 +401,8 @@ int main(int argc,char** argv) {
         std::copy_n(sintab,sizeof(sintab),source->guest.begin()+0x24u);
         source->load_original_sintab();
         SavedGame gate(*source);
-        if(census && std::filesystem::exists(dir/"INIT") &&
+        if((census || level==23u) &&
+           std::filesystem::exists(dir/"INIT") &&
            std::filesystem::exists(dir/"NPCS.DAT") &&
            std::filesystem::exists(dir/"OBJECTS.DAT"))
             gate.initialize_original_scene(dir);

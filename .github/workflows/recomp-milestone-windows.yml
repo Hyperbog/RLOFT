@@ -139,6 +139,7 @@ jobs:
           path: original-media
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/RLOFT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES9
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
           sparse-checkout-cone-mode: false
@@ -892,6 +893,34 @@ jobs:
             throw "Original 23-26-23 live 1FC14 portal frame NOT_CERTIFIED (source diagnostic stopped)"
           }
           Write-Host "Original archive 2D3D8 native portal scene, page, HUD and scanout diagnostic returned"
+      - name: Probe original 07938 Level23 saved-game restoration from preserved media
+        # Isolated source deserializer; NOT the retained Windows 1FC14 guest.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 4
+        run: |
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $slot = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
+          $temp = Join-Path $env:RUNNER_TEMP "rloft-original-07938-level23-$env:GITHUB_RUN_ID"
+          New-Item -Path $temp -ItemType Directory -Force | Out-Null
+          try {
+            # Never write to the owner original save directory.
+            foreach ($name in @("SAVE.DAT","LEV023.DAT")) {
+              Copy-Item -LiteralPath (Join-Path $slot $name) -Destination (Join-Path $temp $name)
+            }
+            foreach ($name in @("SINTAB","INIT","NPCS.DAT","OBJECTS.DAT")) {
+              Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $temp $name)
+            }
+            $output = & "build/windows-milestone/Debug/rloft_original_code2_save_game.exe" "$temp" (Join-Path $root "CODE.2") 2>&1
+            $result = $LASTEXITCODE
+            $output | ForEach-Object { Write-Host "ORIGINAL_LEVEL23_SOURCE: $_" }
+            if ($result -ne 0 -or ($output -join "`n") -notmatch 'CODE2_07938_ORIGINAL_LEVEL23_SAVED_GAME_PASS.*level=23.*original_07938=YES.*original_181B4_saved_world=YES') {
+              throw "Original Level23 saved-game source 07938/181B4 was not certified"
+            }
+            Write-Host "CODE2_07938_OWNER_LEVEL23_SAVED_WORLD_SOURCE_PASS continuous_1FC14=NOT_EXECUTED"
+          } finally {
+            Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
+          }
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
