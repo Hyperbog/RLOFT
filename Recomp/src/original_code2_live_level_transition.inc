@@ -9,9 +9,13 @@ void original_live_archived_portal_entry(u32 requested) noexcept {
        current->original_level_transition_active)
         stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_OWNER_NOT_READY");
     const u32 source=code2::load_le32(current->data.data()+0xC6C8u);
-    if(!((source==23u&&requested==26u)||
-         (source==26u&&requested==23u)))
-        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_PAIR_NOT_VERIFIED");
+    // The original LEVELS.DAT type-8 record, not a host level-pair
+    // whitelist, is authoritative. The loop below verifies that the
+    // archived record survives in the live source guest and that the
+    // destination grid, coordinates and actor callback are real.
+    if(!rloft::original_saved_level_policy::source_selected_transition(
+           source,requested))
+        stop("ORIGINAL_2D3D8_ARCHIVE_PORTAL_INDEX_INVALID");
     std::vector<u8> archive{};
     rloft::original_levels::LevelGrid world{};
     rloft::original_levels::LevelGrid dest{};
