@@ -1,0 +1,33 @@
+name: Original CODE2 335DC source ray investigation
+on:
+  push:
+    branches: [Recomp]
+    paths: ['.github/workflows/recomp-source-335dc-investigation.yml']
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect exact compiled original ray-source loop
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("Code2/Code2.cpp").read_text(encoding="utf-8")
+          for sym in ("function_335dc", "function_3263c"):
+              hits=list(re.finditer(r"\b"+sym+r"\s*\(",s))
+              print("SOURCE_SYMBOL",sym,"COUNT",len(hits))
+              for m in hits:
+                  before=s[max(0,m.start()-150):m.start()]
+                  if re.search(r"\b(?:void|u32|s32|s16)\s+$",before):
+                      print("BEGIN_SOURCE_ROUTINE",sym)
+                      print(s[m.start()-100:m.start()+(16000 if sym=="function_335dc" else 7000)])
+                      print("END_SOURCE_ROUTINE",sym)
+                      break
+          PY
