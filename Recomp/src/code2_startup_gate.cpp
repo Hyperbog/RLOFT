@@ -1521,6 +1521,8 @@ void original_16cd0_chars_load() noexcept {
 // Original 20440 -> 181B4: preserved archive fallback and unchanged
 // CODE.2 Machine/DGROUP/Watcom allocations. WORK saved-level writes are
 // intentionally unsupported here; a missing WORK file is a DOS miss.
+u32 original_level_source_seek(u32 offset,u32 origin,u32 handle) noexcept;
+u32 original_level_read_local(u8* dst,u32 size,u32 handle) noexcept;
 // Original 171FC/181B4 mutable-level file services. Only the original
 // WORK\LEVnnn.DAT guest pathname is accepted; source writes are private
 // session-owned bytes, never copies placed in the original installation.
