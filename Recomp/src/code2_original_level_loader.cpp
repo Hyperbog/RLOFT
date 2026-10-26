@@ -390,6 +390,100 @@ struct Session {
                trans_reader==~0u&&trans_writer==~0u&&
                code2::load_le32(guest.data()+0xC6C8u)==target);
     }
+    // Source type-8 portal record search in the compact ORIGINAL archive
+    // column lists. Do not synthesize portal coordinates or levels.
+    struct Portal {
+        u32 origin_x=0,origin_y=0,target=0,destination_x=0,
+            destination_y=0,turn=0;
+    };
+    static Portal archive_portal(const std::vector<u8>& archive,
+                                 u32 source,u32 target) {
+        const auto g=rloft::original_levels::decode_grid(archive,source);
+        const u32 start=rloft::original_levels::le32(
+            archive.data()+4u+source*4u);
+        const u32 end=source+1u<32u?
+            rloft::original_levels::le32(archive.data()+4u+(source+1u)*4u):
+            static_cast<u32>(archive.size());
+        u32 at=start+0x1Du+0x2A4u+2u*static_cast<u32>(g.width)*g.height;
+        for(u32 x=0u;x<g.width;++x) {
+            VERIFY(at+2u<=end);
+            const u32 n=rloft::original_levels::le16(archive.data()+at);
+            at+=2u;
+            VERIFY(n<512u && std::uint64_t(at)+n*10u<=end);
+            for(u32 k=0u;k<n;++k) {
+                const u8* record=archive.data()+at+k*10u;
+                if(record[0]!=8u || record[6]!=target)continue;
+                VERIFY(record[5]==x && record[4]<g.height);
+                return {x,record[4],target,record[7],record[8],record[9]};
+            }
+            at+=n*10u;
+        }
+        throw std::runtime_error("Authentic archived source portal not found");
+    }
+    static void portal_load_target(u32 level) noexcept {
+        now().transition_load(level);
+    }
+    static void portal_source_heading(u32 heading) noexcept {
+        code2::function_1c0c0(now().machine,heading);
+    }
+    static u32 portal_source_actor_event(u32) noexcept {
+        // The isolated LEVELS.DAT fixture does not load NPCS.DAT into
+        // original runtime tables. It cannot fabricate an actor event.
+        now().failed=true;return 0u;
+    }
+    void portal_roundtrip(const std::vector<u8>& archive) {
+        const Portal enter=archive_portal(archive,23u,26u);
+        const Portal leave=archive_portal(archive,26u,23u);
+        VERIFY(enter.destination_x<rloft::original_levels::decode_grid(archive,26u).width &&
+               enter.destination_y<rloft::original_levels::decode_grid(archive,26u).height);
+        VERIFY(leave.destination_x<rloft::original_levels::decode_grid(archive,23u).width &&
+               leave.destination_y<rloft::original_levels::decode_grid(archive,23u).height);
+        constexpr char filename[]="WORK\\LEV000.DAT";
+        std::copy_n(filename,sizeof(filename),guest.data()+0x819Cu);
+        transition_load(23u);
+        const u32 retained_script=code2::load_le32(guest.data()+0xCF44u);
+        VERIFY(retained_script!=0u &&
+               std::uint64_t(retained_script)+0x514u<=guest.size());
+        const std::vector<u8> scripts(
+            guest.begin()+retained_script,guest.begin()+retained_script+0x514u);
+        code2::Application66Boundary portal{};
+        portal.call_181b4=&portal_load_target;
+        portal.call_1c0c0=&portal_source_heading;
+        portal.call_e0f8=&portal_source_actor_event;
+        // Compile/source CODE.2 2D3D8 writes new position/heading,
+        // invokes 181B4 which invokes 171FC, and returns through
+        // original source post-transition actor/event checks.
+        code2::function_2d3d8(
+            machine,portal,enter.origin_x,enter.origin_y,
+            enter.destination_x,enter.destination_y,enter.turn,enter.target);
+        VERIFY(!failed &&
+               code2::load_le32(guest.data()+0xC6C8u)==26u &&
+               code2::load_le16(guest.data()+0x255D2u)==enter.destination_x &&
+               code2::load_le16(guest.data()+0x255D6u)==enter.destination_y &&
+               transition_overlays.count(23u)==1u);
+        code2::function_2d3d8(
+            machine,portal,leave.origin_x,leave.origin_y,
+            leave.destination_x,leave.destination_y,leave.turn,leave.target);
+        VERIFY(!failed &&
+               code2::load_le32(guest.data()+0xC6C8u)==23u &&
+               code2::load_le16(guest.data()+0x255D2u)==leave.destination_x &&
+               code2::load_le16(guest.data()+0x255D6u)==leave.destination_y &&
+               transition_overlays.count(26u)==1u &&
+               trans_read_calls>0u && trans_write_calls>0u);
+        const u32 returned_script=code2::load_le32(guest.data()+0xCF44u);
+        VERIFY(returned_script!=0u &&
+               std::uint64_t(returned_script)+scripts.size()<=guest.size() &&
+               std::equal(scripts.begin(),scripts.end(),
+                          guest.begin()+returned_script));
+        std::cout<<"CODE2_ORIGINAL_2D3D8_PORTAL_23_26_23_SOURCE_ROUNDTRIP_PASS"
+                 <<" original_portal_record=YES"
+                 <<" source_actor_event_fallback=NONE"
+                 <<" source_save_calls="<<trans_write_calls
+                 <<" source_restore_reads="<<trans_read_calls
+                 <<" return_level=23"
+                 <<" retail_VGA_frame=NOT_EXECUTED"
+                 <<" original_NPCS_postload=NOT_CERTIFIED\n";
+    }
     void transition_roundtrip(const rloft::original_levels::LevelGrid& first,
                               const rloft::original_levels::LevelGrid& second) {
         VERIFY(first.level==22u&&second.level==23u);
@@ -656,6 +750,14 @@ int main(int argc,char** argv) {
                      <<" facing="<<heading<<"\\n";
             std::cout<<"CODE2_COMPLETE_07938_SAVE_DESERIALIZER_EXECUTED=NO\\n";
             std::cout<<"CODE2_OUTDOOR_RENDERER_DOS_PARITY_ACCEPTED=NO\\n";
+            return 0;
+        }
+        if(argc==3 && std::string(argv[1])=="--portal-roundtrip") {
+            const std::filesystem::path file(argv[2]);
+            VERIFY(file.filename()=="LEVELS.DAT");
+            const auto archived=rloft::original_levels::read_archive(file.string());
+            auto runner=std::make_unique<Session>(file.parent_path());
+            runner->portal_roundtrip(archived);
             return 0;
         }
         if(argc==3 && std::string(argv[1])=="--transition-roundtrip") {
