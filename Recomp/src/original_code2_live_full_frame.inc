@@ -642,14 +642,43 @@ void original_full_scene_walls() noexcept {
                  <<" wall_passes="<<original_full_frame_trace->scene_wall_passes
                  <<"\n"<<std::flush;
 }
-void original_full_scene_save_clip(u32*) noexcept {
-    stop("ORIGINAL_2C294_29738_CLIP_SAVE_PENDING");
+void original_full_scene_save_clip(u32* saved) noexcept {
+    if(!current || !saved || current->data.size()<0xEF65u+16u)
+        stop("ORIGINAL_2C294_29738_SOURCE_STACK_ARGUMENTS");
+    // 2C294 uses a native four-dword stack array. 29738 expects
+    // guest-addressed output instead. Marshal its EXACT original
+    // sixteen-byte copy through a private guest scratch at the tail,
+    // restoring its original guest bytes before returning to 2C294.
+    constexpr u32 bytes=16u;
+    const u32 scratch=static_cast<u32>(current->data.size()-bytes);
+    u8 old[bytes]{};
+    for(u32 i=0;i<bytes;++i)old[i]=current->data[scratch+i];
+    code2::function_29738(current->machine,scratch);
+    for(u32 i=0;i<4u;++i)
+        saved[i]=code2::load_le32(current->data.data()+scratch+i*4u);
+    for(u32 i=0;i<bytes;++i)current->data[scratch+i]=old[i];
 }
-void original_full_scene_clip(u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_2C294_296C0_CLIP_PENDING");
+void original_full_scene_clip(u32 left,u32 top,u32 right,u32 bottom) noexcept {
+    if(!current || !current->original_vga)
+        stop("ORIGINAL_2C294_296C0_SOURCE_GUEST_MISSING");
+    code2::function_296c0(
+        current->machine,static_cast<code2::s32>(left),
+        static_cast<code2::s32>(top),
+        static_cast<code2::s32>(right),
+        static_cast<code2::s32>(bottom));
 }
-void original_full_scene_overlay(u32,u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_2C294_2978C_OVERLAY_PENDING");
+void original_full_scene_overlay(
+        u32 record,u32 row,u32 x,u32 resource,u32 set) noexcept {
+    if(!current || !current->original_vga || !original_full_frame_trace)
+        stop("ORIGINAL_2C294_2978C_SOURCE_GUEST_MISSING");
+    code2::Application57Boundary draw{};
+    draw.call_2f29c=&original_full_frame_resource;
+    draw.call_2a380=&original_full_exterior_unclipped;
+    draw.call_2a6b0=&original_full_exterior_unsupported_raster;
+    draw.call_2a478=&original_full_exterior_subtractive;
+    draw.call_2a8a0=&original_full_exterior_2a8a0;
+    (void)code2::function_2978c(
+        current->machine,draw,record,row,x,resource,set);
 }
 void original_full_scene_sprite(
         u32 screen_x,u32 res3_id,u32 projected_size,u32 lookup_bias,
