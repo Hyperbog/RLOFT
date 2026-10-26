@@ -153,12 +153,23 @@ void original_181b4_live_transition(u32 requested) noexcept {
     if(target.cells.size()!=std::size_t(target.width)*target.height ||
        target.width>128u || target.height>128u)
         stop("ORIGINAL_181B4_LIVE_DESTINATION_WORLD_INVALID");
-    // Original 1F8E0 -> 1F8FC requires a separate fully sourced mode
-    // switch if the target differs. Only identical mode-3 graphics are
-    // admitted; the retained 1FC14 frame stack renders on return.
-    if(code2::load_le32(g+0xC034u)!=3u ||
-       current->data[0x81ACu+requested*3u]!=3u)
-        stop("ORIGINAL_181B4_LIVE_DESTINATION_GRAPHICS_MODE_OPEN");
+    // The compiled original 1F8E0 chooses mode from 81AC and runs
+    // 1F8FC when it differs. Validate the authentic RES0 backdrop pair
+    // and COLORS bank BEFORE source 171FC mutates the departing world.
+    const u32 destination_mode=current->data[0x81ACu+requested*3u];
+    const u32 first_res=code2::load_le32(g+0x258DCu);
+    const u32 catalog=code2::load_le32(g+0xF0B8u);
+    if(destination_mode>=15u ||
+       std::uint64_t(catalog)+16u>current->data.size() ||
+       first_res>0xFFFFFFFFu-2u-destination_mode*3u)
+        stop("ORIGINAL_181B4_LIVE_GRAPHICS_RESOURCE_INDEX_INVALID");
+    const u32 catalog_count=code2::load_le32(g+catalog+8u);
+    const u32 backdrop=first_res+1u+destination_mode*3u;
+    if(backdrop+1u>=catalog_count)
+        stop("ORIGINAL_181B4_LIVE_GRAPHICS_BACKDROP_NOT_IN_RES0");
+    const u32 active_mode=code2::load_le32(g+0xC034u);
+    if(active_mode>=15u)
+        stop("ORIGINAL_181B4_LIVE_PREVIOUS_GRAPHICS_MODE_INVALID");
     const u16 future_moving=code2::load_le16(target.header.data()+0x28Au);
     if(future_moving>150u)
         stop("ORIGINAL_181B4_LIVE_ACTOR_COUNT_ABOVE_SOURCE_MAX");
@@ -239,9 +250,33 @@ void original_181b4_live_transition(u32 requested) noexcept {
     load.call_0ccf4=&original_level_0ccf4_party_terminal;
     load.call_20850=&original_live_actor_20850;
     load.call_1f8e0=+[](u32 mode) noexcept {
-        if(mode!=3u || code2::load_le32(current->data.data()+0xC034u)!=mode)
-            stop("ORIGINAL_181B4_LIVE_1F8FC_MODE_REDRAW_PENDING");
-        code2::function_1f8e0(current->machine,current->presentation,mode);
+        if(mode>=15u || !current->original_level_transition_active ||
+           !current->original_vga || !current->game_audio.app68)
+            stop("ORIGINAL_181B4_1F8FC_MODE_SERVICE_PREREQUISITES");
+        // Real source 1F8E0 performs the unchanged-mode return; on
+        // a change it falls into the full original 1F8FC compositor.
+        // Its callbacks call the existing RES0/RES1 resource decoders,
+        // planar VGA host, world renderer, original HUD and page flips.
+        code2::Application45Boundary render=current->presentation;
+        render.app43=&current->live_ui;
+        render.app44=&current->live_scene;
+        render.call_291b0=&original_291b0_source_page;
+        render.call_2e510=&original_scene_frame_base;
+        render.call_2efd0=&original_scene_res_release;
+        render.call_30070=&original_scene_capture;
+        render.call_30040=&original_scene_capture_release;
+        render.call_325b0=&original_scene_palette;
+        render.call_29234=&original_video_palette_29234;
+        render.call_1a5b0=&original_scene_1a5b0;
+        render.call_22d70=&original_scene_clear_event_ring;
+        render.call_2f868=&original_scene_poll_source_events;
+        render.call_30b2c=&original_scene_finish_keyboard;
+        code2::function_1f8e0(current->machine,render,mode);
+        if(code2::load_le32(current->data.data()+0xC034u)!=mode)
+            stop("ORIGINAL_181B4_1F8FC_GRAPHICS_MODE_NOT_COMMITTED");
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1F8E0_SOURCE_RETURN"
+                 <<" mode="<<mode<<" source_compositor=1F8FC"
+                 <<" framebuffer_parity=NOT_CERTIFIED\n"<<std::flush;
     };
     load.call_1c124=+[](u32 bit) noexcept {
         code2::function_1c124(current->machine,bit);

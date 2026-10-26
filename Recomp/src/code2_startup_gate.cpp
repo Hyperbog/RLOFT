@@ -2298,6 +2298,47 @@ void original_1fc14_source_page_handoff(u32 page) noexcept {
 }
 void original_scene_palette(u32 palette,u32 first,u32 bank,
                             u32 filename,u32 count) noexcept {
+    if(current->original_level_transition_active) {
+        // 181B4's original 1F8E0 -> 1F8FC compositor requests the new
+        // art-bank number from C034. Existing boot verification is
+        // deliberately kept unchanged; this branch verifies EVERY
+        // transition bank against the owner's original COLORS bytes.
+        if(!current->live_continuation || !current->host_files ||
+           !current->original_vga || palette!=0xC054u ||
+           first!=0u || filename!=0x1128u || count!=0x100u ||
+           bank>=15u ||
+           bank!=code2::load_le32(current->data.data()+0xC034u) ||
+           std::memcmp(current->data.data()+filename,"COLORS",7u)!=0)
+            stop("ORIGINAL_181B4_1F8FC_PALETTE_REQUEST_INVALID");
+        const auto opened=current->host_files->open_handles();
+        const auto descriptors=current->host_descriptor_flags.size();
+        code2::Application81Boundary source{};
+        source.app72=&current->dos_file_io;
+        (void)code2::function_325b0(
+            current->machine,source,palette,first,bank,filename,count);
+        // COLOR values are original six-bit VGA DAC; the real source
+        // gamma transform is certified only when brightness is zero.
+        const u32 profile=code2::load_le32(current->data.data()+0xF050u);
+        if(std::uint64_t(profile)+0x6Du>current->data.size() ||
+           current->data[profile+0x6Cu]!=0u)
+            stop("ORIGINAL_181B4_1F8FC_GAMMA_SOURCE_UNVERIFIED");
+        std::ifstream retail(current->original_installation_root/"COLORS",
+                             std::ios::binary);
+        if(!retail)stop("ORIGINAL_181B4_1F8FC_COLORS_MISSING");
+        retail.seekg(static_cast<std::streamoff>(1u+bank*768u),std::ios::beg);
+        std::array<u8,768u> rgb{};
+        retail.read(reinterpret_cast<char*>(rgb.data()),rgb.size());
+        if(!retail || !std::equal(rgb.begin(),rgb.end(),
+                       current->data.begin()+palette) ||
+           std::any_of(rgb.begin(),rgb.end(),[](u8 n){return n>63u;}) ||
+           current->host_files->open_handles()!=opened ||
+           current->host_descriptor_flags.size()!=descriptors)
+            stop("ORIGINAL_181B4_1F8FC_PALETTE_OR_FILE_DIVERGED");
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1F8FC_SOURCE_PALETTE"
+                 <<" bank="<<bank<<" RGB6=768"
+                 <<" original_COLORS=READ_ONLY\n"<<std::flush;
+        return;
+    }
     // The source compositor passes its live C034 mode, rather than
     // overriding it with the startup mode-4 palette. For Level 22
     // the retained 1F8FC source mode is 3; the original COLORS reader
