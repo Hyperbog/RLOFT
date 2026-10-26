@@ -34,7 +34,7 @@ jobs:
         run: |
           cmake -S Recomp -B build/retained07938 -A x64 -DBUILD_TESTING=OFF
           if ($LASTEXITCODE -ne 0) { throw "Configure native 07938 target failed" }
-          cmake --build build/retained07938 --config Release --parallel 2 --target rloft_code2_level22_window
+          cmake --build build/retained07938 --config Debug --parallel 2 --target rloft_code2_level22_window
           if ($LASTEXITCODE -ne 0) { throw "Compile native 07938 target failed" }
       - name: Sparse-checkout unmodified owner original saved game
         uses: actions/checkout@v4
@@ -50,12 +50,12 @@ jobs:
           persist-credentials: false
       - name: Require original retained Level23 restoration and native portal framebuffer
         shell: pwsh
-        timeout-minutes: 4
+        timeout-minutes: 3
         run: |
           $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
           $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
           $slot = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
-          $exe = (Resolve-Path "build/retained07938/Release/rloft_code2_level22_window.exe").Path
+          $exe = (Resolve-Path "build/retained07938/Debug/rloft_code2_level22_window.exe").Path
           $info = [Diagnostics.ProcessStartInfo]::new()
           $info.FileName = $exe
           $info.UseShellExecute = $false
@@ -69,7 +69,7 @@ jobs:
           $out = $p.StandardOutput.ReadToEndAsync()
           $err = $p.StandardError.ReadToEndAsync()
           try {
-            $exited = $p.WaitForExit(120000)
+            $exited = $p.WaitForExit(90000)
             if (-not $exited) {
               $p.Kill($true)
               $p.WaitForExit()

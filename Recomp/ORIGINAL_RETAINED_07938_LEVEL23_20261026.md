@@ -90,3 +90,18 @@ the native `23 → 26` framebuffer test. A green aggregate milestone with
 a nonblocking timed-out portal test is not certification. Native
 movement-triggered portal entry and independent retail DOS parity remain
 separate acceptance gates.
+
+
+## 2026-10-26 restoration and renderer status — current acceptance
+
+The earlier sentinel error is fixed in [`138a2cf2`](https://github.com/Hyperbog/RLOFT/commit/138a2cf22bf333ba61e918668c8e6e01a765e6f2). In strict [run 40271379104](https://github.com/Hyperbog/RLOFT/actions/runs/40271379104), original `07938` performed 156 source save reads, original `181B4(23)` performed 219 source level reads, and **zero** writes of a departing world occurred. The same retained CODE.2 guest emitted `07938_RETAINED_LEVEL23_RESTORE_PASS`. This is a saved-world restore, not a full frame return.
+
+The [compiled original `2D5D0` integration](https://github.com/Hyperbog/RLOFT/commit/febdb63c4fc2a511250c1536a169503e6fd0012b) allowed the first Level23 `1BDAC` actor pass to return: three collision checks returned 1, 0, 1 without synthetic collision values.
+
+Strict [run 40273739122](https://github.com/Hyperbog/RLOFT/actions/runs/40273739122) reached the authentic `2C294` scene-record clear, multiple `35798` projections, and `21BF0`, but did not return from original `335DC` wall rendering. Source material and flush tracing in [run 40273999130](https://github.com/Hyperbog/RLOFT/actions/runs/40273999130) showed authentic RES4 material loads and completed original `3263C` VGA flushes through cumulative count 1928 within a 90-second test; `335DC` itself did not return before timeout. A cumulative flush count does not establish an infinite loop. Original `335DC` has two source-authored scan passes over 256 records; see [source-only run 40274120863](https://github.com/Hyperbog/RLOFT/actions/runs/40274120863).
+
+An exploratory Release-mode strict probe [run 40274297356](https://github.com/Hyperbog/RLOFT/actions/runs/40274297356) exited with Windows code `-1073740791` (`0xC0000409`), unlike Debug mode's bounded timeout. This is an **unresolved release-specific fast-fail**, not evidence that original render or DOS parity completed; the native acceptance workflow was returned to **Debug** until the cause is diagnosed.
+
+**Unaccepted:** first Level23 original `1FC14` full page/HUD/audio/indexed-RGB6 scanout after restoration; Level23→26 genuine type-8 portal framebuffer; later Level26→23 return; physical original DOS behavior parity. No invented level, camera, frame, or collision state is used to claim success.
+
+**Next bounded investigation:** instrument original `335DC` starting and ending ray-record indices and per-pass flush deltas (distinguish elapsed time from progress); isolate whether the reconstructed `3263C` bridge or source resource management dominates. Preserve original CODE.2 call order and the strict timeout while diagnosing the Release fast-fail separately.
