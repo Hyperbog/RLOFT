@@ -2519,6 +2519,11 @@ void original_world_camera_334c4() noexcept {
 // The previous native world harness used a SECOND guest; these callback
 // closures consume the retained 181B4, 03838, RES4 and VGA memory.
 u32 original_world_material(u32 id,u32 slot) noexcept {
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_ENTER"
+                 <<" id="<<id<<" slot="<<slot
+                 <<" loaded_materials="<<current->original_world_materials.size()
+                 <<"\n"<<std::flush;
     if(id==0x93u)return 0u;  // Original empty material ID.
     if(slot!=4u || !current->game_audio.app68 ||
        current->original_181b4_completed!=1u)
@@ -2532,6 +2537,9 @@ u32 original_world_material(u32 id,u32 slot) noexcept {
        std::uint64_t(ptr)+2u+bytes>current->data.size())
         stop("ORIGINAL_335DC_RES4_TEXTURE_SOURCE_FORMAT");
     current->original_world_materials[id]={ptr+2u,ptr+2u+bytes,ptr};
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_RETURN"
+                 <<" id="<<id<<" decoded_bytes="<<bytes<<"\n"<<std::flush;
     return ptr;
 }
 u32 original_world_sintab_begin() noexcept {return 0x100000u;}
@@ -2616,6 +2624,10 @@ u32 original_world_338c8(u32 shade,u32 height,u32 src,u32 dst) noexcept {
     return 1u;
 }
 void original_world_flush_3263c() noexcept {
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_3263C_FLUSH_ENTER"
+                 <<" material_count="<<current->original_world_materials.size()
+                 <<"\n"<<std::flush;
     if(!current->original_vga ||
        !original_world_sintab_end() ||
        current->original_world_raster_invalid)
@@ -2641,11 +2653,21 @@ void original_world_flush_3263c() noexcept {
            bridge.invalid_access || current->original_vga->unsupported_read())
             stop("ORIGINAL_3263C_RETAINED_SOURCE_RASTER_FAILED");
         ++current->original_world_source_flushes;
+        if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+            std::cerr<<"CODE2_335DC_LEVEL23_3263C_FLUSH_RETURN"
+                     <<" flush_count="<<current->original_world_source_flushes
+                     <<"\n"<<std::flush;
     }catch(const std::exception&) {
         stop("ORIGINAL_3263C_RETAINED_VGA_BRIDGE_EXCEPTION");
     }
 }
 void original_world_sweep_335dc() noexcept {
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_SOURCE_PREFLIGHT"
+                 <<" postload="<<current->original_181b4_completed
+                 <<" ray_count_C6D8="<<code2::load_le32(current->data.data()+0xC6D8u)
+                 <<" game_level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<"\n"<<std::flush;
     if(current->original_181b4_completed!=1u ||
        code2::load_le32(current->data.data()+0xC6D8u)!=256u)
         stop("ORIGINAL_335DC_RETAINED_SOURCE_RAYS_NOT_READY");
@@ -2653,6 +2675,11 @@ void original_world_sweep_335dc() noexcept {
     b.call_2f29c=&original_world_material;
     b.call_3263c=&original_world_flush_3263c;
     code2::function_335dc(current->machine,b);
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_335DC_LEVEL23_SOURCE_RETURN"
+                 <<" ray_count="<<code2::load_le32(current->data.data()+0xC6D8u)
+                 <<" flushes="<<current->original_world_source_flushes
+                 <<"\n"<<std::flush;
 }
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // 1F8E0 branches into 1F8FC's full scene compositor on change.
