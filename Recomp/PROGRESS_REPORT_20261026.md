@@ -4,6 +4,8 @@
 
 ## Progress numbers — independently bounded
 
+**Implementation strategy:** [Engine-wide original CODE.1/CODE.2 execution plan](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md). Only shared subsystem functionality can be promoted toward whole-game acceptance. Current named levels are test inputs, **not** a denominator for game completion or a development workstream. Engine callback coverage is **not yet quantified**; it requires a complete source-dependency census first.
+
 | Metric | Current verified numerator / denominator | Percentage or scope | Exact meaning |
 | --- | ---: | ---: | --- |
 | Coarse whole-game acceptance | **3 / 12** (R01–R03) | **25.00% accepted**, 9 still open | Authoritative `ACCEPTANCE_GATES.json` / `tools/recomp_progress.py`. These are equal-weight acceptance gates, not comparable work hours or instruction coverage. |
@@ -12,7 +14,6 @@
 | Original level transitions across the saved-slot case | **3** | 07938 restore to 23, then 23→26, then 26→23 | Same [strict run](https://github.com/Hyperbog/RLOFT/actions/runs/40321360454), `transitions=3`, final live original guest Level 23. |
 | Audited post-transition source-frame scanouts | **3 / 3** | All demanded post-level frames authenticated in this **one bounded diagnostic sequence** | The original `1FC14` scene + `1A510` page + HUD/audio source callback audit returned for saved Level 23, portal Level 26 and reciprocal Level 23; `audited_frames=3` and 0 exit. See `ORIGINAL_RETAINED_07938_LEVEL23_20261026.md` for exact frame/palette hashes. |
 | Retained private host-input ticks in the saved-slot roundtrip | **6 / 6** | All expected `0x30B40` polls in the strict case | Host diagnostic command sequence includes private `0xFFF*` codes and zero ticks; **not** a physical DOS IRQ9/keyboard equivalence metric. |
-| Shipped level IDs exercised by scoped original-source native paths | **3 / 32** | **9.38% level-ID sample**: 22, 23, 26 | The original `LEVELS.DAT` archive has 32 levels. This is merely a count of different levels *reached in selected source tests*; it is emphatically **not** 9.38% of levels implemented or playable. |
 | Native framebuffer footprint per post-portal receipt | **320 × 400** (128,000 indices) | **256 DAC entries × 3 RGB6 channels = 768 six-bit values** | Original VGA host indexed scanout/CRTC and source DAC capture, with SHA-256 receipts on three levels. No original DOS image parity accepted. |
 | Audited registered C++ source inputs and included source fragments | **50 inputs and 7 `*.inc` fragments** | No detected duplicate targets, orphan inputs or fragment cycles at audit | [Source-audit checkpoint](CODE_AUDIT_20261026.md); layout number was counted in the audit, not re-inventoried from this report. |
 
