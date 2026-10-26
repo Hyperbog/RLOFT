@@ -346,6 +346,11 @@ struct Session {
     }
     static u32 alloc_guest(u32 bytes) {
         auto& t=state();
+        if(t.canonical_owner && t.original_image_record==579u)
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_HEAP_ALLOC_ENTER"
+                     <<" bytes="<<bytes
+                     <<" heap_root="<<code2::load_le32(t.memory.data()+0x12624u)
+                     <<"\n"<<std::flush;
         if(t.trace_materialize && ++t.traced_allocs<=8u)
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=ALLOC bytes="<<bytes<<"\n"<<std::flush;
         // Original 2EB60 sign-extends a 16-bit encoded resource length.
@@ -364,6 +369,9 @@ struct Session {
                 t.error=true;return 0;
             }
             std::fill_n(t.memory.begin()+ptr,bytes,0);
+            if(t.original_image_record==579u)
+                std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_HEAP_ALLOC_RETURN"
+                         <<" bytes="<<bytes<<" ptr="<<ptr<<"\n"<<std::flush;
             return ptr;
         }
         const auto aligned=(std::uint64_t(t.heap_cursor)+7u)&~std::uint64_t(7);
@@ -459,6 +467,10 @@ struct Session {
     static void resource_record_seek(u32 item,u32 handle) {
         auto& t=state();
         const auto it=t.files.find(handle);
+        if(item==579u && t.canonical_owner)
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_31334_SEEK_ENTER"
+                     <<" handle="<<handle<<" error="<<t.error
+                     <<"\n"<<std::flush;
         if(t.canonical_owner &&
            std::getenv("RLOFT_RECOMP_EXPERIMENTAL_FULL_COMPOSITOR")) {
             std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=SOURCE_RES_ARCHIVE_SEEK"
@@ -487,6 +499,12 @@ struct Session {
             return;
         }
         it->second.cursor=entry;
+        if(item==579u && t.canonical_owner)
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_31334_SEEK_RETURN"
+                     <<" offset="<<entry
+                     <<" type="<<unsigned(file[entry+2u])
+                     <<" encoded_prefix="<<code2::load_le16(file.data()+entry+3u)
+                     <<"\n"<<std::flush;
         // The original retail 2FD9C decoder is common to ALL RES slot
         // type-1 images, not only the boot RES0:59 and cursor RES0:62.
         // Authenticate each original archive record before sharing the
@@ -741,6 +759,9 @@ struct Session {
                  <<" buffered="<<code2::load_le32(t.memory.data()+0xF4D8u)
                  <<" invalid="<<t.original_image_invalid
                  <<" error="<<t.error<<"\\n"<<std::flush;
+        if(t.original_image_record==579u)
+            std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_37590_ENTER"
+                     <<" handle="<<handle<<"\n"<<std::flush;
         const u32 image=code2::function_37590(
             t.original_texture_callbacks,header,handle);
         std::cerr<<"CODE2_ORIGINAL_TYPE6_DIAGNOSTIC_AFTER"

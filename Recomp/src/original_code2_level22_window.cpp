@@ -329,6 +329,27 @@ int main(int argc,char** argv){
             if(live.failed ||
                code2::load_le32(live.guest_bytes()+0xC6C8u)!=23u)
                 throw std::runtime_error("Retained 07938 Level23 save restore or first native 1FC14 frame failed");
+            // A successful source 07938/181B4 load is not an indexed
+            // frame. Demand the complete 1FC14 audit and next real 30B40
+            // suspension on this same retained game stack first.
+            const auto first=machine::inspect(live.game->canonical.get());
+            if(live.ticks!=1u ||
+               live.scanout_rgba.size()!=kGameWidth*kGameHeight ||
+               first.original_live_level_transitions!=1u ||
+               first.original_live_portal_full_cycle_frames!=1u ||
+               first.original_live_pending_portal_level!=0xFFFFFFFFu ||
+               first.original_1fc14_source_scene_returns!=
+                   first.original_1fc14_post_scene_cycles ||
+               first.original_1fc14_page_handoffs!=
+                   first.original_1fc14_post_scene_cycles)
+                throw std::runtime_error(
+                    "Retained original Level23 07938 to 30B40 full source 1FC14 frame NOT_VERIFIED");
+            std::cout<<"CODE2_07938_RETAINED_LEVEL23_1FC14_30B40_FULL_FRAME_PASS"
+                     <<" source_saved_restore=YES original_level=23"
+                     <<" transitions="<<first.original_live_level_transitions
+                     <<" audited_frames="<<first.original_live_portal_full_cycle_frames
+                     <<" source_page_handoffs="<<first.original_1fc14_page_handoffs
+                     <<" owner_original_media=READ_ONLY\n"<<std::flush;
             if(saved_smoke) {
                 for(const auto scan:{0u,0xFFFCu,0u,0xFFFBu,0u})
                     live.tick(scan);
