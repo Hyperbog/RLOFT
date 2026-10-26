@@ -51,16 +51,14 @@ u32 live_07938_seek(u32 displacement,u32 origin,u32 handle) noexcept {
     if(handle!=source_saved_game_handle ||
        !current->original_live_save_open || origin>2u)
         stop("ORIGINAL_07938_SAVE_SEEK_HANDLE");
-    const std::int64_t base=origin==0u?0:
-        origin==1u?static_cast<std::int64_t>(current->original_live_save_position):
-        static_cast<std::int64_t>(current->original_live_save_bytes.size());
-    const std::int64_t next=base+
-        static_cast<std::int64_t>(static_cast<std::int32_t>(displacement));
-    if(next<0 || next>static_cast<std::int64_t>(
-                        current->original_live_save_bytes.size()))
+    u32 next=0u;
+    if(!rloft::dos_seek::compute(
+           displacement,origin,current->original_live_save_position,
+           current->original_live_save_bytes.size(),
+           current->original_live_save_bytes.size(),next))
         stop("ORIGINAL_07938_SAVE_SEEK_OUT_OF_RANGE");
-    current->original_live_save_position=static_cast<u32>(next);
-    return static_cast<u32>(next);
+    current->original_live_save_position=next;
+    return next;
 }
 void live_07938_close(u32 handle) noexcept {
     if(handle!=source_saved_game_handle ||

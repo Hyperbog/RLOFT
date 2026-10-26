@@ -3,10 +3,12 @@
 // Never writes to the owner's original game installation or saved files.
 // The caller must validate original source filename bytes before open/remove.
 // Handles are deliberately outside the host DOS read-only handle range.
+#include "original_code2_checked_dos_seek.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <exception>
 #include <vector>
 
 namespace rloft { namespace live_level_files {
@@ -68,7 +70,15 @@ struct Overlay {
         if(level>=32u||reading!=invalid||writing!=invalid){
             failed=true;return invalid;
         }
-        writing=level;write_position=0u;levels[level].clear();
+        // std::map insertion allocates; the guest file service must
+        // fail closed instead of terminating inside this noexcept ABI.
+        try {
+            const auto it=levels.try_emplace(level).first;
+            it->second.clear();
+        }catch(const std::exception&) {
+            failed=true;return invalid;
+        }
+        writing=level;write_position=0u;
         return write_handle;
     }
     bool close(std::uint32_t handle) noexcept {
@@ -89,25 +99,34 @@ struct Overlay {
         const auto level=is_read?reading:writing;
         const auto it=levels.find(level);
         if(it==levels.end()){failed=true;return invalid;}
-        const std::int64_t base=origin==0u?0:
-           origin==1u?static_cast<std::int64_t>(
-               is_read?read_position:write_position):
-               static_cast<std::int64_t>(it->second.size());
-        const std::int64_t pos=base+
-            static_cast<std::int64_t>(static_cast<std::int32_t>(off));
-        if(pos<0 || pos>capacity){failed=true;return invalid;}
-        if(is_read)read_position=static_cast<std::uint32_t>(pos);
-        else write_position=static_cast<std::uint32_t>(pos);
-        return static_cast<std::uint32_t>(pos);
+        std::uint32_t pos=invalid;
+        if(!rloft::dos_seek::compute(
+               off,origin,is_read?read_position:write_position,
+               it->second.size(),capacity,pos)){
+            failed=true;return invalid;
+        }
+        if(is_read)read_position=pos;
+        else write_position=pos;
+        return pos;
     }
     std::uint32_t write(const std::uint8_t* data,std::uint32_t count) noexcept {
         if(writing==invalid || (!data&&count) ||
            std::uint64_t(write_position)+count>capacity){
             failed=true;return 0u;
         }
-        auto& bytes=levels[writing];
+        // create() must have installed the entry. Avoid operator[],
+        // which can allocate during a noexcept original-source write.
+        const auto it=levels.find(writing);
+        if(it==levels.end()){failed=true;return 0u;}
+        auto& bytes=it->second;
         const std::uint32_t end=write_position+count;
-        if(end>bytes.size())bytes.resize(end,0u);
+        try {
+            if(end>bytes.size())bytes.resize(end,0u);
+        }catch(const std::exception&) {
+            // vector::resize has a strong guarantee for byte vectors;
+            // neither the write position nor source byte counter moves.
+            failed=true;return 0u;
+        }
         if(count)std::copy_n(data,count,bytes.data()+write_position);
         write_position=end;++source_writes;
         return count;

@@ -13,6 +13,7 @@
 #include "original_source_winmm_bridge.hpp"
 #include "original_code2_script_preflight.hpp"
 #include "original_code2_live_level_files.hpp"
+#include "original_code2_checked_dos_seek.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
 #include "../../Code2/graphics/original_res_type6.hpp"
 #include "original_code2_5e38_game_options.hpp"

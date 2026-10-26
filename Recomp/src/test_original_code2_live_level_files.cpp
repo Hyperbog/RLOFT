@@ -1,6 +1,7 @@
 // The owner-local original 171FC writer and 181B4 reader share this
 // bounded private file transport. These tests never contain retail media.
 #include "original_code2_live_level_files.hpp"
+#include "original_code2_checked_dos_seek.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -32,6 +33,31 @@ void test_filename() {
     bad[12]='d';bad[13]='a';bad[14]='t';
     verify(Overlay::level_name(bad.data(),bad.size(),level)&&level==23u,
            "Original lowercase DOS WORK/LEV filename rejected");
+}
+void test_signed_dos_seek_contract() {
+    // Unlike the writable WORK overlay, restored SAVE.DAT does not
+    // allow seeking past EOF. Both transports share exact arithmetic.
+    using rloft::dos_seek::compute;
+    std::uint32_t result=0xDEADBEEFu;
+    verify(compute(0u,0u,0u,9288u,9288u,result)&&result==0u,
+           "SET 0 failed");
+    verify(compute(0xFFFFFFFEu,2u,0u,9288u,9288u,result) &&
+           result==9286u,"END -2 failed");
+    verify(compute(0xFFFFFFFFu,1u,9288u,9288u,result)&&
+           result==9287u,"CUR -1 failed");
+    const auto before=result;
+    verify(!compute(1u,2u,0u,9288u,9288u,result)&&result==before,
+           "Source SAVE.DAT seek beyond EOF accepted");
+    verify(compute(1u,2u,0u,9288u,
+                   rloft::live_level_files::Overlay::capacity,result) &&
+           result==9289u,"Writable overlay must allow seek beyond EOF");
+    const auto next=result;
+    verify(!compute(0x80000000u,0u,0u,9288u,9288u,result) &&
+           result==next,"Negative 2^31 absolute displacement accepted");
+    verify(!compute(0u,3u,0u,9288u,9288u,result) &&
+           result==next,"Unsupported DOS seek origin accepted");
+    verify(!compute(0u,2u,0u,9289u,9288u,result) &&
+           result==next,"Invalid source length accepted");
 }
 void test_read_write() {
     using rloft::live_level_files::Overlay;
@@ -72,7 +98,8 @@ void test_guards() {
 }
 int main() {
     try {
-        test_filename();test_read_write();test_guards();
+        test_filename();test_signed_dos_seek_contract();
+        test_read_write();test_guards();
         std::cout<<"ORIGINAL_CODE2_171FC_181B4_PRIVATE_LEVEL_FILES_PASS"
                  <<" work_saves=MEMORY_ONLY"
                  <<" original_source_files=UNTOUCHED"
