@@ -4,7 +4,7 @@
 
 ## Progress numbers — independently bounded
 
-**Implementation strategy:** [Engine-wide original CODE.1/CODE.2 execution plan](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md). Only shared subsystem functionality can be promoted toward whole-game acceptance. Current named levels are test inputs, **not** a denominator for game completion or a development workstream. Engine callback coverage is **not yet quantified**; it requires a complete source-dependency census first.
+**Implementation strategy:** [Engine-wide original CODE.1/CODE.2 execution plan](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md), with the [shared call-graph and subsystem closure report](SHARED_ENGINE_CALLBACK_CLOSURE_20261026.md). Only shared subsystem functionality can be promoted toward whole-game acceptance. Current named levels are test inputs, **not** a denominator for game completion or a development workstream. Static source callback inventory **is now quantified** (985 reconstructed function bodies, 671 direct edges, 1,933 indirect ABI mentions, 429 live callback assignments). **Executed/reachable game callback completion percentage is still not measured**; a lexical code inventory is not execution coverage.
 
 | Metric | Current verified numerator / denominator | Percentage or scope | Exact meaning |
 | --- | ---: | ---: | --- |
