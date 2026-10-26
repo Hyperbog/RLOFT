@@ -280,6 +280,10 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // reject active real devices until the original AIL service is wired.
     if(code2::load_le32(g+0xEE78u)!=0u)
         stop("ORIGINAL_181B4_LIVE_ACTIVE_AIL_DEVICE_CALLBACKS_OPEN");
+    // The original archive fallback reads the CODE.2 BSS filename.
+    // Reuse the exact authenticated C-runtime literal restoration that
+    // the initial original Level22 loader already requires.
+    original_restore_181b4_archive_literal();
     original_live_level_no_real_save(prior);
     original_live_level_no_real_save(requested);
     const std::size_t handles_before=current->host_files->open_handles();

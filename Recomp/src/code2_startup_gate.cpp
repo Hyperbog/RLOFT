@@ -2661,10 +2661,11 @@ void original_level_0ccf4_party_terminal() noexcept {
     ++current->original_level_party_terminal_checks;
 }
 #include "original_code2_live_level_transition.inc"
-void original_181b4_level_load(u32 requested) noexcept {
-    if(requested!=0x16u || current->original_16cd0_completed!=1u ||
-       current->original_03838_completed!=1u || !current->host_files)
-        stop("ORIGINAL_181B4_SOURCE_BOOT_ORDER");
+// Both startup and later original 181B4 transitions use the same
+// CODE.2-authenticated 11-byte 'levels.dat\0' literal relocation.
+// The original packed CODE.2 C-runtime relocation is not yet executed;
+// do not replace arbitrary guest data when this BSS slot is nonempty.
+void original_restore_181b4_archive_literal() noexcept {
     // Reconstructed 181B4 copies this 11-byte buffer from guest BSS.
     // The missing C-runtime literal relocation is isolated here:
     // restore ONLY the original CODE.2-authenticated 'levels.dat\0'
@@ -2685,6 +2686,13 @@ void original_181b4_level_load(u32 requested) noexcept {
                  <<std::flush;
     } else if(std::memcmp(name,"levels.dat",11u)!=0)
         stop("ORIGINAL_181B4_GUEST_FILENAME_CHANGED");
+
+}
+void original_181b4_level_load(u32 requested) noexcept {
+    if(requested!=0x16u || current->original_16cd0_completed!=1u ||
+       current->original_03838_completed!=1u || !current->host_files)
+        stop("ORIGINAL_181B4_SOURCE_BOOT_ORDER");
+    original_restore_181b4_archive_literal();
     code2::Application32Boundary b{};
     b.call_312a0=&original_level_missing_standalone;
     b.call_312a0_local=&original_level_archive_open_local;
