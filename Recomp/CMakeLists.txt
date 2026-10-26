@@ -737,6 +737,17 @@ if(BUILD_TESTING)
         COMMAND rloft_original_voc_pcm8_tests)
 endif()
 
+# Preserve the scene-palette selector synthetic regression. This source
+# existed without a CMake owner and was never compiled by standard CI.
+add_executable(rloft_original_scene_palette_selection_test
+    tests/scene_palette_selection.cpp)
+set_target_properties(rloft_original_scene_palette_selection_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_scene_palette_selection
+        COMMAND rloft_original_scene_palette_selection_test)
+endif()
+
 # Per-owner private 171FC/181B4 source file transport contract.
 add_executable(rloft_original_code2_live_level_files_test
     src/test_original_code2_live_level_files.cpp)
