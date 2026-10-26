@@ -467,13 +467,14 @@ u32 original_full_actor_rand() noexcept {
 void original_full_1bdac_source() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->polygon_scan_returns==0u ||
-       original_full_frame_trace->polygon_quads==0u ||
-       original_full_frame_trace->polygon_scanlines==0u) {
-        // This source-only guard requires a real prior polygon scan.
-        // A nested 181B4 -> 1F8FC mode change may produce a second
-        // 34DE8 return before 1BDAC (observed original Level26:
-        // scan_returns=2, quad_calls=6, scanlines=162).
-        // Do not reset counters or fabricate a predecessor.
+       original_full_frame_trace->polygon_cells==0u ||
+       original_full_frame_trace->polygon_projections==0u) {
+        // This predecessor guard requires a completed ORIGINAL 34DE8
+        // scan, actual map-cell queries and source 35798 projections.
+        // A legal Level26 mode-4 scan visited 540 cells and projected
+        // 16 vertices, but generated zero visible quads/scanlines.
+        // Do not demand nonempty geometry or borrow the Level23 tick's
+        // prior raster counters. Source callbacks are not skipped.
         const auto* t=original_full_frame_trace;
         std::cerr<<"CODE2_ORIGINAL_1BDAC_POLYGON_PREDECESSOR_DIAGNOSTIC"
                  <<" guest_level="<<code2::load_le32(current->data.data()+0xC6C8u)
