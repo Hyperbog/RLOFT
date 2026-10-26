@@ -79,6 +79,13 @@ jobs:
               $_ -match '07938|181B4|171FC|LEVEL23|LEVEL26|PORTAL|SOURCE_STOP|NATIVE_HOST_FAIL|FULL_CYCLE_SCANOUT|1BDAC|2D5D0|1FC14|2C294|335DC|35798|21BF0|30D30|RES4_579|2F29C'
             })
             $selected | Select-Object -Last 90 | ForEach-Object { Write-Host "SOURCE_07938: $_" }
+            # Preserve all original per-level native scanout receipts,
+            # independent of high-volume wall/material diagnostics.
+            @($joined -split "`r?`n" | Where-Object {
+              $_ -match '^CODE2_ORIGINAL_GAMEPLAY_LEVEL=1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS' -or
+              $_ -match '^CODE2_ORIGINAL_GAMEPLAY_LEVEL=2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN' -or
+              $_ -match '^CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS'
+            }) | ForEach-Object { Write-Host "SOURCE_PORTAL_FRAME: $_" }
             @($joined -split "`r?`n" | Where-Object {
               $_ -match 'CODE2_ORIGINAL_RES4_579|SOURCE_RES_ARCHIVE_SEEK id=579|TYPE6_DIAGNOSTIC_BEFORE item=579'
             }) | Select-Object -Last 28 | ForEach-Object { Write-Host "SOURCE_MATERIAL_579: $_" }
