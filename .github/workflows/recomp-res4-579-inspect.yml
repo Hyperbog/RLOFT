@@ -34,14 +34,16 @@ jobs:
           from pathlib import Path
           import re
           src=Path("source/Code2/Code2.cpp").read_text(encoding="utf-8")
-          for symbol in ("function_2f29c","function_2fd9c","function_37590",
-                         "function_37b42","function_37c37"):
+          for symbol in ("function_2ecb4","function_2fd9c","function_2fb04",
+                         "function_2f960","function_2f96c","function_39d4d",
+                         "function_39e1c","function_37b42"):
               candidates=list(re.finditer(r"\b"+symbol+r"\s*\(",src))
               print("ORIGINAL_LOADER_SYMBOL",symbol,"references",len(candidates))
               for match in candidates:
                   head=src[max(0,match.start()-100):match.start()]
                   if not re.search(r"(?:void|u32|s32|s16)\s+$",head):continue
                   brace=src.find("{",match.end())
+                  if brace<0 or ";" in src[match.end():brace]:continue
                   end=brace+1
                   depth=1
                   while depth and end<len(src):
