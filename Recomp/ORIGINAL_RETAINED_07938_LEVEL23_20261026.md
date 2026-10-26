@@ -47,3 +47,46 @@ Read its individual step logs, not the aggregate job's success icon, before
 claiming native gameplay/frame certification. Even a successful native indexed
 frame is not retail DOS synchronized frame parity or proof of user-controlled
 movement onto the portal tile.
+
+
+## Part 38 follow-up: verified original 07938 sentinel (strict Windows failure)
+
+Commit `c81521206fbaf42d36a0f7aea68cb01bd6d0aec6` introduced a
+**strict**, standalone, bounded Windows CI job that correctly fails when
+native preserved-source restoration or its portal frame is missing.
+
+- Strict workflow: https://github.com/Hyperbog/RLOFT/actions/runs/40265009326
+- Result: **failure**, native acceptance OPEN; window MSVC compilation PASS.
+- At the exact **compiled original** `07938 → 181B4(23)` callback:
+  `requested=23`, `guest_prior=4294967295 (0xFFFFFFFF)`,
+  `saved_world_overlay=1`, `save_reads=156`,
+  `restore_active=1`, `save_level_callbacks=1`.
+- The owner prior-level value is an original **no-departing-level sentinel**,
+  not the Level 22/23 same-level case assumed in the previous guard.
+- First unsupported callback:
+  `LIVE_CODE2_SOURCE_STOP=ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR`.
+- No `07938_RETAINED_LEVEL23_RESTORE_PASS`, no
+  `1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS`, and no Level 26 frame.
+- The isolated untouched Level 23 `07938 → 181B4` saved-game harness still
+  passes. The ordinary Linux, source-link and Windows CTest regressions pass.
+
+### Bounded next fix (not implemented in this report)
+
+In `Recomp/src/original_code2_live_level_transition.inc`, support
+`prior==0xFFFFFFFF` **only** when all of the original saved-game inputs
+and existing retained-owner prerequisites are satisfied: active `07938`
+restore, `requested==23`, one source level callback, authenticated
+private `LEV023` overlay, and original save reads observed.
+
+The original `181B4` should then own whether the no-departing-level path
+skips `171FC`. Audit the original postload branches and make the
+`level_overlay.has(prior)` postcondition conditional on an actual
+departing level; do not synthesize, overwrite or remove real saved-world
+data, and do not broaden general level transition permissions.
+
+Rerun the dedicated strict workflow and require the actual
+`07938_RETAINED_LEVEL23_RESTORE_PASS` marker **before** interpreting
+the native `23 → 26` framebuffer test. A green aggregate milestone with
+a nonblocking timed-out portal test is not certification. Native
+movement-triggered portal entry and independent retail DOS parity remain
+separate acceptance gates.
