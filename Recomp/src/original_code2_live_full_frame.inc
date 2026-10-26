@@ -463,7 +463,7 @@ u32 original_full_actor_original_collision(u32 y,u32 x,u32 index) noexcept {
                  <<" original_guest=PRESERVED\n"<<std::flush;
     return static_cast<u32>(static_cast<code2::s32>(response));
 }
-void original_full_actor_missing_movement(u32 request,u32 aux,u32 channel,u32 priority) noexcept {
+void original_full_actor_28110_sound_request(u32 request,u32 aux,u32 channel,u32 priority) noexcept {
     if(!current || !original_full_frame_trace || channel>1u)
         stop("ORIGINAL_1BDAC_28110_SOURCE_AUDIO_NOT_READY");
     code2::function_28110(current->machine,request,aux,channel,priority);
@@ -533,7 +533,7 @@ void original_full_1bdac_source() noexcept {
     motion.call_30ca2=&original_full_actor_rand;
     motion.call_2d5d0=&original_full_actor_original_collision;
     motion.call_2df2c_local=&original_full_actor_missing_offsets;
-    motion.call_28110=&original_full_actor_missing_movement;
+    motion.call_28110=&original_full_actor_28110_sound_request;
     motion.call_311e0=&original_full_actor_missing_query;
     motion.call_290d0=&original_full_actor_missing_update;
     motion.divide_error=&original_full_actor_divide_error;
