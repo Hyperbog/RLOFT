@@ -1,0 +1,39 @@
+name: Original CODE2 2C294 source investigation
+
+on:
+  push:
+    branches: [Recomp]
+    paths:
+      - '.github/workflows/recomp-source-2c294-investigation.yml'
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect the reconstructed original 2C294 entry and callback order
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("Code2/Code2.cpp").read_text(encoding="utf-8")
+          for symbol in ["function_2c294", "function_2c3f8", "function_2d5d0"]:
+              positions=[m.start() for m in re.finditer(r"\b"+symbol+r"\s*\(",s)]
+              print("ORIGINAL_SOURCE_SYMBOL",symbol,"occurrences",len(positions))
+              for pos in positions[:4]:
+                  print("CONTEXT",repr(s[max(0,pos-85):min(len(s),pos+90)]))
+              if symbol=="function_2c294":
+                  for pos in positions:
+                      prefix=s[max(0,pos-150):pos]
+                      if re.search(r"\b(?:void|u32|s16|s32|std::uint32_t)\s+$",prefix):
+                          print("ORIGINAL_SOURCE_2C294_BEGIN")
+                          print(s[pos-100:pos+18000])
+                          print("ORIGINAL_SOURCE_2C294_END")
+                          break
+          PY
