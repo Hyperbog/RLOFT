@@ -102,16 +102,16 @@ void test_original_20850_0e0f8_actor_source() {
     // Type 0 is a real actor per compiled 2ACDC.
     f.put16(0x258A2u,1u);
     f.put16(0x14D8Eu,0u);
-    f.put32(0x14D80u,0x00078000u);
-    f.put32(0x14D84u,0x00068000u);
+    f.put32(0x14D80u,0x00074123u);
+    f.put32(0x14D84u,0x00065234u);
     f.data[0x14D8Bu]=0u;
     f.put16(0x14D94u,0xFFFFu);
     code2::Application46Boundary callbacks{};
     callbacks.call_2acdc=&code2::function_2acdc;
     callbacks.call_2d5d0=&test_source_actor_collision;
     code2::function_20850(f.machine,callbacks);
-    check(f.get32(0x14D80u)==0x8000u &&
-          f.get32(0x14D84u)==0x8000u &&
+    check(f.get32(0x14D80u)==0x00078000u &&
+          f.get32(0x14D84u)==0x00068000u &&
           (code2::load_le16(f.data.data()+0x14D94u)&0x0008u)==0u,
           "Compiled original 20850 actor state/2D5D0 branch diverged");
     // Separate deterministic original 0E0F8 reposition source entry:
