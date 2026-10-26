@@ -2673,7 +2673,16 @@ void original_restore_181b4_archive_literal() noexcept {
     // pathname, never synthetic map/header/actor contents.
     u8* const name=current->data.data()+0x170A0u;
     const bool empty=std::all_of(name,name+11u,[](u8 b){return b==0u;});
-    if(empty) {
+    const bool correct=std::memcmp(name,"levels.dat",11u)==0;
+    if(!correct) {
+        // After the original Level22 boot, source gameplay can reuse
+        // this guest BSS scratch range. The original DOS executable's
+        // C-runtime literal relocation has not been reconstructed yet.
+        // At the exact 181B4 archive-open boundary, rebind ONLY the
+        // independently authenticated, exact 11-byte original CODE.2
+        // string. No map, actor, script or camera bytes are synthesized.
+        if(!empty && current->original_181b4_completed!=1u)
+            stop("ORIGINAL_181B4_BOOT_GUEST_FILENAME_CHANGED");
         std::ifstream original(
             current->original_installation_root/"CODE.2",std::ios::binary);
         if(!original)stop("ORIGINAL_181B4_FILE_PROVENANCE_UNAVAILABLE");
@@ -2683,10 +2692,11 @@ void original_restore_181b4_archive_literal() noexcept {
         if(!original || std::memcmp(source_name,"levels.dat",11u)!=0)
             stop("ORIGINAL_181B4_LITERAL_PROVENANCE_MISMATCH");
         std::memcpy(name,source_name,11u);
-        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_ORIGINAL_FILENAME_LITERAL_ADAPTER\n"
-                 <<std::flush;
-    } else if(std::memcmp(name,"levels.dat",11u)!=0)
-        stop("ORIGINAL_181B4_GUEST_FILENAME_CHANGED");
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_ORIGINAL_FILENAME_LITERAL_ADAPTER"
+                 <<" restored_nonempty="<<(!empty)
+                 <<" original_CODE2_offset=0x51FC4"
+                 <<" private_guest_only=YES\n"<<std::flush;
+    }
 
 }
 void original_181b4_level_load(u32 requested) noexcept {
