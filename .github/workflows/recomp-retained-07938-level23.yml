@@ -76,9 +76,12 @@ jobs:
             }
             $joined = @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()) -join "`n"
             $selected = @($joined -split "`r?`n" | Where-Object {
-              $_ -match '07938|181B4|171FC|LEVEL23|LEVEL26|PORTAL|SOURCE_STOP|NATIVE_HOST_FAIL|FULL_CYCLE_SCANOUT|1BDAC|2D5D0|1FC14|2C294|335DC|35798|21BF0|30D30'
+              $_ -match '07938|181B4|171FC|LEVEL23|LEVEL26|PORTAL|SOURCE_STOP|NATIVE_HOST_FAIL|FULL_CYCLE_SCANOUT|1BDAC|2D5D0|1FC14|2C294|335DC|35798|21BF0|30D30|RES4_579|2F29C'
             })
             $selected | Select-Object -Last 90 | ForEach-Object { Write-Host "SOURCE_07938: $_" }
+            @($joined -split "`r?`n" | Where-Object {
+              $_ -match 'CODE2_ORIGINAL_RES4_579|SOURCE_RES_ARCHIVE_SEEK id=579|TYPE6_DIAGNOSTIC_BEFORE item=579'
+            }) | Select-Object -Last 28 | ForEach-Object { Write-Host "SOURCE_MATERIAL_579: $_" }
             $restored = $joined -match 'CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_LEVEL23_RESTORE_PASS'
             $complete = $joined -match 'CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS'
             Write-Host "RETAINED_07938_ACCEPTANCE_SOURCE restored=$restored portal_full_cycle=$complete exited=$exited code=$($p.ExitCode)"
