@@ -426,16 +426,78 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
             const u32 base=slot*0x248u;
             const u32 hp=code2::load_le16(
                 current->data.data()+0x218FCu+base);
-            // Before any party-damage mutation, refuse branches that
-            // could invoke the as-yet unwired 0AD24/0CBC8 game-over
-            // dependencies. This conservatively rejects shielded
-            // lethal-sized hits too; it never fabricates a surviving
-            // party member or drops damage.
-            if(hp==0u || damage>=hp)
-                stop("ORIGINAL_0D550_0CD44_LETHAL_LIFECYCLE_PENDING");
+            if(hp==0u)
+                stop("ORIGINAL_0D550_0CD44_ALREADY_DEAD_TARGET");
+            // Before mutating the source party, identify dependencies
+            // 0CD44 would follow if damage is lethal. A dying party
+            // member calls original 0AD24 cleanup, then 14A60 party
+            // selection and 1C1DC status. The whole-party 0CBC8
+            // game-over compositor is not yet connected. Reject only
+            // that branch, not every authentic lethal hit.
+            if(damage>=hp) {
+                bool party_game_over=true;
+                for(u32 i=0u;i<4u;++i) {
+                    const u32 base_i=i*0x248u;
+                    const u32 flags=code2::load_le16(
+                        current->data.data()+0x218F0u+base_i);
+                    if(i!=slot && (flags&0xD040u)==0u)
+                        party_game_over=false;
+                    // Original 0893C may process every still-active
+                    // party slot's timed effects after 0AD24. Fail
+                    // before damage if their independent callbacks
+                    // are still needed.
+                    if(flags<0x4000u &&
+                       (code2::load_le32(current->data.data()+0x21A12u+base_i)!=0u ||
+                        code2::load_le32(current->data.data()+0x21AA2u+base_i)!=0u ||
+                        code2::load_le32(current->data.data()+0x21ACEu+base_i)!=0u))
+                        stop("ORIGINAL_0D550_0AD24_TIMED_EFFECT_DEPENDENCY");
+                }
+                if(party_game_over)
+                    stop("ORIGINAL_0D550_0CBC8_GAME_OVER_RENDERING_PENDING");
+            }
             code2::Application18Boundary damage_source{};
             damage_source.call_19cc4=+[]() noexcept -> u32 {
                 return code2::function_19cc4(current->machine);
+            };
+            damage_source.call_0ad24=+[](code2::s32 selected) noexcept {
+                if(selected<0 || selected>=4)
+                    stop("ORIGINAL_0D550_0AD24_PARTY_SLOT_INVALID");
+                code2::Application16Boundary cleanup{};
+                cleanup.call_0893c=+[]() noexcept {
+                    code2::Application12Boundary timers{};
+                    timers.call_19cc4=+[]() noexcept -> u32 {
+                        return code2::function_19cc4(current->machine);
+                    };
+                    code2::function_0893c(current->machine,timers);
+                };
+                code2::function_0ad24(
+                    current->machine,cleanup,selected);
+            };
+            damage_source.call_14a60=+[](u32 token) noexcept -> u32 {
+                code2::Application27Boundary selector{};
+                selector.call_27c70=+[](u32 lhs,u32 rhs) noexcept -> u32 {
+                    // Original 27C70 searches two guest-terminated
+                    // strings. Authenticate bounds without changing
+                    // its original lexical comparison semantics.
+                    const auto valid=+[](u32 ptr) noexcept -> bool {
+                        if(ptr>=current->data.size())return false;
+                        const u32 limit=static_cast<u32>(
+                            std::min<std::size_t>(
+                                current->data.size()-ptr,0x400u));
+                        for(u32 j=0u;j<limit;++j)
+                            if(current->data[ptr+j]==0u)return true;
+                        return false;
+                    };
+                    if(!valid(lhs) || !valid(rhs))
+                        stop("ORIGINAL_0D550_27C70_PARTY_NAME_UNTERMINATED");
+                    return static_cast<u32>(
+                        code2::function_27c70(current->machine,lhs,rhs));
+                };
+                return static_cast<u32>(
+                    code2::function_14a60(current->machine,selector,token));
+            };
+            damage_source.call_1c1dc=+[](u32 bit) noexcept -> u32 {
+                return code2::function_1c1dc(current->machine,bit);
             };
             code2::function_0cd44(
                 current->machine,damage_source,slot,damage);
