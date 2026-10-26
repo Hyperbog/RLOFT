@@ -266,18 +266,50 @@ struct LiveWindow final {
 
 int main(int argc,char** argv){
     try {
+        const bool portal_smoke=argc==6 &&
+            std::string(argv[5])=="--smoke-portal";
+        const bool ordinary_smoke=argc==6 &&
+            std::string(argv[5])=="--smoke";
         if((argc!=5 && argc!=6) || std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root" ||
-           (argc==6 && std::string(argv[5])!="--smoke"))
+           (argc==6 && !ordinary_smoke && !portal_smoke))
             throw std::invalid_argument(
-                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke]");
+                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-portal]");
         const auto root=std::filesystem::absolute(argv[2]);
         const auto cd=std::filesystem::absolute(argv[4]);
         if(!std::filesystem::is_regular_file(root/"CODE.2"))
             throw std::runtime_error("Original CODE.2 not found");
+        if(portal_smoke) {
+            // Explicit diagnostic mode. These values are consumed by
+            // retained original 30B40 source worker, never by a fake
+            // host player engine.
+            if(_putenv_s("RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS","1")!=0 ||
+               _putenv_s("RLOFT_RECOMP_EXPERIMENTAL_PORTAL_SOURCE_PROBE","1")!=0)
+                throw std::runtime_error("Cannot enable owner-local authentic portal diagnostic");
+        }
         LiveWindow live;
         live.open_original_guest(root,cd);
-        if(argc==6) {
+        if(portal_smoke) {
+            // 0xFFFD selects a SOURCE 181B4(23) starting level. This is
+            // NOT a retail Level22 portal. FFFC/FFFB enter authentic
+            // original archived Level23->26 and Level26->23 portals via
+            // compiled 2D3D8, retaining one live guest and its VGA.
+            for(const auto scan:{0xFFFDu,0u,0xFFFCu,0u,0xFFFBu,0u})
+                live.tick(scan);
+            const u32 final_level=code2::load_le32(live.guest_bytes()+0xC6C8u);
+            if(live.failed || live.ticks!=6u || final_level!=23u ||
+               live.scanout_rgba.size()!=kGameWidth*kGameHeight)
+                throw std::runtime_error(
+                    "Authentic CODE2 23-26-23 portal continuation or VGA scanout failed");
+            std::cout<<"RLOFT_2D3D8_AUTHENTIC_PORTAL_NATIVE_SMOKE_PASS"
+                     <<" source_levels=23_26_23"
+                     <<" full_1FC14_ticks="<<live.ticks
+                     <<" native_scanout_pixels="<<live.scanout_rgba.size()
+                     <<" no_fabricated_level22_portal=YES"
+                     <<" physical_DOS_retail_frame_parity=OPEN\n"<<std::flush;
+            return 0;
+        }
+        if(ordinary_smoke) {
             if(live.scanout_rgba.size()!=kGameWidth*kGameHeight)
                 throw std::runtime_error("No source VGA framebuffer");
             const std::uint32_t tests[]={
@@ -301,7 +333,9 @@ int main(int argc,char** argv){
         return live.show(GetModuleHandleA(nullptr));
     }catch(const std::exception& e){
         std::cerr<<"RLOFT_LEVEL22_NATIVE_HOST_FAIL: "<<e.what()<<"\n";
-        if(argc!=6 || std::string(argv[5])!="--smoke")
+        if(argc!=6 ||
+           (std::string(argv[5])!="--smoke" &&
+            std::string(argv[5])!="--smoke-portal"))
             MessageBoxA(nullptr,e.what(),"Ravenloft experimental source host",MB_OK|MB_ICONERROR);
         return 1;
     }
