@@ -27,7 +27,12 @@ struct Overlay {
         constexpr char prefix[]="WORK\\LEV";
         for(std::uint32_t i=0;i<8u;++i) {
             const auto c=static_cast<char>(name[i]);
-            if(c!=prefix[i] && c!=static_cast<char>(prefix[i]+('a'-'A')))
+            // Lowercase is valid only for letters. In particular the
+            // separator must remain a literal DOS backslash, not the
+            // unrelated ASCII code obtained by adding 0x20 to '\\'.
+            const bool letter=prefix[i]>='A'&&prefix[i]<='Z';
+            if(c!=prefix[i] &&
+               !(letter&&c==static_cast<char>(prefix[i]+('a'-'A'))))
                 return false;
         }
         for(std::uint32_t i=8u;i<=10u;++i)

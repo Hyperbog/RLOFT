@@ -24,6 +24,14 @@ void test_filename() {
     bad=valid;bad[4]='/';
     verify(!Overlay::level_name(bad.data(),bad.size(),level),
            "Non-DOS path accepted");
+    bad=valid;bad[4]='l';
+    verify(!Overlay::level_name(bad.data(),bad.size(),level),
+           "ASCII-folded backslash accepted as a letter");
+    bad=valid;bad[0]='w';bad[1]='o';bad[2]='r';bad[3]='k';
+    bad[5]='l';bad[6]='e';bad[7]='v';
+    bad[12]='d';bad[13]='a';bad[14]='t';
+    verify(Overlay::level_name(bad.data(),bad.size(),level)&&level==23u,
+           "Original lowercase DOS WORK/LEV filename rejected");
 }
 void test_read_write() {
     using rloft::live_level_files::Overlay;

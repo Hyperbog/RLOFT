@@ -38,6 +38,25 @@ code2::Application67Boundary original_movement_callbacks(code2::Application66Bou
     b.call_369a7=&code2::function_369a7;
     return b;
 }
+void test_original_01558_saved_exploration_map() {
+    SyntheticGuest f;
+    f.put16(0x25619u,2u);
+    f.put16(0x2561Bu,2u);
+    f.put16(0x255D2u,1u);
+    f.put16(0x255D6u,1u);
+    f.data[0x258A8u]=0xFFu;
+    // The center party cell remains visible in the actual CODE.2
+    // 01558 source map; other unobserved, empty cells are FF.
+    code2::Application04Boundary callbacks{};
+    code2::function_01558(f.machine,callbacks);
+    check(code2::load_le16(f.data.data()+0x12756u)==2u &&
+          code2::load_le16(f.data.data()+0x12754u)==2u &&
+          f.data[0x1760u]==0xFFu &&
+          f.data[0x1761u]==0xFFu &&
+          f.data[0x1762u]==0xFFu &&
+          f.data[0x1763u]==0x2Fu,
+          "Compiled original 01558 exploration/source-party map changed");
+}
 void test_heading_turn_source() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -497,6 +516,7 @@ void test_signed_accumulation_and_absolute_motion() {
 int main(){
     try{
         test_heading_turn_source();
+        test_original_01558_saved_exploration_map();
         test_unblocked_camera_translation();
         test_collision_prevents_camera_translation();
         test_signed_accumulation_and_absolute_motion();
@@ -516,6 +536,7 @@ int main(){
                  <<" tile_collision=ORIGINAL_2D5D0"
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
+                 <<" explored_map_save=ORIGINAL_01558"
                  <<" same_level_source=ORIGINAL_181B4_NO_RELOAD"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" bounded_script_dispatch=ORIGINAL_002A8"

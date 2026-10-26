@@ -99,6 +99,13 @@ void original_181b4_live_transition(u32 requested) noexcept {
     save.call_31304_local=&original_live_level_write_local;
     save.call_312dc=&original_live_level_close;
     save.call_2f580=&original_live_level_io_error;
+    // Compiled original 01558 regenerates the party/exploration
+    // automap from the live map/record flags before 171FC writes it.
+    // Skipping this step would serialize stale annotations.
+    code2::Application04Boundary explored{};
+    explored.call_1e8c8=&original_full_movement_record;
+    explored.call_1e930=&original_full_movement_marker;
+    save.app04=&explored;
     save.call_1c1dc=&original_level_actor_quest;
     save.call_2acdc=&original_level_actor_type;
     save.call_30ca2=&original_level_actor_random;
