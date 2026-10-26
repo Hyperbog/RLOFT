@@ -529,25 +529,49 @@ void original_full_scene_project(u32 x,u32 y,u32 screen,u32 scale) noexcept {
        std::uint64_t(screen)+4u>current->data.size() ||
        std::uint64_t(scale)+2u>current->data.size())
         stop("ORIGINAL_2C294_35798_ARGUMENTS_CHANGED");
+    const u32 n=original_full_frame_trace->scene_projection_callbacks;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u && n<4u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_35798_SOURCE_ENTER"
+                 <<" call="<<n+1u<<" x="<<x<<" y="<<y
+                 <<" screen="<<screen<<" scale="<<scale<<"\n"<<std::flush;
     code2::function_35798(current->machine,x,y,screen,scale);
     ++original_full_frame_trace->scene_projection_callbacks;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u && n<4u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_35798_SOURCE_RETURN"
+                 <<" call="<<n+1u<<"\n"<<std::flush;
 }
 void original_full_scene_extent(u32 record,u32 threshold) noexcept {
     if(!original_full_frame_trace ||
        std::uint64_t(record)+0x16u>current->data.size())
         stop("ORIGINAL_2C294_21BF0_ARGUMENTS_CHANGED");
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       original_full_frame_trace->scene_extent_callbacks<3u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_21BF0_SOURCE_ENTER"
+                 <<" record="<<record<<" threshold="<<threshold<<"\n"<<std::flush;
     code2::Application48Boundary shape{};
     shape.call_2f29c=&original_full_frame_resource;
     (void)code2::function_21bf0(
         current->machine,shape,record,static_cast<code2::s32>(threshold));
     ++original_full_frame_trace->scene_extent_callbacks;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       original_full_frame_trace->scene_extent_callbacks<=3u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_21BF0_SOURCE_RETURN"
+                 <<" count="<<original_full_frame_trace->scene_extent_callbacks
+                 <<"\n"<<std::flush;
 }
 void original_full_scene_walls() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->actor_update_returns!=1u)
         stop("ORIGINAL_2C294_WALL_PREDECESSOR_MISSING");
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_335DC_SOURCE_ENTER"
+                 <<" level=23\n"<<std::flush;
     original_world_sweep_335dc();
     ++original_full_frame_trace->scene_wall_passes;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_335DC_SOURCE_RETURN"
+                 <<" wall_passes="<<original_full_frame_trace->scene_wall_passes
+                 <<"\n"<<std::flush;
 }
 void original_full_scene_save_clip(u32*) noexcept {
     stop("ORIGINAL_2C294_29738_CLIP_SAVE_PENDING");
@@ -567,6 +591,13 @@ void original_full_scene_sprite(
         stop("ORIGINAL_2C294_36CEC_RETAINED_GUEST_UNAVAILABLE");
     auto& trace=*original_full_frame_trace;
     ++trace.scene_sprite_calls;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
+       (trace.scene_sprite_calls<=3u ||
+        (trace.scene_sprite_calls%4096u)==0u))
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_36CEC_SPRITE_ENTER"
+                 <<" count="<<trace.scene_sprite_calls
+                 <<" resource="<<res3_id<<" projected_size="<<projected_size
+                 <<"\n"<<std::flush;
     // Original 36D07 skips tiny projected sprites before loading RES3.
     if((projected_size>>3u)==0u) {
         ++trace.scene_sprite_raster_returns;
@@ -630,8 +661,18 @@ void original_full_2c294_source() noexcept {
     scene.call_296c0=&original_full_scene_clip;
     scene.call_36cec=&original_full_scene_sprite;
     scene.call_2978c=&original_full_scene_overlay;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_LEVEL23_SOURCE_ENTER"
+                 <<" actor_returns="<<original_full_frame_trace->actor_update_returns
+                 <<"\n"<<std::flush;
     code2::function_2c294(current->machine,scene);
     ++original_full_frame_trace->scene_projection_returns;
+    if(code2::load_le32(current->data.data()+0xC6C8u)==23u)
+        std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=2C294_LEVEL23_SOURCE_RETURN"
+                 <<" wall_passes="<<original_full_frame_trace->scene_wall_passes
+                 <<" sprite_calls="<<original_full_frame_trace->scene_sprite_calls
+                 <<" project_calls="<<original_full_frame_trace->scene_projection_callbacks
+                 <<"\n"<<std::flush;
 }
 // 274A4 -> 29804 -> 29414 -> 2A380/2A6B0 and 273F0.
 // All source VGA ports operate through one Bridge::Scope. The source
