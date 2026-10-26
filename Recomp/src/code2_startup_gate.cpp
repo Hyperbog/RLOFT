@@ -2418,6 +2418,7 @@ void original_scene_poll_source_events() noexcept {
 // Retained original 181B4 loader is defined below this include.
 void original_181b4_level_load(u32 requested) noexcept;
 void original_181b4_live_transition(u32 requested) noexcept;
+void original_restore_181b4_archive_literal() noexcept;
 u32 original_live_actor_reposition(u32 index) noexcept;
 #include "original_code2_live_full_frame.inc"
 // Original world ray reconstruction, attached to the *retained*
