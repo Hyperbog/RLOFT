@@ -71,7 +71,7 @@ int main() {
         const u32 clean=code2::function_2978c(machine,draw,0u,40u,40u,1u,0u);
         check(clean==2u && unclipped==1u && clipped==0u,
               "2978C original visible image callback missing");
-        const u32 partial=code2::function_2978c(machine,draw,0u,40u,256u,1u,0u);
+        const u32 partial=code2::function_2978c(machine,draw,0u,256u,40u,1u,0u);
         check(partial==1u && clipped==1u && writes!=0u && port_sets!=0u,
               "2978C did not execute original clipped 2A6B0 VGA writes");
         check(code2::load_le32(data.data()+0xEFD4u)==0u,
