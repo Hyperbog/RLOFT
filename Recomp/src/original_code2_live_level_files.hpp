@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <map>
 #include <exception>
+#include <utility>
 #include <vector>
 
 namespace rloft { namespace live_level_files {
@@ -52,6 +53,28 @@ struct Overlay {
               static_cast<std::uint32_t>(name[9u]-'0')*10u+
               static_cast<std::uint32_t>(name[10u]-'0');
         return level<32u;
+    }
+    // A saved game may install a prevalidated, owner-private LEVnnn blob
+    // BEFORE invoking original 07938/181B4. No source callback, actor,
+    // camera, map or original game file is changed by this transport.
+    // A failed insertion leaves the source bytes available to its caller
+    // and marks this overlay unusable instead of throwing through the
+    // noexcept retained DOS callback or half-installing a saved world.
+    bool install_saved_snapshot(std::uint32_t level,
+                                std::vector<std::uint8_t>& bytes) noexcept {
+        if(level>=32u || bytes.empty() || bytes.size()>capacity ||
+           !idle() || has(level)) {
+            failed=true;
+            return false;
+        }
+        try {
+            const auto inserted=levels.try_emplace(level,std::move(bytes));
+            if(!inserted.second) {failed=true;return false;}
+        }catch(const std::exception&) {
+            failed=true;
+            return false;
+        }
+        return true;
     }
     bool has(std::uint32_t level) const noexcept {
         return levels.find(level)!=levels.end();

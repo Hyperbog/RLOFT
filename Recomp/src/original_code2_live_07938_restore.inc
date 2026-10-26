@@ -150,7 +150,10 @@ void original_live_07938_restore_level23() noexcept {
        current->level_overlay.has(23u))
         stop("ORIGINAL_07938_SAVED_GAME_NOT_AUTHENTIC_LEVEL23");
     // No guest camera, actor, map or event byte is synthesized here.
-    current->level_overlay.levels.emplace(23u,std::move(saved_world));
+    if(!current->level_overlay.install_saved_snapshot(23u,saved_world))
+        stop("ORIGINAL_07938_PRIVATE_LEVEL23_SNAPSHOT_INSTALL_FAILED");
+    // vector move assignment is noexcept for this default allocator.
+    // The original 07938 parser still performs all source guest writes.
     current->original_live_save_bytes=std::move(save);
     current->original_live_save_position=0u;
     current->original_live_save_opens=0u;

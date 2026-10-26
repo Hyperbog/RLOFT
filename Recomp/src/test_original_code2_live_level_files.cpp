@@ -81,6 +81,34 @@ void test_read_write() {
     verify(o.read(restored.data(),3u)==0u&&o.failed,
            "Short original saved-level read was not rejected");
 }
+void test_saved_snapshot_install() {
+    using rloft::live_level_files::Overlay;
+    Overlay owner;
+    std::vector<std::uint8_t> authentic_fixture{1u,2u,3u,4u};
+    verify(owner.install_saved_snapshot(23u,authentic_fixture) &&
+           authentic_fixture.empty() && owner.has(23u) && owner.idle(),
+           "Prevalidated private saved level was not committed");
+    verify(owner.levels.at(23u)==std::vector<std::uint8_t>({1u,2u,3u,4u}),
+           "Saved snapshot bytes changed during ownership transfer");
+    std::vector<std::uint8_t> duplicate{9u,8u};
+    verify(!owner.install_saved_snapshot(23u,duplicate) && owner.failed &&
+           duplicate==std::vector<std::uint8_t>({9u,8u}) &&
+           owner.levels.at(23u)==std::vector<std::uint8_t>({1u,2u,3u,4u}),
+           "Duplicate level overwrote snapshot or consumed source bytes");
+    Overlay oversize;
+    std::vector<std::uint8_t> too_large(Overlay::capacity+1u,0xA5u);
+    verify(!oversize.install_saved_snapshot(23u,too_large) &&
+           oversize.failed && oversize.levels.empty() &&
+           too_large.size()==Overlay::capacity+1u,
+           "Oversized original save was partially installed");
+    Overlay busy;
+    verify(busy.create(22u)==Overlay::write_handle,
+           "Busy fixture failed to open original WORK writer");
+    std::vector<std::uint8_t> pending{7u};
+    verify(!busy.install_saved_snapshot(23u,pending) &&
+           pending==std::vector<std::uint8_t>({7u}) && !busy.has(23u),
+           "Saved snapshot was installed over active source writer");
+}
 void test_guards() {
     using rloft::live_level_files::Overlay;
     Overlay o;
@@ -99,7 +127,7 @@ void test_guards() {
 int main() {
     try {
         test_filename();test_signed_dos_seek_contract();
-        test_read_write();test_guards();
+        test_read_write();test_guards();test_saved_snapshot_install();
         std::cout<<"ORIGINAL_CODE2_171FC_181B4_PRIVATE_LEVEL_FILES_PASS"
                  <<" work_saves=MEMORY_ONLY"
                  <<" original_source_files=UNTOUCHED"
