@@ -105,3 +105,55 @@ An exploratory Release-mode strict probe [run 40274297356](https://github.com/Hy
 **Unaccepted:** first Level23 original `1FC14` full page/HUD/audio/indexed-RGB6 scanout after restoration; Level23→26 genuine type-8 portal framebuffer; later Level26→23 return; physical original DOS behavior parity. No invented level, camera, frame, or collision state is used to claim success.
 
 **Next bounded investigation:** instrument original `335DC` starting and ending ray-record indices and per-pass flush deltas (distinguish elapsed time from progress); isolate whether the reconstructed `3263C` bridge or source resource management dominates. Preserve original CODE.2 call order and the strict timeout while diagnosing the Release fast-fail separately.
+
+
+## 2026-10-26 Part 32 continuation — completed Level 23 scene; nested Level 26 preflight
+
+**The previous Level 23 ray-stall statement above is historical, not the present frontier.**
+At [strict run #40279091361](https://github.com/Hyperbog/RLOFT/actions/runs/40279091361)
+on `037209cd`, the same retained original guest completed both source
+`335DC` scan passes (`ray_count=256`, cumulative `3263C` flushes
+`2291`), original `2C294` scene/sprite returns, source page handoff,
+post-scene HUD/audio/random queries, and re-entered source `30B40`.
+**No Level 26 native frame or retail DOS-equivalent VGA frame was accepted.**
+
+The subsequent first Level 23→26 transition encountered a host-only
+`171FC` preflight wrongly requiring each of the three original 22-byte
+world-record families to have at most 150 entries. Original `LEVELS.DAT`
+contains Level 23 Family A/C/B counts `34/28/213`, and Level 26 counts
+`47/11/183`. The original Family B placed-item array has room for 600
+22-byte records between `0x22238` and `0x255D8`. [Commit
+`3d57d759`](https://github.com/Hyperbog/RLOFT/commit/3d57d759d75943d23af751deb55d7832c9389574)
+checks the three original families separately; [strict run
+#40306828750](https://github.com/Hyperbog/RLOFT/actions/runs/40306828750)
+advanced beyond that guard.
+
+The next `1BDAC` host acceptance guard rejected **two** completed
+original polygon-scan returns because it expected exactly one. The
+nonmutating diagnostic at [`10464c0a`](https://github.com/Hyperbog/RLOFT/commit/10464c0a8bbc27de8587518271eae6d48ce97848)
+and [strict run #40307645820](https://github.com/Hyperbog/RLOFT/actions/runs/40307645820)
+recorded genuine source Level 26, mode 4, active transition, polygon
+`scan_returns=2`, `quads=6`, `scanlines=162`, `cells=1320`,
+`projections=55`. [Commit `6adf7e11`](https://github.com/Hyperbog/RLOFT/commit/6adf7e11635cabce1d108a86d80bffb36b04c5b6)
+now accepts at least one actual prior `34DE8` scan without inserting
+polygon callbacks or altering guest state.
+
+**Current strict frontier:** [run #40308055341](https://github.com/Hyperbog/RLOFT/actions/runs/40308055341)
+again completed the genuine restored Level 23 `1FC14` scene,
+entered original destination-resource loading, passed the `1BDAC`
+polygon preflight and stopped at
+`LIVE_CODE2_SOURCE_STOP=ORIGINAL_2C294_ACTOR_PREDECESSOR_MISSING`.
+The `2C294` host guard currently expects exactly one cumulative actor
+update return, despite the nested `181B4 → 1F8FC` rendering progression.
+The following `Concurrent host access to a running original guest`
+message remains a secondary supervisor symptom until independently
+isolated. Strict result: **failed**; `restored=True`,
+`portal_full_cycle=False`, no genuine Level 26→23 return accepted.
+
+**Next source-safe step:** instrument the `2C294` actor-return count,
+the source guest level and subframe/transition boundaries. Then
+replace only demonstrably stale per-frame host assertions with
+monotonic or per-invocation source witnesses; do not zero live counters,
+synthesize actor updates, omit original callbacks, or accept a portal
+without the strict native full-cycle marker. This is a diagnostic
+and acceptance-boundary issue, **not** evidence of original DOS parity.
