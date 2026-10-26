@@ -4,6 +4,7 @@ The [current README](README.md) is the entry point for building, launching, bran
 
 ## Current operating contracts
 
+- [Evidence-based progress report: 3/12 gates, native portal/frame receipts, 93 CTests and current Windows timeout](PROGRESS_REPORT_20261026.md)
 - [Current build, tests, experimental native Windows window](README.md)
 - [R01–R12 acceptance ledger](ACCEPTANCE_GATES.json)
 - [Current C++ code audit, CI inventory and prioritized refactor boundaries](CODE_AUDIT_20261026.md)
