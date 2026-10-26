@@ -1,4 +1,5 @@
 // Owner-live source 171FC / 181B4 transition.
+using live_transition_s32=code2::s32;
 void original_181b4_live_transition(u32 requested) noexcept {
     const char* enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS");
     if(!enabled || std::strcmp(enabled,"1")!=0)
@@ -16,8 +17,8 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->data[0xA7ECu]>=14u)
         stop("ORIGINAL_171FC_LIVE_SAVE_STACK_UNSAFE");
     const auto* g=current->data.data();
-    const s32 width=static_cast<s16>(code2::load_le16(g+0x25619u));
-    const s32 height=static_cast<s16>(code2::load_le16(g+0x2561Bu));
+    const live_transition_s32 width=static_cast<s16>(code2::load_le16(g+0x25619u));
+    const live_transition_s32 height=static_cast<s16>(code2::load_le16(g+0x2561Bu));
     if(width<=0 || width>128 || height<=0 || height>128 ||
        std::uint64_t(width)*height>0x4000u ||
        code2::load_le32(g+0xC038u)>150u)
@@ -28,7 +29,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // Original 171FC traverses each ten-byte list up to a source
     // terminator. A truncated pointer cannot be permitted to stream
     // guest bytes into the private save.
-    for(s32 col=0;col<width;++col) {
+    for(live_transition_s32 col=0;col<width;++col) {
         for(u32 family=0u;family<2u;++family) {
             const u32 ptr=code2::load_le32(g+
                     (family?0xCD3Cu:0xCB3Cu)+static_cast<u32>(col)*4u);
@@ -47,7 +48,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
         }
     }
     for(const u32 at:{0x258A2u,0x258A4u,0x258A6u}) {
-        const s32 count=static_cast<s16>(code2::load_le16(g+at));
+        const live_transition_s32 count=static_cast<s16>(code2::load_le16(g+at));
         if(count<0 || count>150)
             stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
     }
@@ -136,10 +137,10 @@ void original_181b4_live_transition(u32 requested) noexcept {
         code2::function_1c124(current->machine,bit);
     };
     load.call_31edc=+[](u32 value) noexcept {
-        code2::function_31edc(current->machine,static_cast<s32>(value));
+        code2::function_31edc(current->machine,static_cast<live_transition_s32>(value));
     };
     load.call_31f38=+[](u32 value) noexcept {
-        code2::function_31f38(current->machine,static_cast<s32>(value));
+        code2::function_31f38(current->machine,static_cast<live_transition_s32>(value));
     };
     load.call_31f94=+[]() noexcept {
         code2::function_31f94(current->machine);
@@ -147,7 +148,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // The reconstructed original 181B4 calls 171FC to persist the
     // departing world, then reconstructs actors, scripts and the target
     // map on this retained machine. No second host game loop is created.
-    code2::function_181b4(current->machine,load,static_cast<s32>(requested));
+    code2::function_181b4(current->machine,load,static_cast<live_transition_s32>(requested));
     if(!current->level_overlay.idle() ||
        current->host_files->open_handles()!=handles_before ||
        current->original_level_state_pushes!=1u ||
