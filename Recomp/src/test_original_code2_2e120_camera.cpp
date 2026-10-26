@@ -57,6 +57,19 @@ void test_original_01558_saved_exploration_map() {
           f.data[0x1763u]==0x2Fu,
           "Compiled original 01558 exploration/source-party map changed");
 }
+void test_original_181b4_disabled_ail_music_source() {
+    SyntheticGuest f;
+    f.put32(0xEE78u,0u); // Original inactive AIL driver handle.
+    f.put32(0xEF28u,0xAABBCCDDu);
+    f.put32(0xEF2Cu,0xFFFFFFFFu);
+    code2::Application56Boundary music{};
+    code2::function_28dcc(f.machine,music,0x9C4u);
+    code2::function_28ef0(f.machine,music);
+    code2::function_28e58(f.machine,music,1u,1u,0x9C4u);
+    check(f.get32(0xEF28u)==0xAABBCCDDu &&
+          f.get32(0xEF2Cu)==0xFFFFFFFFu,
+          "Original 28DCC/28EF0/28E58 disabled-AIL source changed music state");
+}
 void test_heading_turn_source() {
     SyntheticGuest f;
     code2::Application66Boundary collision{};
@@ -517,6 +530,7 @@ int main(){
     try{
         test_heading_turn_source();
         test_original_01558_saved_exploration_map();
+        test_original_181b4_disabled_ail_music_source();
         test_unblocked_camera_translation();
         test_collision_prevents_camera_translation();
         test_signed_accumulation_and_absolute_motion();
@@ -537,6 +551,7 @@ int main(){
                  <<" secondary_collision=ORIGINAL_2CC88"
                  <<" source_level_transition=ORIGINAL_181B4_CALLBACK"
                  <<" explored_map_save=ORIGINAL_01558"
+                 <<" disabled_music_transition=ORIGINAL_28DCC_28EF0_28E58"
                  <<" same_level_source=ORIGINAL_181B4_NO_RELOAD"
                  <<" animated_tile_event=ORIGINAL_20C0C_20A24_SOUND"
                  <<" bounded_script_dispatch=ORIGINAL_002A8"

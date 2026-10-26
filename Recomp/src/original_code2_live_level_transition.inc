@@ -80,9 +80,12 @@ void original_181b4_live_transition(u32 requested) noexcept {
     const u16 future_moving=code2::load_le16(target.header.data()+0x28Au);
     if(current->data[0xC02Fu]!=0u && future_moving!=0u)
         stop("ORIGINAL_181B4_LIVE_20850_NPC_REPOSITION_OPEN");
-    if(target.header[0x29Cu]!=code2::function_29050(current->machine) ||
-       code2::function_29048(current->machine)!=1u)
-        stop("ORIGINAL_181B4_LIVE_DESTINATION_AUDIO_BANK_OPEN");
+    // When the authentic EE78 AIL device is disabled, the compiled
+    // 28DCC, 28EF0 and 28E58 functions all immediately return, even if
+    // the destination changes music bank. Keep that source behavior;
+    // reject active real devices until the original AIL service is wired.
+    if(code2::load_le32(g+0xEE78u)!=0u)
+        stop("ORIGINAL_181B4_LIVE_ACTIVE_AIL_DEVICE_CALLBACKS_OPEN");
     original_live_level_no_real_save(prior);
     original_live_level_no_real_save(requested);
     const std::size_t handles_before=current->host_files->open_handles();
@@ -125,6 +128,27 @@ void original_181b4_live_transition(u32 requested) noexcept {
     load.call_310b0=&original_level_heap_release;
     load.call_29050=&original_level_sound_bank;
     load.call_29048=&original_level_sound_mode;
+    load.call_28dcc=+[](u32 handle) noexcept {
+        if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+            stop("ORIGINAL_181B4_AIL_STOP_REQUIRES_SOURCE_DRIVER");
+        code2::Application56Boundary music{};
+        code2::function_28dcc(current->machine,music,handle);
+    };
+    load.call_28ef0=+[]() noexcept {
+        if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+            stop("ORIGINAL_181B4_AIL_RESET_REQUIRES_SOURCE_DRIVER");
+        code2::Application56Boundary music{};
+        code2::function_28ef0(current->machine,music);
+    };
+    load.call_28e58=+[](live_transition_s32 bank,
+                          live_transition_s32 slot,u32 id) noexcept {
+        if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+            stop("ORIGINAL_181B4_AIL_BANK_REQUIRES_SOURCE_DRIVER");
+        code2::Application56Boundary music{};
+        code2::function_28e58(current->machine,music,
+                              static_cast<u32>(bank),
+                              static_cast<u32>(slot),id);
+    };
     load.call_19ccc=&original_level_19ccc_push;
     load.call_19cf4=&original_level_19cf4_pop;
     load.call_0ccf4=&original_level_0ccf4_party_terminal;
