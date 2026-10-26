@@ -463,8 +463,10 @@ u32 original_full_actor_original_collision(u32 y,u32 x,u32 index) noexcept {
                  <<" original_guest=PRESERVED\n"<<std::flush;
     return static_cast<u32>(static_cast<code2::s32>(response));
 }
-void original_full_actor_missing_movement(u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_1BDAC_MOVE_PENDING");
+void original_full_actor_missing_movement(u32 request,u32 aux,u32 channel,u32 priority) noexcept {
+    if(!current || !original_full_frame_trace || channel>1u)
+        stop("ORIGINAL_1BDAC_28110_SOURCE_AUDIO_NOT_READY");
+    code2::function_28110(current->machine,request,aux,channel,priority);
 }
 void original_full_actor_missing_offsets(u32* dx,u32* dy,u32 radius,u32 heading) noexcept {
     if(!dx || !dy)stop("ORIGINAL_1BDAC_MOVEMENT_VECTOR_ARGUMENTS");
