@@ -1,0 +1,72 @@
+name: RLOFT Recomp Windows player engineering package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/**'
+      - 'Recomp/CMakeLists.txt'
+      - 'Recomp/tools/Launch-RLOFT-Level22.ps1'
+      - 'Recomp/tools/Play-RLOFT-Level22.cmd'
+      - '.github/workflows/recomp-windows-player-package.yml'
+permissions:
+  contents: read
+
+concurrency:
+  group: rloft-recomp-windows-player-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build source-labelled Windows native host and CD extractor
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Windows x64 source build
+        shell: pwsh
+        run: |
+          cmake -S Recomp -B build/player -A x64 -DBUILD_TESTING=ON
+          if ($LASTEXITCODE -ne 0) { throw "CMake configure failed" }
+      - name: Build authentic source native host and extractor
+        shell: pwsh
+        run: |
+          cmake --build build/player --config Debug --parallel 2 --target rloft_code2_level22_window rloft_gog_cd_extract
+          if ($LASTEXITCODE -ne 0) { throw "Native source host or extractor compilation failed" }
+      - name: Package only source executables and scripts
+        shell: pwsh
+        run: |
+          $out = "build/player/RLOFT-Recomp-Player"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          foreach ($name in @('rloft_code2_level22_window.exe','rloft_gog_cd_extract.exe')) {
+            $src = Join-Path 'build/player/Debug' $name
+            if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { throw "Missing build target: $src" }
+            Copy-Item -LiteralPath $src -Destination $out
+          }
+          foreach ($name in @('Launch-RLOFT-Level22.ps1','Play-RLOFT-Level22.cmd')) {
+            Copy-Item -LiteralPath (Join-Path 'Recomp/tools' $name) -Destination $out
+          }
+          @(
+            "SOURCE_COMMIT=${{ github.sha }}"
+            'BRANCH=Recomp'
+            'EXPERIMENTAL original CODE.2 Windows host, not a completed game.'
+            'The original 07938 Level23 saved-load sentinel 0xFFFFFFFF remains an open native acceptance gate.'
+            'Download your own original GOG game; no commercial resources, saves, media, palettes or pictures are included.'
+            'Run Play-RLOFT-Level22.cmd or Launch-RLOFT-Level22.ps1 with -GameFolder and optionally -CdRoot.'
+            'Full portal framebuffer and independent original DOS parity are NOT certified.'
+          ) | Set-Content -Path (Join-Path $out 'README-BUILD.txt')
+          Get-ChildItem -File $out | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLowerInvariant()) *$([IO.Path]::GetFileName($_.Path))" } |
+            Set-Content -Path (Join-Path $out 'SHA256SUMS.txt')
+          $zip = "build/player/RLOFT-Recomp-Player-${{ github.run_number }}.zip"
+          Compress-Archive -Path "$out/*" -DestinationPath $zip -Force
+          Write-Host "BUILD_SOURCE_SHA=${{ github.sha }} archive=$zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-Recomp-Player-Windows-${{ github.run_number }}
+          path: build/player/RLOFT-Recomp-Player-*.zip
+          if-no-files-found: error
+          retention-days: 30

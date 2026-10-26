@@ -134,6 +134,21 @@ struct LiveWindow final {
                              expand(c.b);
         }
     }
+    bool audited_portal_roundtrip(const machine::Evidence& proof) const noexcept {
+        // A stale 320x400 buffer is not proof of a post-portal frame.
+        // This single gate applies to both the archived 2D3D8 probe and
+        // original 07938 saved-game starting-state probe.
+        return !failed && ticks==6u &&
+            code2::load_le32(guest_bytes()+0xC6C8u)==23u &&
+            scanout_rgba.size()==kGameWidth*kGameHeight &&
+            proof.original_live_level_transitions==3u &&
+            proof.original_live_portal_full_cycle_frames==3u &&
+            proof.original_live_pending_portal_level==0xFFFFFFFFu &&
+            proof.original_1fc14_source_scene_returns==
+                proof.original_1fc14_post_scene_cycles &&
+            proof.original_1fc14_page_handoffs==
+                proof.original_1fc14_post_scene_cycles;
+    }
     void tick(std::uint32_t scan) {
         if(failed || !game)return;
         try {
@@ -318,15 +333,7 @@ int main(int argc,char** argv){
                 for(const auto scan:{0u,0xFFFCu,0u,0xFFFBu,0u})
                     live.tick(scan);
                 const auto proof=machine::inspect(live.game->canonical.get());
-                if(live.failed || live.ticks!=6u ||
-                   code2::load_le32(live.guest_bytes()+0xC6C8u)!=23u ||
-                   proof.original_live_level_transitions!=3u ||
-                   proof.original_live_portal_full_cycle_frames!=3u ||
-                   proof.original_live_pending_portal_level!=0xFFFFFFFFu ||
-                   proof.original_1fc14_source_scene_returns!=
-                       proof.original_1fc14_post_scene_cycles ||
-                   proof.original_1fc14_page_handoffs!=
-                       proof.original_1fc14_post_scene_cycles)
+                if(!live.audited_portal_roundtrip(proof))
                     throw std::runtime_error(
                         "Original 07938 saved Level23 to archived 26/23 native full-cycle frame gate failed");
                 std::cout<<"CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS"
@@ -345,21 +352,8 @@ int main(int argc,char** argv){
             // compiled 2D3D8, retaining one live guest and its VGA.
             for(const auto scan:{0xFFFDu,0u,0xFFFCu,0u,0xFFFBu,0u})
                 live.tick(scan);
-            const u32 final_level=code2::load_le32(live.guest_bytes()+0xC6C8u);
             const auto proof=machine::inspect(live.game->canonical.get());
-            // A 320x400 VGA buffer alone can be the stale pre-portal
-            // frame. Require all THREE distinct authenticated 181B4
-            // transitions to pass compiled 1FC14 scene, page, HUD,
-            // audio and native indexed/RGB6 scanout audit.
-            if(live.failed || live.ticks!=6u || final_level!=23u ||
-               live.scanout_rgba.size()!=kGameWidth*kGameHeight ||
-               proof.original_live_level_transitions!=3u ||
-               proof.original_live_portal_full_cycle_frames!=3u ||
-               proof.original_live_pending_portal_level!=0xFFFFFFFFu ||
-               proof.original_1fc14_source_scene_returns!=
-                   proof.original_1fc14_post_scene_cycles ||
-               proof.original_1fc14_page_handoffs!=
-                   proof.original_1fc14_post_scene_cycles)
+            if(!live.audited_portal_roundtrip(proof))
                 throw std::runtime_error(
                     "Authentic CODE2 23-26-23 portal continuation or VGA scanout failed");
             std::cout<<"RLOFT_2D3D8_AUTHENTIC_PORTAL_NATIVE_SMOKE_PASS"

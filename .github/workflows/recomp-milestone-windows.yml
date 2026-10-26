@@ -27,6 +27,7 @@ on:
       - 'Recomp/src/code2_startup_gate.cpp'
       - 'Recomp/src/original_code2_live_full_frame.inc'
       - 'Recomp/src/original_code2_live_level_transition.inc'
+      - 'Recomp/src/original_code2_live_07938_restore.inc'
       - 'Recomp/src/original_code2_live_level_files.hpp'
       - 'Recomp/src/test_original_code2_live_level_files.cpp'
       - 'Recomp/src/original_source_winmm_bridge.hpp'
@@ -46,7 +47,6 @@ on:
       - 'Recomp/src/host_dos_disk_space.hpp'
       - 'Recomp/tests/host_dos_disk_space_test.cpp'
       - 'Recomp/tests/original_dpmi_real_mode_mouse_test.cpp'
-      - 'Recomp/src/canonical_code2_runtime_owner.hpp'
       - 'Recomp/tests/original_guest_continuation_test.cpp'
       - 'Recomp/tests/original_code2_stackful_mouse_gate.cpp'
       - 'Recomp/src/gog_cd_iso_extract.cpp'
@@ -56,7 +56,6 @@ on:
       - 'Recomp/src/original_code2_level22_window.cpp'
       - 'Recomp/tools/Launch-RLOFT-Recomp-Preview.ps1'
       - 'Recomp/tools/Play-RLOFT-Recomp-Preview.cmd'
-      - 'Recomp/src/code1_code2_staged_boot.cpp'
       - 'Recomp/src/original_code2_palette_loader.hpp'
       - 'Recomp/src/code1_startup_gate.cpp'
       - 'Recomp/CMakeLists.txt'
@@ -73,7 +72,6 @@ on:
       - 'Recomp/src/original_code2_369d8_raster.hpp'
       - 'Recomp/src/test_original_code2_369d8_raster.cpp'
       - 'Recomp/test_original_37700_control.cpp'
-      - 'Recomp/CMakeLists.txt'
       - '.github/workflows/recomp-milestone-windows.yml'
 permissions:
   contents: read
