@@ -393,8 +393,66 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
         stop("ORIGINAL_1BDAC_0D550_RECORD_OUT_OF_GUEST_BOUNDS");
     const u32 type=code2::load_le16(current->data.data()+actor+0xEu);
     const u32 state=code2::load_le16(current->data.data()+actor+0x14u);
-    if(type==15u || (type==8u && (state&0xC000u)==0x8000u))
-        stop("ORIGINAL_1BDAC_0D550_SPECIAL_ACTION_PENDING");
+    if(type==15u) {
+        // The canonical 0D550 type-15 branch calls 0CEE4 (a party
+        // saving throw) and 0CD44 (party damage) for four original
+        // slots, then source 28110. Execute those compiled routines,
+        // preserving the original source RNG and guest-owned HP.
+        // Lethal HP, 0AD24 cleanup and 0CBC8 game-over remain a
+        // distinct unconnected source lifecycle boundary.
+        if(!original_full_frame_trace ||
+           std::uint64_t(definition)+0x41u>current->data.size() ||
+           current->data.size()<0x22000u)
+            stop("ORIGINAL_0D550_TYPE15_SOURCE_PRECONDITIONS");
+        code2::Application19Boundary action{};
+        action.call_cee4=+[](u32 slot) noexcept -> u32 {
+            if(slot>=4u)stop("ORIGINAL_0D550_0CEE4_SLOT_OUT_OF_RANGE");
+            const u32 base=slot*0x248u;
+            const code2::s32 cls=static_cast<code2::s8>(
+                current->data[0x218F5u+base]);
+            const code2::s32 level=static_cast<code2::s16>(
+                code2::load_le16(current->data.data()+0x21900u+base));
+            const std::int64_t offset=
+                std::int64_t(cls)*0x5C+std::int64_t(level)*4;
+            if(cls<0 || level<0 || offset<0 ||
+               offset>std::int64_t(current->data.size()-0x6888u-4u))
+                stop("ORIGINAL_0D550_0CEE4_CLASS_LEVEL_TABLE_BOUNDS");
+            code2::Application18Boundary saving{};
+            saving.call_1c328=&original_level_actor_roll;
+            return code2::function_0cee4(current->machine,saving,slot);
+        };
+        action.call_cd44=+[](u32 slot,u32 damage) noexcept {
+            if(slot>=4u)stop("ORIGINAL_0D550_0CD44_SLOT_OUT_OF_RANGE");
+            const u32 base=slot*0x248u;
+            const u32 hp=code2::load_le16(
+                current->data.data()+0x218FCu+base);
+            // Before any party-damage mutation, refuse branches that
+            // could invoke the as-yet unwired 0AD24/0CBC8 game-over
+            // dependencies. This conservatively rejects shielded
+            // lethal-sized hits too; it never fabricates a surviving
+            // party member or drops damage.
+            if(hp==0u || damage>=hp)
+                stop("ORIGINAL_0D550_0CD44_LETHAL_LIFECYCLE_PENDING");
+            code2::Application18Boundary damage_source{};
+            damage_source.call_19cc4=+[]() noexcept -> u32 {
+                return code2::function_19cc4(current->machine);
+            };
+            code2::function_0cd44(
+                current->machine,damage_source,slot,damage);
+        };
+        action.call_28110=+[](u32 request,u32 aux,u32 channel,
+                                u32 priority) noexcept {
+            if(channel>1u || !current->game_audio.app68)
+                stop("ORIGINAL_0D550_TYPE15_SOUND_QUEUE_NOT_READY");
+            code2::function_28110(
+                current->machine,request,aux,channel,priority);
+        };
+        code2::function_0d550(
+            current->machine,action,actor,definition,index);
+        return;
+    }
+    if(type==8u && (state&0xC000u)==0x8000u)
+        stop("ORIGINAL_1BDAC_0D550_PROJECTILE_SOURCE_PENDING");
     // Model the original 32-bit SUB, CDQ, XOR, SUB, signed JG.
     // In particular INT_MIN must not be treated as a positive delta.
     const auto out_of_range=[](u32 camera,u32 position) noexcept {
