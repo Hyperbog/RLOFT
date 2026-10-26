@@ -2568,6 +2568,7 @@ void original_level_0ccf4_party_terminal() noexcept {
     code2::function_0ccf4(current->machine,callbacks);
     ++current->original_level_party_terminal_checks;
 }
+#include "original_code2_live_level_transition.inc"
 void original_181b4_level_load(u32 requested) noexcept {
     if(requested!=0x16u || current->original_16cd0_completed!=1u ||
        current->original_03838_completed!=1u || !current->host_files)
