@@ -17,8 +17,8 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->data[0xA7ECu]>=14u)
         stop("ORIGINAL_171FC_LIVE_SAVE_STACK_UNSAFE");
     const auto* g=current->data.data();
-    const live_transition_s32 width=static_cast<s16>(code2::load_le16(g+0x25619u));
-    const live_transition_s32 height=static_cast<s16>(code2::load_le16(g+0x2561Bu));
+    const live_transition_s32 width=static_cast<code2::s16>(code2::load_le16(g+0x25619u));
+    const live_transition_s32 height=static_cast<code2::s16>(code2::load_le16(g+0x2561Bu));
     if(width<=0 || width>128 || height<=0 || height>128 ||
        std::uint64_t(width)*height>0x4000u ||
        code2::load_le32(g+0xC038u)>150u)
@@ -48,7 +48,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
         }
     }
     for(const u32 at:{0x258A2u,0x258A4u,0x258A6u}) {
-        const live_transition_s32 count=static_cast<s16>(code2::load_le16(g+at));
+        const live_transition_s32 count=static_cast<code2::s16>(code2::load_le16(g+at));
         if(count<0 || count>150)
             stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
     }
