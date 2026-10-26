@@ -2527,7 +2527,8 @@ void original_world_camera_334c4() noexcept {
 // closures consume the retained 181B4, 03838, RES4 and VGA memory.
 u32 original_world_material(u32 id,u32 slot) noexcept {
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
-       (current->original_world_source_flushes<4u ||
+       (id==579u ||
+        current->original_world_source_flushes<4u ||
         (current->original_world_source_flushes&0xFFu)==0u))
         std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_ENTER"
                  <<" id="<<id<<" slot="<<slot
@@ -2561,7 +2562,8 @@ u32 original_world_material(u32 id,u32 slot) noexcept {
         stop("ORIGINAL_335DC_RES4_TEXTURE_SOURCE_FORMAT");
     current->original_world_materials[id]={ptr+2u,ptr+2u+bytes,ptr};
     if(code2::load_le32(current->data.data()+0xC6C8u)==23u &&
-       (current->original_world_source_flushes<4u ||
+       (id==579u ||
+        current->original_world_source_flushes<4u ||
         (current->original_world_source_flushes&0xFFu)==0u))
         std::cerr<<"CODE2_335DC_LEVEL23_RES4_MATERIAL_RETURN"
                  <<" id="<<id<<" decoded_bytes="<<bytes<<"\n"<<std::flush;

@@ -1,0 +1,46 @@
+name: Inspect preserved original RES4 material 579
+on:
+  push:
+    branches: [Recomp]
+    paths:
+      - '.github/workflows/recomp-res4-579-inspect.yml'
+permissions:
+  contents: read
+jobs:
+  original-archive-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Inspect original RES4 directory, types and neighboring records
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          p=Path("original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4")
+          s=p.read_bytes()
+          n=struct.unpack_from("<I",s)[0]
+          print("ORIGINAL_RES4_RESOURCE_DIR", "bytes",len(s),"count",n)
+          assert n>580 and len(s)>4+n*4
+          offsets=struct.unpack_from(f"<{n}I",s,4)
+          for i in (220,221,223,578,579,580):
+              a=offsets[i]
+              b=offsets[i+1] if i+1<n else len(s)
+              assert a<=b<=len(s)
+              data=s[a:min(b,a+20)]
+              print("ORIGINAL_RES4_RECORD",i,"begin",a,"end",b,
+                    "encoded_bytes",b-a,
+                    "magic",bytes(data[:2]).hex(),
+                    "type",data[2] if len(data)>2 else None,
+                    "header_u16",struct.unpack_from("<H",data,3)[0] if len(data)>=5 else None,
+                    "decoded_bytes_field",struct.unpack_from("<H",data,5)[0] if len(data)>=7 else None,
+                    "header_first12",bytes(data[:12]).hex())
+          PY
