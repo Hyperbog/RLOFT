@@ -876,6 +876,22 @@ jobs:
           $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
           & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root $root --cd-root $cd --smoke
           if ($LASTEXITCODE -ne 0) { throw "Native CODE2 Level22 scanout/keyboard smoke failed" }
+      - name: Probe genuine original CODE2 23-26-23 portal and resumed 1FC14 VGA
+        # Separate acceptance: an actual post-portal VGA frame is not
+        # certified by the 92/92 regression suite or saved-level loader.
+        # Keep the existing Level22 milestone deliverable intact when
+        # an unconnected source dependency causes this frontier to stop.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 4
+        run: |
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root $root --cd-root $cd --smoke-portal
+          if ($LASTEXITCODE -ne 0) {
+            throw "Original 23-26-23 live 1FC14 portal frame NOT_CERTIFIED (source diagnostic stopped)"
+          }
+          Write-Host "Original archive 2D3D8 native portal scene, page, HUD and scanout diagnostic returned"
       - name: Verify preserved original LEVELS.DAT through compiled 334C4 view preparation
         shell: pwsh
         run: |
