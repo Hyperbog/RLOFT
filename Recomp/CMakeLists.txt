@@ -759,6 +759,21 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_saved_level_policy_test)
 endif()
 
+# Shared original-code clip/overlay source callbacks, independent of game level.
+add_executable(rloft_original_code2_source_clip_overlay_test
+    src/test_original_code2_source_clip_overlay.cpp)
+set_target_properties(rloft_original_code2_source_clip_overlay_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_source_clip_overlay_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_source_clip_overlay_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_source_296c0_29738_2978c_2a6b0_clip_overlay
+        COMMAND rloft_original_code2_source_clip_overlay_test)
+endif()
+
 # Per-owner private 171FC/181B4 source file transport contract.
 add_executable(rloft_original_code2_live_level_files_test
     src/test_original_code2_live_level_files.cpp)
