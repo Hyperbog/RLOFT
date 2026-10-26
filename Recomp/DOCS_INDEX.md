@@ -5,6 +5,7 @@ The [current README](README.md) is the entry point for building, launching, bran
 ## Current operating contracts
 
 - [Engine-wide original CODE.1/CODE.2 execution plan — common loader, rendering, audio, mechanics and source callback coverage](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md)
+- [Shared original CODE.2 call graph, 985 function bodies, 671 direct edges, common renderer/actor changes and 32+17 original media gate](SHARED_ENGINE_CALLBACK_CLOSURE_20261026.md)
 - [Evidence-based progress report: 3/12 gates, native portal/frame receipts, 93 CTests and current Windows timeout](PROGRESS_REPORT_20261026.md)
 - [Current build, tests, experimental native Windows window](README.md)
 - [R01–R12 acceptance ledger](ACCEPTANCE_GATES.json)
