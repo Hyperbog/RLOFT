@@ -74,8 +74,9 @@ code2::Machine* test_live_actor_fixture=nullptr;
 u32 test_source_actor_seed_clock_value() {
     return code2::function_30700(*test_live_actor_fixture);
 }
-void test_source_actor_seed(u32 seed) {
+u32 test_source_actor_seed(u32 seed) {
     code2::function_30cc4(*test_live_actor_fixture,seed);
+    return seed; // return ignored by original 290D0.
 }
 void test_source_actor_rng_init(u32 seed) {
     code2::Application56Boundary cb{};

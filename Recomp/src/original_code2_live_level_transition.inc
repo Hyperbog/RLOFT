@@ -38,8 +38,9 @@ void original_live_actor_vector(
     vector.call_35680=&code2::function_35680;
     code2::function_2df2c(current->machine,vector,&x,&y,distance,heading);
 }
-void original_live_actor_seed(u32 value) noexcept {
+u32 original_live_actor_seed(u32 value) noexcept {
     code2::function_30cc4(current->machine,value);
+    return value; // ABI caller 290D0 discards 30CC4 return.
 }
 void original_live_actor_music_rng(u32 seed) noexcept {
     code2::Application56Boundary source{};
