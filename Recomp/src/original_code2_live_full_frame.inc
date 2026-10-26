@@ -1572,8 +1572,33 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
        t->scene_projection_returns!=1u ||
        t->compass_source_returns!=1u ||
        t->scene_sprite_calls==0u ||
-       t->scene_sprite_calls!=t->scene_sprite_raster_returns)
+       t->scene_sprite_calls!=t->scene_sprite_raster_returns) {
+        // Diagnostic only: distinguish a real empty source polygon/
+        // sprite view from a missing callback or a wrong frame owner.
+        // No trace counter, guest field, or acceptance condition changes.
+        std::cerr<<"CODE2_ORIGINAL_1FC14_SCENE_PREDICATE_DIAGNOSTIC"
+                 <<" level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" page="<<page
+                 <<" pending_level="<<current->original_pending_level_frame
+                 <<" tick_owner="<<(t==&original_1fc14_tick_frame)
+                 <<" exterior_owner="<<(e==&original_1fc14_tick_exterior)
+                 <<" scan_returns="<<(t?t->polygon_scan_returns:0u)
+                 <<" cells="<<(t?t->polygon_cells:0u)
+                 <<" projections="<<(t?t->polygon_projections:0u)
+                 <<" quads="<<(t?t->polygon_quads:0u)
+                 <<" scanlines="<<(t?t->polygon_scanlines:0u)
+                 <<" drawn_scanlines="<<(t?t->polygon_drawn_scanlines:0u)
+                 <<" actors="<<(t?t->actor_update_returns:0u)
+                 <<" scenes="<<(t?t->scene_projection_returns:0u)
+                 <<" walls="<<(t?t->scene_wall_passes:0u)
+                 <<" sprites="<<(t?t->scene_sprite_calls:0u)
+                 <<" sprite_rasters="<<(t?t->scene_sprite_raster_returns:0u)
+                 <<" compass="<<(t?t->compass_source_returns:0u)
+                 <<" transitions="<<current->original_live_level_transitions
+                 <<" transition_active="<<current->original_level_transition_active
+                 <<"\n"<<std::flush;
         stop("ORIGINAL_1FC14_SCENE_SOURCE_RASTER_INCOMPLETE");
+    }
     ++current->original_1fc14_source_scene_returns;
     if(current->original_pending_level_frame!=0xFFFFFFFFu) {
         const u32 level=code2::load_le32(current->data.data()+0xC6C8u);
