@@ -468,8 +468,26 @@ void original_full_1bdac_source() noexcept {
     if(!original_full_frame_trace ||
        original_full_frame_trace->polygon_scan_returns!=1u ||
        original_full_frame_trace->polygon_quads==0u ||
-       original_full_frame_trace->polygon_scanlines==0u)
+       original_full_frame_trace->polygon_scanlines==0u) {
+        // A destination world may have a different polygon census.
+        // Observe the authentic 1F1C8 -> 34DE8 -> 1BDAC order before
+        // changing this legacy Level22 acceptance guard. Do not force
+        // the polygon counters or fabricate an empty source scan.
+        const auto* t=original_full_frame_trace;
+        std::cerr<<"CODE2_ORIGINAL_1BDAC_POLYGON_PREDECESSOR_DIAGNOSTIC"
+                 <<" guest_level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" scan_returns="<<(t?t->polygon_scan_returns:0u)
+                 <<" quad_calls="<<(t?t->polygon_quads:0u)
+                 <<" scanlines="<<(t?t->polygon_scanlines:0u)
+                 <<" polygon_cells="<<(t?t->polygon_cells:0u)
+                 <<" polygon_projections="<<(t?t->polygon_projections:0u)
+                 <<" scene_mode="<<code2::load_le32(current->data.data()+0xC034u)
+                 <<" pending_level="<<current->original_pending_level_frame
+                 <<" transition_active="<<current->original_level_transition_active
+                 <<" current_page="<<code2::load_le32(current->data.data()+0xC050u)
+                 <<"\n"<<std::flush;
         stop("ORIGINAL_1BDAC_POLYGON_PREDECESSOR_MISSING");
+    }
     code2::Application36Boundary motion{};
     motion.call_30d30=&original_full_actor_missing_clear;
     motion.call_30ca2=&original_full_actor_rand;
