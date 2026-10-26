@@ -1,6 +1,7 @@
 // The owner-local original 171FC writer and 181B4 reader share this
 // bounded private file transport. These tests never contain retail media.
 #include "original_code2_live_level_files.hpp"
+#include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
 #include <array>
 #include <cstdint>
@@ -35,6 +36,28 @@ void test_filename() {
     bad[12]='d';bad[13]='a';bad[14]='t';
     verify(Overlay::level_name(bad.data(),bad.size(),level)&&level==23u,
            "Original lowercase DOS WORK/LEV filename rejected");
+}
+void test_original_saved_level_policy() {
+    using namespace rloft::original_saved_level_policy;
+    verify(authenticated_no_departing_level(0xFFFFFFFFu,23u,true,1u,true,156u,1u),
+           "Authentic source 07938 saved-level sentinel rejected");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,26u,true,1u,true,156u,1u),
+           "Sentinel enabled arbitrary destination");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,false,1u,true,156u,1u),
+           "Sentinel accepted without 07938 restoration");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,true,2u,true,156u,1u),
+           "Sentinel accepted repeated loader dispatch");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,true,1u,false,156u,1u),
+           "Sentinel allowed missing original LEV023");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,true,1u,true,0u,1u),
+           "Sentinel accepted no original save reads");
+    verify(!authenticated_no_departing_level(0xFFFFFFFFu,23u,true,1u,true,156u,0u),
+           "Sentinel accepted no source save opens");
+    verify(!authenticated_no_departing_level(22u,23u,true,1u,true,156u,1u),
+           "Sentinel invented a previous level");
+    verify(archived_pair(23u,26u) && archived_pair(26u,23u) &&
+           !archived_pair(0xFFFFFFFFu,23u),
+           "Ordinary portal accepted saved-game sentinel");
 }
 void test_signed_dos_seek_contract() {
     // Unlike the writable WORK overlay, restored SAVE.DAT does not
@@ -141,7 +164,8 @@ void test_guards() {
 }
 int main() {
     try {
-        test_filename();test_signed_dos_seek_contract();
+        test_filename();test_original_saved_level_policy();
+        test_signed_dos_seek_contract();
         test_read_write();test_guards();test_saved_snapshot_install();
         std::cout<<"ORIGINAL_CODE2_171FC_181B4_PRIVATE_LEVEL_FILES_PASS"
                  <<" work_saves=MEMORY_ONLY"

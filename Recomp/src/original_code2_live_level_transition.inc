@@ -188,81 +188,78 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->original_level_transition_active)
         stop("ORIGINAL_181B4_LIVE_OWNER_PREREQUISITE_MISSING");
     const u32 prior=code2::load_le32(current->data.data()+0xC6C8u);
-    // Original 07938 first copies the saved current level (23) into
-    // C6C8, then calls 181B4(23) to load WORK/LEV023.DAT. This is a
-    // genuine SAME-level saved-game restoration, not a host-invented
-    // 23->23 portal. Only allow it while source 07938 is executing,
-    // with its authenticated private LEV023 input already present.
-    const bool restore_same_level=
-        current->original_live_restore_active &&
-        prior==23u && requested==23u &&
-        current->original_live_save_level_callbacks==1u &&
-        current->level_overlay.has(23u);
-    // Ordinary source 171FC/181B4 cross-level transitions are
-    // constrained to independently verified original level pairs.
-    if(!restore_same_level &&
-       !((prior==22u && requested==23u)||
-         (prior==23u && requested==22u)||
-         (prior==23u && requested==26u)||
-         (prior==26u && requested==23u))) {
-        // Exact original 07938 pre-181B4 state is needed before any
-        // adjustment to this guarded transition. Preserve failure
-        // semantics; do not invent a source current-level value.
+    // The original 07938 parser sets C6C8 to 0xFFFFFFFF before
+    // invoking 181B4(23). This is source-owned no-departing-level
+    // restoration, never a host-invented 22->23 transition.
+    const bool restore_without_departure=
+        rloft::original_saved_level_policy::authenticated_no_departing_level(
+            prior,requested,current->original_live_restore_active,
+            current->original_live_save_level_callbacks,
+            current->level_overlay.has(23u),
+            current->original_live_save_reads,
+            current->original_live_save_opens);
+    if(!restore_without_departure &&
+       !rloft::original_saved_level_policy::archived_pair(prior,requested)) {
         std::cerr<<"CODE2_ORIGINAL_07938_LIVE_LEVEL_PAIR_DIAGNOSTIC"
-                 <<" prior="<<prior
-                 <<" requested="<<requested
+                 <<" prior="<<prior<<" requested="<<requested
                  <<" restore_active="<<current->original_live_restore_active
                  <<" save_level_callbacks="<<current->original_live_save_level_callbacks
                  <<" saved_lev023_present="<<current->level_overlay.has(23u)
                  <<" save_reads="<<current->original_live_save_reads
                  <<" source_C6C8="<<code2::load_le32(current->data.data()+0xC6C8u)
-                 <<" continuing_1FC14=NO\\n"<<std::flush;
+                 <<" continuing_1FC14=NO\n"<<std::flush;
         stop("ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR");
     }
-    if(restore_same_level)
-        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_181B4_SAVED_LEVEL23_DISPATCH"
-                 <<" from_guest_C6C8=23 to=23"
-                 <<" archived_save=WORK_LEV023"
-                 <<" bypassed_cross_level_pair_guard=SOURCE_AUTHENTIC\n"
-                 <<std::flush;
-    if(!current->level_overlay.idle() || current->data[0xA79Du]!=0u ||
-       current->data[0xA7ECu]>=14u)
+    if(restore_without_departure)
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_181B4_NO_DEPARTING_LEVEL_PASS"
+                 <<" from_guest_C6C8=4294967295 to=23"
+                 <<" source_read_calls="<<current->original_live_save_reads
+                 <<" saved_world=ORIGINAL_LEV023"
+                 <<" no_depending_departure=YES\n"<<std::flush;
+    if(!current->level_overlay.idle() ||
+       (!restore_without_departure &&
+         (current->data[0xA79Du]!=0u || current->data[0xA7ECu]>=14u)))
         stop("ORIGINAL_171FC_LIVE_SAVE_STACK_UNSAFE");
     const auto* g=current->data.data();
-    const live_transition_s32 width=static_cast<code2::s16>(code2::load_le16(g+0x25619u));
-    const live_transition_s32 height=static_cast<code2::s16>(code2::load_le16(g+0x2561Bu));
-    if(width<=0 || width>128 || height<=0 || height>128 ||
-       std::uint64_t(width)*height>0x4000u ||
-       code2::load_le32(g+0xC038u)>150u)
-        stop("ORIGINAL_171FC_LIVE_WORLD_INVALID");
-    const u32 scripts=code2::load_le32(g+0xCF44u);
-    if(!scripts || std::uint64_t(scripts)+0x514u>current->data.size())
-        stop("ORIGINAL_171FC_LIVE_SCRIPT_POINTER_UNMAPPED");
-    // Original 171FC traverses each ten-byte list up to a source
-    // terminator. A truncated pointer cannot be permitted to stream
-    // guest bytes into the private save.
-    for(live_transition_s32 col=0;col<width;++col) {
-        for(u32 family=0u;family<2u;++family) {
-            const u32 ptr=code2::load_le32(g+
-                    (family?0xCD3Cu:0xCB3Cu)+static_cast<u32>(col)*4u);
-            if(!ptr)continue;
-            bool end=false;
-            for(u32 i=0u;i<6554u;++i) {
-                const std::uint64_t offset=std::uint64_t(ptr)+i*10u;
-                if(offset+10u>current->data.size())break;
-                const u8 first=g[static_cast<std::size_t>(offset)];
-                const u8 flags=g[static_cast<std::size_t>(offset)+1u];
-                if(first==0u&&(family!=0u||(flags&0x10u)==0u)){
-                    end=true;break;
+    if(!restore_without_departure) {
+        // Preflight original 171FC only if source has a real departing
+        // world. 07938 deliberately invalidates the previous level.
+    
+        const live_transition_s32 width=static_cast<code2::s16>(code2::load_le16(g+0x25619u));
+        const live_transition_s32 height=static_cast<code2::s16>(code2::load_le16(g+0x2561Bu));
+        if(width<=0 || width>128 || height<=0 || height>128 ||
+           std::uint64_t(width)*height>0x4000u ||
+           code2::load_le32(g+0xC038u)>150u)
+            stop("ORIGINAL_171FC_LIVE_WORLD_INVALID");
+        const u32 scripts=code2::load_le32(g+0xCF44u);
+        if(!scripts || std::uint64_t(scripts)+0x514u>current->data.size())
+            stop("ORIGINAL_171FC_LIVE_SCRIPT_POINTER_UNMAPPED");
+        // Original 171FC traverses each ten-byte list up to a source
+        // terminator. A truncated pointer cannot be permitted to stream
+        // guest bytes into the private save.
+        for(live_transition_s32 col=0;col<width;++col) {
+            for(u32 family=0u;family<2u;++family) {
+                const u32 ptr=code2::load_le32(g+
+                        (family?0xCD3Cu:0xCB3Cu)+static_cast<u32>(col)*4u);
+                if(!ptr)continue;
+                bool end=false;
+                for(u32 i=0u;i<6554u;++i) {
+                    const std::uint64_t offset=std::uint64_t(ptr)+i*10u;
+                    if(offset+10u>current->data.size())break;
+                    const u8 first=g[static_cast<std::size_t>(offset)];
+                    const u8 flags=g[static_cast<std::size_t>(offset)+1u];
+                    if(first==0u&&(family!=0u||(flags&0x10u)==0u)){
+                        end=true;break;
+                    }
                 }
+                if(!end)stop("ORIGINAL_171FC_LIVE_COLUMN_LIST_UNTERMINATED");
             }
-            if(!end)stop("ORIGINAL_171FC_LIVE_COLUMN_LIST_UNTERMINATED");
         }
-    }
-    for(const u32 at:{0x258A2u,0x258A4u,0x258A6u}) {
-        const live_transition_s32 count=static_cast<code2::s16>(code2::load_le16(g+at));
-        if(count<0 || count>150)
-            stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
+        for(const u32 at:{0x258A2u,0x258A4u,0x258A6u}) {
+            const live_transition_s32 count=static_cast<code2::s16>(code2::load_le16(g+at));
+            if(count<0 || count>150)
+                stop("ORIGINAL_171FC_LIVE_ENTITY_COUNT_INVALID");
+        }
     }
     // Source I/O is preflighted before writing the old level. This is
     // the original same-level owner with real archival data, not a
@@ -313,7 +310,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // Reuse the exact authenticated C-runtime literal restoration that
     // the initial original Level22 loader already requires.
     original_restore_181b4_archive_literal();
-    original_live_level_no_real_save(prior);
+    if(!restore_without_departure)original_live_level_no_real_save(prior);
     original_live_level_no_real_save(requested);
     const std::size_t handles_before=current->host_files->open_handles();
     current->original_level_transition_active=true;
@@ -447,7 +444,10 @@ void original_181b4_live_transition(u32 requested) noexcept {
        current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
        current->original_level_party_terminal_checks!=1u ||
-       !current->level_overlay.has(prior) ||
+       (restore_without_departure?
+          (current->level_overlay.source_writes!=0u ||
+           current->level_overlay.has(prior)):
+          !current->level_overlay.has(prior)) ||
        code2::load_le32(current->data.data()+0xC6C8u)!=requested ||
        code2::load_le16(current->data.data()+0x25619u)!=target.width ||
        code2::load_le16(current->data.data()+0x2561Bu)!=target.height ||
@@ -460,6 +460,7 @@ void original_181b4_live_transition(u32 requested) noexcept {
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=171FC_181B4_LIVE_SOURCE_RETURN"
              <<" from="<<prior<<" to="<<requested
              <<" source_write_calls="<<current->level_overlay.source_writes
+             <<" no_departing_level="<<(restore_without_departure?"YES":"NO")
              <<" source_read_calls="<<current->level_overlay.source_reads
              <<" npc_postload=ORIGINAL_17A68"
              <<" same_guest=YES"
