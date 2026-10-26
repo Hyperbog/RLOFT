@@ -23,17 +23,21 @@ jobs:
           from pathlib import Path
           import re
           s=Path("Code2/Code2.cpp").read_text(encoding="utf-8")
-          for symbol in ["function_2c294", "function_2c3f8", "function_2d5d0"]:
+          for symbol in ["function_2c294", "function_2b6d0", "function_2bba0",
+                         "function_2bdf4", "function_2bfec",
+                         "app65_count_slot", "app65_record_base"]:
               positions=[m.start() for m in re.finditer(r"\b"+symbol+r"\s*\(",s)]
               print("ORIGINAL_SOURCE_SYMBOL",symbol,"occurrences",len(positions))
               for pos in positions[:4]:
                   print("CONTEXT",repr(s[max(0,pos-85):min(len(s),pos+90)]))
-              if symbol=="function_2c294":
+              if symbol in ("function_2c294", "function_2b6d0", "function_2bba0",
+                            "function_2bdf4", "function_2bfec",
+                            "app65_count_slot", "app65_record_base"):
                   for pos in positions:
                       prefix=s[max(0,pos-150):pos]
                       if re.search(r"\b(?:void|u32|s16|s32|std::uint32_t)\s+$",prefix):
                           print("ORIGINAL_SOURCE_2C294_BEGIN")
-                          print(s[pos-100:pos+18000])
+                          print(s[pos-100:pos+(17000 if symbol=="function_2c294" else 9500)])
                           print("ORIGINAL_SOURCE_2C294_END")
                           break
           PY
