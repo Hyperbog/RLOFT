@@ -30,6 +30,11 @@ class CallbackInventoryTests(unittest.TestCase):
             '}\n',encoding="utf-8")
         d=catalog(self.root)
         self.assertEqual(d["canonical_function_address_tokens"],2)
+        self.assertEqual(d["canonical_function_bodies"],2)
+        self.assertEqual(d["canonical_direct_call_edges"],1)
+        edges={entry["source_address"]:entry
+               for entry in d["canonical_direct_call_graph"]}
+        self.assertEqual(edges["1bdac"]["direct_callees"],["181b4"])
         self.assertEqual(d["live_guest_source_function_references"],1)
         self.assertEqual(d["live_guest_callback_wirings"],2)
         self.assertEqual(d["conditional_or_explicit_null_wirings"],1)
