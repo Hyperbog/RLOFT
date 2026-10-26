@@ -23,8 +23,8 @@ Verified audit implementation:
 
 | Priority | Source area | Verified risk or maintainability issue | Required next action |
 |---|---|---|---|
-| P1 | `src/original_guest_continuation.hpp` | `Worker::stop()` joins the native guest thread with no bounded interruption if the source never pauses. Strict Windows tests currently need an external process kill on failed guest callbacks. | Define cooperative cancellation/error propagation at existing source suspension points; test termination of a retained-but-failed guest without inventing DOS responses |
-| P1 | `src/original_code2_live_07938_restore.inc` | Within a `noexcept` callback, private `level_overlay.levels.emplace(23u,...)` can allocate outside the existing archive-read catch block. | Add a bounded, source-labeled allocation-failure path; keep the authentic save and overlay unchanged on failure |
+| P1 (mitigated) | `src/original_guest_continuation.hpp` | Cooperative cancellation is explicit and synthetic tests verify shutdown, late-reply rejection, finite host waits and exception propagation. Arbitrary uncooperative original code cannot be safely preempted in-process. | Keep strict process-level watchdogs for live original CODE.2 probes; never detach a guest owning borrowed memory |
+| P1 (resolved) | `src/original_code2_live_07938_restore.inc` | Prevalidated Level 23 saved-world snapshots are installed through a bounded `noexcept` transaction; synthetic checks include duplicate, oversized, active-writer and injected allocation failures. | Preserve the failure gate while implementing original `07938 → 181B4` sentinel semantics |
 | P1 | `src/original_code2_live_level_transition.inc` | The genuine original `07938→181B4` dispatch reports prior level `0xFFFFFFFF`, while the transition adapter rejects it. | Implement only the authenticated no-departing-level sentinel branch and validate the unchanged original guest state; strict native frame acceptance remains **open** |
 | P2 | `src/code2_startup_gate.cpp` (251 KB) | Startup, DOS services, guest state, live callbacks and test diagnostics share one large translation unit. | Extract pure input/validation and source-labeled transport types first. Split source address callbacks only when tests and ownership invariants permit |
 | P2 | `src/code2_original_res_startup.cpp` (100 KB), `code2_original_world_frame.cpp` (92 KB), `original_code2_live_full_frame.inc` (85 KB) | Four source files exceed 64 KiB; difficult to review and reason about independently. | Separate by guest-owned subsystem and read-only ABI boundaries, not arbitrary line counts. Preserve original source call order |
@@ -40,3 +40,18 @@ Verified audit implementation:
 - Keep owner originals read-only; all save snapshots stay private.
 - All new `noexcept` guest callback paths must avoid unguarded allocations and filesystem exceptions.
 - Every native strict acceptance uses source-specific success markers **and** failure exit codes; green aggregate CI does not prove cross-level rendering.
+
+
+## Guest lifecycle and authentic Level 23 snapshot hardening — verified follow-up
+
+Changes:
+- [`966b8a88`](https://github.com/Hyperbog/RLOFT/commit/966b8a88a0884511febaff819ff60798a26bf988) implements `Worker::request_stop()`, `stop_requested()`, `finished()`, `join()`, and `await_pause_for()`. Existing `stop()` remains request-plus-join for backwards compatibility and owner lifetime safety. `resume()` now rejects a reply after shutdown is requested. A bounded timeout does not synthesize an original DOS service or free live guest RAM.
+- The guest worker regression now asserts: one retained source stack across two host replies, sequence-guarded replies, cancellation of an actual paused callback, refusal of a late reply, a bounded wait while source code is running, a cooperative guest-side shutdown checkpoint, and propagation of the original guest exception.
+- The private `Overlay::install_saved_snapshot()` commits a validated `LEV023.DAT` vector before invoking compiled original `07938`. A failed allocation or validation returns an explicit error and cannot escape the `noexcept` CODE.2 callback or overwrite another saved snapshot. Authentic game state is still set only by source routines.
+- [`f52be0d2`](https://github.com/Hyperbog/RLOFT/commit/f52be0d2eaaf10542b2548263a88efd5fd2ffb52) adds deterministic allocation-exception injection to the **same insertion helper** used by production; it verifies the source snapshot bytes are not consumed during the simulated allocation failure.
+
+**Acceptance evidence (exact revision `f52be0d2`):** [Linux run #40270213344](https://github.com/Hyperbog/RLOFT/actions/runs/40270213344) and [Windows source-link run #40270213355](https://github.com/Hyperbog/RLOFT/actions/runs/40270213355) passed 93/93 CTests each, with all source inventory tests. [Windows engineering package run #40270213358](https://github.com/Hyperbog/RLOFT/actions/runs/40270213358) also succeeded.
+
+**Lifecycle scope limitation:** C++17 does not provide safe forced termination of a thread running arbitrary original CODE.2 instructions. An indefinitely running guest that never checks its shutdown flag or reaches a host callback remains a supervised-process boundary; `join()` intentionally does not detach such a thread and leave guest pointers dangling. The strict native CI already supervises and kills the *process* on a bounded timeout. No original source callback or DOS input response was invented to conceal this limit.
+
+**Next recompilation step, separate from the audit:** original `07938` legitimately presents prior-level sentinel `C6C8=0xFFFFFFFF` to `181B4(23)`. It must be allowed only on the authenticated original saved-game restoration path, with correct absence of a departing-world save. After a verified retained-save restore marker, continue the original Level 23 → 26 type-8 portal and require native `1FC14` post-scene VGA frame acceptance. The audit has **not** accepted that gameplay gate.
