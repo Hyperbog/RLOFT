@@ -3602,7 +3602,15 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original,
                 "original heap chain was preseeded");
         // The original LE static DGROUP bytes remain intact. Only the
         // opt-in host aperture is extended to house guest linear DPMI pages.
-        state.data.resize(0x01100000u,0u);
+        // DPMI first linear guest page is 0x01000000. The old
+        // 0x01100000 aperture allowed only ~1 MiB of *addresses* for
+        // a source heap with up to 16 MiB committed DPMI pages.
+        // The authentic Level23 RES4:579 request proved that the
+        // original 39D4D -> 39C7B -> DPMI 0501 had no mapped room.
+        // Extend only the host-backed PRIVATE aperture to 36 MiB.
+        // This does not preallocate Watcom arenas, modify retail bytes,
+        // fake 37B42 returns or relax DPMI committed-page accounting.
+        state.data.resize(0x02400000u,0u);
         state.dpmi_linear_memory=std::make_unique<
             rloft_recomp::DpmiLinearMemory>(state.data.data(),state.data.size());
         if(source_dos_fallback)

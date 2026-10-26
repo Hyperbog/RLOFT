@@ -365,8 +365,12 @@ struct Session {
         if(t.canonical_owner) {
             const auto ptr=rloft::canonical_code2_runtime::allocate_source_heap(
                 t.canonical_owner,bytes);
-            if(std::uint64_t(ptr)+bytes>t.memory.size()){
-                t.error=true;return 0;
+            // Source 37B42 can legitimately return 0 if all original
+            // growth services fail. Never interpret DGROUP offset zero
+            // as a valid 8,194-byte texture allocation and clear it.
+            if(!ptr || std::uint64_t(ptr)+bytes>t.memory.size()){
+                t.error=true;
+                return 0u;
             }
             std::fill_n(t.memory.begin()+ptr,bytes,0);
             if(t.original_image_record==579u)
