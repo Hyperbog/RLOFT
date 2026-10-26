@@ -104,6 +104,19 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     args = parser.parse_args()
     result = audit(args.root)
+    if not result["errors"]:
+        from audit_original_source_callbacks import catalog
+        try:
+            census = catalog(args.root)
+            result["original_source_callback_inventory"] = {
+                "canonical_function_address_tokens": census["canonical_function_address_tokens"],
+                "live_guest_callback_wirings": census["live_guest_callback_wirings"],
+                "nullable_wirings": census["conditional_or_explicit_null_wirings"],
+                "unresolved_guard_sites": census["unresolved_guard_sites"],
+                "dynamic_callgraph": "NOT_CERTIFIED",
+            }
+        except (OSError, UnicodeError, ValueError) as exc:
+            result["errors"].append("Original CODE2 callback census failed: " + str(exc))
     print(json.dumps(result, indent=2))
     return 1 if result["errors"] else 0
 
