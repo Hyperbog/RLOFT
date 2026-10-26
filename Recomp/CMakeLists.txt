@@ -759,6 +759,22 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_saved_level_policy_test)
 endif()
 
+# Original 002A8 shared interpreter across mixed guest map/script opcodes.
+# Unsupported later dialogue is rejected before earlier guest mutations.
+add_executable(rloft_original_code2_002a8_script_source_test
+    src/test_original_code2_002a8_script_source.cpp)
+set_target_properties(rloft_original_code2_002a8_script_source_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_002a8_script_source_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_002a8_script_source_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_002a8_source_script_multi_opcode_execution
+        COMMAND rloft_original_code2_002a8_script_source_test)
+endif()
+
 # Original shared actor event chain 1BDAC -> 0D550 -> 0CEE4/0CD44/0AD24.
 # Synthetic party state; no proprietary game media or fabricated game returns.
 add_executable(rloft_original_code2_0d550_actor_source_test
