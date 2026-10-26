@@ -718,26 +718,14 @@ void original_full_movement_event(u32 level) noexcept {
        current->original_181b4_completed!=1u ||
        !original_full_frame_trace)
         stop("ORIGINAL_2DBAC_EVENT_OUTSIDE_RETAINED_LEVEL22");
-    // Same-level portal calls are legal: original 181B4 checks old==target
-    // and returns before file I/O, world release or guest mutation.
     const u32 previous=code2::load_le32(current->data.data()+0xC6C8u);
-    if(level==previous && level==22u) {
-        code2::Application32Boundary original{};
-        code2::function_181b4(current->machine,original,
+    if(level==previous) {
+        code2::Application32Boundary same{};
+        code2::function_181b4(current->machine,same,
                               static_cast<code2::s32>(level));
-        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_SAME_LEVEL_SOURCE_RETURN"
-                 <<" target="<<level<<" media_read=NO state_reset=NO\n"
-                 <<std::flush;
-        return;
+        return; // original same-level source early return
     }
-    // Cross-level source 171FC must first save mutable old-world records;
-    // original 181B4 then releases map/script allocs, reads target data,
-    // runs 17A68 NPC transforms, and rebinds graphics/music. Startup's
-    // one-shot Level22 loader cannot yet guarantee those live callbacks.
-    // Fail closed; do not invoke it on another level or fake a world load.
-    if(level!=22u)
-        stop("ORIGINAL_2DBAC_CROSS_LEVEL_TRANSITION_NEEDS_171FC_181B4_SERVICES");
-    original_181b4_level_load(level);
+    original_181b4_live_transition(level);
 }
 // Original 20C0C is the precise animated-tile interaction path;
 // callbacks route into the original 2C800/2C8E4/2C9DC entity probes and
@@ -1283,8 +1271,8 @@ void original_full_private_capture_1fc14_tick() noexcept {
     const char* raw=std::getenv("RLOFT_RECOMP_PRIVATE_1FC14_FRAME_DIR");
     if(!raw || !*raw)return;
     if(!current || !current->original_vga ||
-       code2::load_le32(current->data.data()+0xC6C8u)!=22u)
-        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_LEVEL22_PRECONDITION");
+       code2::load_le32(current->data.data()+0xC6C8u)>31u)
+        stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_LEVEL_PRECONDITION");
     const u32 crtc=current->original_vga->crtc_start();
     if(crtc!=0u && crtc!=0x8000u)
         stop("ORIGINAL_1FC14_PRIVATE_CAPTURE_UNKNOWN_SCANOUT_PAGE");
@@ -1416,6 +1404,17 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
        t->scene_sprite_calls!=t->scene_sprite_raster_returns)
         stop("ORIGINAL_1FC14_SCENE_SOURCE_RASTER_INCOMPLETE");
     ++current->original_1fc14_source_scene_returns;
+    if(current->original_pending_level_frame!=0xFFFFFFFFu) {
+        const u32 level=code2::load_le32(current->data.data()+0xC6C8u);
+        if(level!=current->original_pending_level_frame ||
+           !current->level_overlay.idle())
+            stop("ORIGINAL_1FC14_CROSS_LEVEL_SCENE_RETURN_DIVERGED");
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1FC14_AFTER_181B4_FRAME_RETURN"
+                 <<" level="<<level
+                 <<" source_frame=EXECUTED"
+                 <<" dos_frame_parity=OPEN\n"<<std::flush;
+        current->original_pending_level_frame=0xFFFFFFFFu;
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1FC14_SCENE_SOURCE_RETURN"
              <<" page="<<page
              <<" scene_returns="<<current->original_1fc14_source_scene_returns

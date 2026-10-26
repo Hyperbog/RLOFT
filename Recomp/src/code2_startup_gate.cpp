@@ -168,6 +168,7 @@ struct Session {
     rloft::live_level_files::Overlay level_overlay{};
     bool original_level_transition_active=false;
     unsigned original_live_level_transitions=0u;
+    u32 original_pending_level_frame=0xFFFFFFFFu;
     // Opt-in stateful DPMI 0100/0101 host service; never original DOS parity.
     std::unique_ptr<rloft_recomp::DpmiDosMemory> dpmi_dos_memory;
     std::unique_ptr<rloft_recomp::DpmiLinearMemory> dpmi_linear_memory;
@@ -2325,6 +2326,7 @@ void original_scene_poll_source_events() noexcept {
 }
 // Retained original 181B4 loader is defined below this include.
 void original_181b4_level_load(u32 requested) noexcept;
+void original_181b4_live_transition(u32 requested) noexcept;
 #include "original_code2_live_full_frame.inc"
 // Original world ray reconstruction, attached to the *retained*
 // CODE.2 Machine rather than a second WorldRaySource fixture. All
