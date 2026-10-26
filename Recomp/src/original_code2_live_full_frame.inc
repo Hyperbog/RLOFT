@@ -139,8 +139,44 @@ u32 original_full_exterior_unclipped(
     return 0u;
 }
 u32 original_full_exterior_unsupported_raster(
-    u32,u32,u32,u32,u32) noexcept {
-    stop("ORIGINAL_314B0_FULL_2A6B0_CLIPPED_RASTER_PENDING");
+    u32 frame,u32 row,u32 x,u32 clip,u32 image) noexcept {
+    // Original CODE.2 2A6B0 executes transparent planar clipping.
+    // Its 24-byte descriptor and record are sourced from 29414 and
+    // decoded RES content; do not replace it with a host sprite blit.
+    if(!current || !current->original_vga || !image ||
+       std::uint64_t(clip)+0x18u>current->data.size() ||
+       std::uint64_t(image)+8u>current->data.size() ||
+       row>=400u || x>=320u)
+        stop("ORIGINAL_2A6B0_SOURCE_CLIP_ARGUMENTS_INVALID");
+    const u32 frames=code2::load_le16(current->data.data()+image+2u);
+    const u32 stride=code2::load_le16(current->data.data()+image);
+    const u32 height=code2::load_le32(current->data.data()+clip+8u);
+    const u32 width=code2::load_le32(current->data.data()+clip+0x14u);
+    if(!frames || frame>=frames || !stride || !height || height>400u ||
+       !width || width>320u ||
+       std::uint64_t(image)+8u+
+         std::uint64_t(stride)*(frame+1u)+1u>current->data.size())
+        stop("ORIGINAL_2A6B0_SOURCE_CLIP_RECORD_INVALID");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        {
+            rloft::source_video_boot::Bridge::Scope scope(bridge);
+            auto vga=rloft::source_video_boot::Bridge::app61();
+            code2::function_2a6b0(
+                current->machine,vga,frame,row,x,clip,image);
+        }
+        if(bridge.invalid_access || current->original_vga->unsupported_read())
+            stop("ORIGINAL_2A6B0_SOURCE_VGA_ACCESS_INVALID");
+    } catch(const std::exception& e) {
+        std::cerr<<"CODE2_ORIGINAL_SOURCE_2A6B0_CLIPPED_RASTER_FAILURE"
+                 <<" frame="<<frame<<" row="<<row<<" x="<<x
+                 <<" clip="<<clip<<" image="<<image
+                 <<" reason="<<e.what()<<"\\n"<<std::flush;
+        stop("ORIGINAL_2A6B0_SOURCE_CLIPPED_RASTER_EXCEPTION");
+    }
+    if(exterior_trace)++exterior_trace->clipped_rasters;
+    return 0u;
 }
 u32 original_full_exterior_2a8a0(
     u32 frame,u32 row,u32 x,u32 clip,u32 image,u32 delta) noexcept {
