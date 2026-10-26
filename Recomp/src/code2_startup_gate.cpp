@@ -1397,7 +1397,12 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_source_page_pushes!=3u ||
        current->original_source_page_pops!=3u ||
        current->original_source_dac_streams!=expected_dac_streams ||
-       code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu ||
+       // The startup witness BF44=270F is not a persistent game
+       // invariant. Original 181B4 sets real quest/event values for
+       // destination levels; retain the strict startup check only
+       // before the first source-authentic cross-level transition.
+       (current->original_live_level_transitions==0u &&
+        code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu) ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
     if(const char* source=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
