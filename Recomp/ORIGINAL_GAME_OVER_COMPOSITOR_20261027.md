@@ -53,3 +53,29 @@ The retained `0CBC8` manifest now supplies **compiled-original** `1F1C8` world-s
 Queued `28168` and direct `27F24` SFX have real source execution paths using original resource packet lookup, strict length/alias bounds, and the preflighted existing experimental WinMM waveOut bridge. The direct sample does not invent a new sound-queue entry or consume the two source priority slots. `28C54` active music **still stops** until a true driver service is connected; invoking the disabled-driver source return is not evidence of music playback. The appended `test_original_code2_28168_audio_service.cpp` case confirms direct `27F24` source copy, sample submission callback and unchanged source queue.
 
 **Fail-closed production boundaries:** source `2E614` requires continuous authentic IRQ8/event servicing; `205B4` needs working native/guest teardown and DOS exit; active Miles AIL music is not reproduced by WinMM; the whole-party `0CBC8` entry is still blocked before mutation despite more non-null callbacks. [Canonical CI #40439986244](https://github.com/Hyperbog/RLOFT/actions/runs/40439986244) **104/104 PASS**. **500 static callback assignments**, no measured dynamic coverage; acceptance **3/12**.
+
+## Host elapsed-time IRQ8 scheduler checkpoint (2026-10-27 UTC)
+
+The new `src/original_code2_irq8_elapsed_scheduler.hpp` converts elapsed
+`std::chrono::steady_clock` time into a bounded number of interrupt
+dispatches; it does **not** mutate guest tick `F58C` itself. The caller must
+supply a separately verified interrupt frequency, invoke the compiled original
+`interrupt_30708` on the same owning guest thread, and configure all relevant
+interrupt callback services. Unarmed, invalid-rate, clock-reversal and
+excessive-backlog cases fail closed, without inventing source IRQ8 ticks.
+
+`src/test_original_code2_irq8_elapsed_scheduler.cpp` executes original
+`30708` on a bounded source guest with a **test-only** injected monotonic
+timeline, verifying eight original incremented ticks, source `19C80`
+notifications and saved-vector far-chain callback ordering, CPU-state
+restoration, rejection of a backwards timestamp, and no partial dispatch on
+an excessive backlog. The test's 500 Hz input is **not** evidence that the
+retail game's IRQ8 frequency is 500 Hz.
+
+**Not completed:** authentic device-derived IRQ8 frequency and vector
+chaining in the live host, real nonblocking modal event processing through
+`2F868`, uninterrupted `2E614` service, active Miles music and native
+`205B4` shutdown. No new production callback was armed; whole-party
+`0CBC8` remains explicitly fail-closed. The new test is a bounded
+scheduler/source-handler integration check, **not** an IRQ8 hardware,
+gameplay, or retail-DOS timing parity acceptance.
