@@ -2359,6 +2359,8 @@ void original_game_over_2e510_art(u32,u32,u32,u32) noexcept;
 void original_game_over_1ea04_hud() noexcept;
 void original_game_over_1ea78_page() noexcept;
 void original_game_over_2e608_timing() noexcept;
+void original_scene_poll_source_events() noexcept;
+u32 original_game_over_1a1f4_mouse_button() noexcept;
 code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     code2::Application18Boundary b{};
     b.call_3104c=&original_game_over_0cadc_source_allocate;
@@ -2370,6 +2372,7 @@ code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     b.call_1ea04=&original_game_over_1ea04_hud;
     b.call_1ea78=&original_game_over_1ea78_page;
     b.call_2e608=&original_game_over_2e608_timing;
+    b.call_1a1f4=&original_game_over_1a1f4_mouse_button;
     return b;
 }
 void original_scene_cursor_capture(u32 dst,code2::s32 x,code2::s32 y,
@@ -2516,6 +2519,18 @@ void original_game_over_1ea78_page() noexcept {
     code2::Application43Boundary ui{};
     ui.call_1a510=&original_1fc14_source_page_handoff;
     code2::function_1ea78(current->machine,ui);
+}
+// Uses the original 1A1F4 mouse-button poll, with the same retained
+// DOS INT33 state and genuine source 2F868 event pump as gameplay.
+// No test-pattern clicks or host-selected dismissal are permitted.
+u32 original_game_over_1a1f4_mouse_button() noexcept {
+    if(!current || !current->live_continuation ||
+       current->original_20440_mouse_inits!=1u ||
+       current->original_mouse_init_callbacks.call_33cb0==nullptr)
+        stop("ORIGINAL_0CBC8_1A1F4_MOUSE_SERVICE_NOT_INITIALIZED");
+    code2::Application34Boundary input=current->original_mouse_init_callbacks;
+    input.call_2f868=&original_scene_poll_source_events;
+    return code2::function_1a1f4(current->machine,input);
 }
 void original_game_over_2e608_timing() noexcept {
     if(!current || !current->live_continuation)
