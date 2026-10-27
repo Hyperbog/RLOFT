@@ -1741,6 +1741,39 @@ bool original_full_configure_scene(
 
     return source_polygons;
 }
+// These wrappers invoke the already-owned CODE.2 scene/party source graph,
+// not separate game-over artwork substitutes. The scene is admitted only
+// when the original polygon path AND retained renderer trace are active.
+// A callback address being present is not sufficient live-0CBC8 readiness.
+void original_game_over_1f1c8_source_scene() noexcept {
+    if(!current || !current->live_continuation ||
+       !current->original_vga || !current->game_audio.app68 ||
+       !original_full_frame_trace || !exterior_trace)
+        stop("ORIGINAL_0CBC8_1F1C8_SOURCE_SCENE_NOT_READY");
+    code2::Application43Boundary ui{};
+    code2::Application44Boundary scene{};
+    if(!original_full_configure_scene(ui,scene) ||
+       !scene.call_34de8 || !scene.call_1bdac ||
+       !scene.call_314b0 || !scene.call_2f868)
+        stop("ORIGINAL_0CBC8_1F1C8_POLYGON_CALLBACKS_INCOMPLETE");
+    code2::function_1f1c8(current->machine,scene);
+}
+void original_game_over_1f494_source_party(u32 redraw) noexcept {
+    if(!current || !current->live_continuation ||
+       !current->original_vga || !current->game_audio.app68 ||
+       redraw>1u || current->data.size()<0x258E0u)
+        stop("ORIGINAL_0CBC8_1F494_PARTY_SOURCE_NOT_READY");
+    code2::Application43Boundary ui{};
+    code2::Application44Boundary party{};
+    // Complete original shared UI adapters include the source masked
+    // portrait, equipment, status, HP and glyph draw dependencies.
+    // Unsupported equipment/font branches retain their own STOP guards.
+    (void)original_full_configure_scene(ui,party);
+    if(!party.app43 || !party.call_291b0 || !party.call_ef14 ||
+       !party.call_2e510 || !party.call_22f40)
+        stop("ORIGINAL_0CBC8_1F494_SOURCE_UI_INCOMPLETE");
+    code2::function_1f494(current->machine,party,redraw);
+}
 
 // These counters are guest-worker-thread state; unlike the one-shot
 // diagnostic they survive across consecutive keyboard-driven source
