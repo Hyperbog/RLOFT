@@ -18,6 +18,7 @@
 #include "original_code2_int08_vector_preflight.hpp"
 #include "original_code2_chars_file_access.hpp"
 #include "original_code2_live_level_files.hpp"
+#include "original_code2_owner_work_snapshot.hpp"
 #include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
@@ -1666,8 +1667,8 @@ void original_16cd0_chars_load() noexcept {
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=16CD0_CHARS_16ADC_SOURCE_COMPLETED\n"<<std::flush;
 }
 // Original 20440 -> 181B4: preserved archive fallback and unchanged
-// CODE.2 Machine/DGROUP/Watcom allocations. WORK saved-level writes are
-// intentionally unsupported here; a missing WORK file is a DOS miss.
+// CODE.2 Machine/DGROUP/Watcom allocations. Owner WORK saved levels are
+// snapshotted read-only; 171FC writes occur only in the private overlay.
 u32 original_level_source_seek(u32 offset,u32 origin,u32 handle) noexcept;
 u32 original_level_read_local(u8* dst,u32 size,u32 handle) noexcept;
 // Original 171FC/181B4 mutable-level file services. Only the original
@@ -1681,30 +1682,29 @@ u32 original_live_level_filename(u32 name) noexcept {
         stop("ORIGINAL_LIVE_171FC_UNEXPECTED_WORK_FILENAME");
     return level;
 }
-void original_live_level_no_real_save(u32 level) noexcept {
-    const auto filename=current->original_installation_root/"WORK"/(
-        std::string("LEV")+(level<10u?"00":"0")+std::to_string(level)+".DAT");
-    std::error_code ec;
-    const auto status=std::filesystem::symlink_status(filename,ec);
-    if(!ec&&std::filesystem::exists(status))
-        stop("ORIGINAL_LIVE_171FC_REFUSES_OWNED_WORK_FILE_OVERWRITE");
-    if(ec&&ec!=std::errc::no_such_file_or_directory)
-        stop("ORIGINAL_LIVE_171FC_WORK_PATH_STAT_FAILED");
+void original_live_level_private_write_guard(u32 level) noexcept {
+    // Original 171FC replaces an existing WORK level. Never pass that
+    // operation to the host filesystem: every remove/create/write stays
+    // in the already bounded session-owned Overlay.
+    if(level>=32u || !current->host_files ||
+       current->original_installation_root.empty() ||
+       !current->level_overlay.idle())
+        stop("ORIGINAL_LIVE_171FC_PRIVATE_FILE_OWNER_NOT_READY");
 }
 void original_live_level_remove(u32 path) noexcept {
     const u32 level=original_live_level_filename(path);
-    original_live_level_no_real_save(level);
+    original_live_level_private_write_guard(level);
     if(!current->level_overlay.erase(level))
         stop("ORIGINAL_LIVE_171FC_OVERLAY_REMOVE_BUSY");
 }
 u32 original_live_level_old_open(u32 path) noexcept {
     const u32 level=original_live_level_filename(path);
-    original_live_level_no_real_save(level);
+    original_live_level_private_write_guard(level);
     return 0u; // original 312C8: no open handle, original 312DC(0) is ignored.
 }
 u32 original_live_level_create(u32 path) noexcept {
     const u32 level=original_live_level_filename(path);
-    original_live_level_no_real_save(level);
+    original_live_level_private_write_guard(level);
     const auto result=current->level_overlay.create(level);
     if(result==rloft::live_level_files::Overlay::invalid)
         stop("ORIGINAL_LIVE_171FC_OVERLAY_CREATE_REJECTED");
@@ -1712,8 +1712,33 @@ u32 original_live_level_create(u32 path) noexcept {
 }
 u32 original_live_level_open_saved(u32 path) noexcept {
     const u32 level=original_live_level_filename(path);
-    original_live_level_no_real_save(level);
-    if(!current->level_overlay.has(level))return 0xFFFFFFFFu;
+    original_live_level_private_write_guard(level);
+    if(!current->level_overlay.has(level)) {
+        // DOS 181B4 tries WORK/LEVnnn.DAT before the LEVELS.DAT archive.
+        // Preserve that source decision by reading an existing owner file
+        // into a private snapshot. No original file is opened for writing.
+        std::vector<u8> bytes;
+        const auto status=rloft::original_work_files::snapshot(
+            current->original_installation_root,level,bytes);
+        if(status==rloft::original_work_files::Result::Missing)
+            return 0xFFFFFFFFu; // Authentic DOS file-not-found fallback.
+        if(status!=rloft::original_work_files::Result::Loaded)
+            stop("ORIGINAL_181B4_OWNER_WORK_SNAPSHOT_UNSAFE_OR_UNREADABLE");
+        try {
+            const auto grid=rloft::original_levels::decode_saved_grid(bytes,level);
+            if(grid.cells.size()!=std::size_t(grid.width)*grid.height)
+                stop("ORIGINAL_181B4_OWNER_WORK_GRID_MISMATCH");
+        }catch(const std::exception&) {
+            stop("ORIGINAL_181B4_OWNER_WORK_INVALID_SAVED_LEVEL");
+        }
+        const auto count=bytes.size();
+        if(!current->level_overlay.install_saved_snapshot(level,bytes))
+            stop("ORIGINAL_181B4_OWNER_WORK_SNAPSHOT_INSTALL_FAILED");
+        std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=181B4_OWNER_WORK_READONLY_SNAPSHOT"
+                 <<" level="<<level<<" bytes="<<count
+                 <<" source=WORK_LEVnnn_DAT original_files=UNTOUCHED"
+                 <<" adapter=PRIVATE_MEMORY_OVERLAY\n"<<std::flush;
+    }
     const auto result=current->level_overlay.open(level);
     if(result==rloft::live_level_files::Overlay::invalid)
         stop("ORIGINAL_LIVE_181B4_OVERLAY_OPEN_REJECTED");
@@ -3131,10 +3156,12 @@ void original_181b4_level_load(u32 requested) noexcept {
     code2::Application32Boundary b{};
     b.call_312a0=&original_level_missing_standalone;
     b.call_312a0_local=&original_level_archive_open_local;
-    b.call_3131c=&original_level_source_seek;
-    b.call_312ec=&original_boot_file_read;
-    b.call_312ec_local=&original_level_read_local;
-    b.call_312dc=&original_boot_file_close;
+    // Same original DOS seek/read/close sequence, now accepting private
+    // snapshots of owner WORK data as well as the original LEVELS archive.
+    b.call_3131c=&original_live_level_seek;
+    b.call_312ec=&original_live_level_read_guest;
+    b.call_312ec_local=&original_live_level_read_local;
+    b.call_312dc=&original_live_level_close;
     b.call_30d30=&original_checked_memset;
     b.call_3104c=&original_boot_heap_alloc;
     b.call_310b0=&original_level_heap_release;

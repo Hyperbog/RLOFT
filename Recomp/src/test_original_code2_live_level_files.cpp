@@ -1,6 +1,12 @@
 // The owner-local original 171FC writer and 181B4 reader share this
 // bounded private file transport. These tests never contain retail media.
 #include "original_code2_live_level_files.hpp"
+#include "original_code2_owner_work_snapshot.hpp"
+#include "../../Code2/graphics/original_levels_grid.hpp"
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <string>
 #include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
 #include <array>
@@ -152,6 +158,89 @@ void test_saved_snapshot_install() {
            pending==std::vector<std::uint8_t>({7u}) && !busy.has(23u),
            "Saved snapshot was installed over active source writer");
 }
+void test_original_owner_work_readonly_snapshot() {
+    namespace fs=std::filesystem;
+    using rloft::original_work_files::Result;
+    using rloft::live_level_files::Overlay;
+    const auto directory=fs::temp_directory_path()/(
+        "rloft_owner_work_source_"+std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directories(directory);
+    struct Cleanup {
+        fs::path path;
+        ~Cleanup(){std::error_code ec;fs::remove_all(path,ec);}
+    } cleanup{directory};
+    std::vector<std::uint8_t> snapshot;
+    verify(rloft::original_work_files::snapshot(directory,22u,snapshot)==
+           Result::Missing && snapshot.empty(),
+           "Missing owner WORK directory must be a DOS file-not-found");
+    fs::create_directories(directory/"WORK");
+    verify(rloft::original_work_files::snapshot(directory,22u,snapshot)==
+           Result::Missing,"Missing saved level did not fall back to archive");
+    // Structurally valid original saved-format 1x1 media-free record;
+    // no commercial resources and no fake game-party state.
+    const std::uint32_t header=0x1Du,body=0x2A4u;
+    const std::uint32_t grid_end=header+body+2u;
+    const std::uint32_t tail=grid_end+0x514u;
+    std::vector<std::uint8_t> original(tail+4u+1u+4u,0u);
+    const auto store32=[&](std::size_t pos,std::uint32_t value) {
+        for(int j=0;j<4;++j)original.at(pos+j)=
+            static_cast<std::uint8_t>((value>>(j*8))&0xFFu);
+    };
+    const std::uint32_t section[7]{
+        header,grid_end,grid_end,grid_end,grid_end,grid_end,tail};
+    for(unsigned j=0;j<7;++j)store32(1u+j*4u,section[j]);
+    original[header+1u]=1u;original[header+3u]=1u;
+    store32(tail+4u+1u,0u);
+    const auto file=directory/"WORK"/"LEV022.DAT";
+    {
+        std::ofstream out(file,std::ios::binary);
+        out.write(reinterpret_cast<const char*>(original.data()),
+                  static_cast<std::streamsize>(original.size()));
+        verify(static_cast<bool>(out),"Failed to create scratch owned WORK");
+    }
+    verify(rloft::original_work_files::snapshot(directory,22u,snapshot)==
+           Result::Loaded && snapshot==original,
+           "Owner WORK snapshot was not copied faithfully");
+    const auto decoded=rloft::original_levels::decode_saved_grid(snapshot,22u);
+    verify(decoded.level==22u && decoded.width==1u && decoded.height==1u,
+           "Source saved-world format not preserved");
+    Overlay overlay{};
+    verify(overlay.install_saved_snapshot(22u,snapshot) && snapshot.empty(),
+           "Owner WORK snapshot was not installed privately");
+    verify(overlay.open(22u)==Overlay::read_handle,
+           "Original 181B4 could not open captured WORK bytes");
+    std::vector<std::uint8_t> witness(original.size());
+    verify(overlay.read(witness.data(),static_cast<std::uint32_t>(witness.size()))==
+           witness.size() && witness==original,
+           "Private original WORK source read diverged");
+    verify(overlay.close(Overlay::read_handle),
+           "Original 181B4 did not close snapshot read handle");
+    verify(overlay.erase(22u) && overlay.create(22u)==Overlay::write_handle,
+           "Source 171FC could not replace owner WORK in private overlay");
+    const std::uint8_t private_byte=0xB7u;
+    verify(overlay.write(&private_byte,1u)==1u &&
+           overlay.close(Overlay::write_handle),
+           "Source 171FC private replacement failed");
+    std::ifstream check(file,std::ios::binary|std::ios::ate);
+    verify(static_cast<bool>(check) && check.tellg()==
+           static_cast<std::streampos>(original.size()),
+           "Owner WORK changed size during source write");
+    check.seekg(0);
+    std::vector<std::uint8_t> unchanged(original.size());
+    check.read(reinterpret_cast<char*>(unchanged.data()),
+               static_cast<std::streamsize>(unchanged.size()));
+    verify(static_cast<bool>(check) && unchanged==original &&
+           overlay.levels.at(22u)==std::vector<std::uint8_t>{private_byte},
+           "A source save mutated owner WORK or failed to replace overlay");
+    fs::remove(file);
+    fs::create_directory(file);
+    std::vector<std::uint8_t> rejected;
+    verify(rloft::original_work_files::snapshot(directory,22u,rejected)==
+           Result::Unsupported && rejected.empty(),
+           "WORK/LEV directory must never be opened as source level file");
+}
+
 void test_guards() {
     using rloft::live_level_files::Overlay;
     Overlay o;
@@ -172,9 +261,11 @@ int main() {
         test_filename();test_original_saved_level_policy();
         test_signed_dos_seek_contract();
         test_read_write();test_guards();test_saved_snapshot_install();
+        test_original_owner_work_readonly_snapshot();
         std::cout<<"ORIGINAL_CODE2_171FC_181B4_PRIVATE_LEVEL_FILES_PASS"
                  <<" work_saves=MEMORY_ONLY"
                  <<" original_source_files=UNTOUCHED"
+                 <<" owner_WORK_readonly_snapshot=PASS"
                  <<" dos_seek=SIGNED_BOUNDED"
                  <<" truncated_read=REJECTED\n";
         return 0;
