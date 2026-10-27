@@ -823,6 +823,22 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_0d550_near_exhausted_test)
 endif()
 
+# Genuine 0D550 -> 0C9A0 -> 0EFA0/0CEE4 -> 0CD44 source hit path.
+# No host damage substitute, lethal/game-over and missed-text branches guarded.
+add_executable(rloft_original_code2_0d550_eligible_hit_test
+    src/test_original_code2_0d550_eligible_hit_source.cpp)
+set_target_properties(rloft_original_code2_0d550_eligible_hit_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_0d550_eligible_hit_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_0d550_eligible_hit_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_0d550_0c9a0_original_nonlethal_hit_effect
+        COMMAND rloft_original_code2_0d550_eligible_hit_test)
+endif()
+
 # Shared original-code clip/overlay source callbacks, independent of game level.
 add_executable(rloft_original_code2_source_clip_overlay_test
     src/test_original_code2_source_clip_overlay.cpp)
