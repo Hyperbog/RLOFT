@@ -2363,6 +2363,7 @@ void original_game_over_2e608_timing() noexcept;
 void original_game_over_1f1c8_source_scene() noexcept;
 void original_game_over_1f494_source_party(u32 redraw) noexcept;
 void original_game_over_28168_sample_queue() noexcept;
+void original_game_over_27f24_sample(u32 id) noexcept;
 void original_game_over_28c54_music(u32 resource,u32 slot) noexcept;
 void original_game_over_1a9f8_mouse_reset() noexcept;
 void original_game_over_1aacc_cursor_restore() noexcept;
@@ -2387,6 +2388,7 @@ code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     b.call_1f1c8=&original_game_over_1f1c8_source_scene;
     b.call_1f494=&original_game_over_1f494_source_party;
     b.call_28168=&original_game_over_28168_sample_queue;
+    b.call_27f24=&original_game_over_27f24_sample;
     b.call_28c54=&original_game_over_28c54_music;
     return b;
 }

@@ -1755,6 +1755,69 @@ bool original_full_configure_scene(
 void original_game_over_28168_sample_queue() noexcept {
     original_full_28168_audio_service(true);
 }
+// Source 0CBC8 calls 27F24 directly during the final animation.
+// Unlike 28168, this id did not originate from a priority queue. Read
+// its exact original RES packet and prepare an actual device BEFORE
+// the compiled 27F24 mutates its guest sample buffer or AIL state.
+void original_game_over_27f24_sample(u32 id) noexcept {
+    if(!current || !current->live_continuation ||
+       !current->game_audio.app68 || !current->original_vga ||
+       original_live_sfx_staged)
+        stop("ORIGINAL_0CBC8_27F24_SOURCE_GUEST_OR_DEVICE_INVALID");
+    const u32 enabled=code2::load_le32(current->data.data()+0xEE40u);
+    if(enabled==0u || current->data[0xEE70u]==0u) {
+        code2::Application55Boundary unused{};
+        code2::function_27f24(current->machine,unused,id);
+        return;
+    }
+    const char* device=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_SOURCE_SFX_WINMM");
+    if(!device || std::strcmp(device,"1")!=0)
+        stop("ORIGINAL_0CBC8_27F24_ACTIVE_AIL_SAMPLE_DRIVER_PENDING");
+    const u32 bank=code2::load_le32(current->data.data()+0xEE44u);
+    const u32 catalog=code2::load_le32(current->data.data()+0xF0B8u);
+    if(!catalog || bank>=16u ||
+       std::uint64_t(catalog)+(std::uint64_t(bank)+1u)*16u>
+           current->data.size())
+        stop("ORIGINAL_0CBC8_27F24_SOURCE_ARCHIVE_TABLE_INVALID");
+    const u32 entry=catalog+bank*16u;
+    if(id>=code2::load_le32(current->data.data()+entry+8u))
+        stop("ORIGINAL_0CBC8_27F24_SOURCE_SAMPLE_ID_OUTSIDE_ARCHIVE");
+    const u32 packet=code2::function_2f29c(
+        current->machine,current->game_audio,id,bank);
+    if(!packet || std::uint64_t(packet)+4u>current->data.size())
+        stop("ORIGINAL_0CBC8_27F24_SOURCE_PACKET_MISSING");
+    const u32 length=code2::load_le32(current->data.data()+packet);
+    const u32 dest=code2::load_le32(current->data.data()+0xEE60u);
+    if(!length || length>16u*1024u*1024u ||
+       std::uint64_t(packet)+4u+length>current->data.size() ||
+       std::uint64_t(dest)+length>current->data.size() ||
+       (std::uint64_t(dest)<std::uint64_t(packet)+4u+length &&
+        std::uint64_t(packet)<std::uint64_t(dest)+length))
+        stop("ORIGINAL_0CBC8_27F24_SOURCE_SAMPLE_MEMORY_INVALID");
+    std::vector<u8> payload(current->data.data()+packet,
+                            current->data.data()+packet+4u+length);
+    try {
+        original_live_sfx_device.preflight(payload);
+    } catch(const std::exception& error) {
+        std::cerr<<"ORIGINAL_0CBC8_27F24_WINMM_PREFLIGHT="
+                 <<error.what()<<"\\n"<<std::flush;
+        stop("ORIGINAL_0CBC8_27F24_DEVICE_NOT_PREFLIGHTED");
+    }
+    original_live_sfx_packet=packet;
+    original_live_sfx_length=length;
+    original_live_sfx_bank=bank;
+    original_live_sfx_id=id;
+    original_live_sfx_staged=true;
+    code2::Application55Boundary source{};
+    source.call_2f29c=&original_live_sfx_resource;
+    source.call_36803=&original_live_sfx_status;
+    source.call_36817=&original_live_sfx_stop;
+    source.call_367f9=&original_live_sfx_sample;
+    source.call_367ef=&original_live_sfx_format;
+    source.call_3680d=&original_live_sfx_start;
+    code2::function_27f24(current->machine,source,id);
+    original_live_sfx_staged=false;
+}
 void original_game_over_28c54_music(u32 resource,u32 slot) noexcept {
     if(!current || !current->live_continuation ||
        !current->game_audio.app56 || resource!=0x11u || slot!=1u)
