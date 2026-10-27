@@ -2306,6 +2306,62 @@ void original_scene_copy_page(u32 page) noexcept {
         stop("ORIGINAL_1A5B0_2A020_VGA_LATCH_PAGE_COPY_FAILED");
     }
 }
+// Production-grade guest/VGA dependencies of the original game-over
+// compositor. These are NOT a compositor enable switch: 0CBC8 must
+// still have real scene, artwork, AIL, cursor, input and exit callbacks.
+u32 original_game_over_0cadc_source_allocate(u32 size) noexcept {
+    if(!current || !current->live_continuation ||
+       size!=0xE10u || !current->original_vga)
+        stop("ORIGINAL_0CADC_SOURCE_ALLOCATOR_PRECONDITION");
+    const u32 block=original_checked_allocation(size);
+    if(block==0u || std::uint64_t(block)+size>current->data.size())
+        stop("ORIGINAL_0CADC_SOURCE_HEAP_BLOCK_BOUNDS");
+    return block;
+}
+void original_game_over_0cadc_source_release(u32 block) noexcept {
+    if(!current || !current->live_continuation ||
+       block==0u || std::uint64_t(block)+0xE10u>current->data.size())
+        stop("ORIGINAL_0CADC_SOURCE_RELEASE_BOUNDS");
+    original_level_heap_release(block);
+}
+void original_game_over_291b0_source_page(u32 page) noexcept {
+    if(!current || !current->live_continuation || !current->original_vga)
+        stop("ORIGINAL_0CBC8_291B0_NO_RETAINED_VIDEO");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_291b0(page);
+    } catch(const std::exception& error) {
+        std::cerr<<"ORIGINAL_0CBC8_VGA_PAGE_SELECT="<<error.what()<<"\n";
+        stop("ORIGINAL_0CBC8_291B0_PAGE_SELECT_FAILED");
+    }
+}
+void original_game_over_0cadc_source_strip(
+    u32 page,u32 src_y,u32 src_x,u32 dst_y,u32 dst_x,
+    u32 rows,u32 pixels) noexcept {
+    if(!current || !current->live_continuation || !current->original_vga ||
+       src_y!=dst_y || src_x!=dst_x || rows!=1u || pixels!=4u)
+        stop("ORIGINAL_0CADC_2A078_STRIP_ABI_CHANGED");
+    try {
+        rloft::source_video_boot::Bridge bridge(
+            current->machine,*current->original_vga,current->data.size());
+        bridge.run_original_2a078_game_over_strip(page,src_y,src_x);
+    } catch(const std::exception& error) {
+        std::cerr<<"ORIGINAL_0CADC_SOURCE_VGA_STRIP="<<error.what()<<"\n";
+        stop("ORIGINAL_0CADC_SOURCE_VGA_STRIP_FAILED");
+    }
+}
+// Partial, real callback manifest. This does not satisfy 0CBC8 readiness:
+// never infer a complete game-over host from these four services.
+code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
+    code2::Application18Boundary b{};
+    b.call_3104c=&original_game_over_0cadc_source_allocate;
+    b.call_310b0=&original_game_over_0cadc_source_release;
+    b.call_291b0=&original_game_over_291b0_source_page;
+    b.call_2a078=&original_game_over_0cadc_source_strip;
+    b.call_30ca2=&original_level_actor_random;
+    return b;
+}
 void original_scene_cursor_capture(u32 dst,code2::s32 x,code2::s32 y,
                                    u32 w,u32 h) noexcept {
     try {

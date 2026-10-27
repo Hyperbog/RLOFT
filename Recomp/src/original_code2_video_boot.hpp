@@ -398,6 +398,27 @@ struct Bridge {
         if(invalid_access || video.unsupported_read())
             throw std::runtime_error("Original 2A020 VGA plane/latch copy unsupported");
     }
+    // Real source 0CADC -> 2A078 four-pixel strip transfer.
+    // The original code reads four VGA latches in mode 1, writes the
+    // destination page and restores its page-mapping register itself.
+    // Never substitute a CPU-side indexed bitmap copy.
+    void run_original_2a078_game_over_strip(u32 page,u32 row,u32 column) {
+        if(page>1u || row>=400u || column>316u ||
+           !video.bios_mode() || machine.data[0xEFE9u]>1u ||
+           machine.data[0xEFF9u]==0u)
+            throw std::invalid_argument("Original 0CADC/2A078 VGA strip input");
+        Scope scope(*this);
+        code2::Application59Boundary cb{};
+        cb.out16=&out16;
+        cb.read8=&vga_read;
+        cb.write8=&vga_write;
+        const u8 prior=machine.data[0xEFE9u];
+        code2::function_2a078(
+            machine,cb,page,row,column,row,column,1u,4u);
+        if(invalid_access || video.unsupported_read() ||
+           machine.data[0xEFE9u]!=prior)
+            throw std::runtime_error("Original 0CADC/2A078 planar strip transfer failed");
+    }
     // The cursor background restore uses original 2932C clipped
     // dispatch and original 2A178 VGA sequencer plane writes.
     static u32 source_cursor_restore_2a178(

@@ -870,6 +870,21 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_0cbc8_source_sequence_test)
 endif()
 
+# Real planar VGA memory copy through original 0CADC/2A078.
+add_executable(rloft_original_code2_game_over_vga_strip_test
+    src/test_original_code2_game_over_vga_strip.cpp)
+set_target_properties(rloft_original_code2_game_over_vga_strip_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_game_over_vga_strip_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_game_over_vga_strip_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_0cadc_2a078_real_vga_strip
+        COMMAND rloft_original_code2_game_over_vga_strip_test)
+endif()
+
 # Shared original-code clip/overlay source callbacks, independent of game level.
 add_executable(rloft_original_code2_source_clip_overlay_test
     src/test_original_code2_source_clip_overlay.cpp)
