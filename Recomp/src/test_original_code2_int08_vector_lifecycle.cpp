@@ -35,7 +35,7 @@ int main() {
     try {
         std::vector<code2::u8> memory(0x300000u,0u);
         code2::Machine guest{};guest.data=memory.data();
-        guest.cpu.cs=0x17u;guest.cpu.eip=0x4321u;
+        guest.cpu.cs=0x17u;guest.cpu.esp=0x4321u;
         ivt[8]={0x1200u,0x300u};
         ivt[9]={0x1300u,0x300u};
         ivt[0]={0x1400u,0x300u};
@@ -78,7 +78,7 @@ int main() {
         check(validation().ready &&
               code2::function_30700(guest)==57u &&
               notice==2u && chain==2u && correct &&
-              guest.cpu.cs==prior.cs && guest.cpu.eip==prior.eip,
+              guest.cpu.cs==prior.cs && guest.cpu.esp==prior.esp,
               "original 30708 increment/chain/CPU restore diverged");
         code2::function_30c38(guest,handlers);
         check(memory[0xF575u]==0u && installs==6u &&
