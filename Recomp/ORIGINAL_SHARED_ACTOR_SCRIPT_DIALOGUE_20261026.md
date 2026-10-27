@@ -16,9 +16,15 @@ On the retained original guest, source `1BDAC` calls `0D550` for actor actions. 
 | `14A60` active-party selection | Real `code2::function_14a60` and original string comparison `27C70` over validated guest strings, plus original `1C1DC` quest-bit query |
 | `28110` actor SFX | Original source priority/request queue `code2::function_28110`, not fabricated audio-device completion |
 
-**Safety boundaries:** Class/level tables, source sprite/record and guest string bounds are checked. A genuine death with still-live party members can run source `0CD44→0AD24`. When effects must expire and their callback families are missing, the source guard stops **before damage**. A would-be whole-party wipe is refused before the original `0CBC8` game-over compositor, which is not connected. Those guards are explicit unfinished capability, not completed death/UI handling. Original type-8 projectile actor actions and non-type-15 near combat remain fail-closed and must be implemented from the corresponding actual ABIs.
+**Safety boundaries:** Class/level tables, source sprite/record and guest string bounds are checked. A genuine death with still-live party members can run source `0CD44→0AD24`. When effects must expire and their callback families are missing, the source guard stops **before damage**. A would-be whole-party wipe is refused before the original `0CBC8` game-over compositor, which is not connected. Those guards are explicit unfinished capability, not completed death/UI handling. Original type-8 projectile actor actions and eligible-target non-type-15 near combat remain fail-closed and must be implemented from the corresponding actual ABIs.
 
 **Independent source test:** `src/test_original_code2_1bdac_0d550_actor_source.cpp` calls canonical `function_1bdac` with a source actor (no host AI substitute), then exact `0D550/0CEE4/0CD44/0AD24` on synthetic party guest memory. It asserts both a saving-throw success and an authentic lethal hit/cleanup with a surviving other party member, including source timer, HP, flags and sound-request entry. This test has no original gameplay content or retail-DOS parity.
+
+### Shared near-actor target exhaustion through original `0D550/0D4E8`
+
+Commit [`f20a9a22`](https://github.com/Hyperbog/RLOFT/commit/f20a9a223b656ab1852044c5ae4307a00980adbf) wires original retained `1BDAC→0D550→0D4E8→28110` when all four potential party slots are ineligible according to genuine reconstructed `0D4E8`. Source `30700` time, `30CC4` seed, optional `30CA2` RNG, and source priority sound requests remain original; no host-computed target or hit outcome is returned. New `original_code2_near_combat_preflight.hpp` checks guest memory, camera distance, source direction mapping and all four `0D4E8` predicates before entering a source branch that would otherwise mutate guest state.
+
+New `test_original_code2_0d550_near_exhausted_source.cpp` exercises original four-target exhaustion and original paired selection, verifies actor state/timer, source RNG calls, sound queue and unchanged HP, and asserts that eligible targets and special type-8 projectiles remain blocked. This **does not** cover successful `0C9A0` hit checks, `0D1E0` level effects, `0E284` status cleanup, `08A80` projectiles, `0CBC8` whole-party rendering, or independent retail-DOS parity.
 
 ### Shared `002A8` gameplay-script dispatcher
 
@@ -48,15 +54,15 @@ This verifies the **text decoding dependency** used by `1C77C`, **not** full mod
 
 ## Verified workflows and limits
 
-- [Canonical source-link #40411237378](https://github.com/Hyperbog/RLOFT/actions/runs/40411237378): **98/98 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
-- [Linux portable recomp #40411237198](https://github.com/Hyperbog/RLOFT/actions/runs/40411237198): **PASS**.
-- [Retained native saved-portal #40411237304](https://github.com/Hyperbog/RLOFT/actions/runs/40411237304): **PASS** after the shared gameplay changes.
-- [Windows player engineering build #40411237267](https://github.com/Hyperbog/RLOFT/actions/runs/40411237267): **PASS**.
+- [Canonical source-link #40426692610](https://github.com/Hyperbog/RLOFT/actions/runs/40426692610): **99/99 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
+- [Linux portable recomp #40426692479](https://github.com/Hyperbog/RLOFT/actions/runs/40426692479): **PASS**.
+- [Retained native saved-portal #40426692565](https://github.com/Hyperbog/RLOFT/actions/runs/40426692565): **PASS** after the shared gameplay changes.
+- [Windows player engineering build #40426692622](https://github.com/Hyperbog/RLOFT/actions/runs/40426692622): **PASS**.
 - The original-media 555-command corpus workflow at the latest workflow source revision is a **separate gate**; its result must be checked before calling it passed. No independent original DOS game-session parity was supplied.
 
 ### Remaining subsystem dependency order
 
-1. Expand the original `0D550` near-attack callback graph: `0D4E8` target selection, `0C9A0` hit/saving throws, original damage/status/effect paths, and `1BDAC` record cleanup. Handle type-8 `08A80` moving-record projectile and whole-party `0CBC8` game-over rendering by original source, not dummy returns.
+1. Expand the remaining eligible-target original `0D550` near-attack callback graph: `0D4E8` target selection, `0C9A0` hit/saving throws, original damage/status/effect paths, and `1BDAC` record cleanup. Handle type-8 `08A80` moving-record projectile and whole-party `0CBC8` game-over rendering by original source, not dummy returns.
 2. Support archived `002A8` opcode-11 early/UI subtypes and fully source-backed `08A80` collision/reposition cases (no fabricated `22E90`); validate complete scripts *before* invoking the original interpreter.
 3. Wire all modal `1C77C` and `1C40C` callbacks to retained original guest DOS-file, renderer, timed modal input/page and source resource operations. Keep actual blocking event behavior; no automatic dismissal of dialogues.
 4. Complete original AIL sound device, DOS IRQ/input/timer and ordinary save/menu paths, then synchronized independent retail-DOS oracle comparisons.
