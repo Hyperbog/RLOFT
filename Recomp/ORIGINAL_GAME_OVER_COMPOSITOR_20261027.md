@@ -79,3 +79,10 @@ chaining in the live host, real nonblocking modal event processing through
 `0CBC8` remains explicitly fail-closed. The new test is a bounded
 scheduler/source-handler integration check, **not** an IRQ8 hardware,
 gameplay, or retail-DOS timing parity acceptance.
+
+**Hardware nomenclature:** Original `30BB4` installs handler
+`30708` on DOS interrupt vector `08h` (normally the IRQ0 timer
+vector), not the PC's separate hardware IRQ8/RTC vector `70h`.
+The scheduler name follows the project's historical "IRQ8" shorthand
+for interrupt *vector* 8. The original timer cadence has not been
+authenticated against the running DOS host.

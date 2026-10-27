@@ -24,7 +24,7 @@ public:
     using Clock = std::chrono::steady_clock;
     using Time = Clock::time_point;
     // Neither rate nor interrupt batching limit has a default. Production
-    // must obtain its RTC rate from independently verified device state.
+    // must authenticate the INT 08h vector cadence from device state.
     bool arm(Time start, std::uint32_t interrupts_per_second,
              std::uint32_t max_interrupts_per_poll) noexcept {
         disarm();
