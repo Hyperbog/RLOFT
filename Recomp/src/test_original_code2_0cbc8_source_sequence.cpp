@@ -27,6 +27,9 @@ struct Evidence {
     u32 unrequested_video_reset=0;
 } ev;
 u32 original_party_dead_portraits=0u;
+u32 source_scene_hud_blits=0u;
+std::array<u32,7> source_scene_callbacks{};
+u32 source_scene_stage=0u;
 void check(bool v,const char* msg){if(!v)throw std::runtime_error(msg);}
 void shutdown_step(u32 id) noexcept {
     if(ev.shutdown_count>=ev.shutdown_order.size())std::terminate();
@@ -222,12 +225,66 @@ int main() {
         for(u32 slot=0u;slot<4u;++slot)
             check(bytes[0xCF5Au+slot]==0u,
                   "original 1F494 dirty party state not cleared");
+        // Exercise compiled 1F1C8's source-level world/HUD/actor
+        // ordering on a controlled guest. Device leaf callbacks observe
+        // requests; no world raster, DOS parity or synthetic VGA is
+        // claimed by this fixture.
+        std::fill(bytes.begin(),bytes.end(),0u);
+        bytes[0xC050u]=1u;
+        bytes[0x258A8u]=0xFFu;
+        code2::store_le32(bytes.data()+0x22220u,0x800u);
+        code2::store_le16(bytes.data()+0x255D4u,0x1234u);
+        code2::store_le16(bytes.data()+0x255D0u,0x3456u);
+        source_scene_hud_blits=0u;
+        source_scene_callbacks={};
+        source_scene_stage=0u;
+        code2::Application43Boundary scene_ui{};
+        scene_ui.call_2939c=+[](u32,u32,u32,u32) noexcept {
+            ++source_scene_hud_blits;
+        };
+        code2::Application44Boundary scene{};
+        scene.app43=&scene_ui;
+        scene.call_291b0=+[](u32 page) noexcept {
+            if(page!=1u)std::terminate();
+            source_scene_callbacks[source_scene_stage++]=1u;
+        };
+        scene.call_33e28=+[](u32) noexcept {
+            source_scene_callbacks[source_scene_stage++]=2u;
+        };
+        scene.call_33de0=+[](u32) noexcept {
+            source_scene_callbacks[source_scene_stage++]=3u;
+        };
+        scene.call_34de8=+[]() noexcept {
+            source_scene_callbacks[source_scene_stage++]=4u;
+        };
+        scene.call_1bdac=+[]() noexcept {
+            source_scene_callbacks[source_scene_stage++]=5u;
+        };
+        scene.call_2c294=+[]() noexcept {
+            source_scene_callbacks[source_scene_stage++]=6u;
+        };
+        scene.call_274a4=+[]() noexcept {
+            source_scene_callbacks[source_scene_stage++]=7u;
+        };
+        scene.call_2f868=+[]() noexcept {
+            if(source_scene_stage!=7u || source_scene_hud_blits!=14u)
+                std::terminate();
+        };
+        code2::function_1f1c8(machine,scene);
+        check(source_scene_stage==7u &&
+              source_scene_callbacks==std::array<u32,7>{1u,2u,3u,4u,5u,6u,7u} &&
+              source_scene_hud_blits==14u &&
+              code2::load_le32(bytes.data()+0xFDBCu)==0xA8000u &&
+              code2::load_le32(bytes.data()+0xC044u)==0x12u &&
+              code2::load_le32(bytes.data()+0xC048u)==0x34u,
+              "original 1F1C8 world/HUD/actor callback order diverged");
         std::cout<<"ORIGINAL_0CBC8_0CADC_SOURCE_SEQUENCE_PASS"
                  <<" real_source=YES synthetic_callbacks=YES"
                  <<" original_artwork_sequence=YES"
                  <<" original_transition=YES original_0CD44_chain=YES"
                  <<" original_205B4_cleanup=YES"
-                 <<" original_1F494_dead_party=YES source_wait=YES"
+                 <<" original_1F494_dead_party=YES"
+                 <<" original_1F1C8_scene_order=YES source_wait=YES"
                  <<" live_host=NOT_CONNECTED retail_DOS_parity=NOT_CERTIFIED\n";
         return 0;
     }catch(const std::exception& e){
