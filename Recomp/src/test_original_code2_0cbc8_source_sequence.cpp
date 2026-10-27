@@ -22,8 +22,15 @@ struct Evidence {
     u32 sound_id=0;
     u32 first_copy_page=0,first_copy_row=0,first_copy_size=0;
     u32 final_exit_code=0;
+    u32 shutdown_count=0;
+    std::array<u32,6> shutdown_order{};
+    u32 unrequested_video_reset=0;
 } ev;
 void check(bool v,const char* msg){if(!v)throw std::runtime_error(msg);}
+void shutdown_step(u32 id) noexcept {
+    if(ev.shutdown_count>=ev.shutdown_order.size())std::terminate();
+    ev.shutdown_order[ev.shutdown_count++]=id;
+}
 code2::Application18Boundary callbacks() {
     code2::Application18Boundary b{};
     b.call_1f1c8=+[]() noexcept {++ev.scene;};
@@ -69,7 +76,25 @@ code2::Application18Boundary callbacks() {
         return input[ev.input++];
     };
     b.call_205b4=+[](u32 code) noexcept {
-        ++ev.exit;ev.final_exit_code=code;
+        code2::Application46Boundary shutdown{};
+        shutdown.call_1a1d0=+[]() noexcept {shutdown_step(1u);};
+        shutdown.call_310b0=+[](u32 address) noexcept {
+            if(address!=0x80000u && address!=0x81000u)
+                std::terminate();
+            shutdown_step(address==0x80000u?2u:3u);
+        };
+        shutdown.call_3810=+[]() noexcept {shutdown_step(4u);};
+        shutdown.call_2f4e0=+[]() noexcept {shutdown_step(5u);};
+        shutdown.call_290f4=+[](u32) noexcept {
+            ++ev.unrequested_video_reset;
+        };
+        shutdown.call_352be=+[](code2::s32 status) noexcept {
+            shutdown_step(6u);
+            ++ev.exit;
+            ev.final_exit_code=static_cast<u32>(status);
+        };
+        code2::function_205b4(
+            *source_guest,shutdown,static_cast<code2::s32>(code));
     };
     return b;
 }
@@ -81,6 +106,8 @@ int main() {
         bytes[0xC050u]=1u;
         code2::store_le32(bytes.data()+0x258DCu,0x1000u);
         code2::store_le32(bytes.data()+0x258D0u,0x2000u);
+        code2::store_le32(bytes.data()+0xC65Cu,0x80000u);
+        code2::store_le32(bytes.data()+0xC660u,0x81000u);
         auto b=callbacks();
         check(rloft::source_game_over::validate(
             b,bytes.data(),bytes.size()).ready,
@@ -110,8 +137,10 @@ int main() {
               ev.first_copy_page==0u && ev.first_copy_size==4u,
               "original 0CADC 400-record staged transition diverged");
         check(ev.input==4u && ev.exit==1u &&
-              ev.final_exit_code==0xCu,
-              "original mouse release/press wait and exit diverged");
+              ev.final_exit_code==0xCu && ev.shutdown_count==6u &&
+              ev.shutdown_order==std::array<u32,6>{1u,2u,3u,4u,5u,6u} &&
+              ev.unrequested_video_reset==0u,
+              "original 205B4 cleanup order, mouse wait or exit diverged");
         // Source integration: 0CD44 -> 0AD24 -> 0893C -> 0CCF4 ->
         // 0CBC8 -> 0CADC. Observer callbacks record choreography only.
         // Other members are genuinely flagged unavailable in guest memory.
@@ -120,6 +149,8 @@ int main() {
         bytes[0xC050u]=1u;
         code2::store_le32(bytes.data()+0x258DCu,0x1000u);
         code2::store_le32(bytes.data()+0x258D0u,0x2000u);
+        code2::store_le32(bytes.data()+0xC65Cu,0x80000u);
+        code2::store_le32(bytes.data()+0xC660u,0x81000u);
         code2::store_le32(bytes.data()+0xA7E4u,0x400u);
         code2::store_le16(bytes.data()+0x218F0u,0x0080u);
         code2::store_le16(bytes.data()+0x218FCu,2u);
@@ -165,12 +196,14 @@ int main() {
               "original lethal HP/status/timer data differs");
         check(ev.scene==1u && ev.arts==9u && ev.copies==32000u &&
               ev.allocs==1u && ev.frees==1u &&
-              ev.input==4u && ev.exit==1u && ev.final_exit_code==0xCu,
+              ev.input==4u && ev.exit==1u && ev.final_exit_code==0xCu &&
+              ev.shutdown_count==6u && ev.unrequested_video_reset==0u,
               "actual 0CD44 did not enter original game-over compositor");
         std::cout<<"ORIGINAL_0CBC8_0CADC_SOURCE_SEQUENCE_PASS"
                  <<" real_source=YES synthetic_callbacks=YES"
                  <<" original_artwork_sequence=YES"
-                 <<" original_transition=YES original_0CD44_chain=YES source_wait=YES"
+                 <<" original_transition=YES original_0CD44_chain=YES"
+                 <<" original_205B4_cleanup=YES source_wait=YES"
                  <<" live_host=NOT_CONNECTED retail_DOS_parity=NOT_CERTIFIED\n";
         return 0;
     }catch(const std::exception& e){
