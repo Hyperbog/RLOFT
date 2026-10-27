@@ -26,6 +26,14 @@ Commit [`f20a9a22`](https://github.com/Hyperbog/RLOFT/commit/f20a9a223b656ab1852
 
 New `test_original_code2_0d550_near_exhausted_source.cpp` exercises original four-target exhaustion and original paired selection, verifies actor state/timer, source RNG calls, sound queue and unchanged HP, and asserts that eligible targets and special type-8 projectiles remain blocked. This **does not** cover successful `0C9A0` hit checks, `0D1E0` level effects, `0E284` status cleanup, `08A80` projectiles, `0CBC8` whole-party rendering, or independent retail-DOS parity.
 
+### Original near-combat eligible hits (new: 2026-10-27)
+
+Code commits [`2b2446e`](https://github.com/Hyperbog/RLOFT/commit/2b2446e04d4899558b754d656a23adc1e7cc393b) and [`2798d2f`](https://github.com/Hyperbog/RLOFT/commit/2798d2f8cba9fef060ecfccb31bccdc7117ecc3b) extend the same retained `1BDAC` guest into **original `0D550→0C9A0` hit checks** and **original `0EFA0/0FE44` modifiers, `0CEE4` saves, `0CD44` nonlethal HP/time updates and `28110` sound queues**. Eligible target selection remains source-owned via `0D4E8` and `14A60/27C70`. A side-effect-free `eligible_hit` preflight in `original_code2_near_combat_preflight.hpp` predicts only the authentic reseed/d20 sequence and validates source ownership, item bounds, empty hands and absence of unconnected effects. It checks source `0EFA0` modifiers using compiled read-only originals; gameplay hits and HP changes are still performed by the originals, not by preflight.
+
+The additional regression `test_original_code2_0d550_eligible_hit_source.cpp` calls compiled `1BDAC` then original `0D550`. It checks a natural d20=20 success with original failed-saving-throw status flags, a d20=10 hit using original `0EFA0` modifiers, original `0CD44` nonlethal HP/timer accounting, actual `28110` source audio queue, and rejection of a would-be lethal case. This is synthetic guest-memory source verification, **not** retail DOS parity. Missing original `3210F/1C21C` miss-description rendering, equipped-hand `24478`, nested `0F5F8` contents, nontrivial `0E284` effects, lethal `0AD24` in this branch and `0CBC8` game-over remain gated.
+
+Windows canonical [#40428870100](https://github.com/Hyperbog/RLOFT/actions/runs/40428870100) passed **100/100 CTests**. The full acceptance ledger remains **3/12**; static callback wiring is **457**, not dynamic gameplay coverage.
+
 ### Shared `002A8` gameplay-script dispatcher
 
 `src/test_original_code2_002a8_script_source.cpp` validates a five-command event descriptor using the same `original_code2_script_preflight.hpp` as the retained gameplay loop, then executes **compiled source `code2::function_002a8`**. It verifies original tile-word changes (opcode 4), original `1C124/1C1A0` bit updates (8/10), original `BF44` state (12), source `28110` sound dispatch (5), and all 50 script slot indices. A later unsupported opcode 7 is rejected **before** any earlier source opcode mutates the guest. Script opcode 7 modal UI and other side-effectful branches requiring additional callbacks stay blocked.
@@ -54,7 +62,7 @@ This verifies the **text decoding dependency** used by `1C77C`, **not** full mod
 
 ## Verified workflows and limits
 
-- [Canonical source-link #40426692610](https://github.com/Hyperbog/RLOFT/actions/runs/40426692610): **99/99 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
+- [Canonical source-link #40426692610](https://github.com/Hyperbog/RLOFT/actions/runs/40426692610): **100/100 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
 - [Linux portable recomp #40426692479](https://github.com/Hyperbog/RLOFT/actions/runs/40426692479): **PASS**.
 - [Retained native saved-portal #40426692565](https://github.com/Hyperbog/RLOFT/actions/runs/40426692565): **PASS** after the shared gameplay changes.
 - [Windows player engineering build #40426692622](https://github.com/Hyperbog/RLOFT/actions/runs/40426692622): **PASS**.
