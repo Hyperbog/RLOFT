@@ -1506,9 +1506,12 @@ u32 original_live_sfx_start(u32 device) noexcept {
     }
     return 0u;
 }
-void original_full_28168_audio_service() noexcept {
-    if(!current || !original_full_frame_trace)
+void original_full_28168_audio_service(bool game_over_service=false) noexcept {
+    if(!current || (!original_full_frame_trace && !game_over_service))
         stop("ORIGINAL_28168_SOURCE_AUDIO_TRACE_MISSING");
+    if(game_over_service && (!current->live_continuation ||
+       !current->game_audio.app68 || !current->original_vga))
+        stop("ORIGINAL_0CBC8_28168_RETAINED_AUDIO_NOT_READY");
     const u32 enabled=code2::load_le32(current->data.data()+0xEE40u);
     const u32 sound_enabled=current->data[0xEE70u];
     const u32 request0=code2::load_le32(current->data.data()+0xEE48u);
@@ -1740,6 +1743,25 @@ bool original_full_configure_scene(
     scene.divide_error=&original_live_hud_divide_error;
 
     return source_polygons;
+}
+// The retained WinMM experimental path still executes original 28168,
+// 27F24, its resource packet and source queue clearing. When AIL sound
+// is active without a preflighted device, original_full_28168_audio_service
+// stops BEFORE it can consume the request. No null audio callback is used.
+void original_game_over_28168_sample_queue() noexcept {
+    original_full_28168_audio_service(true);
+}
+void original_game_over_28c54_music(u32 resource,u32 slot) noexcept {
+    if(!current || !current->live_continuation ||
+       !current->game_audio.app56 || resource!=0x11u || slot!=1u)
+        stop("ORIGINAL_0CBC8_28C54_MUSIC_ABI_INVALID");
+    // Source 28C54 requires live AIL music and 288FC driver callbacks
+    // to reproduce a playing track. Do not silently invoke with empty
+    // Application56 services and report success for an enabled device.
+    if(code2::load_le32(current->data.data()+0xEE78u)!=0u)
+        stop("ORIGINAL_0CBC8_28C54_ACTIVE_MILES_MUSIC_PENDING");
+    code2::function_28c54(
+        current->machine,*current->game_audio.app56,resource,slot);
 }
 // These wrappers invoke the already-owned CODE.2 scene/party source graph,
 // not separate game-over artwork substitutes. The scene is admitted only
