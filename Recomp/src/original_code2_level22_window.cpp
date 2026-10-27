@@ -65,7 +65,8 @@ struct LiveWindow final {
            "RLOFT_RECOMP_EXPERIMENTAL_POLYGON_SOURCE",
            "RLOFT_RECOMP_EXPERIMENTAL_1FC14_PAGE_HANDOFF",
            "RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE",
-           "RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE"}) {
+           "RLOFT_RECOMP_EXPERIMENTAL_1FC14_MOVEMENT_SOURCE",
+           "RLOFT_RECOMP_EXPERIMENTAL_ORIGINAL_ART_MODE"}) {
             // MSVC std::getenv reads the CRT-owned _environ array.
             // SetEnvironmentVariableA alone does not synchronize it.
             if(_putenv_s(name,"1")!=0 || !std::getenv(name) ||

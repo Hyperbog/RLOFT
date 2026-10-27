@@ -3084,18 +3084,32 @@ void original_world_sweep_335dc() noexcept {
                  <<"\n"<<std::flush;
 }
 void original_level_1f8e0_scene_mode(u32 mode) noexcept {
-    // 1F8E0 branches into 1F8FC's full scene compositor on change.
-    // Execute the authentic unchanged-scene source path only while
-    // compositor/party art callbacks are being integrated.
-    if(mode!=code2::load_le32(current->data.data()+0xC034u))
-        stop("ORIGINAL_181B4_1F8FC_SCENE_COMPOSITOR_NOT_CONNECTED");
-    // Execute source 1F8E0. On an actual mode change the original
-    // 1F8FC callback graph runs until its first unsupported dependency,
-    // which remains explicit and cannot silently become blank artwork.
+    // Original 181B4 -> 1F8E0 switches Level22 art mode C034 3->4.
+    // The previous absent callback left original mode-4 art drawn against
+    // the old mode-3 palette/background in the native player.
+    if(!current->live_continuation || !current->original_vga ||
+       !current->game_audio.app68 || mode!=4u ||
+       current->original_level_scene_mode_calls!=0u)
+        stop("ORIGINAL_181B4_1F8E0_SOURCE_GRAPH_NOT_READY");
+    const u32 before=code2::load_le32(current->data.data()+0xC034u);
+    if(before!=3u)stop("ORIGINAL_181B4_UNVERIFIED_ART_MODE_PAIR");
+    // Compiled 1F8E0 executes its real source fall-through 1F8FC.
+    // No host-authored palette or synthetic frame is substituted.
+    original_full_prepare_1fc14_source_tick();
+    current->original_level_transition_active=true;
     code2::function_1f8e0(current->machine,current->presentation,mode);
-    if(current->data[0xCF58u]!=1u)
-        stop("ORIGINAL_181B4_1F8E0_SCENE_DIRTY_FLAG_ABSENT");
+    current->original_level_transition_active=false;
+    if(code2::load_le32(current->data.data()+0xC034u)!=mode ||
+       current->data[0xCF58u]!=0u ||
+       !original_full_frame_trace ||
+       original_full_frame_trace->backgrounds!=2u)
+        stop("ORIGINAL_181B4_1F8E0_SOURCE_MODE_SWITCH_DID_NOT_RENDER");
     ++current->original_level_scene_mode_calls;
+    std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_1F8E0_MODE_SOURCE_SWITCH"
+             <<" original_art_bank="<<before<<"->"<<mode
+             <<" full_source_1F8FC=EXECUTED"
+             <<" COLORS_DAC=ORIGINAL_SOURCE"
+             <<" original_guest=RETAINED\n"<<std::flush;
 }
 void original_level_0ccf4_party_terminal() noexcept {
     constexpr u32 party[4]={0x218F0u,0x21B38u,0x21D80u,0x21FC8u};
@@ -3167,6 +3181,10 @@ void original_181b4_level_load(u32 requested) noexcept {
     b.call_310b0=&original_level_heap_release;
     b.call_29050=&original_level_sound_bank;
     b.call_29048=&original_level_sound_mode;
+    const char* requested_art=std::getenv(
+        "RLOFT_RECOMP_EXPERIMENTAL_ORIGINAL_ART_MODE");
+    const bool source_art=requested_art && std::strcmp(requested_art,"1")==0;
+    if(source_art)b.call_1f8e0=&original_level_1f8e0_scene_mode;
     code2::Application31Boundary actor_callbacks{};
     actor_callbacks.call_1c1dc=&original_level_actor_quest;
     actor_callbacks.call_2acdc=&original_level_actor_type;
@@ -3180,14 +3198,8 @@ void original_181b4_level_load(u32 requested) noexcept {
     const u32 actor_random_before=current->original_level_actor_random_calls;
     b.call_19ccc=&original_level_19ccc_push;
     b.call_19cf4=&original_level_19cf4_pop;
-    // An original 1F8E0 changed-scene mode invokes 1F8FC, which also
-    // requires 30070 planar captures, HUD, world composition and display
-    // callbacks. Our genuine RES0 2E510/2939C/2A380 bridge is prepared,
-    // but the complete callback graph is not yet available. Do not
-    // execute a partial 1F8FC and corrupt the continuous source startup.
-    // Keep 1F8E0 DISCONNECTED for this phase, matching the last validated
-    // game-loop boundary; the isolated original 1F8FC source test remains
-    // mandatory. Never report frame acceptance until all branches work.
+    // Native player enables genuine 1F8E0 source art-bank initialization.
+    // Archive-only regression keeps the prior guarded boundary.
     const u32 art_mode=current->data[0x81ACu+requested*3u];
     const u32 current_mode=code2::load_le32(current->data.data()+0xC034u);
     std::cerr<<"CODE2_ORIGINAL_LIVE_BOOT=1F8FC_SCENE_MODE_FRONTIER"
@@ -3243,7 +3255,9 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<std::flush;
     if(current->original_level_state_pushes!=1u ||
        current->original_level_state_pops!=1u ||
-       current->original_level_scene_mode_calls!=0u ||
+       current->original_level_scene_mode_calls!=(source_art?1u:0u) ||
+       (source_art &&
+        code2::load_le32(current->data.data()+0xC034u)!=art_mode) ||
        current->original_level_party_terminal_checks!=1u ||
        current->original_level_actor_postloads!=1u)
         stop("ORIGINAL_181B4_SOURCE_WORLD_STATE_CALLBACKS_MISSING");
