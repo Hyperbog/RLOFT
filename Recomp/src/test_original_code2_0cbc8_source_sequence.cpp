@@ -2,6 +2,7 @@
 // All callback implementations below are observability probes ONLY, not
 // retained-guest renderer/audio/player substitutes or DOS parity.
 #include "original_code2_game_over_readiness.hpp"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <iostream>
