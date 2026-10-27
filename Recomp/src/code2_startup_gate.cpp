@@ -2146,6 +2146,24 @@ u32 original_scene_res_image(u32 item,u32 slot) noexcept {
         stop("ORIGINAL_1F8FC_RES0_SOURCE_DECODE_FAILED");
     return ptr;
 }
+// Actual 181B4 calls 1F8E0->1F8FC before its host adapter's
+// post-return counter advances. Admit this nested frame only when its
+// original Level22 world and resource/viewport data are initialized.
+bool original_source_world_ready() noexcept {
+    if(!current || !current->live_continuation ||
+       !current->game_audio.app68 || !current->original_vga)return false;
+    if(current->original_181b4_completed==1u)return true;
+    const auto& g=current->data;
+    return current->original_181b4_completed==0u &&
+           current->original_level_transition_active &&
+           current->original_03838_completed==1u &&
+           current->original_16cd0_completed==1u &&
+           code2::load_le32(g.data()+0xC6C8u)==22u &&
+           code2::load_le32(g.data()+0xC034u)==4u &&
+           code2::load_le16(g.data()+0x25619u)==30u &&
+           code2::load_le16(g.data()+0x2561Bu)==15u &&
+           code2::load_le32(g.data()+0xCF44u)!=0u;
+}
 // Real retail party portraits from the original RES1 archive. These
 // are *not* image literals: the caller supplies CODE.2's computed
 // 1F494 -> 298F0 actor resource key and invokes 2ECB4/2FD9C
@@ -2154,7 +2172,7 @@ u32 original_scene_hud_res_image(u32 item,u32 slot) noexcept {
     if(slot==0u)return original_scene_res_image(item,slot);
     if(slot!=1u || !current->game_audio.app68 ||
        !current->live_continuation || !current->original_vga ||
-       current->original_181b4_completed!=1u)
+       !original_source_world_ready())
         stop("ORIGINAL_1F494_RES1_GUEST_RESOURCE_PREREQUISITE");
     const u32 count_base=code2::load_le32(
         current->data.data()+0xF0B8u);
@@ -2813,7 +2831,7 @@ void original_world_ray_right_companion() noexcept {
 }
 void original_world_rays_32954() noexcept {
     if(current->original_03838_completed!=1u ||
-       current->original_181b4_completed!=1u ||
+       !original_source_world_ready() ||
        code2::load_le32(current->data.data()+0xC6D8u)!=256u ||
        code2::load_le32(current->data.data()+0xC660u)==0u)
         stop("ORIGINAL_32954_RETAINED_WORLD_SOURCE_PREREQUISITES");
@@ -2830,7 +2848,7 @@ void original_world_rays_32954() noexcept {
 }
 void original_world_camera_334c4() noexcept {
     if(!current->original_vga || !current->game_audio.app68 ||
-       current->original_181b4_completed!=1u ||
+       !original_source_world_ready() ||
        code2::load_le16(current->data.data()+0x25619u)==0u ||
        code2::load_le16(current->data.data()+0x2561Bu)==0u)
         stop("ORIGINAL_334C4_LIVE_WORLD_PREPASS_UNAVAILABLE");
@@ -2853,7 +2871,7 @@ u32 original_world_material(u32 id,u32 slot) noexcept {
                  <<"\n"<<std::flush;
     if(id==0x93u)return 0u;  // Original empty material ID.
     if(slot!=4u || !current->game_audio.app68 ||
-       current->original_181b4_completed!=1u)
+       !original_source_world_ready())
         stop("ORIGINAL_335DC_RES4_RETAINED_SOURCE_PRECONDITION");
     const auto material_start=std::chrono::steady_clock::now();
     const u32 ptr=code2::function_2f29c(
@@ -3063,7 +3081,7 @@ void original_world_sweep_335dc() noexcept {
                  <<" ray_count_C6D8="<<code2::load_le32(current->data.data()+0xC6D8u)
                  <<" game_level="<<code2::load_le32(current->data.data()+0xC6C8u)
                  <<"\n"<<std::flush;
-    if(current->original_181b4_completed!=1u ||
+    if(!original_source_world_ready() ||
        code2::load_le32(current->data.data()+0xC6D8u)!=256u)
         stop("ORIGINAL_335DC_RETAINED_SOURCE_RAYS_NOT_READY");
     code2::Application91Boundary b{};
