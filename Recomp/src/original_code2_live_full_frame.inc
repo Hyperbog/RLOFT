@@ -1,3 +1,4 @@
+#include "original_code2_near_combat_preflight.hpp"
 // Defined below this include in the same startup translation unit.
 void original_world_sweep_335dc() noexcept;
 u32 original_world_sintab_end() noexcept;
@@ -545,10 +546,50 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
                  <<" original_machine_exit=0DAC4_NO_SIDE_EFFECTS\n"<<std::flush;
         return;
     }
-    std::cerr<<"ORIGINAL_1BDAC_0D550_NEAR_ARGS="<<actor<<","
-             <<definition<<","<<index<<" type="<<type
-             <<" state="<<state<<"\n"<<std::flush;
-    stop("ORIGINAL_1BDAC_0D550_NEAR_ACTION_PENDING");
+    // A source-proven no-hit branch: every possible slot is rejected by
+    // compiled original 0D4E8. No invented target selection or combat return.
+    // Other near actions still fail closed before original 0D550 can mutate.
+    const auto validated=rloft::source_near_combat::exhausted_targets(
+        current->data.data(),current->data.size(),actor,definition);
+    if(!validated.accepted) {
+        std::cerr<<"ORIGINAL_1BDAC_0D550_NEAR_OPEN actor="<<actor
+                 <<" definition="<<definition<<" index="<<index
+                 <<" type="<<type<<" reason="<<validated.reason
+                 <<"\n"<<std::flush;
+        stop(validated.reason);
+    }
+    if(!original_full_frame_trace || !current->game_audio.app68)
+        stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
+    code2::Application19Boundary near{};
+    near.call_30700=+[]() noexcept -> u32 {
+        return code2::function_30700(current->machine);
+    };
+    near.call_30cc4=+[](u32 seed) noexcept {
+        code2::function_30cc4(current->machine,seed);
+    };
+    near.call_30ca2=+[]() noexcept -> u32 {
+        return code2::function_30ca2(current->machine);
+    };
+    near.call_d4e8=+[](u32 slot,u32 descriptor) noexcept -> u32 {
+        if(slot>=4u ||
+           std::uint64_t(descriptor)+0x3Bu>current->data.size())
+            stop("ORIGINAL_0D550_NEAR_TARGET_SOURCE_BOUNDS");
+        return code2::function_0d4e8(current->machine,slot,descriptor);
+    };
+    near.call_28110=+[](u32 request,u32 aux,u32 channel,
+                          u32 priority) noexcept {
+        if(channel>1u || !current->game_audio.app68)
+            stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
+        code2::function_28110(
+            current->machine,request,aux,channel,priority);
+    };
+    code2::function_0d550(
+        current->machine,near,actor,definition,index);
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_NEAR_EXHAUSTED"
+             <<" actor="<<actor<<" definition="<<definition
+             <<" index="<<index
+             <<" original_target_predicate=0D4E8"
+             <<" original_sound_queue=28110\n"<<std::flush;
 }
 void original_full_actor_30cd4(u32 dst,u32 src,u32 count) noexcept {
     const auto capacity=current->data.size();

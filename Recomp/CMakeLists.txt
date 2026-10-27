@@ -807,6 +807,22 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_0d550_actor_source_test)
 endif()
 
+# Source 1BDAC -> 0D550 close-range target-exhaustion branch.
+# All actual targets rejected by original 0D4E8; hit/effects remain guarded.
+add_executable(rloft_original_code2_0d550_near_exhausted_test
+    src/test_original_code2_0d550_near_exhausted_source.cpp)
+set_target_properties(rloft_original_code2_0d550_near_exhausted_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_0d550_near_exhausted_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_0d550_near_exhausted_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_1bdac_0d550_near_0d4e8_exhaustion
+        COMMAND rloft_original_code2_0d550_near_exhausted_test)
+endif()
+
 # Shared original-code clip/overlay source callbacks, independent of game level.
 add_executable(rloft_original_code2_source_clip_overlay_test
     src/test_original_code2_source_clip_overlay.cpp)
