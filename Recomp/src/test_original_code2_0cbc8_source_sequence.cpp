@@ -26,6 +26,7 @@ struct Evidence {
     std::array<u32,6> shutdown_order{};
     u32 unrequested_video_reset=0;
 } ev;
+u32 original_party_dead_portraits=0u;
 void check(bool v,const char* msg){if(!v)throw std::runtime_error(msg);}
 void shutdown_step(u32 id) noexcept {
     if(ev.shutdown_count>=ev.shutdown_order.size())std::terminate();
@@ -199,11 +200,34 @@ int main() {
               ev.input==4u && ev.exit==1u && ev.final_exit_code==0xCu &&
               ev.shutdown_count==6u && ev.unrequested_video_reset==0u,
               "actual 0CD44 did not enter original game-over compositor");
+        // Exercise actual reconstructed 1F494's original four-party
+        // high-bit/death redraw, rather than treating its compositor
+        // callback as an opaque counter. Only final VGA art requests
+        // are observed; the party dirty bits are source-owned.
+        original_party_dead_portraits=0u;
+        for(u32 slot=0u;slot<4u;++slot) {
+            bytes[0xCF5Au+slot]=1u;
+            code2::store_le16(
+                bytes.data()+0x218F0u+slot*0x248u,0x8000u);
+        }
+        code2::Application44Boundary party{};
+        party.call_2e510=+[](u32 row,u32 col,u32 id,u32 bank) noexcept {
+            if(row!=0x113u || col>320u || bank!=0u ||
+               id!=0x1010u)std::terminate();
+            ++original_party_dead_portraits;
+        };
+        code2::function_1f494(machine,party,0u);
+        check(original_party_dead_portraits==4u,
+              "original 1F494 four dead-portrait source requests absent");
+        for(u32 slot=0u;slot<4u;++slot)
+            check(bytes[0xCF5Au+slot]==0u,
+                  "original 1F494 dirty party state not cleared");
         std::cout<<"ORIGINAL_0CBC8_0CADC_SOURCE_SEQUENCE_PASS"
                  <<" real_source=YES synthetic_callbacks=YES"
                  <<" original_artwork_sequence=YES"
                  <<" original_transition=YES original_0CD44_chain=YES"
-                 <<" original_205B4_cleanup=YES source_wait=YES"
+                 <<" original_205B4_cleanup=YES"
+                 <<" original_1F494_dead_party=YES source_wait=YES"
                  <<" live_host=NOT_CONNECTED retail_DOS_parity=NOT_CERTIFIED\n";
         return 0;
     }catch(const std::exception& e){
