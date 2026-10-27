@@ -12,7 +12,7 @@ std::uint32_t serviced=0u, source_interrupts=0u;
 void check(bool pass,const char* reason) {
     if(!pass)throw std::runtime_error(reason);
 }
-std::uint32_t clock() noexcept {
+std::uint32_t source_irq8_clock() noexcept {
     return code2::function_30700(*retained);
 }
 void pump() noexcept {
@@ -33,20 +33,20 @@ int main() {
         guest.data=memory.data();retained=&guest;
         code2::store_le32(memory.data()+0xF58Cu,100u);
         code2::Application67Boundary b{};
-        b.call_30700=&clock;
+        b.call_30700=&source_irq8_clock;
         b.call_2f868=&pump;
         code2::function_2e608(guest,b);
         check(code2::load_le32(memory.data()+0x2B640u)==100u,
               "source 2E608 did not save guest clock");
         const auto result=code2::function_2e614(guest,b,0x12u,0u);
-        check(result==0u && clock()==118u &&
+        check(result==0u && source_irq8_clock()==118u &&
               serviced==18u && source_interrupts==18u &&
               code2::load_le32(memory.data()+0x2B640u)==0u,
               "original 2E614 deadline/IRQ8 progression changed");
         // Original 2E614 computes a new deadline once the frame
         // token has been reset; no host advancing time implicitly.
         const auto again=code2::function_2e614(guest,b,4u,0u);
-        check(again==0u && clock()==122u && serviced==22u &&
+        check(again==0u && source_irq8_clock()==122u && serviced==22u &&
               code2::load_le32(memory.data()+0x2B640u)==0u,
               "source 2E614 fallback clock deadline diverged");
         std::cout<<"ORIGINAL_2E608_2E614_IRQ8_SOURCE_TIME_PASS"
