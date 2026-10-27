@@ -342,8 +342,8 @@ void original_181b4_live_transition(u32 requested) noexcept {
     // Reuse the exact authenticated C-runtime literal restoration that
     // the initial original Level22 loader already requires.
     original_restore_181b4_archive_literal();
-    if(!restore_without_departure)original_live_level_no_real_save(prior);
-    original_live_level_no_real_save(requested);
+    if(!restore_without_departure)original_live_level_private_write_guard(prior);
+    original_live_level_private_write_guard(requested);
     const std::size_t handles_before=current->host_files->open_handles();
     current->original_level_transition_active=true;
     current->original_level_state_pushes=0u;
