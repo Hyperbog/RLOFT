@@ -1506,7 +1506,7 @@ u32 original_live_sfx_start(u32 device) noexcept {
     }
     return 0u;
 }
-void original_full_28168_audio_service(bool game_over_service=false) noexcept {
+void original_full_28168_audio_service(bool game_over_service) noexcept {
     if(!current || (!original_full_frame_trace && !game_over_service))
         stop("ORIGINAL_28168_SOURCE_AUDIO_TRACE_MISSING");
     if(game_over_service && (!current->live_continuation ||
@@ -1621,6 +1621,10 @@ void original_full_28168_audio_service(bool game_over_service=false) noexcept {
              <<code2::load_le32(current->data.data()+0xEE54u)
              <<" host_winmm_completions="<<completed
              <<" original_AIL_playback=NOT_CERTIFIED\n"<<std::flush;
+}
+// Required original 1FC14 callback remains the zero-argument ABI.
+void original_full_28168_audio_service() noexcept {
+    original_full_28168_audio_service(false);
 }
 u32 original_full_1f120_actor_count() noexcept {
     if(!original_full_frame_trace ||
