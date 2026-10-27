@@ -559,23 +559,23 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
     }
     if(!original_full_frame_trace || !current->game_audio.app68)
         stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
-    code2::Application19Boundary near{};
-    near.call_30700=+[]() noexcept -> u32 {
+    code2::Application19Boundary source_near{};
+    source_near.call_30700=+[]() noexcept -> u32 {
         return code2::function_30700(current->machine);
     };
-    near.call_30cc4=+[](u32 seed) noexcept {
+    source_near.call_30cc4=+[](u32 seed) noexcept {
         code2::function_30cc4(current->machine,seed);
     };
-    near.call_30ca2=+[]() noexcept -> u32 {
+    source_near.call_30ca2=+[]() noexcept -> u32 {
         return code2::function_30ca2(current->machine);
     };
-    near.call_d4e8=+[](u32 slot,u32 descriptor) noexcept -> u32 {
+    source_near.call_d4e8=+[](u32 slot,u32 descriptor) noexcept -> u32 {
         if(slot>=4u ||
            std::uint64_t(descriptor)+0x3Bu>current->data.size())
             stop("ORIGINAL_0D550_NEAR_TARGET_SOURCE_BOUNDS");
         return code2::function_0d4e8(current->machine,slot,descriptor);
     };
-    near.call_28110=+[](u32 request,u32 aux,u32 channel,
+    source_near.call_28110=+[](u32 request,u32 aux,u32 channel,
                           u32 priority) noexcept {
         if(channel>1u || !current->game_audio.app68)
             stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
@@ -583,7 +583,7 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
             current->machine,request,aux,channel,priority);
     };
     code2::function_0d550(
-        current->machine,near,actor,definition,index);
+        current->machine,source_near,actor,definition,index);
     std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_NEAR_EXHAUSTED"
              <<" actor="<<actor<<" definition="<<definition
              <<" index="<<index

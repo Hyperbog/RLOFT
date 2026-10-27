@@ -35,14 +35,14 @@ inline Validation exhausted_targets(const std::uint8_t* data,
 
     // Mirror 0D550's unsigned subtraction / sign-bit absolute difference,
     // followed by its signed JG comparison; don't reinterpret INT_MIN.
-    const auto far=[](std::uint32_t a,std::uint32_t b) noexcept -> bool {
+    const auto is_distant=[](std::uint32_t a,std::uint32_t b) noexcept -> bool {
         const std::uint32_t d=a-b;
         const std::uint32_t sign=0u-(d>>31u);
         const std::uint32_t magnitude=(d^sign)-sign;
         return static_cast<std::int32_t>(magnitude)>0x15000;
     };
-    if(far(word32(0x255D0u),word32(record+4u)) ||
-       far(word32(0x255D4u),word32(record)))
+    if(is_distant(word32(0x255D0u),word32(record+4u)) ||
+       is_distant(word32(0x255D4u),word32(record)))
         return {false,"ORIGINAL_0D550_NEAR_ACTOR_DISTANCE_CULLED"};
 
     // 0D550 indexes the original 8-byte orientation-to-party table.
