@@ -12,6 +12,7 @@
 #include "original_code2_36cec_scene.hpp"
 #include "original_source_winmm_bridge.hpp"
 #include "original_code2_script_preflight.hpp"
+#include "original_code2_near_combat_preflight.hpp"
 #include "original_code2_live_level_files.hpp"
 #include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
