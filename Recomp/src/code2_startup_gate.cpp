@@ -2353,6 +2353,12 @@ void original_game_over_0cadc_source_strip(
 }
 // Partial, real callback manifest. This does not satisfy 0CBC8 readiness:
 // never infer a complete game-over host from these four services.
+// Independently existing original VGA/artwork/page services: the full
+// CODE.2 compositor cannot start until all remaining dependencies exist.
+void original_game_over_2e510_art(u32,u32,u32,u32) noexcept;
+void original_game_over_1ea04_hud() noexcept;
+void original_game_over_1ea78_page() noexcept;
+void original_game_over_2e608_timing() noexcept;
 code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     code2::Application18Boundary b{};
     b.call_3104c=&original_game_over_0cadc_source_allocate;
@@ -2360,6 +2366,10 @@ code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     b.call_291b0=&original_game_over_291b0_source_page;
     b.call_2a078=&original_game_over_0cadc_source_strip;
     b.call_30ca2=&original_level_actor_random;
+    b.call_2e510=&original_game_over_2e510_art;
+    b.call_1ea04=&original_game_over_1ea04_hud;
+    b.call_1ea78=&original_game_over_1ea78_page;
+    b.call_2e608=&original_game_over_2e608_timing;
     return b;
 }
 void original_scene_cursor_capture(u32 dst,code2::s32 x,code2::s32 y,
@@ -2479,6 +2489,42 @@ void original_1fc14_source_page_handoff(u32 page) noexcept {
              <<" calls="<<current->original_1fc14_source_page_handoffs
              <<" world_scene_draw=NOT_CONNECTED"
              <<" source_guest=PRESERVED\n"<<std::flush;
+}
+// Source CODE.2 artwork and HUD widgets draw decoded original RES0
+// images through 2E510/2939C and the retained planar VGA device.
+void original_game_over_2e510_art(
+    u32 row,u32 x,u32 id,u32 archive) noexcept {
+    if(!current || !current->live_continuation || !current->original_vga ||
+       !current->game_audio.app68 || archive!=0u ||
+       row!=4u || x!=0x20u)
+        stop("ORIGINAL_0CBC8_ARTWORK_SOURCE_ABI_INVALID");
+    original_scene_frame_base(row,x,id,archive);
+}
+void original_game_over_1ea04_hud() noexcept {
+    if(!current || !current->live_continuation ||
+       !current->original_vga || !current->game_audio.app68)
+        stop("ORIGINAL_0CBC8_HUD_SOURCE_NOT_RETAINED");
+    code2::Application43Boundary ui{};
+    ui.call_2939c=&original_scene_res_blit;
+    ui.call_2f29c=&original_scene_res_image;
+    code2::function_1ea04(current->machine,ui);
+}
+void original_game_over_1ea78_page() noexcept {
+    if(!current || !current->live_continuation || !current->original_vga ||
+       current->original_20440_mouse_inits!=1u)
+        stop("ORIGINAL_0CBC8_1EA78_SOURCE_PAGE_NOT_READY");
+    code2::Application43Boundary ui{};
+    ui.call_1a510=&original_1fc14_source_page_handoff;
+    code2::function_1ea78(current->machine,ui);
+}
+void original_game_over_2e608_timing() noexcept {
+    if(!current || !current->live_continuation)
+        stop("ORIGINAL_0CBC8_SOURCE_TIME_UNAVAILABLE");
+    code2::Application67Boundary clock{};
+    clock.call_30700=+[]() noexcept -> u32 {
+        return code2::function_30700(current->machine);
+    };
+    code2::function_2e608(current->machine,clock);
 }
 void original_scene_palette(u32 palette,u32 first,u32 bank,
                             u32 filename,u32 count) noexcept {
