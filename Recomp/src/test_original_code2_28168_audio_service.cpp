@@ -126,6 +126,21 @@ int main() {
         check(observed.lookups==4u && observed.last_id==100u &&
               observed.start==4u && observed.stop==3u,
               "Original 28168 equal-priority tie did not select slot 1");
+        // Game-over 0CBC8 invokes 27F24 directly, without 28168's
+        // two-slot priority-queue selection. The original routine must
+        // copy the same authenticated packet, submit the selected id,
+        // and leave both source priority slots untouched.
+        observed.status_value=0u;
+        code2::function_27f24(m,device,0x2001u);
+        check(observed.lookups==5u && observed.last_id==0x2001u &&
+              observed.last_bank==2u && observed.start==5u &&
+              observed.stop==3u &&
+              get(0xEE48u)==0xFFFFFFFFu &&
+              get(0xEE54u)==0xFFFFFFFFu,
+              "Original 0CBC8 direct 27F24 bypass altered source queue");
+        for(unsigned i=0;i<8u;++i)
+            check(memory[0x22000u+i]==static_cast<code2::u8>(0xA0u+i),
+                  "Direct original game-over 27F24 copied incorrect bytes");
         std::cout<<"ORIGINAL_CODE2_28168_27F24_SOURCE_DISPATCH_PASS"
                  <<" muted_queue=SOURCE_CLEAR"
                  <<" active_sample_copy=8"
@@ -133,6 +148,7 @@ int main() {
                  <<" AIL_36803_36817_367F9_367EF_3680D=SYNTHETIC_ABI"
                  <<" signed_dual_queue=TIE_VERIFIED"
                  <<" playing_device_stop=SOURCE_VERIFIED"
+                 <<" direct_game_over_27F24=SOURCE_VERIFIED"
                  <<" real_device=NOT_CONNECTED\n";
         return 0;
     }catch(const std::exception& e){
