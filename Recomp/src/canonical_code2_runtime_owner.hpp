@@ -100,6 +100,10 @@ std::uint32_t answer_source_video_mode(Opaque*);
 // callback context is attached; then expose next original dependency.
 std::uint32_t answer_source_resource_selection(Opaque*);
 Evidence inspect(const Opaque*);
+// Copies the original 181B4 source-selected WORK bytes from private RAM.
+// An absent snapshot means the authentic LEVELS.DAT archive path.
+bool copy_saved_level_snapshot(const Opaque*,std::uint32_t,
+                               std::vector<std::uint8_t>&);
 std::vector<std::uint8_t>& guest_memory(Opaque*);
 void* canonical_machine(Opaque*);
 std::uint32_t allocate_source_heap(Opaque*,std::uint32_t bytes);

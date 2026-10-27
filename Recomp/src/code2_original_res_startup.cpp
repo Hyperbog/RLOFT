@@ -12,6 +12,7 @@
 #include "original_code2_scene_palette.hpp"
 #include "original_code2_guest_session.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
+#include "original_code2_saved_level_actor_proof.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include <memory>
@@ -1285,7 +1286,11 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
     // 181B4 guest result, rather than another host-decoded world copy.
     const auto archive=rloft::original_levels::read_archive(
         (s->original_root/"LEVELS.DAT").string());
-    const auto grid=rloft::original_levels::decode_grid(archive,22u);
+    std::vector<u8> saved_work;
+    const bool use_work=c::copy_saved_level_snapshot(owner,22u,saved_work);
+    const auto grid=use_work?
+        rloft::original_levels::decode_saved_grid(saved_work,22u):
+        rloft::original_levels::decode_grid(archive,22u);
     const auto& memory=s->guest->memory;
     REQUIRE(code2::load_le32(memory.data()+0xC6C8u)==22u &&
             code2::load_le16(memory.data()+0x25619u)==grid.width &&
@@ -1317,7 +1322,28 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" transient_visibility_cells="<<transient_ray_cells
              <<" original_nontransient_grid_bits=MATCH"
              <<" source=334C4_32954"
-             <<" raw_archive_grid=VERIFIED_WITH_TRANSIENT_MASK\\n";
+             <<" selected_source="<<(use_work?"WORK_LEV022":"LEVELS_DAT")
+             <<" grid=VERIFIED_WITH_TRANSIENT_MASK\\n";
+    // The original 181B4 chooses between independent DOS formats.
+    // Never compare 22-byte WORK actors to archive's 11-byte records.
+    if(use_work) {
+        const auto proof=rloft::saved_level_actor_proof::verify(
+            saved_work,memory,22u);
+        std::cout<<"ORIGINAL_CODE2_181B4_LEVEL22_SAVED_WORK_ACTOR_PARITY_PASS"
+                 <<" moving="<<proof.moving
+                 <<" primary="<<proof.primary
+                 <<" alternate="<<proof.alternate
+                 <<" indexed_column_objects="<<proof.indexed_columns
+                 <<" source=WORK_LEV022_PRIVATE_SNAPSHOT"
+                 <<" stable_actor_fields=INDEPENDENT_MATCH"
+                 <<" actor_AI=NOT_CONNECTED\n"<<std::flush;
+        std::cout<<"ORIGINAL_CODE2_20440_LEVEL22_SOURCE_GRID_PASS"
+                 <<" source=181B4 input=AUTHENTIC_WORK_LEV022"
+                 <<" width="<<grid.width<<" height="<<grid.height
+                 <<" cells="<<grid.cells.size()
+                 <<" guest_memory=PRESERVED rendering=NOT_CONNECTED\n"
+                 <<std::flush;
+    }else {
     // Independently trace original LEVELS.DAT's packed column-event
     // lists and 11-byte moving/primary/alternate actor records. This
     // checks the *actual* original 181B4 deserialization on retained
@@ -1387,6 +1413,7 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" cells="<<grid.cells.size()
              <<" guest_memory=PRESERVED"
              <<" rendering=NOT_CONNECTED\n"<<std::flush;
+    }
     // Inspection of the exact original 20440 RES0 record at the point
     // before its currently-unwired 2ECB4 callback. No guest bytes changed.
     const u32 target=code2::load_le32(memory.data()+0x258DCu)+0x2Cu;

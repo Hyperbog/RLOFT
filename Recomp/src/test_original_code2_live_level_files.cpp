@@ -2,6 +2,7 @@
 // bounded private file transport. These tests never contain retail media.
 #include "original_code2_live_level_files.hpp"
 #include "original_code2_owner_work_snapshot.hpp"
+#include "original_code2_saved_level_actor_proof.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
 #include <chrono>
 #include <filesystem>
@@ -242,6 +243,48 @@ void test_original_owner_work_readonly_snapshot() {
            "WORK/LEV directory must never be opened as source level file");
 }
 
+void test_saved_actor_branch_proof() {
+    // Media-free standalone 1x1 source level with 1 moving and 1 primary
+    // 22-byte record, including 17A68 post-load mutable actor bit.
+    constexpr std::uint32_t s0=29u,s1=s0+0x2A4u+2u,s2=s1+5u;
+    constexpr std::uint32_t s3=s2+22u,s4=s3+2u+22u,s5=s4,s6=s5+0x514u;
+    std::vector<std::uint8_t> file(s6+9u,0u);
+    const auto w16=[&](std::size_t p,std::uint16_t x) {
+        file.at(p)=static_cast<std::uint8_t>(x);
+        file.at(p+1u)=static_cast<std::uint8_t>(x>>8u);
+    };
+    const auto w32=[&](std::size_t p,std::uint32_t x) {
+        for(unsigned i=0;i<4u;++i)file.at(p+i)=
+            static_cast<std::uint8_t>(x>>(i*8u));
+    };
+    const std::array<std::uint32_t,7> sec{s0,s1,s2,s3,s4,s5,s6};
+    for(unsigned i=0;i<7u;++i)w32(1u+i*4u,sec[i]);
+    w16(s0+1u,1u);w16(s0+3u,1u);
+    w16(s0+0x28Au,1u);w16(s0+0x28Eu,1u);
+    w16(s3,1u);w16(s2+14u,9u);w16(s3+2u+14u,2u);
+    w16(s2+6u,0x1234u);w16(s3+2u+6u,0x5678u);
+    w32(s6+5u,0u);
+    std::vector<std::uint8_t> guest(0x30000u,0u);
+    std::copy_n(file.begin()+s2,22u,guest.begin()+0x14D80u);
+    std::copy_n(file.begin()+s3+2u,22u,guest.begin()+0x22238u);
+    guest[0x14D80u+11u]|=2u;
+    const auto pass=rloft::saved_level_actor_proof::verify(file,guest,22u);
+    verify(pass.moving==1u && pass.primary==1u &&
+           pass.alternate==0u && pass.indexed_columns==0u,
+           "Saved 181B4 22-byte actor branch witness failed");
+    guest[0x14D80u+6u]^=1u;
+    bool rejected=false;
+    try{(void)rloft::saved_level_actor_proof::verify(file,guest,22u);}
+    catch(const std::runtime_error&){rejected=true;}
+    verify(rejected,"Corrupted source saved actor was accepted");
+    guest[0x14D80u+6u]^=1u;
+    w32(1u+3u*4u,0u);
+    rejected=false;
+    try{(void)rloft::saved_level_actor_proof::verify(file,guest,22u);}
+    catch(const std::runtime_error&){rejected=true;}
+    verify(rejected,"Corrupted saved actor section was accepted");
+}
+
 void test_guards() {
     using rloft::live_level_files::Overlay;
     Overlay o;
@@ -263,6 +306,7 @@ int main() {
         test_signed_dos_seek_contract();
         test_read_write();test_guards();test_saved_snapshot_install();
         test_original_owner_work_readonly_snapshot();
+        test_saved_actor_branch_proof();
         std::cout<<"ORIGINAL_CODE2_171FC_181B4_PRIVATE_LEVEL_FILES_PASS"
                  <<" work_saves=MEMORY_ONLY"
                  <<" original_source_files=UNTOUCHED"

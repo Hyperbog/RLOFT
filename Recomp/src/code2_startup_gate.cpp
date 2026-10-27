@@ -5001,6 +5001,21 @@ Evidence inspect(const Opaque* owner) {
        code2::load_le16(s.data.data()+0xEF41u)==320u;
     return out;
 }
+bool copy_saved_level_snapshot(const Opaque* owner,std::uint32_t level,
+                               std::vector<std::uint8_t>& output) {
+    if(level>=32u || !output.empty())
+        throw std::invalid_argument("Invalid saved-level source request");
+    const auto& s=held(const_cast<Opaque*>(owner));
+    if(s.original_181b4_completed!=1u || !s.level_overlay.idle())
+        throw std::logic_error("Original level snapshot owner not paused");
+    const auto it=s.level_overlay.levels.find(level);
+    if(it==s.level_overlay.levels.end())return false;
+    if(it->second.empty() ||
+       it->second.size()>rloft::live_level_files::Overlay::capacity)
+        throw std::runtime_error("Original WORK snapshot bytes invalid");
+    output=it->second;
+    return true;
+}
 std::vector<std::uint8_t>& guest_memory(Opaque* owner) {
     return held(owner).data;
 }
