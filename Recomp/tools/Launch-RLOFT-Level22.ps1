@@ -19,11 +19,20 @@ if([string]::IsNullOrWhiteSpace($GameFolder)) {
   }
   foreach($base in @('C:\GOG Games','D:\GOG Games','E:\GOG Games',
                       "$env:ProgramFiles", "C:\Program Files (x86)")) {
-    if([string]::IsNullOrWhiteSpace($base)) { continue }
+    # A standard Windows installation may not have C:, D:, or E: mounted.
+    # Join-Path throws for absent drives under ErrorActionPreference=Stop.
+    if([string]::IsNullOrWhiteSpace($base) -or
+       -not (Test-Path -LiteralPath $base -PathType Container -ErrorAction SilentlyContinue)) {
+      continue
+    }
     $paths.Add((Join-Path (Join-Path $base "Ravenloft - Strahd's Possession") 'RLOFT'))
     $paths.Add((Join-Path (Join-Path $base "GOG Galaxy\Games\Ravenloft - Strahd's Possession") 'RLOFT'))
   }
   foreach($candidate in $paths) {
+    # Also guard user-provided RLOFT_GAME_FOLDER values on unplugged drives.
+    if(-not (Test-Path -LiteralPath $candidate -PathType Container -ErrorAction SilentlyContinue)) {
+      continue
+    }
     if((Test-Path -LiteralPath (Join-Path $candidate 'CODE.2') -PathType Leaf)) {
       $GameFolder=$candidate
       break
