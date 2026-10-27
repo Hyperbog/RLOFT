@@ -233,6 +233,7 @@ void test_original_owner_work_readonly_snapshot() {
     verify(static_cast<bool>(check) && unchanged==original &&
            overlay.levels.at(22u)==std::vector<std::uint8_t>{private_byte},
            "A source save mutated owner WORK or failed to replace overlay");
+    check.close();
     fs::remove(file);
     fs::create_directory(file);
     std::vector<std::uint8_t> rejected;
