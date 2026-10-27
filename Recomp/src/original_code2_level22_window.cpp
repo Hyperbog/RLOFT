@@ -22,25 +22,38 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <thread>
 
 namespace {
 namespace source=rloft::original_code2_session;
 namespace machine=rloft::canonical_code2_runtime;
 using Owner=std::unique_ptr<source::Opaque,void(*)(source::Opaque*)>;
-static constexpr UINT kFrameTimer=1u;
+static constexpr UINT kSourceFrameReady=WM_APP+1u;
+static constexpr auto kFrameInterval=std::chrono::milliseconds(120);
 static constexpr unsigned kGameWidth=320u,kGameHeight=400u;
 
 struct LiveWindow final {
     Owner game{nullptr,&source::destroy};
     HWND hwnd=nullptr;
     std::vector<std::uint32_t> scanout_rgba;
+    // The native UI only reads an atomically published frame and input bits.
+    // CODE.2 guest execution remains on its single original worker owner.
+    std::mutex frame_lock;
+    std::thread gameplay_worker;
+    std::atomic<std::uint32_t> key_mask{0u};
+    std::atomic<bool> quit_requested{false};
+    std::string posted_title;
+    std::string posted_error;
+    bool error_shown=false;
     unsigned ticks=0u;
     unsigned pose_changes=0u;
     unsigned source_displacements=0u;
     unsigned source_rotations=0u;
     bool failed=false;
     std::string error;
-    bool keys[6]{};
 
     static void enable_experimental_source() {
         for(const char* name:{
@@ -110,7 +123,9 @@ struct LiveWindow final {
         // fabricated as a new combined command.
         static const std::uint32_t scans[6]={
             0x148u,0x150u,0x14Bu,0x14Du,0x147u,0x149u};
-        for(unsigned i=0u;i<6u;++i)if(keys[i])return scans[i];
+        const auto held=key_mask.load(std::memory_order_relaxed);
+        for(unsigned i=0u;i<6u;++i)
+            if((held&(1u<<i))!=0u)return scans[i];
         return 0u;
     }
     void capture_source_vga() {
@@ -123,16 +138,20 @@ struct LiveWindow final {
         const auto indexed=vga.scanout_indices();
         if(indexed.size()!=kGameWidth*kGameHeight)
             throw std::runtime_error("Original CODE.2 scanout dimensions changed");
-        scanout_rgba.resize(indexed.size());
+        std::vector<std::uint32_t> complete(indexed.size());
         for(std::size_t i=0;i<indexed.size();++i) {
             const auto c=vga.palette(indexed[i]);
             const auto expand=[](unsigned channel)->std::uint32_t {
                 return (channel<<2u)|(channel>>4u);
             };
-            scanout_rgba[i]=(expand(c.r)<<16u) |
-                            (expand(c.g)<<8u) |
-                             expand(c.b);
+            complete[i]=(expand(c.r)<<16u) |
+                        (expand(c.g)<<8u) |
+                         expand(c.b);
         }
+        // Publish the completed original planar-VGA scanout, not a
+        // partially written frame or half-updated palette.
+        std::lock_guard<std::mutex> guard(frame_lock);
+        scanout_rgba.swap(complete);
     }
     bool audited_portal_roundtrip(const machine::Evidence& proof) const noexcept {
         // A stale 320x400 buffer is not proof of a post-portal frame.
@@ -178,19 +197,37 @@ struct LiveWindow final {
                     static_cast<long>(static_cast<std::int32_t>(ny)>>16u),
                     static_cast<unsigned>(nh),ticks,
                     source_displacements,source_rotations);
-                SetWindowTextA(hwnd,title);
-                InvalidateRect(hwnd,nullptr,FALSE);
+                {
+                    std::lock_guard<std::mutex> guard(frame_lock);
+                    posted_title=title;
+                }
+                if(!quit_requested.load(std::memory_order_acquire))
+                    PostMessageA(hwnd,kSourceFrameReady,0,0);
             }
         }catch(const std::exception& e){
             failed=true;
             error=e.what();
             if(hwnd) {
-                KillTimer(hwnd,kFrameTimer);
-                SetWindowTextA(hwnd,"Ravenloft CODE.2 - stopped at unsupported source event");
-                MessageBoxA(hwnd,error.c_str(),
-                    "Original CODE.2 stopped (no substituted behavior)",MB_OK|MB_ICONWARNING);
+                {
+                    std::lock_guard<std::mutex> guard(frame_lock);
+                    posted_error=error;
+                }
+                if(!quit_requested.load(std::memory_order_acquire))
+                    PostMessageA(hwnd,kSourceFrameReady,0,0);
             }
             std::cerr<<"RLOFT_LEVEL22_LIVE_SOURCE_STOP="<<error<<"\n";
+        }
+    }
+    // The Win32 message pump NEVER executes original 1FC14 frames. Long
+    // source actor/raster operations cannot block keyboard or window paint.
+    // The 120ms minimum is a host-input throttle, not a synthesized IRQ.
+    void worker_loop() {
+        while(!quit_requested.load(std::memory_order_acquire) && !failed) {
+            const auto started=std::chrono::steady_clock::now();
+            tick(held_scan());
+            while(!failed && !quit_requested.load(std::memory_order_acquire) &&
+                  std::chrono::steady_clock::now()-started<kFrameInterval)
+                std::this_thread::sleep_for(std::chrono::milliseconds(3));
         }
     }
     static LRESULT CALLBACK wnd_proc(HWND window,UINT msg,WPARAM wp,LPARAM lp){
@@ -206,23 +243,43 @@ struct LiveWindow final {
         switch(msg){
         case WM_KEYDOWN:case WM_SYSKEYDOWN:
             if(wp==VK_ESCAPE){DestroyWindow(window);return 0;}
-            if(const auto slot=key_slot(wp);slot<6u)self->keys[slot]=true;
+            if(const auto slot=key_slot(wp);slot<6u)
+                self->key_mask.fetch_or(1u<<slot,std::memory_order_release);
             return 0;
         case WM_KEYUP:case WM_SYSKEYUP:
-            if(const auto slot=key_slot(wp);slot<6u)self->keys[slot]=false;
+            if(const auto slot=key_slot(wp);slot<6u)
+                self->key_mask.fetch_and(~(1u<<slot),std::memory_order_release);
             return 0;
         case WM_KILLFOCUS:
-            std::fill(std::begin(self->keys),std::end(self->keys),false);
+            self->key_mask.store(0u,std::memory_order_release);
             return 0;
-        case WM_TIMER:
-            if(wp==kFrameTimer)self->tick(self->held_scan());
+        case kSourceFrameReady: {
+            std::string title,error;
+            {
+                std::lock_guard<std::mutex> guard(self->frame_lock);
+                title=self->posted_title;
+                error=self->posted_error;
+            }
+            if(!title.empty())SetWindowTextA(window,title.c_str());
+            InvalidateRect(window,nullptr,FALSE);
+            if(!error.empty() && !self->error_shown) {
+                self->error_shown=true;
+                SetWindowTextA(window,
+                    "Ravenloft CODE.2 - stopped at unsupported source event");
+                MessageBoxA(window,error.c_str(),
+                    "Original CODE.2 stopped (no substituted behavior)",
+                    MB_OK|MB_ICONWARNING);
+            }
             return 0;
+        }
         case WM_ERASEBKGND:return 1;
         case WM_PAINT: {
             PAINTSTRUCT paint{};
             HDC dc=BeginPaint(window,&paint);
             RECT area{};GetClientRect(window,&area);
-            if(self->scanout_rgba.size()==kGameWidth*kGameHeight){
+            {
+                std::lock_guard<std::mutex> guard(self->frame_lock);
+                if(self->scanout_rgba.size()==kGameWidth*kGameHeight){
                 BITMAPINFO info{};
                 info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
                 info.bmiHeader.biWidth=kGameWidth;
@@ -234,11 +291,17 @@ struct LiveWindow final {
                 StretchDIBits(dc,0,0,area.right,area.bottom,
                     0,0,kGameWidth,kGameHeight,self->scanout_rgba.data(),
                     &info,DIB_RGB_COLORS,SRCCOPY);
+                }
             }
             EndPaint(window,&paint);
             return 0;
         }
-        case WM_DESTROY:KillTimer(window,kFrameTimer);PostQuitMessage(0);return 0;
+        case WM_DESTROY:
+            self->quit_requested.store(true,std::memory_order_release);
+            self->key_mask.store(0u,std::memory_order_release);
+            if(self->gameplay_worker.joinable())self->gameplay_worker.join();
+            PostQuitMessage(0);
+            return 0;
         default:return DefWindowProcA(window,msg,wp,lp);
         }
     }
@@ -261,7 +324,7 @@ struct LiveWindow final {
         if(!hwnd)throw std::runtime_error("Could not create original VGA window");
         ShowWindow(hwnd,SW_SHOWNORMAL);
         UpdateWindow(hwnd);
-        SetTimer(hwnd,kFrameTimer,120u,nullptr);
+        gameplay_worker=std::thread([this]{worker_loop();});
         MSG msg{};
         while(GetMessageA(&msg,nullptr,0,0)>0){
             TranslateMessage(&msg);
