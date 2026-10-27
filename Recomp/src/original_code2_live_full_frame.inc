@@ -416,8 +416,25 @@ void original_full_actor_source_damage(u32 slot,u32 damage) noexcept {
                         code2::load_le32(current->data.data()+0x21ACEu+base_i)!=0u))
                         stop("ORIGINAL_0D550_0AD24_TIMED_EFFECT_DEPENDENCY");
                 }
-                if(party_game_over)
-                    stop("ORIGINAL_0D550_0CBC8_GAME_OVER_RENDERING_PENDING");
+                if(party_game_over) {
+                    // The complete game-over source is reconstructed but
+                    // cannot consume null or fabricated host callbacks.
+                    // Check the actual retained-guest service manifest
+                    // before original 0CD44 can mutate HP/party status.
+                    const auto original_devices=
+                        original_game_over_retain_io_manifest();
+                    const auto services=rloft::source_game_over::validate(
+                        original_devices,current->data.data(),
+                        current->data.size());
+                    if(!services.ready) {
+                        std::cerr<<"ORIGINAL_0CBC8_LIVE_SERVICE_FRONTIER="
+                                 <<services.reason<<"\\n"<<std::flush;
+                        stop(services.reason);
+                    }
+                    // Callback presence alone does not prove real AIL,
+                    // modal input, and source-indexed frame parity.
+                    stop("ORIGINAL_0CBC8_LIVE_DEVICE_PARITY_UNCERTIFIED");
+                }
             }
             code2::Application18Boundary damage_source{};
             damage_source.call_19cc4=+[]() noexcept -> u32 {
