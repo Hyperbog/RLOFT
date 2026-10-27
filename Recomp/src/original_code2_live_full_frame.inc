@@ -1,4 +1,3 @@
-#include "original_code2_near_combat_preflight.hpp"
 // Defined below this include in the same startup translation unit.
 void original_world_sweep_335dc() noexcept;
 u32 original_world_sintab_end() noexcept;
