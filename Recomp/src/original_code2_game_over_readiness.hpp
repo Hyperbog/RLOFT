@@ -4,7 +4,8 @@
 // retained-guest game-over frame; the host must wire every required service.
 #include <cstddef>
 #include <cstdint>
-#include "../../Code2/Code2.cpp"
+// Include this contract after Code2.cpp in its source owner; do not create
+// duplicate compiled source definitions in host translation units.
 
 namespace rloft { namespace source_game_over {
 struct Readiness {
