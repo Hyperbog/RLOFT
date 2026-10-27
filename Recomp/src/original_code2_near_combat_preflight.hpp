@@ -147,8 +147,12 @@ inline EligibleHit eligible_hit(const std::uint8_t* mem,std::size_t bytes,
     const std::uint32_t off=slot*0x248u;
     if((u32(0x21A12u+off)&0x40u)!=0u)
         return reject("ORIGINAL_0C9A0_0871C_MODAL_EFFECT_PENDING");
-    if(u16(0x2193Cu+off)!=0xFFFFu || u16(0x2193Eu+off)!=0xFFFFu)
-        return reject("ORIGINAL_0EFA0_EQUIPPED_HAND_CALLBACK_PENDING");
+    // Original 24478 always evaluates both hands, including its 240A8
+    // classification. A single empty hand is not admitted by this bounded
+    // route because source 23E58 would index the item table with -1.
+    const std::uint32_t lhs=u16(0x2193Cu+off),rhs=u16(0x2193Eu+off);
+    if((lhs==0xFFFFu)!=(rhs==0xFFFFu))
+        return reject("ORIGINAL_24478_SINGLE_EMPTY_HAND_UNBOUNDED");
     if((mem[desc+0x39u]&~1u)!=0u ||
        (mem[desc+0x3Au]&~0x10u)!=0u)
         return reject("ORIGINAL_0D550_COMPLEX_STATUS_CALLBACK_PENDING");
@@ -198,8 +202,30 @@ inline EligibleHit eligible_hit(const std::uint8_t* mem,std::size_t bytes,
     const std::uint64_t maximum=count==0u?1u:
         (count*(sides+bonus)==0u?1u:count*(sides+bonus));
     const std::int32_t hp=static_cast<std::int16_t>(u16(0x218FCu+off));
-    if(hp<=0 || maximum>=static_cast<std::uint64_t>(hp))
-        return reject("ORIGINAL_0CD44_LETHAL_DAMAGE_PENDING");
+    if(hp<=0)
+        return reject("ORIGINAL_0CD44_TARGET_NOT_ALIVE");
+    if(maximum>=static_cast<std::uint64_t>(hp)) {
+        // Source 0CD44 may call 0AD24 and the original 0CBC8 compositor.
+        // Admit dying actors only with a second genuinely living party
+        // member; all active member timer/effect cleanup must be inert.
+        bool survivor=false;
+        for(std::uint32_t i=0u;i<4u;++i) {
+            const std::uint32_t base=i*0x248u;
+            const std::uint32_t life=u16(0x218F0u+base);
+            if(i!=slot && (life&0xD040u)==0u &&
+               static_cast<std::int16_t>(u16(0x218FCu+base))>0)
+                survivor=true;
+            if((life&0x8000u)==0u &&
+               (u32(0x21A12u+base)!=0u ||
+                u32(0x21AA2u+base)!=0u ||
+                u32(0x21ACEu+base)!=0u))
+                return reject("ORIGINAL_0AD24_TIMED_EFFECT_CALLBACK_PENDING");
+        }
+        if(!survivor)
+            return reject("ORIGINAL_0CBC8_PARTY_WIPE_COMPOSITOR_PENDING");
+        if(!valid_name(0x578u))
+            return reject("ORIGINAL_0AD24_SELECTED_TOKEN_INVALID");
+    }
 
     const std::uint32_t die=((next_rng()*20u)>>15u)+1u;
     return {true,"ORIGINAL_0D550_0C9A0_ELIGIBLE_SOURCE_HIT",slot,die};
