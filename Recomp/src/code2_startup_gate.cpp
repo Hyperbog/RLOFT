@@ -2721,6 +2721,10 @@ void original_scene_palette(u32 palette,u32 first,u32 bank,
            current->host_files->open_handles()!=opened ||
            current->host_descriptor_flags.size()!=descriptors)
             stop("ORIGINAL_181B4_1F8FC_PALETTE_OR_FILE_DIVERGED");
+        // The same original 325B0 callback ran inside the nested
+        // 181B4->1F8E0->1F8FC source frame. Its previous omission from
+        // host *accounting* caused false 30B40 readiness rejection.
+        ++current->original_325b0_completed;
         std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=1F8FC_SOURCE_PALETTE"
                  <<" bank="<<bank<<" RGB6=768"
                  <<" original_COLORS=READ_ONLY\n"<<std::flush;
