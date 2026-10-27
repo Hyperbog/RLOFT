@@ -86,3 +86,30 @@ vector), not the PC's separate hardware IRQ8/RTC vector `70h`.
 The scheduler name follows the project's historical "IRQ8" shorthand
 for interrupt *vector* 8. The original timer cadence has not been
 authenticated against the running DOS host.
+ 
+## Retained INT 08h vector-chain and source wait boundary (Part 41)
+
+New `src/original_code2_int08_vector_preflight.hpp` verifies the original
+`30BB4` vector-installed flag, all three retained IVT targets, original
+saved INT 08h predecessor fields `F582/F586`, and non-null timer/chain
+callbacks. It refuses a missing or recursive predecessor, mismatched vector,
+or incomplete source interrupt callback graph.
+
+The retained CODE.2 guest now owns a per-session elapsed scheduler and
+polls it on its **existing owning guest thread** before `2F868`. The
+game-over `2E614` callback is routed to genuine compiled source through
+the same event pump, but explicitly refuses invocation when the scheduler
+is not armed. No timer rate, previous DOS interrupt handler or PIC EOI
+has been invented; no production arming call is present.
+
+The new `test_original_code2_int08_vector_lifecycle.cpp` executes
+compiled `30BB4 → 30708 → 30C38` on a bounded guest with **test-only**
+previous-vector observers. It validates installation/idempotency,
+retained memory writes, original IRQ tick changes, source hook then chain
+order, CPU restoration, missing-service rejection and full vector restore.
+Passing this test is not a DOS IRQ0/BIOs clock-equivalence receipt.
+
+Full-party `0CBC8` remains guarded and retains the live-device parity
+stop before lethal HP mutation. The scheduler still needs authenticated
+timing input, non-fabricated previous-vector execution, active Miles
+music, and native `205B4` teardown before game-over is playable.

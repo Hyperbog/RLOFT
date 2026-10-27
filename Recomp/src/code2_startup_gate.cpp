@@ -14,6 +14,8 @@
 #include "original_code2_script_preflight.hpp"
 #include "original_code2_near_combat_preflight.hpp"
 #include "original_code2_game_over_readiness.hpp"
+#include "original_code2_irq8_elapsed_scheduler.hpp"
+#include "original_code2_int08_vector_preflight.hpp"
 #include "original_code2_live_level_files.hpp"
 #include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
@@ -138,6 +140,8 @@ struct Session {
     code2::Runtime101Boundary mouse_range{};
     code2::Application56Boundary audio_seed{};
     std::array<GuestVector,256> ivt{};
+    // Disarmed until real host timer cadence and old vector service are verified.
+    rloft::original_irq8::ElapsedScheduler source_int08_scheduler{};
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
@@ -2360,6 +2364,8 @@ void original_game_over_2e510_art(u32,u32,u32,u32) noexcept;
 void original_game_over_1ea04_hud() noexcept;
 void original_game_over_1ea78_page() noexcept;
 void original_game_over_2e608_timing() noexcept;
+void original_game_over_2e614_timing(u32 delay,u32 flags) noexcept;
+void original_scene_service_int08() noexcept;
 void original_game_over_1f1c8_source_scene() noexcept;
 void original_game_over_1f494_source_party(u32 redraw) noexcept;
 void original_game_over_28168_sample_queue() noexcept;
@@ -2381,6 +2387,7 @@ code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     b.call_1ea04=&original_game_over_1ea04_hud;
     b.call_1ea78=&original_game_over_1ea78_page;
     b.call_2e608=&original_game_over_2e608_timing;
+    b.call_2e614=&original_game_over_2e614_timing;
     b.call_1a1f4=&original_game_over_1a1f4_mouse_button;
     b.call_1a9f8=&original_game_over_1a9f8_mouse_reset;
     b.call_1aacc=&original_game_over_1aacc_cursor_restore;
@@ -2594,6 +2601,23 @@ u32 original_game_over_1a1f4_mouse_button() noexcept {
     input.call_2f868=&original_scene_poll_source_events;
     return code2::function_1a1f4(current->machine,input);
 }
+// Original wait owns deadline logic; INT 08h must progress via 2F868.
+// The preflight is intentionally before the compiled blocking loop.
+void original_game_over_2e614_timing(u32 delay,u32 flags) noexcept {
+    if(!current || !current->live_continuation ||
+       !current->source_int08_scheduler.armed())
+        stop("ORIGINAL_0CBC8_2E614_HOST_IRQ_NOT_AUTHENTICATED");
+    const auto valid=rloft::source_int08::validate(
+        current->machine,current->data.size(),current->ivt,
+        current->keyboard_irq);
+    if(!valid.ready)stop(valid.reason);
+    code2::Application67Boundary original{};
+    original.call_30700=+[]() noexcept -> u32 {
+        return code2::function_30700(current->machine);
+    };
+    original.call_2f868=&original_scene_poll_source_events;
+    (void)code2::function_2e614(current->machine,original,delay,flags);
+}
 void original_game_over_2e608_timing() noexcept {
     if(!current || !current->live_continuation)
         stop("ORIGINAL_0CBC8_SOURCE_TIME_UNAVAILABLE");
@@ -2664,7 +2688,27 @@ void original_scene_clear_event_ring() noexcept {
 void original_scene_finish_keyboard() noexcept {
     code2::function_30b2c(current->machine);
 }
+// Called on the owner guest thread, never on a host timer thread.
+// Does not dispatch until an authenticated host device arms the scheduler.
+void original_scene_service_int08() noexcept {
+    auto& scheduler=current->source_int08_scheduler;
+    if(!scheduler.armed())return;
+    const auto valid=rloft::source_int08::validate(
+        current->machine,current->data.size(),current->ivt,
+        current->keyboard_irq);
+    if(!valid.ready)stop(valid.reason);
+    const auto result=scheduler.poll(
+        rloft::original_irq8::ElapsedScheduler::Clock::now(),
+        []() noexcept {
+            code2::interrupt_30708(current->machine,
+                                   current->keyboard_irq);
+        });
+    if(result.status!=rloft::original_irq8::Status::Delivered)
+        stop("ORIGINAL_INT08_HOST_ELAPSED_CLOCK_INVALID");
+}
 void original_scene_poll_source_events() noexcept {
+    if(current && current->live_continuation)
+        original_scene_service_int08();
     if(code2::load_le32(current->data.data()+0xF0C8u)!=0u ||
        (current->data[0xF0B1u]&0x7Fu)!=0u &&
        current->data[0xF0B2u]==0u)
