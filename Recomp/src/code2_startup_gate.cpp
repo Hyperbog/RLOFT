@@ -2360,6 +2360,9 @@ void original_game_over_2e510_art(u32,u32,u32,u32) noexcept;
 void original_game_over_1ea04_hud() noexcept;
 void original_game_over_1ea78_page() noexcept;
 void original_game_over_2e608_timing() noexcept;
+void original_game_over_1a9f8_mouse_reset() noexcept;
+void original_game_over_1aacc_cursor_restore() noexcept;
+void original_game_over_1a288_cursor_redraw() noexcept;
 void original_scene_poll_source_events() noexcept;
 u32 original_game_over_1a1f4_mouse_button() noexcept;
 code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
@@ -2374,6 +2377,9 @@ code2::Application18Boundary original_game_over_retain_io_manifest() noexcept {
     b.call_1ea78=&original_game_over_1ea78_page;
     b.call_2e608=&original_game_over_2e608_timing;
     b.call_1a1f4=&original_game_over_1a1f4_mouse_button;
+    b.call_1a9f8=&original_game_over_1a9f8_mouse_reset;
+    b.call_1aacc=&original_game_over_1aacc_cursor_restore;
+    b.call_1a288=&original_game_over_1a288_cursor_redraw;
     return b;
 }
 void original_scene_cursor_capture(u32 dst,code2::s32 x,code2::s32 y,
@@ -2520,6 +2526,51 @@ void original_game_over_1ea78_page() noexcept {
     code2::Application43Boundary ui{};
     ui.call_1a510=&original_1fc14_source_page_handoff;
     code2::function_1ea78(current->machine,ui);
+}
+// Reuse the same retained source mouse/VGA graph already exercised by
+// 1A5B0 and 1A510. The original CODE.2 cursor state and image data
+// determine the page copies, capture, restore, hit test and redraw.
+// No offscreen buffer, mouse image or callback result is substituted.
+code2::Application35Boundary original_game_over_cursor_callbacks(
+    code2::Application33Boundary& video,
+    code2::Application34Boundary& mouse) noexcept {
+    if(!current || !current->live_continuation || !current->original_vga ||
+       current->original_20440_mouse_inits!=1u ||
+       !current->original_mouse_init_callbacks.call_33cb0 ||
+       !current->original_mouse_resources.call_30cd4)
+        stop("ORIGINAL_0CBC8_CURSOR_GRAPH_NOT_RETAINED");
+    video=current->original_mouse_resources;
+    video.call_2a020=&original_scene_copy_page;
+    video.call_30cd4=&original_scene_cursor_memory_copy;
+    mouse=current->original_mouse_init_callbacks;
+    mouse.app33=&video;
+    code2::Application35Boundary draw=current->original_mouse_draw_callbacks;
+    draw.app34=&mouse;
+    draw.call_2e590=&original_scene_page_push;
+    draw.call_2e5d4=&original_scene_page_pop;
+    draw.call_292bc=&original_scene_cursor_capture;
+    draw.call_2932c=&original_scene_cursor_restore;
+    draw.call_29804=&original_scene_pointer_sprite;
+    draw.call_2ae30=&original_20440_mouse_hit;
+    return draw;
+}
+void original_game_over_1a9f8_mouse_reset() noexcept {
+    code2::Application33Boundary video{};
+    code2::Application34Boundary mouse{};
+    auto callbacks=original_game_over_cursor_callbacks(video,mouse);
+    code2::function_1a9f8(current->machine,callbacks);
+}
+void original_game_over_1aacc_cursor_restore() noexcept {
+    code2::Application33Boundary video{};
+    code2::Application34Boundary mouse{};
+    auto callbacks=original_game_over_cursor_callbacks(video,mouse);
+    code2::function_1aacc(current->machine,callbacks);
+}
+void original_game_over_1a288_cursor_redraw() noexcept {
+    code2::Application33Boundary video{};
+    code2::Application34Boundary mouse{};
+    auto callbacks=original_game_over_cursor_callbacks(video,mouse);
+    code2::function_1a288(current->machine,callbacks);
 }
 // Uses the original 1A1F4 mouse-button poll, with the same retained
 // DOS INT33 state and genuine source 2F868 event pump as gameplay.
