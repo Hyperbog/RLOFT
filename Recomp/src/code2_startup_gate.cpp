@@ -16,6 +16,7 @@
 #include "original_code2_game_over_readiness.hpp"
 #include "original_code2_irq8_elapsed_scheduler.hpp"
 #include "original_code2_int08_vector_preflight.hpp"
+#include "original_code2_chars_file_access.hpp"
 #include "original_code2_live_level_files.hpp"
 #include "original_code2_saved_level_policy.hpp"
 #include "original_code2_checked_dos_seek.hpp"
@@ -1391,10 +1392,16 @@ u32 original_31218_host_access(u32 path,u32 raw_mode) noexcept {
        std::memcmp(current->data.data()+path,"CHARS",6u)!=0 ||
        current->original_installation_root.empty())
         stop("ORIGINAL_31218_CHARS_FILENAME_OR_MODE_CHANGED");
-    std::error_code ec;
-    const bool exists=std::filesystem::is_regular_file(
-        current->original_installation_root/"CHARS",ec);
-    if(ec)stop("ORIGINAL_31218_DOS_FILE_ACCESS_FAILED");
+    // std::filesystem::is_regular_file(path,ec) can report ENOENT in ec.
+    // The original DOS 37E39 access wrapper treats that as an ordinary
+    // missing-file result, not a fatal host failure.
+    const auto file=rloft::original_chars_access::probe(
+        current->original_installation_root);
+    if(file==rloft::original_chars_access::Outcome::HostError)
+        stop("ORIGINAL_31218_DOS_FILE_ACCESS_FAILED");
+    if(file==rloft::original_chars_access::Outcome::UnsupportedFileType)
+        stop("ORIGINAL_31218_CHARS_NOT_REGULAR_FILE");
+    const bool exists=file==rloft::original_chars_access::Outcome::Present;
     std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=31218_SOURCE_CHARS_FOUND_"
              <<(exists?"YES":"NO")<<"\n"<<std::flush;
     return exists?0u:1u; // original 37E39 OS status, 0=exists
@@ -1634,6 +1641,12 @@ void original_boot_03ea4(u32 slot,code2::s32 level) noexcept {
 }
 void original_boot_03de4(u32 slot,code2::s32 level) noexcept {
     code2::function_03de4(current->machine,slot,static_cast<u32>(level));
+}
+void original_19888_missing_chars_intro() noexcept {
+    // Original 20440 actually enters 19888 when CHARS is absent. The
+    // intro/cinematic/callback graph is not retained in this native host.
+    // Refuse it explicitly; never silently skip original initialization.
+    stop("ORIGINAL_20440_CHARS_MISSING_19888_INTRO_NOT_CONNECTED");
 }
 void original_16cd0_chars_load() noexcept {
     if(!current->live_continuation || current->original_03838_completed!=1u ||
@@ -4723,6 +4736,7 @@ void attach_original_vga(
     source.game.call_16d04=&original_16d04_after_dos_open;
     source.game.call_3838=&original_03838_sintab_load;
     source.game.call_16cd0=&original_16cd0_chars_load;
+    source.game.call_19888=&original_19888_missing_chars_intro;
     source.game.call_325b0=&original_325b0_live_palette;
     source.game.call_291b0=&original_291b0_boot_page;
     source.game.call_291c8=&original_291c8_boot_scanout;

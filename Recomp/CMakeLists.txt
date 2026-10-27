@@ -931,6 +931,21 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_int08_vector_lifecycle_test)
 endif()
 
+# Original 31218/37E39 DOS CHARS access and authentic 20440 branch.
+add_executable(rloft_original_code2_chars_access_test
+    src/test_original_code2_chars_file_access.cpp)
+set_target_properties(rloft_original_code2_chars_access_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_chars_access_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_chars_access_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_31218_chars_access_20440_branch
+        COMMAND rloft_original_code2_chars_access_test)
+endif()
+
 # Shared original-code clip/overlay source callbacks, independent of game level.
 add_executable(rloft_original_code2_source_clip_overlay_test
     src/test_original_code2_source_clip_overlay.cpp)

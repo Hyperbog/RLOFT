@@ -57,6 +57,12 @@ if(-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
 if(-not (Test-Path -LiteralPath (Join-Path $root 'CODE.2') -PathType Leaf)) {
   throw "Original CODE.2 not found at $root. Use -GameFolder to specify the original installation."
 }
+# The experimental Level22 host does not implement the source 19888
+# introductory/character-initialization branch when CHARS is absent.
+# Keep the owner's game data untouched; never generate a dummy party.
+if(-not (Test-Path -LiteralPath (Join-Path $root 'CHARS') -PathType Leaf)) {
+  throw "Original CHARS file is missing from $root. This experimental host requires an existing real CHARS file (original 0x920-byte party file). Run the original DOS game to establish your party, or select an original RLOFT folder that contains CHARS. No dummy CHARS file will be generated."
+}
 $private=$null
 try {
   if([string]::IsNullOrWhiteSpace($CdRoot)) {
