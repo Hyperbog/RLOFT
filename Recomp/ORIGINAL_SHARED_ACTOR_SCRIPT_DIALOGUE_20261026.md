@@ -34,6 +34,16 @@ The additional regression `test_original_code2_0d550_eligible_hit_source.cpp` ca
 
 Windows canonical [#40428870100](https://github.com/Hyperbog/RLOFT/actions/runs/40428870100) passed **100/100 CTests**. Windows comprehensive milestone [#40428870076](https://github.com/Hyperbog/RLOFT/actions/runs/40428870076) also **PASS**. The full acceptance ledger remains **3/12**; static callback wiring is **457**, not dynamic gameplay coverage.
 
+### Original combat miss, equipped modifiers and survivor death (2026-10-27 UTC)
+
+New source commits [`d8254a45`](https://github.com/Hyperbog/RLOFT/commit/d8254a45c4651618fed9078c65e3fc8100c99702), [`e7258471`](https://github.com/Hyperbog/RLOFT/commit/e7258471d784eec94ab2911fddd3eee599c165e5), [`6dd76160`](https://github.com/Hyperbog/RLOFT/commit/6dd761608145d2076626970d62755312f0f3b5d6), [`bfd47c28`](https://github.com/Hyperbog/RLOFT/commit/bfd47c28aa5e55c7ad42fca9e90c1ded92dba7bf).
+
+- **Equipment:** real `24478` hand-eligibility runs from both `0EFA0` source modifier callback sites after original guest item-table/record and both-hand checks. Mixed empty/equipped hands and nested containers remain guarded pending full `240A8/23E58` address-bound analysis.
+- **Survivor death:** the already verified type-15 `0CD44` damage adapter was lifted into a common source callback and reused by near attacks. Original `0AD24→0893C` cleanup is now reachable on a lethal hit only after verifying other party survival, class/name pointers, no pending timed-status dependencies, and source `0CBC8` non-entry. Actual whole-party `0CBC8` artwork/page/audio/modal controls remain unconnected; do not count these as game-over completion.
+- **Miss text:** original `0D550` calls reconstructed `3210F→385B0` using guest string bytes and the actor descriptor passed as its single variadic argument. A strictly validated bridge admits literal formatting and one unmodified `%s` only, and original `1C21C` stages the output and its time-based overlay flag. `%n`, width/precision, numeric/far and other `38BC1` format paths are not claimed. The source 385B0 parser/driver and 1C21C staging are compiled originals, with a bounded host ABI glue layer where the full printf conversion callback is still missing.
+
+The new and amended CTests use **synthetic guest fixtures** to assert source party HP/status/cleanup, original hand callback counts, original miss text and overlay deadlines, sound requests and preflight refusal of unsupported game-over or conversions. **No retail DOS synchronized combat parity or complete UI-frame display is established.** [Canonical source-link #40433361448](https://github.com/Hyperbog/RLOFT/actions/runs/40433361448) passed **101/101 registered CTests**; measured live callback wirings **462** (static only); 3/12 whole-game gates remain.
+
 ### Shared `002A8` gameplay-script dispatcher
 
 `src/test_original_code2_002a8_script_source.cpp` validates a five-command event descriptor using the same `original_code2_script_preflight.hpp` as the retained gameplay loop, then executes **compiled source `code2::function_002a8`**. It verifies original tile-word changes (opcode 4), original `1C124/1C1A0` bit updates (8/10), original `BF44` state (12), source `28110` sound dispatch (5), and all 50 script slot indices. A later unsupported opcode 7 is rejected **before** any earlier source opcode mutates the guest. Script opcode 7 modal UI and other side-effectful branches requiring additional callbacks stay blocked.
@@ -62,7 +72,7 @@ This verifies the **text decoding dependency** used by `1C77C`, **not** full mod
 
 ## Verified workflows and limits
 
-- [Canonical source-link #40426692610](https://github.com/Hyperbog/RLOFT/actions/runs/40426692610): **100/100 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
+- [Canonical source-link #40426692610](https://github.com/Hyperbog/RLOFT/actions/runs/40426692610): **101/101 CTests passed**, including the new three compiled-source actor/script/dialogue tests and the established shared rendering, world and DOS-service tests.
 - [Linux portable recomp #40426692479](https://github.com/Hyperbog/RLOFT/actions/runs/40426692479): **PASS**.
 - [Retained native saved-portal #40426692565](https://github.com/Hyperbog/RLOFT/actions/runs/40426692565): **PASS** after the shared gameplay changes.
 - [Windows player engineering build #40426692622](https://github.com/Hyperbog/RLOFT/actions/runs/40426692622): **PASS**.
