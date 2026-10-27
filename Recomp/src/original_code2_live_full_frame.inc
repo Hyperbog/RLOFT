@@ -994,7 +994,7 @@ void original_full_scene_sprite(
         u32 vertical_mode,u32 ray_depth) noexcept {
     if(!original_full_frame_trace || !current->original_vga ||
        current->original_03838_completed!=1u ||
-       current->original_181b4_completed!=1u)
+       !original_source_world_ready())
         stop("ORIGINAL_2C294_36CEC_RETAINED_GUEST_UNAVAILABLE");
     auto& trace=*original_full_frame_trace;
     ++trace.scene_sprite_calls;
