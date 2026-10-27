@@ -32,7 +32,7 @@ Code commits [`2b2446e`](https://github.com/Hyperbog/RLOFT/commit/2b2446e04d4899
 
 The additional regression `test_original_code2_0d550_eligible_hit_source.cpp` calls compiled `1BDAC` then original `0D550`. It checks a natural d20=20 success with original failed-saving-throw status flags, a d20=10 hit using original `0EFA0` modifiers, original `0CD44` nonlethal HP/timer accounting, actual `28110` source audio queue, and rejection of a would-be lethal case. This is synthetic guest-memory source verification, **not** retail DOS parity. Missing original `3210F/1C21C` miss-description rendering, equipped-hand `24478`, nested `0F5F8` contents, nontrivial `0E284` effects, lethal `0AD24` in this branch and `0CBC8` game-over remain gated.
 
-Windows canonical [#40428870100](https://github.com/Hyperbog/RLOFT/actions/runs/40428870100) passed **100/100 CTests**. The full acceptance ledger remains **3/12**; static callback wiring is **457**, not dynamic gameplay coverage.
+Windows canonical [#40428870100](https://github.com/Hyperbog/RLOFT/actions/runs/40428870100) passed **100/100 CTests**. Windows comprehensive milestone [#40428870076](https://github.com/Hyperbog/RLOFT/actions/runs/40428870076) also **PASS**. The full acceptance ledger remains **3/12**; static callback wiring is **457**, not dynamic gameplay coverage.
 
 ### Shared `002A8` gameplay-script dispatcher
 
