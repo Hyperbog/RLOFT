@@ -854,6 +854,22 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_combat_miss_text_test)
 endif()
 
+# Complete compiled original 0CBC8/0CADC game-over choreography, with
+# synthetic observer boundaries only. Not a live 0CBC8 host certification.
+add_executable(rloft_original_code2_0cbc8_source_sequence_test
+    src/test_original_code2_0cbc8_source_sequence.cpp)
+set_target_properties(rloft_original_code2_0cbc8_source_sequence_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_0cbc8_source_sequence_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_0cbc8_source_sequence_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_0cbc8_0cadc_source_game_over_sequence
+        COMMAND rloft_original_code2_0cbc8_source_sequence_test)
+endif()
+
 # Shared original-code clip/overlay source callbacks, independent of game level.
 add_executable(rloft_original_code2_source_clip_overlay_test
     src/test_original_code2_source_clip_overlay.cpp)
