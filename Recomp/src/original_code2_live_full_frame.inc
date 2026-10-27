@@ -560,6 +560,7 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
             current->data.data(),current->data.size(),actor,definition);
     if(!exhausted.accepted && !eligible.admitted)
         stop(eligible.reason);
+    bool predicted_miss=false;
     if(eligible.admitted) {
         code2::Application20Boundary mod{};
         mod.call_fe44=+[](u32 slot) noexcept -> u32 {
@@ -575,9 +576,15 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
         const code2::s32 threshold=
             static_cast<code2::s32>(current->data[definition+0x22u])-
             modifier+((current->data[actor+8u]&0x80u)!=0u?4:0);
-        if(eligible.d20==1u ||
-           (eligible.d20!=20u && static_cast<code2::s32>(eligible.d20)<threshold))
-            stop("ORIGINAL_0D550_HIT_MISS_TEXT_CALLBACK_PENDING");
+        predicted_miss=eligible.d20==1u ||
+            (eligible.d20!=20u &&
+             static_cast<code2::s32>(eligible.d20)<threshold);
+        if(predicted_miss) {
+            const u32 fmt=code2::load_le32(current->data.data()+0x67E0u);
+            const auto f=rloft::source_near_combat::miss_text(
+                current->data.data(),current->data.size(),fmt,definition);
+            if(!f.accepted)stop(f.reason);
+        }
     }
     if(!original_full_frame_trace || !current->game_audio.app68)
         stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
@@ -642,6 +649,63 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
             return code2::function_0cee4(current->machine,saving,slot);
         };
         source_near.call_cd44=&original_full_actor_source_damage;
+    }
+    if(predicted_miss) {
+        source_near.call_3210f=+[](u32 dst,u32 fmt,u32 name) noexcept {
+            if(dst!=0x759Cu)stop("ORIGINAL_3210F_MISS_BUFFER_MISMATCH");
+            const auto check=rloft::source_near_combat::miss_text(
+                current->data.data(),current->data.size(),fmt,name);
+            if(!check.accepted)stop(check.reason);
+            code2::Application78Boundary fmt_source{};
+            fmt_source.call_385b0=+[](u32 destination,u32 format,
+                                     const u32* varargs,u32) noexcept -> u32 {
+                code2::Runtime143Boundary source{};
+                source.emit=+[](u32 output,code2::u8 ch,u32& count) noexcept {
+                    if(std::uint64_t(output)+count+1u>=current->data.size())
+                        stop("ORIGINAL_385B0_MISS_EMIT_BOUNDS");
+                    current->data[output+count]=ch;
+                    ++count;
+                };
+                source.convert=+[](const code2::u8*& args,
+                                   code2::Runtime143FormatState& state,
+                                   u32& offset,code2::u16& selector) noexcept {
+                    if(state.conversion!='s' || state.flags!=0u ||
+                       state.width!=0u)
+                        stop("ORIGINAL_38BC1_MISS_CONVERSION_PENDING");
+                    offset=code2::load_le32(args);
+                    args+=4u; selector=0u;
+                    if(offset>=current->data.size())
+                        stop("ORIGINAL_38BC1_MISS_SOURCE_OUT_OF_BOUNDS");
+                    u32 n=0u;
+                    while(n<0x80u && std::uint64_t(offset)+n<
+                          current->data.size() &&
+                          current->data[offset+n]!=0u)++n;
+                    if(n>=0x80u || std::uint64_t(offset)+n>=current->data.size())
+                        stop("ORIGINAL_38BC1_MISS_SOURCE_UNTERMINATED");
+                    state.data_length=n;
+                };
+                source.read_far8=+[](code2::u16 sel,u32 offset) noexcept -> code2::u8 {
+                    if(sel!=0u || offset>=current->data.size())
+                        stop("ORIGINAL_385B0_MISS_GUEST_READ_INVALID");
+                    return current->data[offset];
+                };
+                const code2::u8* cursor=
+                    reinterpret_cast<const code2::u8*>(varargs);
+                return code2::function_385b0(
+                    source,current->data.data()+format,cursor,destination);
+            };
+            const u32 args[1]={name};
+            (void)code2::function_3210f(
+                current->machine,fmt_source,dst,fmt,args);
+        };
+        source_near.call_1c21c=+[](u32 src) noexcept {
+            if(src!=0x759Cu)stop("ORIGINAL_1C21C_MISS_TEXT_SOURCE");
+            code2::Application39Boundary text_source{};
+            text_source.call_30700=+[]() noexcept -> u32 {
+                return code2::function_30700(current->machine);
+            };
+            code2::function_1c21c(current->machine,text_source,src);
+        };
     }
     code2::function_0d550(
         current->machine,source_near,actor,definition,index);

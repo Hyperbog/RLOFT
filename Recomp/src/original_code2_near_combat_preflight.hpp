@@ -231,4 +231,36 @@ inline EligibleHit eligible_hit(const std::uint8_t* mem,std::size_t bytes,
     return {true,"ORIGINAL_0D550_0C9A0_ELIGIBLE_SOURCE_HIT",slot,die};
 }
 
+
+inline Validation miss_text(const std::uint8_t* mem,std::size_t bytes,
+                            std::uint32_t format,std::uint32_t descriptor) noexcept {
+    // Original 0D550 passes exactly one vararg (actor definition) to 3210F.
+    // Only literal bytes plus one plain %s are admitted until the complete
+    // 38BC1 numeric/far/precision conversion callback graph is connected.
+    if(!mem || format>=bytes || descriptor>=bytes ||
+       0x759Cu+0x200u>bytes || 0x14580u+0x200u>bytes)
+        return {false,"ORIGINAL_3210F_MISS_TEXT_POINTER_BOUNDS"};
+    std::size_t arglen=0u;
+    while(arglen<0x80u && std::uint64_t(descriptor)+arglen<bytes &&
+          mem[descriptor+arglen]!=0u)++arglen;
+    if(arglen==0x80u || std::uint64_t(descriptor)+arglen>=bytes)
+        return {false,"ORIGINAL_3210F_MISS_NAME_NOT_TERMINATED"};
+    std::size_t out=0u,formats=0u;
+    bool terminated=false;
+    for(std::size_t i=0u;i<0x180u && std::uint64_t(format)+i<bytes;++i) {
+        const std::uint8_t ch=mem[format+i];
+        if(ch==0u){terminated=true;break;}
+        if(ch=='%') {
+            if(std::uint64_t(format)+i+1u>=bytes ||
+               mem[format+i+1u]!='s' || formats++!=0u)
+                return {false,"ORIGINAL_3210F_FORMAT_CONVERSION_UNCONNECTED"};
+            ++i;
+            out+=arglen;
+        } else ++out;
+        if(out>=0x1FEu)
+            return {false,"ORIGINAL_3210F_MISS_TEXT_OUTPUT_TOO_LONG"};
+    }
+    return {terminated,"ORIGINAL_3210F_MISS_FORMAT_UNTERMINATED"};
+}
+
 }} // namespace rloft::source_near_combat
