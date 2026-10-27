@@ -3118,13 +3118,20 @@ void original_level_1f8e0_scene_mode(u32 mode) noexcept {
     // Compiled 1F8E0 executes its real source fall-through 1F8FC.
     // No host-authored palette or synthetic frame is substituted.
     original_full_prepare_1fc14_source_tick();
+    const unsigned pages_before=current->original_scene_presentations;
+    const unsigned streams_before=current->original_source_dac_streams;
+    const unsigned palette_before=current->original_325b0_completed;
     current->original_level_transition_active=true;
     code2::function_1f8e0(current->machine,current->presentation,mode);
     current->original_level_transition_active=false;
+    // This production source path uses actual Application45 callbacks;
+    // the separate one-shot frame tracer's background counter is not
+    // instrumented here. Check actual VGA/retail COLORS side effects.
     if(code2::load_le32(current->data.data()+0xC034u)!=mode ||
        current->data[0xCF58u]!=0u ||
-       !original_full_frame_trace ||
-       original_full_frame_trace->backgrounds!=2u)
+       current->original_scene_presentations!=pages_before+1u ||
+       current->original_source_dac_streams!=streams_before+1u ||
+       current->original_325b0_completed!=palette_before+1u)
         stop("ORIGINAL_181B4_1F8E0_SOURCE_MODE_SWITCH_DID_NOT_RENDER");
     ++current->original_level_scene_mode_calls;
     std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_1F8E0_MODE_SOURCE_SWITCH"
