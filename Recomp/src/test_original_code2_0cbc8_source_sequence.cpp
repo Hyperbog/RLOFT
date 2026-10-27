@@ -9,6 +9,7 @@
 #include <vector>
 namespace {
 using code2::u32;
+code2::Machine* source_guest=nullptr;
 struct Evidence {
     u32 scene=0,pages=0,modal=0,audio=0,reset=0,page_select=0;
     u32 pumps=0,arts=0,presents=0,music=0,delay=0;
@@ -74,7 +75,7 @@ code2::Application18Boundary callbacks() {
 int main() {
     try {
         std::vector<code2::u8> bytes(0x300000u,0u);
-        code2::Machine machine{};machine.data=bytes.data();
+        code2::Machine machine{};machine.data=bytes.data();source_guest=&machine;
         bytes[0xC050u]=1u;
         code2::store_le32(bytes.data()+0x258DCu,0x1000u);
         code2::store_le32(bytes.data()+0x258D0u,0x2000u);
@@ -109,10 +110,65 @@ int main() {
         check(ev.input==4u && ev.exit==1u &&
               ev.final_exit_code==0xCu,
               "original mouse release/press wait and exit diverged");
+        // Source integration: 0CD44 -> 0AD24 -> 0893C -> 0CCF4 ->
+        // 0CBC8 -> 0CADC. Observer callbacks record choreography only.
+        // Other members are genuinely flagged unavailable in guest memory.
+        std::fill(bytes.begin(),bytes.end(),0u);
+        ev=Evidence{};
+        bytes[0xC050u]=1u;
+        code2::store_le32(bytes.data()+0x258DCu,0x1000u);
+        code2::store_le32(bytes.data()+0x258D0u,0x2000u);
+        code2::store_le32(bytes.data()+0xA7E4u,0x400u);
+        code2::store_le16(bytes.data()+0x218F0u,0x0080u);
+        code2::store_le16(bytes.data()+0x218FCu,2u);
+        bytes[0x218E0u]='A';
+        bytes[0x578u]='A';
+        for(u32 slot=1;slot<4u;++slot)
+            code2::store_le16(bytes.data()+0x218F0u+slot*0x248u,0xD040u);
+        auto fatal=callbacks();
+        fatal.call_19cc4=+[]() noexcept ->u32 {return 0x400u;};
+        fatal.call_0ad24=+[](code2::s32 selected) noexcept {
+            // This observer uses the original cleanup, not a fake return.
+            if(selected!=0)std::terminate();
+            code2::Application16Boundary cleanup{};
+            cleanup.call_0893c=+[]() noexcept {
+                // All members have empty timed-effect records here;
+                // the original sweep still executes and must return.
+                code2::Application12Boundary timers{};
+                timers.call_19cc4=+[]() noexcept ->u32{return 0x400u;};
+                code2::function_0893c(*source_guest,timers);
+            };
+            code2::function_0ad24(*source_guest,cleanup,selected);
+        };
+        fatal.call_14a60=+[](u32 token) noexcept ->u32 {
+            code2::Application27Boundary select{};
+            select.call_27c70=+[](u32 lhs,u32 rhs) noexcept ->u32 {
+                return static_cast<u32>(
+                    code2::function_27c70(*source_guest,lhs,rhs));
+            };
+            return static_cast<u32>(
+                code2::function_14a60(*source_guest,select,token));
+        };
+        fatal.call_1c1dc=+[](u32 id) noexcept ->u32 {
+            return code2::function_1c1dc(*source_guest,id);
+        };
+        check(rloft::source_game_over::validate(
+            fatal,bytes.data(),bytes.size()).ready,
+            "source lethal callback matrix incomplete");
+        code2::function_0cd44(machine,fatal,0u,3u);
+        check(code2::load_le16(bytes.data()+0x218FCu)==0u &&
+              (bytes[0x218F1u]&0x40u)!=0u &&
+              code2::load_le32(bytes.data()+0x21A92u)==3u &&
+              code2::load_le32(bytes.data()+0x21A86u)==0x436u,
+              "original lethal HP/status/timer data differs");
+        check(ev.scene==1u && ev.arts==9u && ev.copies==32000u &&
+              ev.allocs==1u && ev.frees==1u &&
+              ev.input==4u && ev.exit==1u && ev.final_exit_code==0xCu,
+              "actual 0CD44 did not enter original game-over compositor");
         std::cout<<"ORIGINAL_0CBC8_0CADC_SOURCE_SEQUENCE_PASS"
                  <<" real_source=YES synthetic_callbacks=YES"
                  <<" original_artwork_sequence=YES"
-                 <<" original_transition=YES source_wait=YES"
+                 <<" original_transition=YES original_0CD44_chain=YES source_wait=YES"
                  <<" live_host=NOT_CONNECTED retail_DOS_parity=NOT_CERTIFIED\n";
         return 0;
     }catch(const std::exception& e){
