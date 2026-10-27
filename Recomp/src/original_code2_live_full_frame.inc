@@ -548,14 +548,29 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
     // A source-proven no-hit branch: every possible slot is rejected by
     // compiled original 0D4E8. No invented target selection or combat return.
     // Other near actions still fail closed before original 0D550 can mutate.
-    const auto validated=rloft::source_near_combat::exhausted_targets(
+    const auto exhausted=rloft::source_near_combat::exhausted_targets(
         current->data.data(),current->data.size(),actor,definition);
-    if(!validated.accepted) {
-        std::cerr<<"ORIGINAL_1BDAC_0D550_NEAR_OPEN actor="<<actor
-                 <<" definition="<<definition<<" index="<<index
-                 <<" type="<<type<<" reason="<<validated.reason
-                 <<"\n"<<std::flush;
-        stop(validated.reason);
+    // A second admitted branch reaches original 0C9A0, 0EFA0 and 0CD44.
+    // 0EFA0/0FE44 are read-only original calculations on source state.
+    const auto eligible=exhausted.accepted
+        ? rloft::source_near_combat::EligibleHit{false,"SOURCE_NO_HIT_NEEDED",0u,0u}
+        : rloft::source_near_combat::eligible_hit(
+            current->data.data(),current->data.size(),actor,definition);
+    if(!exhausted.accepted && !eligible.admitted)
+        stop(eligible.reason);
+    if(eligible.admitted) {
+        code2::Application20Boundary mod{};
+        mod.call_fe44=+[](u32 slot) noexcept -> u32 {
+            return code2::function_0fe44(current->machine,slot);
+        };
+        const code2::s32 modifier=eligible.d20==1u || eligible.d20==20u
+            ? 0 : code2::function_0efa0(current->machine,mod,eligible.slot);
+        const code2::s32 threshold=
+            static_cast<code2::s32>(current->data[definition+0x22u])-
+            modifier+((current->data[actor+8u]&0x80u)!=0u?4:0);
+        if(eligible.d20==1u ||
+           (eligible.d20!=20u && static_cast<code2::s32>(eligible.d20)<threshold))
+            stop("ORIGINAL_0D550_HIT_MISS_TEXT_CALLBACK_PENDING");
     }
     if(!original_full_frame_trace || !current->game_audio.app68)
         stop("ORIGINAL_0D550_NEAR_SOUND_QUEUE_NOT_READY");
@@ -582,9 +597,54 @@ void original_full_actor_0d550(u32 actor,u32 definition,u32 index) noexcept {
         code2::function_28110(
             current->machine,request,aux,channel,priority);
     };
+    if(eligible.admitted) {
+        source_near.call_14a60=+[](u32 token) noexcept -> u32 {
+            code2::Application27Boundary names{};
+            names.call_27c70=+[](u32 lhs,u32 rhs) noexcept -> u32 {
+                return static_cast<u32>(
+                    code2::function_27c70(current->machine,lhs,rhs));
+            };
+            return static_cast<u32>(
+                code2::function_14a60(current->machine,names,token));
+        };
+        source_near.call_1c328=&original_level_actor_roll;
+        source_near.call_c9a0=+[](u32 slot,u32 descriptor,u32 record) noexcept -> u32 {
+            code2::Application18Boundary hit{};
+            hit.call_1c328=&original_level_actor_roll;
+            hit.call_efa0=+[](u32 member) noexcept -> code2::s32 {
+                code2::Application20Boundary modifiers{};
+                modifiers.call_fe44=+[](u32 target) noexcept -> u32 {
+                    return code2::function_0fe44(current->machine,target);
+                };
+                return code2::function_0efa0(
+                    current->machine,modifiers,member);
+            };
+            return code2::function_0c9a0(
+                current->machine,hit,slot,descriptor,record);
+        };
+        source_near.call_cee4=+[](u32 slot) noexcept -> u32 {
+            if(slot>=4u)stop("ORIGINAL_0CEE4_NEAR_SLOT_INVALID");
+            code2::Application18Boundary saving{};
+            saving.call_1c328=&original_level_actor_roll;
+            return code2::function_0cee4(current->machine,saving,slot);
+        };
+        source_near.call_cd44=+[](u32 slot,u32 damage) noexcept {
+            if(slot>=4u)stop("ORIGINAL_0CD44_NEAR_SLOT_INVALID");
+            const u32 hp=code2::load_le16(
+                current->data.data()+0x218FCu+slot*0x248u);
+            if(damage>=hp || static_cast<code2::s16>(hp)<=0)
+                stop("ORIGINAL_0CD44_NEAR_LETHAL_LIFECYCLE_PENDING");
+            code2::Application18Boundary damages{};
+            damages.call_19cc4=+[]() noexcept -> u32 {
+                return code2::function_19cc4(current->machine);
+            };
+            code2::function_0cd44(current->machine,damages,slot,damage);
+        };
+    }
     code2::function_0d550(
         current->machine,source_near,actor,definition,index);
-    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_NEAR_EXHAUSTED"
+    std::cerr<<"CODE2_ORIGINAL_LIVE_GAMEPLAY=1BDAC_0D550_NEAR_"
+             <<(eligible.admitted?"ELIGIBLE_HIT":"EXHAUSTED")
              <<" actor="<<actor<<" definition="<<definition
              <<" index="<<index
              <<" original_target_predicate=0D4E8"
