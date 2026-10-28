@@ -50,6 +50,45 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
           sparse-checkout-cone-mode: false
           persist-credentials: false
+      - name: Require original source-selected 07938 saved-level initial native frame
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          $slot = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
+          $exe = (Resolve-Path "build/retained07938/Debug/rloft_code2_level22_window.exe").Path
+          $info = [Diagnostics.ProcessStartInfo]::new()
+          $info.FileName = $exe
+          $info.UseShellExecute = $false
+          $info.CreateNoWindow = $true
+          $info.RedirectStandardOutput = $true
+          $info.RedirectStandardError = $true
+          foreach ($arg in @('--root',$root,'--cd-root',$cd,'--smoke-save',$slot)) {
+            [void]$info.ArgumentList.Add($arg)
+          }
+          $p = [Diagnostics.Process]::Start($info)
+          $out = $p.StandardOutput.ReadToEndAsync()
+          $err = $p.StandardError.ReadToEndAsync()
+          try {
+            $exited = $p.WaitForExit(90000)
+            if (-not $exited) {
+              $p.Kill($true)
+              $p.WaitForExit()
+            }
+            $joined = @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()) -join "`n"
+            $restored = $joined -match 'CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_SAVED_LEVEL_RESTORE_PASS level=23 '
+            $frame = $joined -match 'CODE2_07938_RETAINED_SAVED_LEVEL_1FC14_30B40_FULL_FRAME_PASS source_saved_restore=YES original_level=23 '
+            Write-Host "SOURCE_SELECTED_SAVE_FRAME restored=$restored frame=$frame exited=$exited code=$($p.ExitCode)"
+            if (-not $exited -or $p.ExitCode -ne 0 -or -not $restored -or -not $frame) {
+              @($joined -split "`r?`n" | Where-Object {
+                $_ -match 'SOURCE_STOP|NATIVE_HOST_FAIL|07938|181B4|1FC14'
+              }) | Select-Object -Last 35 | ForEach-Object { Write-Host $_ }
+              throw "Original source-selected native saved-game frame not proven"
+            }
+          } finally {
+            $p.Dispose()
+          }
       - name: Require original retained Level23 restoration and native portal framebuffer
         shell: pwsh
         timeout-minutes: 3
