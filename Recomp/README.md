@@ -2,7 +2,9 @@
 
 **Active branch:** [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) (case-sensitive). This is the reconstructed original DOS CODE.1/CODE.2 workstream, distinct from `demo-v1` and from `DnD-Classics`, which preserves the original game files.
 
-## Current status — 2026-10-26 UTC
+## Current status — 2026-10-28 UTC
+
+**Part 35: original saved-world generalization and Windows input — verified.** The compiled `07938 → 181B4 → 1FC14` chain now accepts the authentic destination level from `SAVE.DAT` and its matching `LEVnnn.DAT`; the host no longer restricts saved restores to Level23. [Strict native Windows #40610693547](https://github.com/Hyperbog/RLOFT/actions/runs/40610693547) passed **both original Level22 and Level23 saved-world restoration through real source VGA frames**, and retained the exact original Level23 → 26 → 23 portal regression. Native Windows now queues ordinary BIOS-style keyboard input and supplies physical mouse position/buttons on genuine original INT33 function-3 reads while preserving the same guest worker. [Windows canonical #40610431758](https://github.com/Hyperbog/RLOFT/actions/runs/40610431758) passed **107/107 CTests** and [Windows Build #108](https://github.com/Hyperbog/RLOFT/actions/runs/40610431778) compiled and packaged. Mouse callback IRQ delivery, interactive combat/menu/dialogue, retail DOS parity and all-level gameplay are **not accepted**. See [Part35 source/input continuity](PART35_SOURCE_SAVES_AND_PHYSICAL_INPUT_20261027.md). Acceptance stays **3/12**.
 
 **Part 41 retained INT 08h lifecycle (2026-10-27 UTC):** New original-source vector preflight checks the complete compiled `30BB4 → 30708 → 30C38` install, handler and restore contract, rejects an unimplemented predecessor-chain service, and attaches a per-retained-guest elapsed scheduler to the already existing `2F868` event pump. Compiled original `2E614` is wired as a **fail-closed** game-over timing callback; the scheduler is **not armed** because the retail timer cadence, DOS predecessor handler, and active `19C80` service are not authenticated. The new source test checks vector order, saved memory, source hook/chain ordering, CPU restoration and proper revocation after restore. [Windows canonical #40442379550](https://github.com/Hyperbog/RLOFT/actions/runs/40442379550) **106/106 CTests PASS**; [Linux portable #40442379559](https://github.com/Hyperbog/RLOFT/actions/runs/40442379559) **PASS**, [Windows engineering package #40442379687](https://github.com/Hyperbog/RLOFT/actions/runs/40442379687) **PASS** at code [`2b8a470b`](https://github.com/Hyperbog/RLOFT/commit/2b8a470bcb7f273cd2e5ed9d7631c1680f041e6a). An earlier superseded implementation `fbab6ada` failed the comprehensive Windows milestone because its new test referenced nonexistent `CpuState::eip`; corrected test uses `esp`. Full-party defeat, Miles active music and original `205B4` production teardown remain guarded. The acceptance ledger is still **3/12**; this is not DOS hardware parity.
 
@@ -55,12 +57,12 @@ Extract the **whole** engineering package. Supply your own original GOG `RLOFT` 
 ```powershell
 .\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT'
 .\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT' -Smoke
-.\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT' -CdRoot 'C:\Games\CD_Extracted\RLOFT' -SavedLevel23Folder 'C:\Saves\SAVE01'
+.\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT' -CdRoot 'C:\Games\CD_Extracted\RLOFT' -SavedLevelFolder 'C:\Saves\SAVE01'
 ```
 
 For a **strict** experimental Level 23 → 26 → 23 portal check, add `-SavedPortalSmoke`. The authentic `07938 → 181B4` no-departing-level sentinel now works; a passing restored Level 23 frame is not proof of the later portal. Require the strict workflow's explicit native full-cycle marker and zero exit code before claiming acceptance. The saved-game slot must contain unchanged `SAVE.DAT` and `LEV023.DAT`. No original game files, retail saves or `WORK` paths are rewritten. Original source guest and indexed VGA buffers remain private to the owner.
 
-**Controls:** W/S move forward/backward; A/D strafe; J/L and left/right arrows rotate; Esc quits. Windows-translated keyboard input is not certified physical DOS IRQ9 parity. Fully playable cross-level rendering, Miles AIL audio, all scripted events and independent DOS frame synchronization are open work.
+**Controls:** W/S move forward/backward; A/D strafe; J/L and left/right arrows rotate. Other supported BIOS-style keypresses, including Esc, are delivered to the original guest through a bounded queue. Alt+F4 closes the Windows host; mouse coordinates and left/right button state are supplied to original INT33 position polls when requested. Windows keyboard/mouse translation is **not** certified physical DOS IRQ9/callback parity; actual menu, combat and mouse-click actions still require gameplay verification. Fully playable cross-level rendering, Miles AIL audio, all scripted events and independent DOS frame synchronization remain open.
 
 ## Repository organization
 
