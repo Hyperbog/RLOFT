@@ -2135,9 +2135,12 @@ u32 original_20440_mouse_hit(code2::s32 x,code2::s32 y) noexcept {
 }
 void original_20440_mouse_draw(u32 frame,code2::s32 x,
                                code2::s32 y,u32 image) noexcept {
+    // Original 1A288 draws the resource-backed cursor (880D) and,
+    // when holding an item, its separately decoded sprite (8603).
+    // Both use the same compiled 29804 and original VGA clip path.
     if(!current->original_vga ||
        current->original_20440_mouse_capture_calls==0u ||
-       image!=0x880Du)
+       (image!=0x880Du && image!=0x8603u))
         stop("ORIGINAL_1A288_CURSOR_SPRITE_DRAW_OUT_OF_ORDER");
     try {
         rloft::source_video_boot::Bridge bridge(
