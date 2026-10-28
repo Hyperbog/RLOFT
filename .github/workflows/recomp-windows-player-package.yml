@@ -36,6 +36,68 @@ jobs:
         run: |
           cmake --build build/player --config Debug --parallel 2 --target rloft_code2_level22_window rloft_gog_cd_extract
           if ($LASTEXITCODE -ne 0) { throw "Native source host or extractor compilation failed" }
+      - name: Sparse-checkout original owner media for mandatory native gameplay regression
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-media
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/RLOFT
+            MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES9
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Require real source F590 keys, two saved-world frames, and original portal cycles before shipping
+        shell: pwsh
+        timeout-minutes: 6
+        run: |
+          # A successful MSVC compile is not a working player. Test this
+          # exact executable against original unmodified source media.
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          $saved23 = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01").Path
+          $saved22 = (Resolve-Path (Join-Path $root 'SAVE01')).Path
+          $exe = (Resolve-Path "build/player/Debug/rloft_code2_level22_window.exe").Path
+          $cases = @(
+            @{ mode='--smoke'; slot=''; witness='RLOFT_LEVEL22_NATIVE_HOST_SMOKE_PASS' },
+            @{ mode='--smoke-key-map'; slot=''; witness='RLOFT_30B40_F590_PHYSICAL_KEY_SOURCE_PASS' },
+            @{ mode='--smoke-save'; slot=$saved22; witness='CODE2_07938_RETAINED_SAVED_LEVEL_1FC14_30B40_FULL_FRAME_PASS source_saved_restore=YES original_level=22 ' },
+            @{ mode='--smoke-save'; slot=$saved23; witness='CODE2_07938_RETAINED_SAVED_LEVEL_1FC14_30B40_FULL_FRAME_PASS source_saved_restore=YES original_level=23 ' },
+            @{ mode='--smoke-portal'; slot=''; witness='RLOFT_2D3D8_AUTHENTIC_PORTAL_NATIVE_SMOKE_PASS' }
+          )
+          foreach ($test in $cases) {
+            $info = [Diagnostics.ProcessStartInfo]::new()
+            $info.FileName = $exe
+            $info.UseShellExecute = $false
+            $info.CreateNoWindow = $true
+            $info.RedirectStandardOutput = $true
+            $info.RedirectStandardError = $true
+            $argsList = @('--root',$root,'--cd-root',$cd,$test.mode)
+            if ($test.slot) { $argsList += $test.slot }
+            foreach ($arg in $argsList) { [void]$info.ArgumentList.Add($arg) }
+            $p = [Diagnostics.Process]::Start($info)
+            $out = $p.StandardOutput.ReadToEndAsync()
+            $err = $p.StandardError.ReadToEndAsync()
+            try {
+              $exited = $p.WaitForExit(90000)
+              if (-not $exited) {
+                $p.Kill($true)
+                $p.WaitForExit()
+              }
+              $all = @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()) -join "`n"
+              $passed = $exited -and $p.ExitCode -eq 0 -and $all.Contains($test.witness)
+              Write-Host "RLOFT_PLAYER_NATIVE_GATE mode=$($test.mode) slot=$($test.slot) passed=$passed exit=$($p.ExitCode)"
+              if (-not $passed) {
+                @($all -split "`r?`n" | Where-Object {
+                  $_ -match 'SOURCE_STOP|NATIVE_HOST_FAIL|PHYSICAL_SCAN|07938|PORTAL|F590|FAIL'
+                }) | Select-Object -Last 40 | ForEach-Object { Write-Host $_ }
+                throw "Native original source player acceptance failed: $($test.mode)"
+              }
+            } finally {
+              $p.Dispose()
+            }
+          }
       - name: Package only source executables and scripts
         shell: pwsh
         run: |
