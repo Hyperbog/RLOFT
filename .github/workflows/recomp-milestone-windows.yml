@@ -945,12 +945,11 @@ jobs:
           } finally {
             $process.Dispose()
           }
-      - name: Probe genuine original CODE2 23-26-23 portal and resumed 1FC14 VGA
-        # Separate acceptance: an actual post-portal VGA frame is not
-        # certified by the 92/92 regression suite or saved-level loader.
-        # Keep the existing Level22 milestone deliverable intact when
-        # an unconnected source dependency causes this frontier to stop.
-        continue-on-error: true
+      - name: Require genuine original CODE2 23-26-23 portal and resumed 1FC14 VGA
+        # Mandatory native original-source transition acceptance. An
+        # authenticated saved-level fixture alone cannot replace actual
+        # resumed 1FC14 rendering on a separately initialized guest.
+        # The source code must return normally on all three levels.
         shell: pwsh
         timeout-minutes: 4
         run: |
