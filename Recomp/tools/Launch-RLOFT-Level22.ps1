@@ -5,7 +5,9 @@ param(
  [switch]$Smoke,
  [switch]$ExperimentalPortals,
  [string]$SavedLevel23Folder = "",
+ [string]$SavedLevelFolder = "",
  [switch]$SavedPortalSmoke,
+ [switch]$SavedFirstFrameSmoke,
  [string]$CdRoot = ""
 )
 Set-StrictMode -Version Latest
@@ -90,18 +92,29 @@ try {
     $env:RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS='1'
     Write-Warning 'Live portal traversal is EXPERIMENTAL. Back up your saves; this host never writes the retail WORK directory.'
   }
-  if(-not [string]::IsNullOrWhiteSpace($SavedLevel23Folder)) {
-    $slot=[IO.Path]::GetFullPath($SavedLevel23Folder)
-    if(-not (Test-Path -LiteralPath (Join-Path $slot 'SAVE.DAT') -PathType Leaf) -or
-       -not (Test-Path -LiteralPath (Join-Path $slot 'LEV023.DAT') -PathType Leaf)) {
-      throw 'Saved Level23 folder must contain untouched SAVE.DAT and LEV023.DAT.'
+  if(-not [string]::IsNullOrWhiteSpace($SavedLevelFolder) -and
+     -not [string]::IsNullOrWhiteSpace($SavedLevel23Folder)) {
+    throw 'Specify one saved-slot folder, not both -SavedLevelFolder and -SavedLevel23Folder.'
+  }
+  $selectedSlot = if(-not [string]::IsNullOrWhiteSpace($SavedLevelFolder)) {
+    $SavedLevelFolder
+  } else {
+    $SavedLevel23Folder
+  }
+  if(-not [string]::IsNullOrWhiteSpace($selectedSlot)) {
+    $slot=[IO.Path]::GetFullPath($selectedSlot)
+    if(-not (Test-Path -LiteralPath (Join-Path $slot 'SAVE.DAT') -PathType Leaf)) {
+      throw 'Saved-game folder must contain the original SAVE.DAT.'
     }
-    if($Smoke) { throw '-Smoke is a Level22-only fixture. Use -SavedPortalSmoke for Level23.' }
-    $sourceMode=if($SavedPortalSmoke){'--smoke-save23'}else{'--load-save23'}
-    Write-Host "Authentic original Level23 save restore: $slot (source 07938)."
+    if($Smoke) { throw '-Smoke tests the initial Level22 state. Use -SavedFirstFrameSmoke for a saved game.' }
+    if($SavedPortalSmoke -and $SavedFirstFrameSmoke) {
+      throw 'Choose -SavedPortalSmoke or -SavedFirstFrameSmoke, not both.'
+    }
+    $sourceMode=if($SavedPortalSmoke){'--smoke-save23'}elseif($SavedFirstFrameSmoke){'--smoke-save'}else{'--load-save'}
+    Write-Host "Restoring source-selected original saved level through CODE.2 07938: $slot"
     & $exe --root $root --cd-root $sourceCd $sourceMode $slot
-  } elseif($SavedPortalSmoke) {
-    throw '-SavedPortalSmoke requires -SavedLevel23Folder.'
+  } elseif($SavedPortalSmoke -or $SavedFirstFrameSmoke) {
+    throw 'Saved-game smoke modes require -SavedLevelFolder or -SavedLevel23Folder.'
   } elseif($Smoke) {
     & $exe --root $root --cd-root $sourceCd --smoke
   } else {
