@@ -23,6 +23,7 @@
 #include <vector>
 #include <algorithm>
 #include <atomic>
+#include <array>
 #include <chrono>
 #include <mutex>
 #include <thread>
@@ -44,6 +45,13 @@ struct LiveWindow final {
     std::mutex frame_lock;
     std::thread gameplay_worker;
     std::atomic<std::uint32_t> key_mask{0u};
+    // Non-movement keys are one-shot BIOS key presses. Queue them until
+    // the original source 30B40 poll so short user taps are not lost to
+    // long actor/raster frames on the retained guest worker.
+    std::mutex key_event_lock;
+    std::array<std::uint16_t,64u> key_events{};
+    std::size_t key_event_read=0u,key_event_write=0u,key_event_count=0u;
+    unsigned dropped_key_events=0u;
     // Physical mouse input is sampled on the UI thread and published as
     // one coherent INT33 button/X/Y snapshot for the source worker.
     // Packed: bits 32..33=buttons, 16..31=X, 0..15=Y.
@@ -102,15 +110,65 @@ struct LiveWindow final {
         return game->guest->memory.data();
     }
     static std::uint32_t key_scan(int vkey) noexcept {
+        // BIOS INT16 AH=00 key: AH=keyboard scan, AL=ASCII. Preserve
+        // original W/S/A/D/J/L movement aliases separately below.
+        static constexpr std::uint8_t alpha_scan[26]={
+            0x1Eu,0x30u,0x2Eu,0x20u,0x12u,0x21u,0x22u,0x23u,
+            0x17u,0x24u,0x25u,0x26u,0x32u,0x31u,0x18u,0x19u,
+            0x10u,0x13u,0x1Fu,0x14u,0x16u,0x2Fu,0x11u,0x2Du,
+            0x15u,0x2Cu};
+        if(vkey>='A' && vkey<='Z') {
+            const auto index=static_cast<unsigned>(vkey-'A');
+            return (std::uint32_t(alpha_scan[index])<<8u)|
+                   static_cast<std::uint32_t>(vkey-'A'+'a');
+        }
+        if(vkey>='1' && vkey<='9')
+            return (static_cast<std::uint32_t>(vkey-'1'+2)<<8u)|
+                   static_cast<std::uint32_t>(vkey);
+        if(vkey=='0')return 0x0B30u;
+        if(vkey>=VK_F1 && vkey<=VK_F10)
+            return static_cast<std::uint32_t>(vkey-VK_F1+0x3B)<<8u;
         switch(vkey){
-        case 'W':case VK_UP:return 0x148u;
-        case 'S':case VK_DOWN:return 0x150u;
-        case 'A':return 0x14Bu;
-        case 'D':return 0x14Du;
-        case 'J':case VK_LEFT:return 0x147u;
-        case 'L':case VK_RIGHT:return 0x149u;
+        case VK_ESCAPE:return 0x011Bu;
+        case VK_BACK:return 0x0E08u;
+        case VK_TAB:return 0x0F09u;
+        case VK_RETURN:return 0x1C0Du;
+        case VK_SPACE:return 0x3920u;
+        case VK_HOME:return 0x4700u;
+        case VK_PRIOR:return 0x4900u;
+        case VK_END:return 0x4F00u;
+        case VK_NEXT:return 0x5100u;
+        case VK_INSERT:return 0x5200u;
+        case VK_DELETE:return 0x5300u;
         default:return 0u;
         }
+    }
+    void queue_key(std::uint32_t scan) noexcept {
+        if(!scan || scan>0xFFFFu)return;
+        std::lock_guard<std::mutex> guard(key_event_lock);
+        if(key_event_count==key_events.size()) {
+            ++dropped_key_events;
+            return;
+        }
+        key_events[key_event_write]=static_cast<std::uint16_t>(scan);
+        key_event_write=(key_event_write+1u)%key_events.size();
+        ++key_event_count;
+    }
+    std::uint32_t next_keyboard_scan() noexcept {
+        {
+            std::lock_guard<std::mutex> guard(key_event_lock);
+            if(key_event_count) {
+                const auto scan=key_events[key_event_read];
+                key_event_read=(key_event_read+1u)%key_events.size();
+                --key_event_count;
+                return scan;
+            }
+        }
+        return held_scan();
+    }
+    void clear_input_queue() noexcept {
+        std::lock_guard<std::mutex> guard(key_event_lock);
+        key_event_read=key_event_write=key_event_count=0u;
     }
     static unsigned key_slot(WPARAM key) noexcept {
         switch(key) {
@@ -258,7 +316,7 @@ struct LiveWindow final {
     void worker_loop() {
         while(!quit_requested.load(std::memory_order_acquire) && !failed) {
             const auto started=std::chrono::steady_clock::now();
-            tick(held_scan());
+            tick(next_keyboard_scan());
             while(!failed && !quit_requested.load(std::memory_order_acquire) &&
                   std::chrono::steady_clock::now()-started<kFrameInterval)
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
@@ -276,16 +334,24 @@ struct LiveWindow final {
         if(!self)return DefWindowProcA(window,msg,wp,lp);
         switch(msg){
         case WM_KEYDOWN:case WM_SYSKEYDOWN:
-            if(wp==VK_ESCAPE){DestroyWindow(window);return 0;}
+            // Let Windows handle Alt+F4 and other system shortcuts.
+            // Escape itself belongs to the original game, not the host.
+            if(msg==WM_SYSKEYDOWN)
+                return DefWindowProcA(window,msg,wp,lp);
             if(const auto slot=key_slot(wp);slot<6u)
                 self->key_mask.fetch_or(1u<<slot,std::memory_order_release);
+            else if((lp&(1ll<<30u))==0)
+                self->queue_key(key_scan(static_cast<int>(wp)));
             return 0;
         case WM_KEYUP:case WM_SYSKEYUP:
+            if(msg==WM_SYSKEYUP)
+                return DefWindowProcA(window,msg,wp,lp);
             if(const auto slot=key_slot(wp);slot<6u)
                 self->key_mask.fetch_and(~(1u<<slot),std::memory_order_release);
             return 0;
         case WM_KILLFOCUS:
             self->key_mask.store(0u,std::memory_order_release);
+            self->clear_input_queue();
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
             return 0;
         case WM_CAPTURECHANGED:
@@ -386,6 +452,7 @@ struct LiveWindow final {
                  <<" camera_displacements="<<source_displacements
                  <<" heading_rotations="<<source_rotations
                  <<" stopped="<<failed
+                 <<" dropped_host_key_events="<<dropped_key_events
                  <<" source=ORIGINAL_1FC14_2E120_2DBAC"
                  <<" dos_irq9=NOT_CERTIFIED"
                  <<" retail_indexed_frame_parity=OPEN\n";
