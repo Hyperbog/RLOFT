@@ -1475,7 +1475,7 @@ u32 original_30b40_keyboard_poll() noexcept {
        current->original_03838_completed!=1u ||
        current->original_16cd0_completed!=1u ||
        current->original_181b4_completed!=1u ||
-       current->original_325b0_completed!=(rendered_frame?2u:1u) ||
+       current->original_325b0_completed!=(rendered_frame?2u+mode_switches:1u) ||
        current->original_boot_output_page_selects!=1u ||
        current->original_boot_scanout_page_selects!=1u ||
        current->original_20440_res_image_loads!=1u ||
@@ -1494,7 +1494,27 @@ u32 original_30b40_keyboard_poll() noexcept {
        (current->original_live_level_transitions==0u &&
         code2::load_le32(current->data.data()+0xBF44u)!=0x270Fu) ||
        code2::load_le32(current->data.data()+0xA7E8u)!=1u)
+    {
+        // The original guest remains untouched when this evidence fails.
+        std::cerr<<"CODE2_ORIGINAL_30B40_REAL_OWNER_STATE"
+                 <<" level="<<code2::load_le32(current->data.data()+0xC6C8u)
+                 <<" 181B4="<<current->original_181b4_completed
+                 <<" transitions="<<current->original_live_level_transitions
+                 <<" mode_switches="<<mode_switches
+                 <<" frames="<<current->original_scene_presentations
+                 <<" expected_frames="<<expected_presentations
+                 <<" palettes="<<current->original_325b0_completed
+                 <<" expected_palettes="<<(rendered_frame?2u+mode_switches:1u)
+                 <<" dac="<<current->original_source_dac_streams
+                 <<" expected_dac="<<expected_dac_streams
+                 <<" pages_push="<<current->original_source_page_pushes
+                 <<" pages_pop="<<current->original_source_page_pops
+                 <<" mouse_draw="<<current->original_20440_mouse_draws
+                 <<" BF44="<<code2::load_le32(current->data.data()+0xBF44u)
+                 <<" A7E8="<<code2::load_le32(current->data.data()+0xA7E8u)
+                 <<" original_guest=RETAINED\n"<<std::flush;
         stop("LIVE_ORIGINAL_1FC14_KEYBOARD_ENTRY_PREREQUISITES");
+    }
     if(const char* source=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
        source && std::strcmp(source,"1")==0)
         original_full_audit_1fc14_previous_tick();
