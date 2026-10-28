@@ -931,6 +931,23 @@ if(BUILD_TESTING)
         COMMAND rloft_original_code2_int08_vector_lifecycle_test)
 endif()
 
+# Compiled original CODE.2 IRQ9 308F8 set-1 keyboard: source make/break,
+# 30BB4 vector, F590 translation, original held arrows and modifier flags.
+# Synthetic guest/ports; source logic is exact, retail DOS ISR timing is open.
+add_executable(rloft_original_code2_irq9_physical_source_test
+    src/test_original_code2_irq9_physical_source.cpp)
+set_target_properties(rloft_original_code2_irq9_physical_source_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_irq9_physical_source_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_irq9_physical_source_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME canonical_code2_original_308f8_irq9_make_break_f590_keyboard
+        COMMAND rloft_original_code2_irq9_physical_source_test)
+endif()
+
 # Original 31218/37E39 DOS CHARS access and authentic 20440 branch.
 add_executable(rloft_original_code2_chars_access_test
     src/test_original_code2_chars_file_access.cpp)
