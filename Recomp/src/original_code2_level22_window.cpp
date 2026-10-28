@@ -464,6 +464,8 @@ int main(int argc,char** argv){
             std::string(argv[5])=="--smoke-portal";
         const bool ordinary_smoke=argc==6 &&
             std::string(argv[5])=="--smoke";
+        const bool key_map_smoke=argc==6 &&
+            std::string(argv[5])=="--smoke-key-map";
         const bool saved_smoke=argc==7 &&
             std::string(argv[5])=="--smoke-save23";
         const bool saved_first_frame_smoke=argc==7 &&
@@ -476,10 +478,10 @@ int main(int argc,char** argv){
         if((argc!=5 && argc!=6 && argc!=7) ||
            std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root" ||
-           (argc==6 && !ordinary_smoke && !portal_smoke) ||
+           (argc==6 && !ordinary_smoke && !portal_smoke && !key_map_smoke) ||
            (argc==7 && !saved_start))
             throw std::invalid_argument(
-                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-portal|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
+                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-key-map|--smoke-portal|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
         const auto root=std::filesystem::absolute(argv[2]);
         const auto cd=std::filesystem::absolute(argv[4]);
         if(!std::filesystem::is_regular_file(root/"CODE.2"))
@@ -583,6 +585,38 @@ int main(int argc,char** argv){
                      <<" physical_DOS_retail_frame_parity=OPEN\n"<<std::flush;
             return 0;
         }
+        if(key_map_smoke) {
+            // Execute original CODE.2 30B40 against the ORIGINAL F590
+            // table from the retained guest, not a host mapping fixture.
+            // All three physical make scans are routed through the same
+            // 1FC14 source game loop and full native VGA frame.
+            const std::uint32_t scans[]={0x13u,0x3Bu,0x01u}; // R, F1, Esc
+            for(const auto scan:scans) {
+                const auto original=code2::load_le32(
+                    live.guest_bytes()+0xF590u+scan*4u)&0xFFFFu;
+                live.tick(0xE000u|scan);
+                if(live.failed)throw std::runtime_error(
+                    "Original CODE2 30B40 scan-mapped native frame stopped");
+                const auto proof=machine::inspect(live.game->canonical.get());
+                if(proof.original_1fc14_last_scan_code!=original ||
+                   proof.original_1fc14_source_scene_returns!=
+                       proof.original_1fc14_post_scene_cycles ||
+                   live.scanout_rgba.size()!=kGameWidth*kGameHeight)
+                    throw std::runtime_error(
+                        "Original F590 physical key did not reach authenticated 1FC14 source frame");
+                std::cout<<"CODE2_ORIGINAL_30B40_PHYSICAL_SCAN_PASS"
+                         <<" scan="<<scan<<" original_f590_key="<<original
+                         <<" source_1FC14=YES native_vga=YES\n"<<std::flush;
+            }
+            if(live.ticks!=std::size(scans))
+                throw std::runtime_error("Original physical scan source ticks lost");
+            std::cout<<"RLOFT_30B40_F590_PHYSICAL_KEY_SOURCE_PASS"
+                     <<" physical_scans=3"
+                     <<" original_source=30B40_2F868_F590_1FC14"
+                     <<" original_game_media=READ_ONLY"
+                     <<" retail_irq9_parity=OPEN\n"<<std::flush;
+            return 0;
+        }
         if(ordinary_smoke) {
             if(live.scanout_rgba.size()!=kGameWidth*kGameHeight)
                 throw std::runtime_error("No source VGA framebuffer");
@@ -609,6 +643,7 @@ int main(int argc,char** argv){
         std::cerr<<"RLOFT_LEVEL22_NATIVE_HOST_FAIL: "<<e.what()<<"\n";
         if(argc!=6 ||
            (std::string(argv[5])!="--smoke" &&
+            std::string(argv[5])!="--smoke-key-map" &&
             std::string(argv[5])!="--smoke-portal"))
             MessageBoxA(nullptr,e.what(),"Ravenloft experimental source host",MB_OK|MB_ICONERROR);
         return 1;
