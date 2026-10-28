@@ -1607,8 +1607,9 @@ u32 original_30b40_keyboard_poll() noexcept {
         original_keyboard.call_2f868=&original_scene_poll_source_events;
         source_key=code2::function_30b40(
             current->machine,original_keyboard);
-        if(source_key>0xFFFFu)
-            stop("ORIGINAL_30B40_SOURCE_KEY_TRANSLATION_OUT_OF_RANGE");
+        // Like original 1FC14, only the low word is dispatched. The
+        // source key map itself is 32 bits; don't reject legal high bits.
+        source_key&=0xFFFFu;
         std::cerr<<"CODE2_ORIGINAL_30B40_F590_SOURCE_KEY_MAP"
                  <<" hardware_scan="<<scan
                  <<" original_mapped_key="<<source_key
@@ -5124,6 +5125,7 @@ Evidence inspect(const Opaque* owner) {
     out.original_1fc14_source_scene_returns=s.original_1fc14_source_scene_returns;
     out.original_1fc14_post_scene_cycles=s.original_1fc14_post_scene_cycles;
     out.original_1fc14_page_handoffs=s.original_1fc14_source_page_handoffs;
+    out.original_1fc14_last_scan_code=s.original_1fc14_last_scan_code;
     out.original_source_planar_fills=s.original_source_planar_fills;
     out.original_source_video_mode_calls=s.original_source_video_modes;
     out.original_source_palette_streams=s.original_source_dac_streams;
