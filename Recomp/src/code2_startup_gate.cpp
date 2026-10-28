@@ -1459,6 +1459,33 @@ void original_181b4_live_transition(u32 requested) noexcept;
 void original_live_archived_portal_entry(u32 requested) noexcept;
 void original_live_07938_restore_level23() noexcept;
 void original_scene_poll_source_events() noexcept;
+// Deliver owner-supplied PC make/break scans through the compiled CODE.2
+// 308F8 interrupt routine. Port callbacks represent a bounded 8042/PIC
+// transaction; this is NOT physical DOS IRQ timing or key-repeat parity.
+static thread_local u8 original_irq9_host_scan=0u;
+static thread_local u8 original_irq9_port61=0u;
+static thread_local unsigned original_irq9_eoi_count=0u;
+u8 original_irq9_host_in8(code2::u16 port) noexcept {
+    if(port==0x60u)return original_irq9_host_scan;
+    if(port==0x61u)return original_irq9_port61;
+    stop("ORIGINAL_308F8_IRQ9_UNRECOGNIZED_PORT_READ");
+}
+void original_irq9_host_out8(code2::u16 port,u8 value) noexcept {
+    if(port==0x61u){original_irq9_port61=value;return;}
+    if(port==0x20u && value==0x20u){++original_irq9_eoi_count;return;}
+    stop("ORIGINAL_308F8_IRQ9_UNRECOGNIZED_PORT_WRITE");
+}
+void original_irq9_source_event(u8 scan) noexcept {
+    original_irq9_host_scan=scan;
+    original_irq9_port61=0u;
+    code2::Application71Boundary irq{};
+    irq.in8=&original_irq9_host_in8;
+    irq.out8=&original_irq9_host_out8;
+    const unsigned eoi_before=original_irq9_eoi_count;
+    code2::interrupt_308f8(current->machine,irq);
+    if(original_irq9_eoi_count!=eoi_before+1u)
+        stop("ORIGINAL_308F8_IRQ9_SOURCE_EOI_MISSING");
+}
 u32 original_30b40_keyboard_poll() noexcept {
     // 1FC14 returns to this ORIGINAL 30B40 poll after 1F8FC's
     // initial mode compositor. A real cross-level 1F8E0/1F8FC mode
@@ -1599,21 +1626,25 @@ u32 original_30b40_keyboard_poll() noexcept {
             stop("ORIGINAL_30B40_PHYSICAL_SCAN_OUT_OF_BOUNDS");
         if(current->data[0xF575u]!=1u)
             stop("ORIGINAL_30B40_SOURCE_IRQ9_VECTOR_NOT_INSTALLED");
-        // The original IRQ-9 handler publishes F572 from port 60h.
-        // The Windows host provides a decoded make scan here; it does
-        // not claim delivery of a physical IRQ or its modifier cadence.
-        current->data[0xF572u]=static_cast<u8>(scan);
+        if(current->ivt[9u].offset!=0x308F8u ||
+           current->ivt[9u].selector!=current->machine.cpu.cs)
+            stop("ORIGINAL_308F8_SOURCE_VECTOR_NOT_OWNED");
+        // The ORIGINAL handler owns keyboard queue, F572, modifiers,
+        // PC keyboard acknowledgments and PIC EOI. Read F590 while the
+        // source make event is active; then send a genuine source break.
+        original_irq9_source_event(static_cast<u8>(scan));
+        if(current->data[0xF572u]!=scan)
+            stop("ORIGINAL_308F8_SOURCE_MAKE_NOT_PUBLISHED");
         code2::Application71Boundary original_keyboard{};
         original_keyboard.call_2f868=&original_scene_poll_source_events;
-        source_key=code2::function_30b40(
-            current->machine,original_keyboard);
-        // Like original 1FC14, only the low word is dispatched. The
-        // source key map itself is 32 bits; don't reject legal high bits.
+        source_key=code2::function_30b40(current->machine,original_keyboard);
+        original_irq9_source_event(static_cast<u8>(scan|0x80u));
         source_key&=0xFFFFu;
         std::cerr<<"CODE2_ORIGINAL_30B40_F590_SOURCE_KEY_MAP"
                  <<" hardware_scan="<<scan
                  <<" original_mapped_key="<<source_key
-                 <<" original_source=30B40_2F868_F590"
+                 <<" original_source=308F8_MAKE_30B40_F590_308F8_BREAK"
+                 <<" source_irq9_eoi="<<original_irq9_eoi_count
                  <<" irq9_physical_parity=OPEN\n"<<std::flush;
     }
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
