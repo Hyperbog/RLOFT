@@ -45,9 +45,9 @@ struct LiveWindow final {
     std::mutex frame_lock;
     std::thread gameplay_worker;
     std::atomic<std::uint32_t> key_mask{0u};
-    // Non-movement keys are one-shot BIOS key presses. Queue them until
-    // the original source 30B40 poll so short user taps are not lost to
-    // long actor/raster frames on the retained guest worker.
+    // Non-movement keys are one-shot physical make scans, not BIOS
+    // ASCII+scan pairs. Queue them until the original source 30B40
+    // boundary so short user taps survive a long original actor frame.
     std::mutex key_event_lock;
     std::array<std::uint16_t,64u> key_events{};
     std::size_t key_event_read=0u,key_event_write=0u,key_event_count=0u;
@@ -110,36 +110,33 @@ struct LiveWindow final {
         return game->guest->memory.data();
     }
     static std::uint32_t key_scan(int vkey) noexcept {
-        // BIOS INT16 AH=00 key: AH=keyboard scan, AL=ASCII. Preserve
-        // original W/S/A/D/J/L movement aliases separately below.
+        // Send physical PC/AT set-1 MAKE scans to the source worker.
+        // 0xE000 is an owner-host envelope, not a DOS key/IRQ. The
+        // original CODE.2 30B40 uses its own F590[] translation table.
         static constexpr std::uint8_t alpha_scan[26]={
             0x1Eu,0x30u,0x2Eu,0x20u,0x12u,0x21u,0x22u,0x23u,
             0x17u,0x24u,0x25u,0x26u,0x32u,0x31u,0x18u,0x19u,
             0x10u,0x13u,0x1Fu,0x14u,0x16u,0x2Fu,0x11u,0x2Du,
             0x15u,0x2Cu};
-        if(vkey>='A' && vkey<='Z') {
-            const auto index=static_cast<unsigned>(vkey-'A');
-            return (std::uint32_t(alpha_scan[index])<<8u)|
-                   static_cast<std::uint32_t>(vkey-'A'+'a');
-        }
+        if(vkey>='A' && vkey<='Z')
+            return 0xE000u|alpha_scan[static_cast<unsigned>(vkey-'A')];
         if(vkey>='1' && vkey<='9')
-            return (static_cast<std::uint32_t>(vkey-'1'+2)<<8u)|
-                   static_cast<std::uint32_t>(vkey);
-        if(vkey=='0')return 0x0B30u;
+            return 0xE000u|static_cast<std::uint32_t>(vkey-'1'+2);
+        if(vkey=='0')return 0xE00Bu;
         if(vkey>=VK_F1 && vkey<=VK_F10)
-            return static_cast<std::uint32_t>(vkey-VK_F1+0x3B)<<8u;
+            return 0xE000u|static_cast<std::uint32_t>(vkey-VK_F1+0x3B);
         switch(vkey){
-        case VK_ESCAPE:return 0x011Bu;
-        case VK_BACK:return 0x0E08u;
-        case VK_TAB:return 0x0F09u;
-        case VK_RETURN:return 0x1C0Du;
-        case VK_SPACE:return 0x3920u;
-        case VK_HOME:return 0x4700u;
-        case VK_PRIOR:return 0x4900u;
-        case VK_END:return 0x4F00u;
-        case VK_NEXT:return 0x5100u;
-        case VK_INSERT:return 0x5200u;
-        case VK_DELETE:return 0x5300u;
+        case VK_ESCAPE:return 0xE001u;
+        case VK_BACK:return 0xE00Eu;
+        case VK_TAB:return 0xE00Fu;
+        case VK_RETURN:return 0xE01Cu;
+        case VK_SPACE:return 0xE039u;
+        case VK_HOME:return 0xE047u;
+        case VK_PRIOR:return 0xE049u;
+        case VK_END:return 0xE04Fu;
+        case VK_NEXT:return 0xE051u;
+        case VK_INSERT:return 0xE052u;
+        case VK_DELETE:return 0xE053u;
         default:return 0u;
         }
     }
