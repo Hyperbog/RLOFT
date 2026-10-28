@@ -46,6 +46,9 @@ struct Evidence {
     std::uint32_t original_1fc14_source_scene_returns=0;
     std::uint32_t original_1fc14_post_scene_cycles=0;
     std::uint32_t original_1fc14_page_handoffs=0;
+    // Last actual low-16 CODE.2 1FC14 key result. Exposes real F590
+    // translation only after the retained source worker reaches 30B40.
+    std::uint32_t original_1fc14_last_scan_code=0;
 };
 Opaque* start(const std::filesystem::path& original_code2);
 Opaque* start_stackful(const std::filesystem::path& original_code2);
