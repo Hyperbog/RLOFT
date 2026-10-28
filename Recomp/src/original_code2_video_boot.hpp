@@ -499,9 +499,13 @@ struct Bridge {
     static u32 cursor_source_2a6b0(u32 frame,u32 row,u32 x,
                                     u32 clip,u32 image) noexcept {
         auto& b=self();
-        if(image!=0x880Du || frame>=11u ||
+        // Original 1A288 may render its built-in cursor at 880D or
+        // its held-item RES1 sprite copied by 1A344 into 8603.
+        // Validate the actual guest sprite header, not a host frame cap.
+        if((image!=0x880Du && image!=0x8603u) ||
            std::uint64_t(clip)+0x18u>b.guest_extent ||
            std::uint64_t(image)+8u>b.guest_extent ||
+           frame>=code2::load_le16(b.machine.data+image+2u) ||
            row>399u || x>319u) {
             b.invalid_access=true;
             return 0u;
@@ -514,9 +518,11 @@ struct Bridge {
     }
     void run_original_29804_cursor_sprite(u32 frame,code2::s32 x,
                                           code2::s32 y,u32 image) {
-        if(image!=0x880Du || frame>=11u || x<0 || x>319 ||
-           y<0 || y>399 || machine.data[0xF0D0u]!=1u)
-            throw std::invalid_argument("Original 29804 mouse sprite draw order or image changed");
+        if((image!=0x880Du && image!=0x8603u) ||
+           std::uint64_t(image)+8u>guest_extent ||
+           frame>=code2::load_le16(machine.data+image+2u) ||
+           x<0 || x>319 || y<0 || y>399 || machine.data[0xF0D0u]!=1u)
+            throw std::invalid_argument("Original 29804 cursor/held-item sprite preflight failed");
         Scope scope(*this);
         code2::Application57Boundary callbacks{};
         callbacks.call_2a380=&cursor_source_2a380;
