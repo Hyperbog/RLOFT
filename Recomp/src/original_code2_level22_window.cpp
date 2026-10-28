@@ -184,7 +184,7 @@ struct LiveWindow final {
         // fabricated as a new combined command.
         static const std::uint32_t scans[6]={
             0x148u,0x150u,0x14Bu,0x14Du,0x147u,0x149u};
-        const auto held=key_mask.load(std::memory_order_relaxed);
+        const auto held=key_mask.load(std::memory_order_acquire);
         for(unsigned i=0u;i<6u;++i)
             if((held&(1u<<i))!=0u)return scans[i];
         return 0u;
