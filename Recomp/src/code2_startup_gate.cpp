@@ -3296,6 +3296,26 @@ void original_181b4_level_load(u32 requested) noexcept {
              <<" actor_terminal=SOURCE_CHECK"
              <<" world_rendering=NOT_CONNECTED\n"<<std::flush;
     ++current->original_181b4_completed;
+    // The native game has ALREADY executed the complete original
+    // 181B4 -> 1F8E0 -> 1F8FC source frame and selected its VGA page.
+    // The legacy *diagnostic* stages below repaint portraits, ray
+    // previews and texture probes onto that live VGA after presentation,
+    // visibly destroying its frame. They belong to the independent
+    // source-archive engineering target, never the running game.
+    if(source_art) {
+        if(current->original_scene_presentations!=1u ||
+           current->original_325b0_completed!=2u ||
+           current->original_source_dac_streams!=3u ||
+           code2::load_le32(current->data.data()+0xC034u)!=4u)
+            stop("ORIGINAL_181B4_LIVE_MODE4_FIRST_SOURCE_FRAME_MISSING");
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=181B4_LIVE_SOURCE_FRAME_READY"
+                 <<" level=22 art_mode=4"
+                 <<" original_source=181B4_1F8E0_1F8FC"
+                 <<" VGA=UNMODIFIED_AFTER_SOURCE_PRESENTATION"
+                 <<" owner_media=READ_ONLY"
+                 <<" one_shot_diagnostic_overdraw=DISABLED\n"<<std::flush;
+        return;
+    }
     // Load the *real* Level22 normal-party RES1 portraits by original
     // 2F29C -> 2ECB4 -> 2FD9C, on the same guest and Watcom heap.
     // Capture the genuine VGA DRAW page as a separate diagnostic; it
