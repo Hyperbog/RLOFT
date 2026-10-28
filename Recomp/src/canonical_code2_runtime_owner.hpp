@@ -85,10 +85,16 @@ void attach_original_init_callbacks(Opaque*,void* original_app30);
 // using its retained heap/RAM and the borrowed original INIT callbacks.
 // Returns the subsequent service ID or zero on genuine child completion.
 std::uint32_t advance_original_second_init(Opaque*);
-// Deliver an explicit original BIOS-style 16-bit key code (zero means
-// no key) at the source 1FC14 -> 30B40 poll. The original C++ guest
-// runs until its NEXT host service, never restarting 20608.
-std::uint32_t answer_original_keyboard_event(Opaque*,std::uint32_t key_code);
+// Deliver an original BIOS-style 16-bit key (zero means none) to
+// 1FC14 -> 30B40. The same retained source worker may request original
+// INT33 mouse-position service during the frame; answer it using the
+// sampled host device state, then continue until the NEXT source poll.
+// The default mouse state preserves existing headless acceptance clients.
+std::uint32_t answer_original_keyboard_event(
+    Opaque*,std::uint32_t key_code,
+    std::uint32_t mouse_buttons=0u,
+    std::uint32_t mouse_x=0x140u,
+    std::uint32_t mouse_y=0xC8u);
 // Attach exactly the original persistent guest's VGA device while the
 // CODE2 source stack is paused at 290F4. Do not create another VGA page.
 void attach_original_vga(Opaque*,rloft::graphics::OriginalVgaHost*);
