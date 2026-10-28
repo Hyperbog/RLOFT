@@ -16,6 +16,7 @@ struct OriginalFullFrameTrace {
     u32 polygon_cells=0u;
     u32 polygon_projections=0u;
     u32 polygon_quads=0u;
+    u32 polygon_quad_returns=0u;
     u32 polygon_scan_returns=0u;
     u32 polygon_vertex_copies=0u;
     u32 polygon_edges=0u;
@@ -363,6 +364,9 @@ void original_full_polygon_quad(
     code2::function_33e6c(m,raster,scratch);
     std::copy(previous.begin(),previous.end(),
               current->data.data()+scratch);
+    // A source quad may be wholly clipped and legitimately emit no
+    // scanlines. Only count a return after 33E6C and scratch restoration.
+    ++original_full_frame_trace->polygon_quad_returns;
 }
 void original_full_exterior_polygon_source() noexcept {
     if(!original_full_frame_trace || !current->original_vga)
@@ -2068,9 +2072,11 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
     // 1FC14 tick owner and require all nonvisual source returns.
     const bool source_polygon_complete=t && t->polygon_scan_returns==1u &&
         t->polygon_cells!=0u && t->polygon_projections!=0u &&
-        (t->polygon_quads==0u?
-            (t->polygon_scanlines==0u && t->polygon_drawn_scanlines==0u):
-            t->polygon_drawn_scanlines!=0u);
+        // The original 33E6C can return after clipping all quad edges.
+        // Require every actual source quad callback to complete, instead
+        // of inventing a requirement that any source polygon be visible.
+        t->polygon_quad_returns==t->polygon_quads &&
+        t->polygon_drawn_scanlines<=t->polygon_scanlines;
     const bool source_scene_complete=t &&
         t->actor_update_returns==1u &&
         t->scene_projection_returns==1u &&
@@ -2094,6 +2100,7 @@ void original_full_validate_1fc14_scene_handoff(u32 page) noexcept {
                  <<" cells="<<(t?t->polygon_cells:0u)
                  <<" projections="<<(t?t->polygon_projections:0u)
                  <<" quads="<<(t?t->polygon_quads:0u)
+                 <<" quad_returns="<<(t?t->polygon_quad_returns:0u)
                  <<" scanlines="<<(t?t->polygon_scanlines:0u)
                  <<" drawn_scanlines="<<(t?t->polygon_drawn_scanlines:0u)
                  <<" actors="<<(t?t->actor_update_returns:0u)
