@@ -142,8 +142,9 @@ void original_live_07938_restore_level23() noexcept {
        code2::load_le32(current->data.data()+0xC6C8u)!=22u)
         stop("ORIGINAL_07938_RETAINED_LEVEL22_OWNER_NOT_READY");
     std::vector<u8> save, saved_world;
-    const std::filesystem::path dir(dir_name);
+    std::filesystem::path dir;
     try {
+        dir=std::filesystem::path(dir_name);
         save=rloft::original_levels::read_archive(
             (dir/"SAVE.DAT").string());
     } catch(const std::exception&) {
