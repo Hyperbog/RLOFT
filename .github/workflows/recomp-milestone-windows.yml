@@ -875,6 +875,19 @@ jobs:
           $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
           & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root $root --cd-root $cd --smoke
           if ($LASTEXITCODE -ne 0) { throw "Native CODE2 Level22 scanout/keyboard smoke failed" }
+      - name: Require original CODE2 F590 physical key mapping and complete native frames
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          # Real original source guest and F590 key table, not a BIOS
+          # ASCII/scan imitation or a copied map. R, F1, Esc traverse
+          # original 30B40 -> 1FC14 and produce three retained VGA frames.
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          & "build/windows-milestone/Debug/rloft_code2_level22_window.exe" --root $root --cd-root $cd --smoke-key-map
+          if ($LASTEXITCODE -ne 0) {
+            throw "Original CODE2 F590 mapped physical keyboard source frame NOT_VERIFIED"
+          }
       - name: Probe original 07938 Level23 saved-game restoration from preserved media
         # Isolated source deserializer; NOT the retained Windows 1FC14 guest.
         continue-on-error: true
