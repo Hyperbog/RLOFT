@@ -44,6 +44,11 @@ struct LiveWindow final {
     std::mutex frame_lock;
     std::thread gameplay_worker;
     std::atomic<std::uint32_t> key_mask{0u};
+    // Physical mouse input is sampled on the UI thread and published as
+    // one coherent INT33 button/X/Y snapshot for the source worker.
+    // Packed: bits 32..33=buttons, 16..31=X, 0..15=Y.
+    std::atomic<std::uint64_t> mouse_snapshot{
+        (std::uint64_t{0x140u}<<16u)|0xC8u};
     std::atomic<bool> quit_requested{false};
     std::string posted_title;
     std::string posted_error;
@@ -129,6 +134,30 @@ struct LiveWindow final {
             if((held&(1u<<i))!=0u)return scans[i];
         return 0u;
     }
+    void update_mouse(HWND window,WPARAM flags,LPARAM coords) noexcept {
+        RECT area{};
+        if(!GetClientRect(window,&area))return;
+        const auto x_extent=std::max<LONG>(1,area.right-area.left-1);
+        const auto y_extent=std::max<LONG>(1,area.bottom-area.top-1);
+        const auto x=std::clamp(
+            static_cast<int>(static_cast<short>(LOWORD(coords))),
+            0,static_cast<int>(x_extent));
+        const auto y=std::clamp(
+            static_cast<int>(static_cast<short>(HIWORD(coords))),
+            0,static_cast<int>(y_extent));
+        // DOS mouse X spans 0..638 over the 320-column VGA view.
+        // DOS mouse Y spans 0..399 over the 400-row VGA view.
+        const auto mouse_x=static_cast<std::uint32_t>(
+            std::uint64_t(x)*0x27Eu/static_cast<unsigned>(x_extent));
+        const auto mouse_y=static_cast<std::uint32_t>(
+            std::uint64_t(y)*0x18Fu/static_cast<unsigned>(y_extent));
+        const auto buttons=static_cast<std::uint32_t>(
+            ((flags&MK_LBUTTON)?1u:0u)|((flags&MK_RBUTTON)?2u:0u));
+        mouse_snapshot.store(
+            (std::uint64_t(buttons)<<32u)|
+            (std::uint64_t(mouse_x)<<16u)|mouse_y,
+            std::memory_order_release);
+    }
     void capture_source_vga() {
         if(!game || !game->guest || machine::pending_host_service(
                   game->canonical.get())!=11u)
@@ -177,8 +206,12 @@ struct LiveWindow final {
             const auto y=code2::load_le32(mem+0x255D4u);
             const auto heading=code2::load_le32(mem+0xC658u);
             const auto base=game->guest->memory.data();
+            const auto mouse=mouse_snapshot.load(std::memory_order_acquire);
             const auto next=machine::answer_original_keyboard_event(
-                game->canonical.get(),scan);
+                game->canonical.get(),scan,
+                static_cast<std::uint32_t>((mouse>>32u)&3u),
+                static_cast<std::uint32_t>((mouse>>16u)&0xFFFFu),
+                static_cast<std::uint32_t>(mouse&0xFFFFu));
             if(next!=11u || base!=game->guest->memory.data())
                 throw std::runtime_error("Original 1FC14 guest did not return to same 30B40 poll");
             const auto nx=code2::load_le32(mem+0x255D0u);
@@ -253,6 +286,24 @@ struct LiveWindow final {
             return 0;
         case WM_KILLFOCUS:
             self->key_mask.store(0u,std::memory_order_release);
+            self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            return 0;
+        case WM_CAPTURECHANGED:
+            self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            return 0;
+        case WM_MOUSEMOVE:
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:
+            if(msg==WM_LBUTTONDOWN || msg==WM_RBUTTONDOWN) {
+                SetFocus(window);
+                SetCapture(window);
+            }
+            self->update_mouse(window,wp,lp);
+            if((msg==WM_LBUTTONUP || msg==WM_RBUTTONUP) &&
+               (wp&(MK_LBUTTON|MK_RBUTTON))==0u)
+                ReleaseCapture();
             return 0;
         case kSourceFrameReady: {
             std::string title,error;
