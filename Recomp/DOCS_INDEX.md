@@ -4,6 +4,7 @@ The [current README](README.md) is the entry point for building, launching, bran
 
 ## Current operating contracts
 
+- [Part 35 saved-world and native input continuity — exact Windows Level22/23 source-frame receipts, keyboard/INT33 changes and remaining playability blockers](PART35_SOURCE_SAVES_AND_PHYSICAL_INPUT_20261027.md)
 - [Engine-wide original CODE.1/CODE.2 execution plan — common loader, rendering, audio, mechanics and source callback coverage](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md)
 - [Shared original CODE.2 call graph, 985 function bodies, 671 direct edges, common renderer/actor changes and 32+17 original media gate](SHARED_ENGINE_CALLBACK_CLOSURE_20261026.md)
 - [Original actor action, 002A8 script, and 1C368 dialogue text checkpoint — compiled CTests and 555 original script commands](ORIGINAL_SHARED_ACTOR_SCRIPT_DIALOGUE_20261026.md)
