@@ -1,5 +1,5 @@
 // Owner-private original CODE.2 07938 save restoration. The input is an
-// unmodified real SAVE.DAT/LEV023.DAT pair, copied into retained guest-owned
+// unmodified real SAVE.DAT/LEVnnn.DAT pair, copied into retained guest-owned
 // buffers. All parsing, game-state mutations and level dispatch are compiled
 // original CODE.2 callbacks. No original installation file is modified.
 // This is an explicitly opt-in engineering path, not a DOS save menu.
@@ -96,15 +96,22 @@ void live_07938_light(u32 raw) noexcept {
 }
 void live_07938_level(u32 requested) noexcept {
     ++current->original_live_save_level_callbacks;
-    if(requested!=23u || !current->level_overlay.has(23u))
-        stop("ORIGINAL_07938_SOURCE_SAVED_LEVEL_NOT_23");
+    // 07938 selects the level from unchanged SAVE.DAT. The host must not
+    // replace that decision with a fixture-specific Level23 restriction.
+    const auto& save=current->original_live_save_bytes;
+    if(save.size()<0x56u)
+        stop("ORIGINAL_07938_SOURCE_SAVE_HEADER_MISSING");
+    const u32 save_level=code2::load_le32(save.data()+0x52u);
+    if(!rloft::original_saved_level_policy::indexed_level(requested) ||
+       requested!=save_level || !current->level_overlay.has(requested))
+        stop("ORIGINAL_07938_SOURCE_SAVED_LEVEL_MISMATCH");
     // Capture authentic source 07938 -> 181B4 ABI and guest state.
     // The level current at this moment is source-owned; it is not
     // inferred to be 23 simply because SAVE.DAT stores 23 at 0x52.
     std::cerr<<"CODE2_ORIGINAL_07938_LIVE_LEVEL_DISPATCH"
              <<" requested="<<requested
              <<" guest_prior="<<code2::load_le32(current->data.data()+0xC6C8u)
-             <<" saved_world_overlay="<<current->level_overlay.has(23u)
+             <<" saved_world_overlay="<<current->level_overlay.has(requested)
              <<" save_reads="<<current->original_live_save_reads
              <<" same_guest=YES\\n"<<std::flush;
     // Original 181B4 performs the actual level load on the same guest,
@@ -115,8 +122,13 @@ void live_07938_level(u32 requested) noexcept {
 
 void original_live_07938_restore_level23() noexcept {
     const char* enabled=std::getenv(
-        "RLOFT_RECOMP_EXPERIMENTAL_LEVEL23_SAVE_RESTORE");
-    const char* dir_name=std::getenv("RLOFT_RECOMP_ORIGINAL_LEVEL23_SAVE_DIR");
+        "RLOFT_RECOMP_EXPERIMENTAL_SAVE_RESTORE");
+    const char* dir_name=std::getenv("RLOFT_RECOMP_ORIGINAL_SAVE_DIR");
+    // Preserve existing Level23 engineering invocations and CI fixtures.
+    if(!enabled || !*enabled)
+        enabled=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_LEVEL23_SAVE_RESTORE");
+    if(!dir_name || !*dir_name)
+        dir_name=std::getenv("RLOFT_RECOMP_ORIGINAL_LEVEL23_SAVE_DIR");
     if(!enabled || std::strcmp(enabled,"1")!=0 ||
        !dir_name || !*dir_name)
         stop("ORIGINAL_07938_RESTORE_REQUIRES_EXPLICIT_SAVE_DIR");
@@ -130,28 +142,40 @@ void original_live_07938_restore_level23() noexcept {
        code2::load_le32(current->data.data()+0xC6C8u)!=22u)
         stop("ORIGINAL_07938_RETAINED_LEVEL22_OWNER_NOT_READY");
     std::vector<u8> save, saved_world;
+    const std::filesystem::path dir(dir_name);
     try {
-        const std::filesystem::path dir(dir_name);
         save=rloft::original_levels::read_archive(
             (dir/"SAVE.DAT").string());
+    } catch(const std::exception&) {
+        stop("ORIGINAL_07938_OWNER_SAVE_FILE_READ_FAILED");
+    }
+    if(save.size()!=9288u && save.size()!=9310u)
+        stop("ORIGINAL_07938_SAVED_GAME_SIZE_INVALID");
+    const u32 saved_level=code2::load_le32(save.data()+0x52u);
+    if(!rloft::original_saved_level_policy::indexed_level(saved_level) ||
+       current->level_overlay.has(saved_level))
+        stop("ORIGINAL_07938_SAVED_GAME_LEVEL_INDEX_INVALID");
+    // This is an exact original WORK filename, not a new level selector.
+    // Preflight the companion file before installing any guest overlay.
+    char name[16]{};
+    if(std::snprintf(name,sizeof(name),"LEV%03u.DAT",
+                     static_cast<unsigned>(saved_level))!=10)
+        stop("ORIGINAL_07938_SAVED_LEVEL_FILENAME_INVALID");
+    try {
         saved_world=rloft::original_levels::read_archive(
-            (dir/"LEV023.DAT").string());
+            (dir/name).string());
         const auto grid=rloft::original_levels::decode_saved_grid(
-            saved_world,23u);
+            saved_world,saved_level);
         if(grid.cells.size()!=std::size_t(grid.width)*grid.height ||
            !grid.width || !grid.height || grid.width>128u ||
            grid.height>128u)
-            stop("ORIGINAL_07938_SAVED_LEVEL23_LAYOUT_INVALID");
+            stop("ORIGINAL_07938_SAVED_LEVEL_LAYOUT_INVALID");
     } catch(const std::exception&) {
-        stop("ORIGINAL_07938_OWNER_SAVED_MEDIA_READ_FAILED");
+        stop("ORIGINAL_07938_OWNER_SAVED_WORLD_READ_FAILED");
     }
-    if((save.size()!=9288u && save.size()!=9310u) ||
-       code2::load_le32(save.data()+0x52u)!=23u ||
-       current->level_overlay.has(23u))
-        stop("ORIGINAL_07938_SAVED_GAME_NOT_AUTHENTIC_LEVEL23");
     // No guest camera, actor, map or event byte is synthesized here.
-    if(!current->level_overlay.install_saved_snapshot(23u,saved_world))
-        stop("ORIGINAL_07938_PRIVATE_LEVEL23_SNAPSHOT_INSTALL_FAILED");
+    if(!current->level_overlay.install_saved_snapshot(saved_level,saved_world))
+        stop("ORIGINAL_07938_PRIVATE_SAVED_WORLD_INSTALL_FAILED");
     // vector move assignment is noexcept for this default allocator.
     // The original 07938 parser still performs all source guest writes.
     current->original_live_save_bytes=std::move(save);
@@ -187,16 +211,23 @@ void original_live_07938_restore_level23() noexcept {
        !current->original_live_save_reads ||
        current->original_live_save_level_callbacks!=1u ||
        current->original_live_level_transitions!=1u ||
-       current->original_pending_level_frame!=23u ||
+       current->original_pending_level_frame!=saved_level ||
        !current->level_overlay.idle() ||
-       code2::load_le32(current->data.data()+0xC6C8u)!=23u ||
+       code2::load_le32(current->data.data()+0xC6C8u)!=saved_level ||
        code2::load_le32(current->data.data()+0xC658u)>=360u)
         stop("ORIGINAL_07938_RETAINED_SOURCE_RESTORE_INCOMPLETE");
     current->original_live_restore_active=false;
-    std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_LEVEL23_RESTORE_PASS"
-             <<" level=23 source=07938_181B4"
+    std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_SAVED_LEVEL_RESTORE_PASS"
+             <<" level="<<saved_level<<" source=07938_181B4"
              <<" original_save_reads="<<current->original_live_save_reads
              <<" same_original_1FC14_guest=YES"
              <<" next_source_frame=PENDING"
              <<" original_media=READ_ONLY\n"<<std::flush;
+    if(saved_level==23u)
+        std::cerr<<"CODE2_ORIGINAL_GAMEPLAY_LEVEL=07938_RETAINED_LEVEL23_RESTORE_PASS"
+                 <<" level=23 source=07938_181B4"
+                 <<" original_save_reads="<<current->original_live_save_reads
+                 <<" same_original_1FC14_guest=YES"
+                 <<" next_source_frame=PENDING"
+                 <<" original_media=READ_ONLY\n"<<std::flush;
 }
