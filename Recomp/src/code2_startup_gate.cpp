@@ -2087,16 +2087,56 @@ void original_20440_mouse_capture(u32 dst,code2::s32 x,code2::s32 y,
     }
 }
 u32 original_20440_mouse_hit(code2::s32 x,code2::s32 y) noexcept {
+    // Original 1A288 uses the 2AE30 result ONLY to select the
+    // authentic cursor sprite (0, 1 or 2). A hit is not itself a
+    // click/action; the old nonzero-stop made hovering over original
+    // gameplay objects terminate the source frame.
+    if(!current || !current->original_vga)
+        stop("ORIGINAL_2AE30_SOURCE_HIT_DEVICE_NOT_READY");
+    const auto& data=current->data;
+    const u32 selected=code2::load_le32(data.data()+0xC050u);
+    if(selected>1u)
+        stop("ORIGINAL_2AE30_SOURCE_PAGE_INVALID");
+    const u32 opposite=selected^1u;
+    const u32 count=code2::load_le16(data.data()+0xF038u+opposite*2u);
+    // Source page owns exactly 0x2260 bytes of 22-byte hit records.
+    // Check the entire live list and any dependent actor/item type read
+    // before invoking the compiled predicate; no guest bytes are
+    // changed by this host preflight.
+    constexpr u32 record_stride=0x16u;
+    constexpr u32 page_bytes=0x2260u;
+    constexpr u32 record_capacity=page_bytes/record_stride;
+    if(count>record_capacity)
+        stop("ORIGINAL_2AE30_SOURCE_HIT_LIST_COUNT_INVALID");
+    const u32 records=0x27148u+opposite*page_bytes;
+    if(std::uint64_t(records)+std::uint64_t(count)*record_stride>
+       data.size())
+        stop("ORIGINAL_2AE30_SOURCE_HIT_LIST_OUT_OF_GUEST");
+    for(u32 i=0u;i<count;++i) {
+        const u32 rec=records+i*record_stride;
+        const u32 state=code2::load_le16(data.data()+rec+8u);
+        if(state!=0u && state!=1u)continue;
+        const u32 linked=code2::load_le16(data.data()+rec+6u);
+        const std::uint64_t type=std::uint64_t(
+            state==0u?0x14D8Eu:0x22246u)+
+            std::uint64_t(linked)*record_stride;
+        if(type+2u>data.size())
+            stop("ORIGINAL_2AE30_SOURCE_LINKED_TYPE_OUT_OF_GUEST");
+    }
     code2::Application62Boundary b{};
+    b.call_1c1dc=+[](u32 bit) noexcept -> u32 {
+        return code2::function_1c1dc(current->machine,bit);
+    };
     const u32 hit=code2::function_2ae30(current->machine,b,
                          static_cast<u32>(x),static_cast<u32>(y));
-    if(hit!=0u)stop("ORIGINAL_1A288_HIT_HANDLER_NOT_CONNECTED");
+    if(hit>2u)
+        stop("ORIGINAL_2AE30_SOURCE_CURSOR_HIT_INVALID");
     return hit;
 }
 void original_20440_mouse_draw(u32 frame,code2::s32 x,
                                code2::s32 y,u32 image) noexcept {
     if(!current->original_vga ||
-       current->original_20440_mouse_capture_calls!=1u ||
+       current->original_20440_mouse_capture_calls==0u ||
        image!=0x880Du)
         stop("ORIGINAL_1A288_CURSOR_SPRITE_DRAW_OUT_OF_ORDER");
     try {
