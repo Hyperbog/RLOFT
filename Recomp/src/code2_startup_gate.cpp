@@ -1458,6 +1458,7 @@ void original_full_audit_1fc14_previous_tick() noexcept;
 void original_181b4_live_transition(u32 requested) noexcept;
 void original_live_archived_portal_entry(u32 requested) noexcept;
 void original_live_07938_restore_level23() noexcept;
+void original_scene_poll_source_events() noexcept;
 u32 original_30b40_keyboard_poll() noexcept {
     // 1FC14 returns to this ORIGINAL 30B40 poll after 1F8FC's
     // initial mode compositor. A real cross-level 1F8E0/1F8FC mode
@@ -1584,15 +1585,45 @@ u32 original_30b40_keyboard_poll() noexcept {
         }
         return 0u;
     }
+    u32 source_key=response.ax & 0xFFFFu;
+    // Owner-local Windows physical-key handshake 0xE0ss means set-1
+    // keyboard make scan 'ss', NOT the already translated source key.
+    // Authentic CODE.2 30B40 reads F590[scan] after 2F868; bypassing
+    // that table with a BIOS scan/ASCII pair made R/S/T and other game
+    // commands unreachable. Keep the older already-mapped acceptance
+    // responses untouched, including 0x148 movement and private 0xFFF*.
+    if((source_key&0xFF00u)==0xE000u) {
+        const u32 scan=source_key&0xFFu;
+        if(scan==0u || scan>0x58u ||
+           0xF590u+scan*4u+4u>current->data.size())
+            stop("ORIGINAL_30B40_PHYSICAL_SCAN_OUT_OF_BOUNDS");
+        if(current->data[0xF575u]!=1u)
+            stop("ORIGINAL_30B40_SOURCE_IRQ9_VECTOR_NOT_INSTALLED");
+        // The original IRQ-9 handler publishes F572 from port 60h.
+        // The Windows host provides a decoded make scan here; it does
+        // not claim delivery of a physical IRQ or its modifier cadence.
+        current->data[0xF572u]=static_cast<u8>(scan);
+        code2::Application71Boundary original_keyboard{};
+        original_keyboard.call_2f868=&original_scene_poll_source_events;
+        source_key=code2::function_30b40(
+            current->machine,original_keyboard);
+        if(source_key>0xFFFFu)
+            stop("ORIGINAL_30B40_SOURCE_KEY_TRANSLATION_OUT_OF_RANGE");
+        std::cerr<<"CODE2_ORIGINAL_30B40_F590_SOURCE_KEY_MAP"
+                 <<" hardware_scan="<<scan
+                 <<" original_mapped_key="<<source_key
+                 <<" original_source=30B40_2F868_F590"
+                 <<" irq9_physical_parity=OPEN\n"<<std::flush;
+    }
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");
        live && std::strcmp(live,"1")==0) {
-        current->original_1fc14_last_scan_code=response.ax & 0xFFFFu;
+        current->original_1fc14_last_scan_code=source_key;
         const u32 raw=current->original_1fc14_last_scan_code;
         current->original_1fc14_source_keyboard_trace.push_back(static_cast<u8>(raw));
         current->original_1fc14_source_keyboard_trace.push_back(static_cast<u8>(raw>>8u));
         original_full_prepare_1fc14_source_tick();
     }
-    return response.ax & 0xFFFFu; // original 1FC14 consumes the low 16 bits
+    return source_key; // compiled original 30B40 translation for host scan
 }
 // Original 20440 direct dependencies. All file bytes arrive through the
 // already installed read-only DOS transport; no second guest/heap is created.
