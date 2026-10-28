@@ -4984,24 +4984,47 @@ std::uint32_t advance_original_second_init(Opaque* owner) {
     return static_cast<std::uint32_t>(owner->pending.service);
 }
 std::uint32_t answer_original_keyboard_event(
-    Opaque* owner,std::uint32_t key_code) {
+    Opaque* owner,std::uint32_t key_code,std::uint32_t mouse_buttons,
+    std::uint32_t mouse_x,std::uint32_t mouse_y) {
     if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
        owner->pending.service!=
            rloft::guest_continuation::Service::Original1FC14KeyboardEntry ||
        owner->pending.ax!=0u || owner->pending.bx!=0u ||
-       key_code>0xFFFFu)
-        throw std::logic_error("Original CODE2 not at live 1FC14 keyboard poll");
+       key_code>0xFFFFu || mouse_buttons>3u ||
+       mouse_x>0x27Eu || mouse_y>0x18Fu)
+        throw std::logic_error("Original CODE2 not at valid live 1FC14 input poll");
     const auto& before=held(owner);
     if(before.original_16d04_completed!=1u || !before.original_vga ||
        before.original_source_page_pops!=3u)
         throw std::logic_error("Original CODE2 game entry state not retained");
     const auto* const guest_base=before.machine.data;
-    const auto request=owner->pending;
-    owner->live_worker->resume(request,{key_code,0u,0u,0u});
-    if(!owner->live_worker->await_pause(owner->pending))return 0u;
-    if(held(owner).machine.data!=guest_base)
-        throw std::runtime_error("CODE2 1FC14 guest memory moved between keyboard polls");
-    return static_cast<std::uint32_t>(owner->pending.service);
+    const auto keyboard=owner->pending;
+    owner->live_worker->resume(keyboard,{key_code,0u,0u,0u});
+    // 1FC14 can request original INT33 function 0003h on the SAME
+    // stack before its next 30B40 keyboard entry. Service the actual
+    // paused device call with a single host-sampled pointer position.
+    // Do not invent mouse callbacks or skip any compiled game function.
+    // The cap prevents a broken guest from spinning on an endless stream
+    // of synchronous DOS pointer reads.
+    constexpr unsigned max_mouse_reads_per_frame=256u;
+    for(unsigned i=0u;i<=max_mouse_reads_per_frame;++i) {
+        if(!owner->live_worker->await_pause(owner->pending))return 0u;
+        if(held(owner).machine.data!=guest_base)
+            throw std::runtime_error("CODE2 1FC14 guest memory moved between input polls");
+        if(owner->pending.service!=
+           rloft::guest_continuation::Service::Original20440MousePointer)
+            return static_cast<std::uint32_t>(owner->pending.service);
+        const auto mouse=owner->pending;
+        if(i==max_mouse_reads_per_frame ||
+           mouse.ax!=3u || mouse.bx!=0u ||
+           mouse.cx!=0u || mouse.dx!=0u ||
+           !held(owner).original_20440_mouse_started)
+            throw std::runtime_error(
+                "Original CODE2 issued unsupported or excessive live INT33 pointer requests");
+        owner->live_worker->resume(mouse,{
+            0xFFFFu,mouse_buttons,mouse_x,mouse_y});
+    }
+    throw std::runtime_error("Original CODE2 mouse service loop exceeded bound");
 }
 void attach_original_resource_callbacks(Opaque* owner,void* original_app68) {
     if(!owner || !original_app68 || !owner->live_worker ||
