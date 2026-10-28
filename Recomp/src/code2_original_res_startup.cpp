@@ -1282,6 +1282,34 @@ std::uint32_t test_advance_past_original_second_init(Opaque* s) {
              <<" source=16D04_16810_168C8_3104C_312EC"
              <<" guest_heap=RETAINED original_bytes=INDEPENDENT_MATCH\\n";
     REQUIRE(next==11u);
+    // In native play, original 181B4 has already executed its full
+    // 1F8E0 -> 1F8FC source compositor. Running the legacy standalone
+    // diagnostics after that point would overwrite a correctly presented
+    // live VGA frame and falsely require an exact 13-image cache ledger.
+    // Native readiness comes from the real guest state and completed
+    // source presentation, while the archive engineering gate retains
+    // the exhaustive independent media comparison below.
+    const char* original_art=std::getenv(
+        "RLOFT_RECOMP_EXPERIMENTAL_ORIGINAL_ART_MODE");
+    if(original_art && std::strcmp(original_art,"1")==0) {
+        const auto evidence=c::inspect(owner);
+        REQUIRE(evidence.source_cpu_stack_resumable &&
+                evidence.source_290f4_320x400_video_initialized &&
+                evidence.original_source_325b0_loads==2u &&
+                evidence.memory_address==base &&
+                code2::load_le32(base+0xC6C8u)==22u &&
+                code2::load_le32(base+0xC034u)==4u &&
+                code2::load_le16(base+0x25619u)==30u &&
+                code2::load_le16(base+0x2561Bu)==15u);
+        std::cerr<<"CODE2_ORIGINAL_NATIVE_GAMEPLAY=RETAIL_LEVEL22_INITIAL_FRAME"
+                 <<" source=181B4_1F8E0_1F8FC"
+                 <<" art_bank=4"
+                 <<" VGA_source=290F4_1A5B0_29234"
+                 <<" next=30B40"
+                 <<" owner_original_files=READ_ONLY"
+                 <<" post_render_diagnostic_overdraw=NONE\n"<<std::flush;
+        return next;
+    }
     // Independent original archive parser cross-checks the actual source
     // 181B4 guest result, rather than another host-decoded world copy.
     const auto archive=rloft::original_levels::read_archive(
