@@ -335,9 +335,20 @@ struct LiveWindow final {
             // Escape itself belongs to the original game, not the host.
             if(msg==WM_SYSKEYDOWN)
                 return DefWindowProcA(window,msg,wp,lp);
-            if(const auto slot=key_slot(wp);slot<6u)
-                self->key_mask.fetch_or(1u<<slot,std::memory_order_release);
-            else if((lp&(1ll<<30u))==0)
+            if(const auto slot=key_slot(wp);slot<6u) {
+                // Preserve a brief physical movement tap even when the
+                // original CODE.2 actor/raster frame takes longer than
+                // the key is held. Held-key polling still supplies repeat
+                // movement; only the initial make is queued.
+                const auto bit=std::uint32_t{1u}<<slot;
+                const auto previous=self->key_mask.fetch_or(
+                    bit,std::memory_order_acq_rel);
+                if((previous&bit)==0u && (lp&(1ll<<30u))==0) {
+                    static constexpr std::uint16_t scans[6]={
+                        0x148u,0x150u,0x14Bu,0x14Du,0x147u,0x149u};
+                    self->queue_key(scans[slot]);
+                }
+            } else if((lp&(1ll<<30u))==0)
                 self->queue_key(key_scan(static_cast<int>(wp)));
             return 0;
         case WM_KEYUP:case WM_SYSKEYUP:
