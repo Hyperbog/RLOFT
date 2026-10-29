@@ -352,6 +352,16 @@ struct LiveWindow final {
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
             return 0;
         case WM_CAPTURECHANGED:
+            // Losing Win32 capture does not necessarily mean a button was
+            // released (another window may have taken capture). However,
+            // keeping a stale pressed state would make the original INT33
+            // polling path believe a button is held indefinitely.
+            self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            return 0;
+        case WM_CANCELMODE:
+            // Modal transitions can cancel capture without delivering a
+            // corresponding WM_*BUTTONUP. Clear only button bits; preserve
+            // the last published original-DOS mouse coordinates.
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
             return 0;
         case WM_MOUSEMOVE:
