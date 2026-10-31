@@ -1396,15 +1396,25 @@ u32 original_31218_host_access(u32 path,u32 raw_mode) noexcept {
     // std::filesystem::is_regular_file(path,ec) can report ENOENT in ec.
     // The original DOS 37E39 access wrapper treats that as an ordinary
     // missing-file result, not a fatal host failure.
-    const auto file=rloft::original_chars_access::probe(
-        current->original_installation_root);
-    if(file==rloft::original_chars_access::Outcome::HostError)
-        stop("ORIGINAL_31218_DOS_FILE_ACCESS_FAILED");
-    if(file==rloft::original_chars_access::Outcome::UnsupportedFileType)
-        stop("ORIGINAL_31218_CHARS_NOT_REGULAR_FILE");
-    const bool exists=file==rloft::original_chars_access::Outcome::Present;
+    // R.EXE may supply CODE.1's exact opaque 0x920-byte output to the
+    // next CODE.2 child. The read-only DOS provider then exposes CHARS
+    // to compiled 31218 and 16CD0 without rewriting original media.
+    const bool transferred=current->host_files &&
+        current->host_files->has_virtual_chars();
+    bool exists=transferred;
+    if(!transferred) {
+        const auto file=rloft::original_chars_access::probe(
+            current->original_installation_root);
+        if(file==rloft::original_chars_access::Outcome::HostError)
+            stop("ORIGINAL_31218_DOS_FILE_ACCESS_FAILED");
+        if(file==rloft::original_chars_access::Outcome::UnsupportedFileType)
+            stop("ORIGINAL_31218_CHARS_NOT_REGULAR_FILE");
+        exists=file==rloft::original_chars_access::Outcome::Present;
+    }
     std::cerr<<"CODE2_ORIGINAL_LIVE_INIT=31218_SOURCE_CHARS_FOUND_"
-             <<(exists?"YES":"NO")<<"\n"<<std::flush;
+             <<(exists?"YES":"NO")
+             <<" origin="<<(transferred?"R_EXE_VOLATILE_HANDOFF":"OWNER_INSTALL")
+             <<"\n"<<std::flush;
     return exists?0u:1u; // original 37E39 OS status, 0=exists
 }
 u32 original_31218_chars_probe(u32 path,u32 mode) noexcept {
@@ -5056,6 +5066,19 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
         throw std::runtime_error(
             "Original CODE2 VGA 290F4/29234 source did not establish 320x400");
     return static_cast<std::uint32_t>(owner->pending.service);
+}
+void install_original_chars_handoff(Opaque* owner,
+                                    const std::uint8_t* bytes,
+                                    std::size_t count) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=rloft::guest_continuation::Service::DosMouseReset)
+        throw std::logic_error("Original CHARS must be handed to CODE2 before startup resumes");
+    auto& source=held(owner);
+    if(!source.host_files || source.original_31218_checks!=0u ||
+       !source.original_installation_root.empty() &&
+        source.original_installation_root!=owner->installation_root)
+        throw std::logic_error("Original CODE2 file owner is not ready for CHARS handoff");
+    source.host_files->install_virtual_chars(bytes,count);
 }
 void attach_original_init_callbacks(Opaque* owner,void* original_app30) {
     if(!owner || !original_app30 || !owner->live_worker ||
