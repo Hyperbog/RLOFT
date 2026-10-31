@@ -37,7 +37,12 @@ def projects() -> set[str]:
         doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
         if doc.get("schema") != "rloft-project-registry-v1":
             raise ValueError("invalid project ownership registry")
-        _PROJECTS = {p["branch"] for p in doc["primary"]}
+        # A historical analysis plan may carry a retired project ID. Keep
+        # explicit registry aliases accepted without presenting them as
+        # currently active Git branch owners.
+        _PROJECTS = ({p["branch"] for p in doc["primary"]}
+                     | set(doc.get("shared_analysis_tools", {})
+                               .get("rea", {}).get("allowed_projects", [])))
     return _PROJECTS
 
 
