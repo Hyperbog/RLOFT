@@ -1,31 +1,42 @@
-# Ravenloft: Strahd's Possession — project index
+# Ravenloft: Strahd's Possession — source research and reconstruction
 
-**Goal:** one enhanced, native Windows version of the complete original Ravenloft campaign, preserving authored content, with future modding support. **Current playable-game status: Pre-Alpha**; Windows build/tests do not establish that the graphics, menus, audio, saves or full campaign work for players.
+**Goal:** faithfully reconstruct the original game and make its engine, data and behavior understandable, portable and moddable. A completed player-facing game is **not** yet verified.
 
-## Workstreams
+## Current workstreams (GitHub branches verified 2026-10-31)
 
-| Workstream | Branch | Start here |
-| --- | --- | --- |
-| Enhanced playable game | [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1) | [Game README](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md), [controlling charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ENHANCED_PC_PORT_CHARTER.md) |
-| Original code decompilation | [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation) | [Decomp](Decomp/README.md), [CODE.1](Code1/README.md), [CODE.2](Code2/README.md) |
-| Source recompilation | [`recomp`](https://github.com/Hyperbog/RLOFT/tree/recomp) | [Recomp guide](https://github.com/Hyperbog/RLOFT/blob/recomp/Recomp/README.md) |
-| Standalone experimental engine | [`native-engine`](https://github.com/Hyperbog/RLOFT/tree/native-engine) | [Engine README](https://github.com/Hyperbog/RLOFT/blob/native-engine/NativeEngine/README.md) |
-| Disassembler | [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | [DOSDis README](https://github.com/Hyperbog/RLOFT/blob/DosDis/Tools/Disassembler/README.md) |
-| Asset extraction | [`Ravenloft-Asset-Extractor`](https://github.com/Hyperbog/RLOFT/tree/Ravenloft-Asset-Extractor) | [Extractor README](https://github.com/Hyperbog/RLOFT/blob/Ravenloft-Asset-Extractor/Tools/README.md) |
-| Preserved original files | [`DnD-Classics`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER) | Original `MASTER/` media; do not modify |
+| Branch | Purpose |
+| --- | --- |
+| [`Decomp`](https://github.com/Hyperbog/RLOFT/tree/Decomp) | CODE.1 / CODE.2 decompilation and research evidence (this checkout) |
+| [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) | Native original-source runtime and Windows player package |
+| [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | General-purpose game disassembler |
+| [`Ravenloft-Asset-Extractor`](https://github.com/Hyperbog/RLOFT/tree/Ravenloft-Asset-Extractor) | Original game asset extraction |
+| [`DnD-Classics`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER) | Original commercial media; preserve unmodified |
 
-**Branch naming:** `Decomp` was requested for the default `code1-decompilation` branch, but GitHub refused its automatic rename (HTTP 403). Use the actual branch name until an administrator completes the rename. `demo-v1` is the **playable native port**, not the decompilation branch.
+Earlier references to `demo-v1`, `native-engine`, `code1-decompilation` and lowercase `recomp` refer to historical workstreams or obsolete branch names, not currently listed branches. Recovery of earlier demo material requires inspecting actual historical commit/tag or Actions artifact records.
 
-## Status and documentation
+## Start here
 
-- [Automatically refreshed GitHub status](docs/LIVE_STATUS.md) — branch commit IDs, latest completed Actions run per branch and open pull requests; **not** gameplay certification.
-- [Current engineering acceptance boundary](docs/CURRENT_STATUS.md) — manually maintained, source-backed assessment of gameplay and research.
-- [Documentation index](docs/INDEX.md), [branch ownership](docs/BRANCH_OWNERSHIP.md) and [documentation/automation policy](docs/DOCUMENTATION_POLICY.md).
-- [Universal mod-forward methodology](MOD_FORWARD_METHODOLOGY.md) — a design goal, not proof of working mods.
-- [Historical original/source register](docs/SHARED_SOURCE_REGISTER.md) and [preservation archive](PreservationArchive/) — retain address, SHA and source evidence.
+- [Decompilation guide](Decomp/README.md) and canonical [CODE.1](Code1/README.md) / [CODE.2](Code2/README.md) reconstructed sources.
+- [Active Recomp source and verification](https://github.com/Hyperbog/RLOFT/blob/Recomp/Recomp/README.md), [acceptance ledger](https://github.com/Hyperbog/RLOFT/blob/Recomp/Recomp/ACCEPTANCE_GATES.json), and [native Windows build workflows](https://github.com/Hyperbog/RLOFT/tree/Recomp/.github/workflows).
+- [Decomp / Recomp cross-examination](docs/RECOMP_DECOMP_AUDIT_20261031.md), [current branch ownership](docs/BRANCH_OWNERSHIP.md), [source identity register](docs/SHARED_SOURCE_REGISTER.md), and [documentation index](docs/INDEX.md).
+- [Read-only shared source-parity checker](ResearchInfra/check_shared_source.py): compare critical Git blobs after fetching both `Decomp` and `Recomp` refs.
+- [Original game resource format research](DatFiles/README.md) and [mod-forward methodology](MOD_FORWARD_METHODOLOGY.md).
 
-Builds may run automatically on their owning branches. Do not commit or redistribute copyrighted original game files or private instruction-byte disassembly reports. Never infer DOS compatibility or player acceptance from a successful CI run.
+## Evidence and acceptance
 
-## Linux development and Windows milestone testing
+CODE.1 and CODE.2 reconstructed executable-byte accounting has been recorded as 100%. This is **not** a claim of complete semantic equivalence or a finished game. The Recomp checklist records **3 of 12 engineering gates** accepted; the full player-visible game remains unaccepted. A compiled Windows executable or passing CTests establishes only its tested engineering conditions.
 
-Start with [Linux-first development](dev/README.md) and `bash dev/linux.sh doctor`, then `bash dev/linux.sh test` from the owning branch. The isolated [recompilation branch](https://github.com/Hyperbog/RLOFT/tree/recomp) builds the original-source C++17 gates on Linux. Scheduled/manual [Windows MSVC milestone checks](.github/workflows/recomp-milestone-windows.yml) validate R01–R12 with SHA-stamped engineering ZIPs. A passed test does not imply a playable game.
+Recompilation development must preserve exact original-source function behavior, keep the original media in its source-preservation branch, and verify game-visible startup, character creation, save/load, world rendering, input, combat, scripts, audio, and campaign progression in one runnable session. Do not distribute proprietary original game files with the reconstructed-source application.
+
+## Local verification
+
+From a checkout containing both branch refs:
+
+```sh
+python3 ResearchInfra/check_shared_source.py --self-test
+python3 ResearchInfra/check_shared_source.py --decomp-ref origin/Decomp --recomp-ref origin/Recomp
+g++ -std=c++17 -fsyntax-only Code1/Code1.cpp
+g++ -std=c++17 -fsyntax-only Code2/Code2.cpp
+```
+
+For active Windows player packaging and full CTests, see the Recomp branch. A successful syntax check is not a gameplay test.
