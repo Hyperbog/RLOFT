@@ -11,10 +11,10 @@ import update_live_status as live
 class StatusTests(unittest.TestCase):
     def test_render_distinguishes_ci_from_game_acceptance(self):
         doc = live.render({
-            "default_branch": "code1-decompilation",
+            "default_branch": "Decomp",
             "items": [{
-                "label": "Playable enhanced game",
-                "branch": "demo-v1",
+                "label": "Original-source recompilation",
+                "branch": "Recomp",
                 "sha": "a" * 40,
                 "last_run": {
                     "id": 42,
@@ -33,12 +33,12 @@ class StatusTests(unittest.TestCase):
         self.assertIn("#42", doc)
         self.assertIn("No open pull requests", doc)
 
-    def test_collect_resolves_pending_default_branch_rename(self):
-        actual = [names[-1] for _, names in live.WORKSTREAMS]
+    def test_collect_current_owner_branches(self):
+        actual = [names[0] for _, names in live.WORKSTREAMS]
         branch_payload = [{"name": n, "commit": {"sha": "f" * 40}} for n in actual]
         def fixture(path, token, repo):
             if path == "":
-                return {"default_branch": "code1-decompilation"}
+                return {"default_branch": "Decomp"}
             if path.startswith("branches?"):
                 return branch_payload
             if path.startswith("pulls?"):
@@ -48,13 +48,14 @@ class StatusTests(unittest.TestCase):
             raise AssertionError(path)
         with patch.object(live, "api", side_effect=fixture):
             result = live.collect("test-token")
-        self.assertEqual(len(result["items"]), 7)
-        self.assertEqual(result["items"][0]["branch"], "code1-decompilation")
+        self.assertEqual(len(result["items"]), 5)
+        self.assertEqual(result["items"][0]["branch"], "Decomp")
+        self.assertEqual(result["items"][1]["branch"], "Recomp")
         self.assertFalse(result["additional"])
 
     def test_rejects_missing_owner_branch(self):
         with patch.object(live, "api", side_effect=[
-            {"default_branch": "code1-decompilation"}, [], []
+            {"default_branch": "Decomp"}, [], []
         ]):
             with self.assertRaisesRegex(ValueError, "Required workstream"):
                 live.collect("test-token")

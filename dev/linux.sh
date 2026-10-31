@@ -64,7 +64,10 @@ compile_source() {
     native-engine) cmake --build "$BUILD/native-engine" --parallel "$JOBS" ;;
     DosDis) dotnet build Tools/Disassembler/src/DosDis.Core/DosDis.Core.csproj --configuration Release ;;
     extractor) python3 -m compileall -q Tools/anm ;;
-    decomp) python3 -m compileall -q ResearchInfra Code2/tools ;;
+    decomp)
+      python3 -m compileall -q ResearchInfra Code2/tools
+      c++ -std=c++17 -fsyntax-only Code1/Code1.cpp Code2/Code2.cpp
+      ;;
     demo-v1) python3 -m compileall -q DemoV1/tools ;;
     *) echo "Unknown workstream $OWNER" >&2; exit 2 ;;
   esac

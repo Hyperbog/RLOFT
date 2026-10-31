@@ -2,6 +2,8 @@
 
 > **Post-certification erratum (2026-10-07):** native Demo integration rechecked immutable CODE.2 bytes and confirmed two source-level semantic defects: constant automap draw coordinates in `0139C` and a four-versus-five argument wrapper at `2975C`. The current source implements the encoded increments and five-argument contract. The certification hashes below identify the historical pre-erratum snapshot, not the current `Code2.cpp`. Byte accounting remains unchanged. See `Code2/POST_CERTIFICATION_ERRATA.md`. This two-hunk branch difference is now fully reconciled; the full original-byte comparison is recorded in the main branch.
 
+**2026-10-31 verified cross-branch synchronization:** `Code2.cpp` now uses the exact already-tested `Recomp` blob `1cf86c9eca12bb9613289eff261c96cbbc01fd04`, including corrected `29838/298F0` argument forwarding, planar raster width and cell indexing. The saved `LEVnnn.DAT` grid parser is also synchronized. Historical hashes below remain historical. This is not DOS/playability certification.
+
 This directory contains the **fully byte-accounted but still semantically corrigible** C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`. Completed byte accounting is **not** a claim of original DOS behavioral equivalence.
 
 ## Historical accounting and verification record

@@ -11,13 +11,11 @@ from urllib.request import Request, urlopen
 
 REPOSITORY = "Hyperbog/RLOFT"
 WORKSTREAMS = (
-    ("Decompilation", ("Decomp", "code1-decompilation")),
-    ("Recompilation", ("recomp",)),
-    ("Playable enhanced game", ("demo-v1",)),
-    ("Experimental native engine", ("native-engine",)),
-    ("DosDis", ("DosDis",)),
-    ("Ravenloft Asset Extractor", ("Ravenloft-Asset-Extractor",)),
-    ("Original preserved media", ("DnD-Classics",)),
+    ("Decompilation", ("Decomp",)),
+    ("Original-source recompilation", ("Recomp",)),
+    ("DOS disassembler", ("DosDis",)),
+    ("Ravenloft asset extractor", ("Ravenloft-Asset-Extractor",)),
+    ("Original media", ("DnD-Classics",)),
 )
 
 def api(path: str, token: str, repo: str = REPOSITORY) -> object:

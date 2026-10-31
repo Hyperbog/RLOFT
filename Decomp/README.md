@@ -1,6 +1,6 @@
 # Decompilation — CODE.1 and CODE.2
 
-**Active branch:** `code1-decompilation` (repository default). **Scope:** original LE DOS/4GW reverse engineering and human-readable C++ reconstruction. **Not:** the recompiled DOS execution host or the native Windows game.
+**Active branch:** [`Decomp`](https://github.com/Hyperbog/RLOFT/tree/Decomp) (repository default). **Scope:** original LE DOS/4GW reverse engineering and human-readable C++ reconstruction. **Not:** the recompiled DOS execution host or the native Windows game.
 
 ## Existing source paths (intentionally retained)
 
@@ -17,8 +17,8 @@
 
 ## Parallel recompilation and game branches
 
-- [`recomp` → `Recomp/`](https://github.com/Hyperbog/RLOFT/tree/recomp/Recomp): source recompilation, original runtime shims, linkage and Windows source tests.
-- [`demo-v1` → `DemoV1/`](https://github.com/Hyperbog/RLOFT/tree/demo-v1/DemoV1): enhanced native player game.
+- [`Recomp` → `Recomp/`](https://github.com/Hyperbog/RLOFT/tree/Recomp/Recomp): source recompilation, original runtime shims, linkage and Windows source tests.
+- The earlier `demo-v1` workstream is historical; its branch no longer exists in the current branch list.
 - [`DnD-Classics` → `MASTER/`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER): immutable original game files.
 
 ## DOSDis inputs

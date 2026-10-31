@@ -959,13 +959,13 @@ void function_2a380(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 im
 static_assert(0x2A478u-0x2A380u==248u);
 void function_2a478(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 image,u32 delta) noexcept {
     const Planar2 p=g2planar(b,y,x);u32 dst0=p.addr;u8 mask=static_cast<u8>(0x11u<<p.plane);const u8 sub=static_cast<u8>(delta);const u16 rows=g2r16(b,image+4u);const u8 half=g2r8(b,image+6u),flags=g2r8(b,image+7u);u32 src=image+8u+static_cast<u32>(g2r16(b,image))*frame;const u32 doubled=static_cast<u32>(half)<<1,skip=load_le32(dg(m,0xEFF9u))-doubled;
-    if((flags&0x80u)==0u){const u32 bytes=static_cast<u32>(static_cast<u8>(doubled))<<1;for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{g2w8(b,dst++,static_cast<u8>(g2r8(b,src++)-sub));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
+    if((flags&0x80u)==0u){const u32 bytes=doubled;/* source 2A4EF: MOVZX ECX,BL; SHL ECX,1 (2*half, not 4*half) */for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{g2w8(b,dst++,static_cast<u8>(g2r8(b,src++)-sub));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
     else{const u8 key=g2r8(b,src++);store_le32(dg(m,0xF009u),rows);const u32 bytes=static_cast<u8>(doubled);for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{const u8 v=g2r8(b,src++);if(v!=key)g2w8(b,dst,static_cast<u8>(v-sub));++dst;}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
 }
 static_assert(0x2A584u-0x2A478u==268u);
 void function_2a584(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 image,u32 table) noexcept {
     const Planar2 p=g2planar(b,y,x);u32 dst0=p.addr;u8 mask=static_cast<u8>(0x11u<<(p.plane&3u));const u16 rows=g2r16(b,image+4u);const u8 half=g2r8(b,image+6u),flags=g2r8(b,image+7u);u32 src=image+8u+static_cast<u32>(g2r16(b,image))*frame;const u32 doubled=static_cast<u32>(half)<<1,skip=load_le32(dg(m,0xEFF9u))-doubled;
-    if((flags&0x80u)==0u){const u32 bytes=static_cast<u32>(static_cast<u8>(doubled))<<1;for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{const u8 v=g2r8(b,src++);g2w8(b,dst++,g2r8(b,table+v));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
+    if((flags&0x80u)==0u){const u32 bytes=doubled;/* source 2A5FE: MOV CL,BL; SHL CX,1 (2*half, not 4*half) */for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{const u8 v=g2r8(b,src++);g2w8(b,dst++,g2r8(b,table+v));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
     else{const u8 key=g2r8(b,src++);store_le32(dg(m,0xF009u),rows);const u32 bytes=static_cast<u8>(doubled);for(u32 plane=0;plane<4u;++plane){g2mask(b,mask);u32 dst=dst0;u16 rc=rows;do{u32 n=bytes;do{const u8 v=g2r8(b,src++);if(v!=key)g2w8(b,dst,g2r8(b,table+v));++dst;}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);if(carry)++dst0;}}}
 }
 static_assert(0x2A6B0u-0x2A584u==300u);
@@ -19891,10 +19891,19 @@ static_assert(0x29802u-0x297D0u==50u);
 }
 static_assert(0x29838u-0x29804u==52u);
 
-[[nodiscard]] u32 function_29838(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 mode) noexcept {
-    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+[[nodiscard]] u32 function_29838(Application57Boundary& b,u32 frame,u32 row,
+                                 u32 column,u32 resource_id,u32 archive_slot,
+                                 u32 palette_delta) noexcept {
+    // Original CODE.2 29838..2986B has SIX cdecl arguments:
+    //   push [esp+14h], push [esp+14h], call 2F29C
+    // first push is original arg5 (archive slot), second original arg4
+    // (resource ID). The unmodified [esp+18h] at 2984C is original arg6
+    // (palette delta). The three final pushes recover args3/2/1.
+    // Independent retail 314B0 caller at 31528..31558 pushes all SIX.
+    const u32 image=b.call_2f29c?b.call_2f29c(resource_id,archive_slot):0u;
     if(image==0u)return 0u;
-    if(b.call_2a478)(void)b.call_2a478(a1,a2,key,image,static_cast<u32>(static_cast<u8>(mode)));
+    if(b.call_2a478)(void)b.call_2a478(frame,row,column,image,
+                                         static_cast<u32>(static_cast<u8>(palette_delta)));
     return b.call_2e758?b.call_2e758():0u;
 }
 static_assert(0x2986Cu-0x29838u==52u);
@@ -19920,10 +19929,18 @@ static_assert(0x298B4u-0x2986Cu==72u);
 }
 static_assert(0x298EFu-0x298B4u==59u);
 
-[[nodiscard]] u32 function_298f0(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 a5) noexcept {
-    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+[[nodiscard]] u32 function_298f0(Application57Boundary& b,
+    u32 frame,u32 row,u32 column,u32 resource_id,u32 archive_slot,u32 table) noexcept {
+    // Retail 298F0 pushes [ESP+14h] (archive slot), then [ESP+14h]
+    // (resource ID) to 2F29C; after restoring ESP it forwards SIX
+    // cdecl arguments via 2A584(frame,row,column,image,table).
+    // The former five-input reconstruction lost the separate column
+    // and conflated it with the resource ID.
+    const u32 image=b.call_2f29c?
+        b.call_2f29c(resource_id,archive_slot):0u;
     if(image==0u)return 0u;
-    if(b.call_2a584)(void)b.call_2a584(a1,a2,key,image,a5);
+    if(b.call_2a584)
+        (void)b.call_2a584(frame,row,column,image,table);
     return b.call_2e758?b.call_2e758():0u; // encoded tail JMP
 }
 static_assert(0x29922u-0x298F0u==50u);
@@ -24380,7 +24397,12 @@ void function_314b0(Machine& m,Application73Boundary& b,u32 view) noexcept {
         else if(mode==10u)set_bias=16;
         for(u32 i=0;i<0x20u;++i){
             const u32 random_set=((function_30ca2(m)*7u)>>15)+static_cast<u32>(key_base+set_bias);
-            if(b.app57)(void)function_29838(*b.app57,0u,4u,i*8u+0x20u,random_set,8u);
+            // Retail 31528/31585/315E2 pass six arguments. Weather
+            // brightness 0..8 is the palette delta; modes 9/10 clamp it
+            // to 8 while applying a +8/+16 resource-set bias.
+            if(b.app57)(void)function_29838(*b.app57,0u,4u,i*8u+0x20u,
+                                               random_set,8u,
+                                               mode<=8u?mode:8u);
         }
     }
 
@@ -25050,7 +25072,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                 state=jump_left?Left:Right;continue;
             }
             if(state==Left){
-                const u32 index=left_expr>>1;store_le32(dg(m,0xFCDCu),index);
+                // left_expr is row * level_width + column: a CELL index, not a byte offset.
+                const u32 index=left_expr;store_le32(dg(m,0xFCDCu),index);
                 if(index>=load_le32(dg(m,0xFD0Cu))){if(b.call_32f4c)b.call_32f4c();done=true;continue;}
                 const u32 rec=0x198E0u+index*2u;u16 flags=load_le16(dg(m,rec));
                 const bool treat_empty=(flags&0x003Fu)==0u || (load_le32(dg(m,0xFD08u))!=0u && (flags&0x0800u)!=0u);
@@ -25083,7 +25106,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                 left_expr=app84_mul_words(static_cast<s16>(load_le16(dg(m,0x248E6u))),scale)+static_cast<u32>(static_cast<s32>(bx));store_le32(dg(m,0xFCDCu),left_expr);state=CompareLeft;continue;
             }
 
-            const u32 index=right_expr>>1;store_le32(dg(m,0xFCDCu),index);
+            // right_expr likewise addresses cells; 198E0 stores 2 bytes per cell.
+            const u32 index=right_expr;store_le32(dg(m,0xFCDCu),index);
             if(index>=load_le32(dg(m,0xFD0Cu))){if(b.call_32f4c)b.call_32f4c();done=true;continue;}
             const u32 rec=0x198E0u+index*2u;u16 flags=load_le16(dg(m,rec));
             const bool treat_empty=(flags&0x003Fu)==0u || (load_le32(dg(m,0xFD08u))!=0u && (flags&0x0800u)!=0u);
