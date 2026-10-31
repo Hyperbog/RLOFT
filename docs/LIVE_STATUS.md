@@ -1,22 +1,20 @@
 # RLOFT — live GitHub workstream status
 
-**Observed:** 2026-10-18 14:41:10 UTC. **Repository default:** `code1-decompilation`.
+**Observed:** 2026-10-31 16:12:16 UTC. **Repository default:** `Decomp`.
 
 > **Automatically generated.** These are GitHub branch heads and the most recent *completed* Actions run associated with each branch, not proof of gameplay, original DOS parity, sound, visuals, or user acceptance. A run may be a documentation or tools job rather than a game build. For verified engineering boundaries, use [CURRENT_STATUS.md](CURRENT_STATUS.md).
 
 | Workstream | Branch | Current HEAD | Most recent completed Actions run |
 | --- | --- | --- | --- |
-| Decompilation | [`code1-decompilation`](https://github.com/Hyperbog/RLOFT/tree/code1-decompilation) | [`ee9ec28a56`](https://github.com/Hyperbog/RLOFT/commit/ee9ec28a569e6fccc1bcd94e0822fcdceebf3ec9) | [#39098140878](https://github.com/Hyperbog/RLOFT/actions/runs/39098140878): success (source `60f5a834ae`) |
-| Recompilation | [`recomp`](https://github.com/Hyperbog/RLOFT/tree/recomp) | [`c5cff76f87`](https://github.com/Hyperbog/RLOFT/commit/c5cff76f878636330a90183bed628b0a8d556141) | [#39136699803](https://github.com/Hyperbog/RLOFT/actions/runs/39136699803): success (source `9ce85cd0e7`) |
-| Playable enhanced game | [`demo-v1`](https://github.com/Hyperbog/RLOFT/tree/demo-v1) | [`b67f8d3946`](https://github.com/Hyperbog/RLOFT/commit/b67f8d39467128e9b230546ca52f8113b3f3a98b) | [#39082856011](https://github.com/Hyperbog/RLOFT/actions/runs/39082856011): success (source `39f165c865`) |
-| Experimental native engine | [`native-engine`](https://github.com/Hyperbog/RLOFT/tree/native-engine) | [`aa94a09d94`](https://github.com/Hyperbog/RLOFT/commit/aa94a09d9470724fe65fea49555b28ecaac4d738) | [#39082843934](https://github.com/Hyperbog/RLOFT/actions/runs/39082843934): success (source `c79c4d892e`) |
-| DosDis | [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | [`0d87028215`](https://github.com/Hyperbog/RLOFT/commit/0d87028215174260e43000cb0cfc10f1e44d87d4) | [#39082824692](https://github.com/Hyperbog/RLOFT/actions/runs/39082824692): success (source `d413142d44`) |
-| Ravenloft Asset Extractor | [`Ravenloft-Asset-Extractor`](https://github.com/Hyperbog/RLOFT/tree/Ravenloft-Asset-Extractor) | [`23114c9572`](https://github.com/Hyperbog/RLOFT/commit/23114c9572e2e6db5c3745dca9166c8b1f8a1ccc) | [#39082869992](https://github.com/Hyperbog/RLOFT/actions/runs/39082869992): success (source `0412ee620c`) |
-| Original preserved media | [`DnD-Classics`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics) | [`30b5a3025f`](https://github.com/Hyperbog/RLOFT/commit/30b5a3025f4eea711380c416667bc350fd5c5902) | No completed run found |
+| Decompilation | [`Decomp`](https://github.com/Hyperbog/RLOFT/tree/Decomp) | [`885f3f2654`](https://github.com/Hyperbog/RLOFT/commit/885f3f2654066107fbdd82399eee3693e03a53ac) | [#41172888069](https://github.com/Hyperbog/RLOFT/actions/runs/41172888069): success (source `885f3f2654`) |
+| Original-source recompilation | [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) | [`3a3a8dbced`](https://github.com/Hyperbog/RLOFT/commit/3a3a8dbced85f2c1709bf82f8e124e67a382712d) | [#41173994105](https://github.com/Hyperbog/RLOFT/actions/runs/41173994105): success (source `3a3a8dbced`) |
+| DOS disassembler | [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | [`0eb73aded1`](https://github.com/Hyperbog/RLOFT/commit/0eb73aded14dfc28c36819e453834150f501a03c) | [#39082824692](https://github.com/Hyperbog/RLOFT/actions/runs/39082824692): success (source `d413142d44`) |
+| Ravenloft asset extractor | [`Ravenloft-Asset-Extractor`](https://github.com/Hyperbog/RLOFT/tree/Ravenloft-Asset-Extractor) | [`23114c9572`](https://github.com/Hyperbog/RLOFT/commit/23114c9572e2e6db5c3745dca9166c8b1f8a1ccc) | [#39082869992](https://github.com/Hyperbog/RLOFT/actions/runs/39082869992): success (source `0412ee620c`) |
+| Original media | [`DnD-Classics`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics) | [`30b5a3025f`](https://github.com/Hyperbog/RLOFT/commit/30b5a3025f4eea711380c416667bc350fd5c5902) | No completed run found |
 
 ## Open pull requests
 
-- [#27](https://github.com/Hyperbog/RLOFT/pull/27) DOS disassembler: Windows-only analysis, WPF project source and cancellation hardening (`DosDis` → `code1-decompilation`)
+- [#27](https://github.com/Hyperbog/RLOFT/pull/27) DOS disassembler: Windows-only analysis, WPF project source and cancellation hardening (`DosDis` → `Decomp`)
 
 ## Additional branches
 
