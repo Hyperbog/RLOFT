@@ -125,6 +125,70 @@ int main() {
          f.read(reinterpret_cast<char*>(unchanged.data()),unchanged.size());
          need(f.gcount()==59,"host file length changed");}
         need(source==unchanged,"DOS read-only provider modified source file");
+        // Original R.EXE transfers an opaque 4 x 0x248 CHARS image
+        // between child processes. Verify it reaches the ordinary DOS
+        // AH=3D/3F/42/3E file path without altering a pre-existing CHARS
+        // installation file or manufacturing a physical DOS write.
+        std::array<std::uint8_t,ReadOnlyDosFiles::kCharsBytes> chars{};
+        for(std::size_t i=0;i<chars.size();++i)
+            chars[i]=static_cast<std::uint8_t>((i*19u+7u)&0xFFu);
+        {std::ofstream disk(tmp.p/"CHARS",std::ios::binary);
+         need(disk.good(),"cannot create original CHARS fixture");
+         disk.put(static_cast<char>(0xCCu));
+         need(disk.good(),"cannot write original CHARS fixture");}
+        need(!files.has_virtual_chars(),"CHARS handoff appeared before install");
+        try {files.install_virtual_chars(chars.data(),chars.size()-1u);
+             need(false,"short handoff accepted");}
+        catch(const std::invalid_argument&) {}
+        need(!files.has_virtual_chars(),"failed handoff mutated DOS transport");
+        files.install_virtual_chars(chars.data(),chars.size());
+        need(files.has_virtual_chars(),"valid handoff lost");
+        try {files.install_virtual_chars(chars.data(),chars.size());
+             need(false,"duplicate handoff accepted");}
+        catch(const std::invalid_argument&) {}
+        eq(files.open("CHARS",1u),true,12u,
+           "read-only CHARS overlay accepted write access");
+        const auto x=files.open("chars",0u);
+        const auto y=files.open("CHARS",0u);
+        need(!x.carry && !y.carry && x.ax==5u && y.ax==6u,
+             "virtual CHARS handle assignment changed");
+        std::array<std::uint8_t,ReadOnlyDosFiles::kCharsBytes> restored{};
+        eq(files.read(x.ax,restored.data(),0x400u),false,0x400u,
+           "first original CHARS read failed");
+        eq(files.read(x.ax,restored.data()+0x400u,0x520u),false,0x520u,
+           "second original CHARS read failed");
+        need(restored==chars,"virtual CHARS bytes differ from CODE1 handoff");
+        eq(files.read(x.ax,restored.data(),1u),false,0u,
+           "virtual CHARS EOF not reached");
+        eq_seek(files.seek(x.ax,-0x248,2u),false,0x6D8u,
+                "virtual CHARS end-relative seek wrong");
+        eq(files.read(x.ax,restored.data(),0x248u),false,0x248u,
+           "virtual CHARS last actor read failed");
+        need(std::equal(restored.begin(),restored.begin()+0x248u,
+                        chars.begin()+0x6D8u),
+             "fourth original character bytes were altered");
+        eq_seek(files.seek(y.ax,0,1u),false,0u,
+                "independent virtual CHARS cursor not preserved");
+        eq_seek(files.seek(y.ax,0x920,0u),false,0x920u,
+                "virtual CHARS absolute seek failed");
+        eq_seek(files.seek(y.ax,-1,0u),true,1u,
+                "virtual CHARS negative seek accepted");
+        eq(files.read(y.ax,restored.data(),1u),false,0u,
+           "virtual CHARS EOF was not independent");
+        eq(files.close(x.ax),false,0u,"first virtual CHARS close failed");
+        eq(files.close(y.ax),false,0u,"second virtual CHARS close failed");
+        need(files.open_handles()==0u,"virtual CHARS handles leaked");
+        {std::ifstream disk(tmp.p/"CHARS",std::ios::binary);
+         char retained=0;
+         disk.read(&retained,1);
+         need(disk.gcount()==1 && static_cast<unsigned char>(retained)==0xCCu,
+              "virtual CHARS overwrote original game installation");
+         need(disk.peek()==std::char_traits<char>::eof(),
+              "virtual CHARS extended original game installation");}
+        std::cout<<"ORIGINAL_R_EXE_CHARS_IN_MEMORY_DOS_HANDOFF_PASS"
+                 <<" bytes=2336 slots=4 source_install=UNCHANGED"
+                 <<" original_16CD0_source=NOT_YET_EXECUTED\\n";
+
         std::cout<<"HOST_DOS_RO_SERVICE=AH3D_AH3F_AH3E_AH42\n"
                    "HOST_DOS_READ_ONLY=YES\n"
                    "HOST_DOS_INPUT_UNMODIFIED=YES\n"
