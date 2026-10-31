@@ -81,8 +81,12 @@ int main(int argc,char** argv) {
             bool host_console_input=false;
             explicit PersistentCode2(const std::filesystem::path& r,
                                      const std::filesystem::path& d,
-                                     bool advance_init,bool use_console)
-                :game(owner::create(r,d,5u),&owner::destroy),
+                                     bool advance_init,bool use_console,
+                                     const runtime::CharsHandoff& handoff)
+                :game(owner::create(r,d,5u,
+                       handoff.available()?handoff.value().data():nullptr,
+                       handoff.available()?handoff.value().size():0u),
+                      &owner::destroy),
                  advance_second_source_init(advance_init),
                  host_console_input(use_console) {
                 std::cerr<<"RLOFT_STAGED_TRACE=CANONICAL_RESOURCE_GUEST_CONSTRUCTED\n"<<std::flush;
@@ -140,9 +144,10 @@ int main(int argc,char** argv) {
             [&](rloft::original_supervisor::Module which,
                 const runtime::CharsHandoff& chars)
                 ->std::unique_ptr<runtime::ModulePort>{
-                if(which!=rloft::original_supervisor::Module::Code2 ||
-                   chars.available())return nullptr;
-                return std::make_unique<PersistentCode2>(root,cd,advance_second_init,console_input);
+                if(which!=rloft::original_supervisor::Module::Code2)
+                    return nullptr; // CODE.1 still needs its native child.
+                return std::make_unique<PersistentCode2>(
+                    root,cd,advance_second_init,console_input,chars);
             });
         std::cerr<<"RLOFT_STAGED_TRACE=SUPERVISOR_FIRST_STEP_BEGIN\n"<<std::flush;
         const auto first=session.step_once();
