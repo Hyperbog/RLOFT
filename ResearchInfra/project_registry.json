@@ -76,9 +76,13 @@
         "Recomp",
         "DosDis",
         "Ravenloft-Asset-Extractor",
-        "DnD-Classics"
+        "DnD-Classics",
+        "code1-decompilation",
+        "demo-v1",
+        "native-engine"
       ],
-      "original_preservation_branch_read_only": true
+      "original_preservation_branch_read_only": true,
+      "compatibility_note": "Historical project IDs remain valid for saved REA analysis plans and tests; these IDs are NOT claims that corresponding Git branch refs currently exist."
     }
   }
 }
