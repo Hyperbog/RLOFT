@@ -1,9 +1,9 @@
 {
   "schema": "rloft-project-registry-v1",
-  "policy": "This is an ownership/configuration register, not a completion or parity certificate.",
+  "policy": "Current owner registry as of 2026-10-31. Listed branches were verified by GitHub branches API; historical references elsewhere do not imply a current branch or functioning game.",
   "primary": [
     {
-      "branch": "code1-decompilation",
+      "branch": "Decomp",
       "owns": [
         "Decomp/",
         "Code1/",
@@ -17,27 +17,13 @@
       "role": "canonical decompilation, original-source reconstruction and shared research infrastructure"
     },
     {
-      "branch": "recomp",
+      "branch": "Recomp",
       "owns": [
         "Recomp/",
         "Code1/",
         "Code2/"
       ],
       "role": "separate static/source recompilation and Windows recompilation CI; CODE source copies are retained here as build dependencies"
-    },
-    {
-      "branch": "demo-v1",
-      "owns": [
-        "DemoV1/"
-      ],
-      "role": "faithful full game recreation on native host"
-    },
-    {
-      "branch": "native-engine",
-      "owns": [
-        "NativeEngine/"
-      ],
-      "role": "independent install-backed original-assets application"
     },
     {
       "branch": "DosDis",
@@ -63,23 +49,21 @@
     }
   ],
   "protected_patterns": [
-    "DnD-Classics",
-    "recomp",
-    "code1-decompilation",
-    "demo-v1",
-    "native-engine",
+    "Decomp",
+    "Recomp",
     "DosDis",
-    "Ravenloft-Asset-Extractor"
+    "Ravenloft-Asset-Extractor",
+    "DnD-Classics"
   ],
   "snapshots": {
-    "classification": "Preserve identifiable build/validation SHA and provenance until verified merged or archived; no sweeping merges, force pushes, or original-file rewrites.",
+    "classification": "Historical branches/demo must not be described as active. Preserve recoverable commit SHAs/tags before deleting current branch references; do not rewrite original media.",
     "archived_tag_prefix": "archive/retired-20261011/",
     "retired_branch_count": 14
   },
   "review": [],
   "shared_analysis_tools": {
     "rea": {
-      "owner_branch": "code1-decompilation",
+      "owner_branch": "Decomp",
       "entry_point": "ResearchInfra/rea_bridge.py",
       "documentation": "ResearchInfra/REA.md",
       "upstream": "https://github.com/morluto/rea",
@@ -88,13 +72,11 @@
       "delivery": "one canonical tool, arbitrary branch checkouts via absolute target paths",
       "evidence": "static-provider-only-not-original-DOS-or-gameplay-parity",
       "allowed_projects": [
-        "code1-decompilation",
-        "demo-v1",
-        "native-engine",
+        "Decomp",
+        "Recomp",
         "DosDis",
         "Ravenloft-Asset-Extractor",
-        "DnD-Classics",
-        "recomp"
+        "DnD-Classics"
       ],
       "original_preservation_branch_read_only": true
     }
