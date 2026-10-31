@@ -24,7 +24,9 @@ struct Evidence {
 };
 Opaque* create(const std::filesystem::path& original_game_directory,
                const std::filesystem::path& original_extracted_cd_directory,
-               unsigned scene_level);
+               unsigned scene_level,
+               const std::uint8_t* transferred_chars=nullptr,
+               std::size_t transferred_chars_bytes=0u);
 Evidence inspect(const Opaque*);
 void dispatch_pending(Opaque*);
 // Original-media CI driver only: deliberately provides test virtual
