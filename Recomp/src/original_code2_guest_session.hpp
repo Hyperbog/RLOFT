@@ -4,6 +4,7 @@
 // VGA DAC palette across successive native supervisor dispatcher calls.
 // At the unmapped gameplay loop boundary it reports Pending, NEVER
 // fabricates a DOS/4GW exit status or a visually successful game boot.
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 namespace rloft { namespace original_code2_session {
