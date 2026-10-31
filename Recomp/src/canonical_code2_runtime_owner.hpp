@@ -83,6 +83,11 @@ void attach_original_resource_callbacks(Opaque*,void* original_app68);
  // bootstrapped the source resource archive. The guest owner and this
  // table must both remain alive until actual CODE.2 child termination.
 void attach_original_init_callbacks(Opaque*,void* original_app30);
+// R.EXE status-10 CODE.1->CODE.2 handoff: publish an exact CHARS
+// image in CODE.2's read-only DOS namespace before its first INT33
+// startup response. No original installation files are modified.
+void install_original_chars_handoff(Opaque*,const std::uint8_t*,
+                                    std::size_t);
 // Answer only the actual compiled 20440 -> 16D04 entry request.
 // Executes compiled 16D04 on the suspended original CODE.2 worker
 // using its retained heap/RAM and the borrowed original INIT callbacks.
