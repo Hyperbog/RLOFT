@@ -1032,7 +1032,9 @@ struct Opaque {
     std::uint64_t dispatches=0;
     bool initialized=false;
     explicit Opaque(const std::filesystem::path& root,
-                    const std::filesystem::path& cd,unsigned level)
+                    const std::filesystem::path& cd,unsigned level,
+                    const std::uint8_t* transferred_chars,
+                    std::size_t transferred_chars_bytes)
         :original_root(root),pending_scene_level(level),
          canonical(rloft::canonical_code2_runtime::start_stackful(root/"CODE.2"),
                    &rloft::canonical_code2_runtime::destroy),
@@ -1068,6 +1070,9 @@ struct Opaque {
         // its actual 2F468 resource dependency.
         REQUIRE(guest->init_opens==0u && guest->res_opens==0u &&
                 code2::load_le32(guest->memory.data()+0xF0B4u)==0u);
+        if(transferred_chars || transferred_chars_bytes)
+            rloft::canonical_code2_runtime::install_original_chars_handoff(
+                canonical.get(),transferred_chars,transferred_chars_bytes);
         initialized=true;
     }
     void load_resources_at_original_selection() {
@@ -1114,8 +1119,11 @@ static std::uint64_t guest_source_fingerprint(const Opaque& s) {
     return hash;
 }
 Opaque* create(const std::filesystem::path& root,
-               const std::filesystem::path& cd,unsigned level) {
-    return new Opaque(root,cd,level);
+               const std::filesystem::path& cd,unsigned level,
+               const std::uint8_t* transferred_chars,
+               std::size_t transferred_chars_bytes) {
+    return new Opaque(root,cd,level,transferred_chars,
+                      transferred_chars_bytes);
 }
 Evidence inspect(const Opaque* s) {
     if(!s || !s->guest)throw std::invalid_argument("Null original CODE2 guest");
