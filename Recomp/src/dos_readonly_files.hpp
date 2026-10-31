@@ -2,6 +2,8 @@
 // Read-only, fail-closed host transport for DOS INT 21h AH=3Dh/3Fh/3Eh.
 // This is a host service component, not an emulation of DOS/4GW or game boot.
 // No writes, implicit host-current-directory lookup, or DOS device access.
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -38,12 +40,33 @@ public:
             throw std::invalid_argument("DOS file root must be an existing non-symlink directory");
     }
 
+    // An exact original CODE.1 CHARS payload may be transferred by the
+    // R.EXE supervisor into the next CODE.2 process without changing the
+    // original installation. This overlay is intentionally limited to the
+    // 0x920-byte CHARS file, never an arbitrary DOS pathname or write API.
+    static constexpr std::size_t kCharsBytes=0x920u;
+    void install_virtual_chars(const std::uint8_t* bytes,std::size_t count) {
+        if(!bytes || count!=kCharsBytes || virtual_chars_active_)
+            throw std::invalid_argument("CODE.1 CHARS handoff must be one exact 0x920-byte payload");
+        std::copy_n(bytes,count,virtual_chars_.begin());
+        virtual_chars_active_=true;
+    }
+    bool has_virtual_chars() const noexcept {return virtual_chars_active_;}
+
     // AL=00h (read-only, compatibility sharing) only. Other modes fail
     // without opening the host file; original callers retain DOS errors.
     DosFileResult open(const std::string& dos_name,std::uint8_t al) {
         if(al!=0u) return {true,12u}; // invalid access
         if(!valid_basename(dos_name)) return {true,3u}; // path not found
         const auto wanted=ascii_upper(dos_name);
+        if(wanted=="CHARS" && virtual_chars_active_) {
+            if(files_.size()>=0xFFF9u)return {true,4u};
+            std::uint16_t handle=5u;
+            while(files_.count(handle)!=0u && handle<0xFFFEu)++handle;
+            if(files_.count(handle)!=0u)return {true,4u};
+            files_.emplace(handle,OpenFile{std::ifstream{},0u,true});
+            return {false,handle};
+        }
         std::filesystem::path match;
         unsigned matches=0;
         std::error_code ec;
@@ -82,6 +105,14 @@ public:
         auto& opened=it->second;
         if(count>std::numeric_limits<std::uint32_t>::max()-opened.cursor)
             return {true,1u}; // constrained 32-bit guest position
+        if(opened.virtual_chars) {
+            const auto left=opened.cursor<kCharsBytes?
+                kCharsBytes-opened.cursor:0u;
+            const auto n=std::min(count,left);
+            if(n)std::copy_n(virtual_chars_.data()+opened.cursor,n,destination);
+            opened.cursor+=static_cast<std::uint32_t>(n);
+            return {false,static_cast<std::uint16_t>(n)};
+        }
         auto& file=opened.stream;
         // Clear EOF/fail status before every positioned read. The explicit
         // guest cursor also makes seek-after-EOF independent of host iostream
@@ -106,7 +137,9 @@ public:
         if(origin>2u)return {true,1u,0u};
         std::int64_t base=0;
         if(origin==1u)base=it->second.cursor;
-        if(origin==2u) {
+        if(origin==2u && it->second.virtual_chars)
+            base=kCharsBytes;
+        if(origin==2u && !it->second.virtual_chars) {
             auto& file=it->second.stream;
             file.clear();
             file.seekg(0,std::ios::end);
@@ -126,6 +159,10 @@ public:
     DosFileResult close(std::uint16_t handle) {
         const auto it=files_.find(handle);
         if(it==files_.end())return {true,6u};
+        if(it->second.virtual_chars) {
+            files_.erase(it);
+            return {false,0u};
+        }
         // A successful EOF read leaves failbit/eofbit set; that is not
         // a failed DOS AH=3Eh close. Clear prior read status first.
         it->second.stream.clear();
@@ -166,8 +203,14 @@ private:
             return false;
         return true;
     }
-    struct OpenFile {std::ifstream stream; std::uint32_t cursor;};
+    struct OpenFile {
+        std::ifstream stream;
+        std::uint32_t cursor;
+        bool virtual_chars=false;
+    };
     std::filesystem::path root_;
+    std::array<std::uint8_t,kCharsBytes> virtual_chars_{};
+    bool virtual_chars_active_=false;
     std::map<std::uint16_t,OpenFile> files_;
 };
 } // namespace rloft_recomp
