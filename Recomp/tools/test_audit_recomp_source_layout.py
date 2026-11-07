@@ -63,12 +63,12 @@ class LayoutAuditTest(unittest.TestCase):
     def test_included_cmake_module_owns_compiled_cpp(self):
         base = self.root / "Recomp"
         (base / "cmake").mkdir()
-        (base / "src/module.cpp").write_text("int module(){return 1;}\\n", encoding="utf-8")
+        (base / "src/module.cpp").write_text("int module(){return 1;}\n", encoding="utf-8")
         (base / "cmake/GameSubsystems.cmake").write_text(
-            "add_library(game_module STATIC src/module.cpp)\\n", encoding="utf-8"
+            "add_library(game_module STATIC src/module.cpp)\n", encoding="utf-8"
         )
         with (base / "CMakeLists.txt").open("a", encoding="utf-8") as fp:
-            fp.write("include(cmake/GameSubsystems.cmake)\\n")
+            fp.write("include(cmake/GameSubsystems.cmake)\n")
         result = self.scan()
         self.assertEqual([], result["errors"])
         self.assertEqual(2, result["cmake_cpp_inputs"])
@@ -76,7 +76,7 @@ class LayoutAuditTest(unittest.TestCase):
     def test_missing_cmake_module_fails_closed(self):
         base = self.root / "Recomp"
         with (base / "CMakeLists.txt").open("a", encoding="utf-8") as fp:
-            fp.write("include(cmake/DoesNotExist.cmake)\\n")
+            fp.write("include(cmake/DoesNotExist.cmake)\n")
         self.assertTrue(any("Missing or escaped CMake module" in item
                             for item in self.scan()["errors"]))
 
