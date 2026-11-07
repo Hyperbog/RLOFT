@@ -296,6 +296,11 @@ void intro_title_text(u32 y,u32 x,u32 text,u32 font) noexcept {
             for(u32 i=0;i<8u;++i)
                 std::cerr<<unsigned(current->data[font_ptr+i])<<",";
         std::cerr<<"\n"<<std::flush;
+        if(!font_ptr || !image_ptr ||
+           std::uint64_t(image_ptr)+8u>current->data.size() ||
+           !code2::load_le16(current->data.data()+image_ptr+2u) ||
+           !code2::load_le16(current->data.data()+image_ptr+4u))
+            stop("ORIGINAL_19464_FONT_TYPE2_301A8_SOURCE_DECODE_MISSING");
         code2::Application56Boundary glyphs{};
         glyphs.call_2a380=+[](u32 frame,u32 row,u32 column,u32 image) noexcept -> u32 {
             original_scene_res_blit(frame,row,column,image);
