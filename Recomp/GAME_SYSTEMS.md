@@ -39,7 +39,17 @@ The executable must retain **one authoritative CODE.1/CODE.2 guest, heap, resour
 - **Save**: merged WORK/LEV file transport, saved actor verification and original source-selected restore/transition checks into `game/save/Save.hpp`.
 - Former `src/*.hpp` entry points are **short compatibility forwards**, not duplicate implementations. Principal resource, world, options and save tests now include owned paths directly.
 
-All module moves preserve existing namespaces, functions, data structures and the original guest. The main source consumers and relevant tests now use the canonical headers. No original gameplay branches or file formats were rewritten. These are still header-based modules; separate translation-unit boundaries require follow-up ABI and build dependency extraction.
+All module moves preserve existing namespaces, functions, data structures and the original guest. The main source consumers and relevant tests now use the canonical headers. No original gameplay branches or file formats were rewritten.
+
+## Independent C++ translation units and modular CMake (phase 3)
+
+- `src/game/audio/Audio.cpp`: the original strict Creative VOC and CODE.2 27F24 packet decoders have **out-of-line** implementations; `Audio.hpp` exposes their stable declarations. Static library: `rloft_game_audio`.
+- `src/game/resources/Resources.cpp`: the data-driven 32-scene palette-bank selector has an **out-of-line** implementation; `Resources.hpp` exposes the selector interface. Static library: `rloft_game_resources`.
+- `cmake/GameSubsystems.cmake`: owns these static libraries, C++17 compilation requirements and explicit executable links. The top-level CMake file includes it after defining executable targets. The source-inventory audit now walks CMake module includes and reports orphan sources.
+- The old CODE.2 `.cpp`-to-`.cpp` embedding in resource startup and world-frame integration is **not** yet a separable ABI; moving those files without proving symbol and state ownership would duplicate the compiled original game routines. Extract their host callback contracts into independent modules only after confirming the same retained guest and original function ordering.
+- Remaining World, UI, Save, Graphics, Filesystem and Timing adapter implementations still use header-defined functionality. Keep compatibility forwarding headers until all consumers have been moved and regression-tested.
+
+No commercial game data is linked or packaged with these libraries.
 
 ## Deletion and release rules
 
