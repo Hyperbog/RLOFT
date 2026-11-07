@@ -706,6 +706,36 @@ struct Session {
             static_cast<u32>(it->second.file-2u),t.original_image_record,image});
         return image;
     }
+    // RES0 font items (including retail font #1) are type 2, not
+    // type 1 images. Original 301A8 builds a font descriptor containing
+    // the decoded 2FD9C image pointer followed by per-character widths.
+    // Absent this callback, original 303C8 dereferences DGROUP:0.
+    static u32 original_type2_source_decoder(u32 header,u32 handle) {
+        auto& t=state();
+        if(header!=0x2B670u || handle!=t.original_image_handle ||
+           t.original_image_record==0xFFFFFFFFu ||
+           t.original_image_invalid || t.memory[header+2u]!=2u ||
+           code2::load_le16(t.memory.data()+header+3u)<8u) {
+            t.original_image_invalid=true;return 0u;
+        }
+        const u32 font=code2::function_301a8(
+            t.m,t.original_image_callbacks,header,handle);
+        const u32 image=font && std::uint64_t(font)+4u<=t.memory.size()
+            ?code2::load_le32(t.memory.data()+font):0u;
+        if(t.error || t.original_image_invalid || !image ||
+           std::uint64_t(image)+8u>t.memory.size() ||
+           !code2::load_le16(t.memory.data()+image+2u) ||
+           !code2::load_le16(t.memory.data()+image+4u) ||
+           original_logical_position()!=t.original_image_end) {
+            t.original_image_invalid=true;return 0u;
+        }
+        std::cerr<<"CODE2_ORIGINAL_TYPE2_FONT_SOURCE_301A8_PASS"
+                 <<" item="<<t.original_image_record
+                 <<" font_ptr="<<font<<" image_ptr="<<image
+                 <<" frames="<<code2::load_le16(t.memory.data()+image+2u)
+                 <<"\n"<<std::flush;
+        return font;
+    }
     // Retail RES4 type-6 textures: compiled source 37590 allocates the
     // texture and 2FB04 expands the original file stream. This is
     // wired into the SAME original Application68 used for RES0/RES1.
@@ -861,6 +891,7 @@ struct Session {
         res_callbacks.call_312ec=&read_guest_void;
         res_callbacks.call_31334=&resource_record_seek;
         res_callbacks.call_2fd9c=&original_type1_source_decoder;
+        res_callbacks.call_301a8=&original_type2_source_decoder;
         res_callbacks.call_37590=&original_type6_source_decoder;
         original_image_callbacks.call_312ec=&read_guest;
         original_image_callbacks.call_3131c=&original_image_position;
