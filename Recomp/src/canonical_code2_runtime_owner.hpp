@@ -88,6 +88,10 @@ void attach_original_init_callbacks(Opaque*,void* original_app30);
 // startup response. No original installation files are modified.
 void install_original_chars_handoff(Opaque*,const std::uint8_t*,
                                     std::size_t);
+// Resolve original CINE/RES files in a second, explicitly selected
+// extracted-CD directory; no host-current-directory fallback or writes.
+// Attach at the first DOS mouse-reset pause, before source execution.
+void mount_original_cd_media(Opaque*,const std::filesystem::path&);
 // Answer only the actual compiled 20440 -> 16D04 entry request.
 // Executes compiled 16D04 on the suspended original CODE.2 worker
 // using its retained heap/RAM and the borrowed original INIT callbacks.
