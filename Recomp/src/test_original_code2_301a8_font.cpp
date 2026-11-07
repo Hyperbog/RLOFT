@@ -1,10 +1,11 @@
 // Source-executed original CODE.2 301A8 font-layout regression.
 // Synthetic uncompressed raster isolates the ownership/layout bug; authentic
-// RES0 type-2 method-3 data is validated separately by the media runtime.
+// Retail RES0 type-2 method-3 bytes require a separate original-media check.
 #include "../../Code2/Code2.cpp"
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 
