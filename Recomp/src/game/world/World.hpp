@@ -11,6 +11,9 @@
 #include <stdexcept>
 #include <vector>
 
+// This interface borrows the existing VGA host; only World.cpp needs its definition.
+namespace rloft::graphics { class OriginalVgaHost; }
+
 namespace rloft_recomp {
 struct Original36cecRasterMetrics {
     std::uint32_t source_columns{}, visible_runs{}, occluded_columns{};
