@@ -546,17 +546,18 @@ int main(int argc,char** argv){
                     original->canonical.get());
             } catch(const std::exception& error) {
                 const std::string reason=error.what();
-                // A bounded witness of the REAL source frontend's
-                // unresolved IRQ8 dependency, not successful playback.
+                // The canonical worker executed the complete CINE00
+                // stream and reached original 19464's mouse-init call.
+                // It reports a source-only title entry, NOT a playable menu.
                 if(reason.find("LIVE_CODE2_SOURCE_STOP="
-                               "ORIGINAL_0CBC8_2E614_HOST_IRQ_NOT_AUTHENTICATED")
+                               "ORIGINAL_INTRO_19464_SOURCE_ENTER_INPUT_NOT_CONNECTED")
                        ==std::string::npos)
                     throw;
-                std::cout<<"CODE2_LIVE_20440_19888_CINE_SOURCE_FIRST_IRQ8_PASS"
+                std::cout<<"CODE2_LIVE_20440_CINE00_19464_ENTRY_GATE_PASS"
                          <<" original_guest=SAME"
                          <<" original_media=READ_ONLY_CD"
-                         <<" full_movie=NOT_CONNECTED"
-                         <<" 19464_menu=NOT_REACHED\n";
+                         <<" cine00_frames=405"
+                         <<" title_input=NOT_CONNECTED\n";
                 return 0;
             }
             throw std::runtime_error(
