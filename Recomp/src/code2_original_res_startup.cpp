@@ -1187,6 +1187,23 @@ std::uint32_t test_advance_to_original_video_mode(Opaque* s) {
     s->guest->trace_materialize=false;
     std::cerr<<"CODE2_SOURCE_CHAIN_STAGE=RESOURCE_2F468_DONE_AT_VIDEO_290F4\n"<<std::flush;
     const auto after=inspect(s);
+    if(!(after.memory_address==first.memory_address &&
+         after.resource_archives==11u &&
+         after.resource_cache_base!=0u &&
+         after.selected_palette==3u &&
+         after.vga_port_writes==769u &&
+         s->resources_loaded &&
+         !after.original_game_loop_connected)) {
+        std::cerr<<"CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT_DIAGNOSTIC"
+                 <<" memory_stable="<<(after.memory_address==first.memory_address)
+                 <<" archives="<<after.resource_archives
+                 <<" cache="<<after.resource_cache_base
+                 <<" palette="<<after.selected_palette
+                 <<" dac_writes="<<after.vga_port_writes
+                 <<" loaded="<<s->resources_loaded
+                 <<" loop="<<after.original_game_loop_connected
+                 <<"\n"<<std::flush;
+    }
     REQUIRE(after.memory_address==first.memory_address &&
             after.resource_archives==11u &&
             after.resource_cache_base!=0u &&
