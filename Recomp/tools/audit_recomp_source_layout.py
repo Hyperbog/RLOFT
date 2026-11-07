@@ -46,7 +46,7 @@ def audit(root: Path) -> dict:
             else:
                 modules_seen.add(module)
                 pieces.append(read_build(module))
-        return "\\n".join(pieces)
+        return "\n".join(pieces)
     cmake = read_build(cmake_path)
     cpp_references = set(CPP_INPUT.findall(cmake))
     cpp_files = {
