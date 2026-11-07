@@ -57,6 +57,8 @@ void intro_pump() noexcept {
 void intro_wait(u32 delay,u32 flags) noexcept {
     original_game_over_2e614_timing(delay,flags);
     ++current->original_intro_frame_waits;
+    if(code2::load_le32(current->data.data()+0x7F78u)==0u)
+        ++current->original_intro_cine00_frames;
     if((current->original_intro_frame_waits%50u)==0u)
         std::cerr<<"CODE2_RETAINED_CINE_ORIGINAL_FRAMES="
                  <<current->original_intro_frame_waits
@@ -230,7 +232,19 @@ void intro_original_cursor_restore() noexcept {
         current->machine,current->original_mouse_draw_callbacks);
 }
 void intro_no_title_input() noexcept {
-    stop("ORIGINAL_INTRO_TITLE_MOUSE_INPUT_PENDING");
+    if(current->original_intro_cine00_frames!=405u ||
+       current->original_intro_bios_chain_calls==0u ||
+       current->original_intro_bios_chain_calls!=
+           current->source_int08_scheduler.delivered())
+        stop("ORIGINAL_INTRO_19464_BEFORE_COMPLETE_CINE00");
+    std::cerr<<"CODE2_LIVE_20440_CINE00_TO_19464_SOURCE_PASS"
+             <<" cine00_frames="<<current->original_intro_cine00_frames
+             <<" total_film_frames="<<current->original_intro_frame_waits
+             <<" source_irq8="<<current->source_int08_scheduler.delivered()
+             <<" original_guest=SAME"
+             <<" title_renderer=NOT_ENTERED"
+             <<" DOS_BIOS_chain=HOST_FIXTURE\n"<<std::flush;
+    stop("ORIGINAL_INTRO_19464_SOURCE_ENTER_INPUT_NOT_CONNECTED");
 }
 u32 intro_no_title_click() noexcept {
     stop("ORIGINAL_INTRO_TITLE_CLICK_INPUT_PENDING");
