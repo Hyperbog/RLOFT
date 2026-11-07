@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.22)
 project(RavenloftReconstructionLinkGate LANGUAGES CXX)
 
+# Original source 192CC/19464 title menu control-flow and state handoff.
+# Test callback records, not replacement title pixels or user input.
+add_executable(rloft_original_code2_title_menu_dispatch_test
+    src/test_original_code2_title_menu_dispatch.cpp)
+set_target_properties(rloft_original_code2_title_menu_dispatch_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_title_menu_dispatch_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_title_menu_dispatch_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_192CC_19464_title_menu_dispatch
+        COMMAND rloft_original_code2_title_menu_dispatch_test)
+endif()
+
 # Standalone original CODE.2 CINE00 source player; authentic ANM/T supplied locally.
 # This is a source-executed cinematic bridge, not the original 20440->19888
 # boot/title sequence or an accepted game-visible intro.
