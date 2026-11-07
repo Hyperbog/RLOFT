@@ -7,6 +7,7 @@ on:
     paths:
       - 'Recomp/src/**'
       - 'Recomp/CMakeLists.txt'
+      - 'Recomp/cmake/**'
       - 'Recomp/tools/Launch-RLOFT-Level22.ps1'
       - 'Recomp/tools/Play-RLOFT-Level22.cmd'
       - 'Recomp/tools/release_package_gate.py'
