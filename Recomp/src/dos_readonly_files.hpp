@@ -53,6 +53,21 @@ public:
     }
     bool has_virtual_chars() const noexcept {return virtual_chars_active_;}
 
+    // Read-only second original-media directory, generally the extracted CD
+    // RLOFT. Installation files take priority exactly as DOS working-dir
+    // lookups do. Never search an arbitrary parent/current directory.
+    void mount_readonly_media(std::filesystem::path cd_root) {
+        if(!media_root_.empty())
+            throw std::logic_error("Original DOS media root already mounted");
+        std::error_code ec;
+        const auto st=std::filesystem::symlink_status(cd_root,ec);
+        if(ec || !std::filesystem::is_directory(st) ||
+           std::filesystem::is_symlink(st))
+            throw std::invalid_argument("Original media must be a non-symlink directory");
+        media_root_=std::move(cd_root);
+    }
+    bool has_readonly_media() const noexcept {return !media_root_.empty();}
+
     // AL=00h (read-only, compatibility sharing) only. Other modes fail
     // without opening the host file; original callers retain DOS errors.
     DosFileResult open(const std::string& dos_name,std::uint8_t al) {
@@ -82,6 +97,20 @@ public:
             match=it->path();
         }
         if(ec) return {true,5u};
+        if(matches==0u && !media_root_.empty()) {
+            for(std::filesystem::directory_iterator it(media_root_,ec),end;
+                !ec && it!=end; it.increment(ec)) {
+                if(ascii_upper(it->path().filename().string())!=wanted)
+                    continue;
+                ++matches;
+                const auto st=it->symlink_status(ec);
+                if(ec || !std::filesystem::is_regular_file(st) ||
+                   std::filesystem::is_symlink(st))
+                    return {true,5u};
+                match=it->path();
+            }
+            if(ec)return {true,5u};
+        }
         if(matches==0u) return {true,2u}; // file not found
         if(matches!=1u) return {true,5u}; // ambiguous on case-sensitive hosts
         if(files_.size()>=0xFFF9u)return {true,4u}; // too many open files
@@ -209,6 +238,7 @@ private:
         bool virtual_chars=false;
     };
     std::filesystem::path root_;
+    std::filesystem::path media_root_;
     std::array<std::uint8_t,kCharsBytes> virtual_chars_{};
     bool virtual_chars_active_=false;
     std::map<std::uint16_t,OpenFile> files_;
