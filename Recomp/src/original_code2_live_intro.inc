@@ -189,6 +189,9 @@ void original_19888_live_intro() noexcept {
        !current->host_files->has_readonly_media())
         stop("ORIGINAL_19888_RETAINED_SOURCE_PREREQUISITES_MISSING");
     intro_require_no_active_sound();
+    if(current->code.size()<0x131DBu ||
+       std::memcmp(current->code.data()+0x131D0u,"CINE00.ANM",11u)!=0)
+        stop("ORIGINAL_INTRO_CODE2_CINE_FILENAME_TEMPLATE_MISMATCH");
     code2::Application25Boundary packets{};
     packets.read_312ec_value=&intro_read_scalar;
     packets.call_312ec=&intro_read_guest;
@@ -221,6 +224,11 @@ void original_19888_live_intro() noexcept {
     packets.call_30b40=&intro_keyboard;
     code2::Application26Boundary movie{};
     movie.app25=&packets;
+    movie.read_cs8=+[](u32 offset) noexcept -> u8 {
+        if(offset>=current->code.size())
+            stop("ORIGINAL_INTRO_CS_FILENAME_OUT_OF_GUEST");
+        return current->code[offset];
+    };
     movie.call_312a0=+[](u32 name) noexcept -> code2::s32 {
         return static_cast<code2::s32>(original_boot_file_open(name));
     };
