@@ -2101,8 +2101,16 @@ void original_20440_mouse_irq(u32 intr,u32 in,u32 out,u32 seg) noexcept {
     (void)code2::function_33a7c(boundary,intr,in,out,seg);
 }
 void original_20440_mouse_init() noexcept {
+    // On first boot 20440 calls 19888 before its later RES0:44
+    // retain/1A0B0 game branch. The ORIGINAL title 19464 invokes
+    // 1A0B0 itself, using the same already-installed mouse callback graph.
+    const bool first_boot_title=
+        current->original_intro_cine00_frames==405u &&
+        current->original_20440_res_image_retains==0u &&
+        current->original_16cd0_completed==0u;
     if(!current->live_continuation ||
-       current->original_20440_res_image_retains!=1u ||
+       (current->original_20440_res_image_retains!=1u &&
+        !first_boot_title) ||
        current->original_20440_mouse_started ||
        current->original_20440_mouse_inits!=0u ||
        code2::function_2e340(current->machine)!=-1)
