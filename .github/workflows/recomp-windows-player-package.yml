@@ -99,6 +99,52 @@ jobs:
               $p.Dispose()
             }
           }
+      - name: Require authentic retained first-boot CODE.2 cinematic source frontier
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          # Stage a private copy, removing only CHARS to reproduce the
+          # source 31218 missing-party branch. Original media is read-only.
+          $root = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT").Path
+          $cd = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT").Path
+          $scratch = Join-Path $env:RUNNER_TEMP 'RLOFT-original-first-boot'
+          New-Item -ItemType Directory -Force -Path $scratch | Out-Null
+          Get-ChildItem -LiteralPath $root -File |
+            Where-Object { $_.Name -ne 'CHARS' } |
+            ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $scratch }
+          if (Test-Path -LiteralPath (Join-Path $scratch 'CHARS')) {
+            throw 'First-boot diagnostic unexpectedly retained CHARS'
+          }
+          $exe = (Resolve-Path "build/player/Debug/rloft_code2_level22_window.exe").Path
+          $info = [Diagnostics.ProcessStartInfo]::new()
+          $info.FileName = $exe
+          $info.UseShellExecute = $false
+          $info.CreateNoWindow = $true
+          $info.RedirectStandardOutput = $true
+          $info.RedirectStandardError = $true
+          foreach ($arg in @('--root',$scratch,'--cd-root',$cd,'--smoke-intro')) {
+            [void]$info.ArgumentList.Add($arg)
+          }
+          $p = [Diagnostics.Process]::Start($info)
+          try {
+            $out = $p.StandardOutput.ReadToEndAsync()
+            $err = $p.StandardError.ReadToEndAsync()
+            $exited = $p.WaitForExit(90000)
+            if (-not $exited) {
+              $p.Kill($true)
+              $p.WaitForExit()
+            }
+            $all = [string]::Join([Environment]::NewLine, @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()))
+            $passed = $exited -and $p.ExitCode -eq 0 -and
+              $all.Contains('CODE2_LIVE_20440_19888_CINE_SOURCE_FIRST_IRQ8_PASS')
+            Write-Host "CODE2_RETAINED_INTRO_REAL_MEDIA_GATE passed=$passed exited=$exited code=$($p.ExitCode)"
+            if (-not $passed) {
+              @($all -split '[\r\n]+' | Where-Object {
+                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
+              }) | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
+              throw 'Real retained CODE.2 19888 CINE00 startup frontier failed'
+            }
+          } finally { $p.Dispose() }
       - name: Run authentic CINE00 through compiled original CODE.2 dispatch
         shell: pwsh
         timeout-minutes: 5
