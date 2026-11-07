@@ -536,7 +536,7 @@ int main(int argc,char** argv){
                 throw std::runtime_error(
                     "Original intro smoke requires absent CHARS and original CD CINE00");
             Owner original{
-                source::create(root,cd,22u,nullptr,0u),&source::destroy};
+                source::create(root,cd,5u,nullptr,0u),&source::destroy};
             if(source::test_advance_through_original_video_mode(
                    original.get())!=10u)
                 throw std::runtime_error(
