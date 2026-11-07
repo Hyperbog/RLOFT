@@ -275,6 +275,27 @@ void intro_title_text(u32 y,u32 x,u32 text,u32 font) noexcept {
         stop("ORIGINAL_192CC_TITLE_TEXT_ARGUMENTS_CHANGED");
     code2::Application71Boundary wrapper{};
     wrapper.call_303c8=+[](u32 ptr,u32 item) noexcept {
+        if(!current->game_audio.app68)
+            stop("ORIGINAL_19464_TITLE_FONT_RESOURCE_OWNER_MISSING");
+        const u32 font_ptr=code2::function_2f29c(
+            current->machine,current->game_audio,item,0u);
+        const u32 image_ptr=(font_ptr && std::uint64_t(font_ptr)+8u<=current->data.size())
+            ?code2::load_le32(current->data.data()+font_ptr):0u;
+        const u32 table=code2::load_le32(current->data.data()+0xF0B8u);
+        const u32 records=table?code2::load_le32(current->data.data()+table+12u):0u;
+        const u32 record=records+9u*item;
+        std::cerr<<"CODE2_ORIGINAL_19464_FONT_RESOURCE_DIAG"
+                 <<" font_id="<<item
+                 <<" font_ptr="<<font_ptr
+                 <<" linked_image="<<image_ptr
+                 <<" record_type="<<unsigned(current->data[record])
+                 <<" record_loaded="<<unsigned(current->data[record+2u])
+                 <<" record_pointer="<<code2::load_le32(current->data.data()+record+5u)
+                 <<" font_first8=";
+        if(font_ptr && std::uint64_t(font_ptr)+8u<=current->data.size())
+            for(u32 i=0;i<8u;++i)
+                std::cerr<<unsigned(current->data[font_ptr+i])<<",";
+        std::cerr<<"\n"<<std::flush;
         code2::Application56Boundary glyphs{};
         glyphs.call_2a380=+[](u32 frame,u32 row,u32 column,u32 image) noexcept -> u32 {
             original_scene_res_blit(frame,row,column,image);
