@@ -78,8 +78,6 @@ inline LoadWitness function_325b0(code2::Machine& machine,
 // compiled 1F8FC/1F914 RES0 gameplay-frame base in this partial native port.
 // Executing original scene setup and its full call order remains separate
 // work; don't fabricate game state merely to select a render palette.
-#ifndef RLOFT_ORIGINAL_CODE2_SCENE_PALETTE_HPP
-#define RLOFT_ORIGINAL_CODE2_SCENE_PALETTE_HPP
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
