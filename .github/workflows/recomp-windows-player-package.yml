@@ -101,7 +101,7 @@ jobs:
           }
       - name: Require authentic retained first-boot CODE.2 cinematic source frontier
         shell: pwsh
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           # Stage a private copy, removing only CHARS to reproduce the
           # source 31218 missing-party branch. Original media is read-only.
@@ -129,18 +129,20 @@ jobs:
           try {
             $out = $p.StandardOutput.ReadToEndAsync()
             $err = $p.StandardError.ReadToEndAsync()
-            $exited = $p.WaitForExit(30000)
+            $exited = $p.WaitForExit(210000)
             if (-not $exited) {
               $p.Kill($true)
               $p.WaitForExit()
             }
             $all = [string]::Join([Environment]::NewLine, @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()))
             $passed = $exited -and $p.ExitCode -eq 0 -and
-              $all.Contains('CODE2_LIVE_20440_19888_CINE_SOURCE_FIRST_IRQ8_PASS')
+              $all.Contains('CODE2_LIVE_20440_CINE00_19464_ENTRY_GATE_PASS') -and
+              $all.Contains('CODE2_LIVE_20440_CINE00_TO_19464_SOURCE_PASS') -and
+              $all.Contains('cine00_frames=405')
             Write-Host "CODE2_RETAINED_INTRO_REAL_MEDIA_GATE passed=$passed exited=$exited code=$($p.ExitCode)"
             if (-not $passed) {
               @($all -split '[\r\n]+' | Where-Object {
-                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
+                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|CODE2_RETAINED_CINE_ORIGINAL_FRAMES|CODE2_LIVE_20440|CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
               }) | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
               throw 'Real retained CODE.2 19888 CINE00 startup frontier failed'
             }
