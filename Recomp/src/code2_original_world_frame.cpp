@@ -22,10 +22,10 @@ using OriginalLevelGuest=WorldRaySource;
 #undef main
 #undef Session
 #undef RLOFT_CANONICAL_CODE2_INCLUDED
-#include "original_code2_scene_palette.hpp"
+#include "game/resources/Resources.hpp"
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_columns.hpp"
-#include "original_code2_36cec_scene.hpp"
+#include "game/world/World.hpp"
 #include <array>
 #include <filesystem>
 #include <map>
