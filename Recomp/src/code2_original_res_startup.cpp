@@ -718,10 +718,27 @@ struct Session {
            code2::load_le16(t.memory.data()+header+3u)<8u) {
             t.original_image_invalid=true;return 0u;
         }
+        const auto before_position=original_logical_position();
+        const auto source_type=t.memory[header+2u];
+        const auto descriptor_size=code2::load_le16(t.memory.data()+header+3u);
         const u32 font=code2::function_301a8(
             t.m,t.original_image_callbacks,header,handle);
         const u32 image=font && std::uint64_t(font)+4u<=t.memory.size()
             ?code2::load_le32(t.memory.data()+font):0u;
+        std::cerr<<"CODE2_ORIGINAL_TYPE2_301A8_SOURCE_DIAG"
+                 <<" item="<<t.original_image_record
+                 <<" type="<<unsigned(source_type)
+                 <<" descriptor_size="<<descriptor_size
+                 <<" position_before="<<before_position
+                 <<" position_after="<<original_logical_position()
+                 <<" record_start="<<t.original_image_start
+                 <<" record_end="<<t.original_image_end
+                 <<" font="<<font<<" image="<<image
+                 <<" invalid="<<t.original_image_invalid
+                 <<" error="<<t.error
+                 <<" stream_mode="<<unsigned(t.memory[0x2B6C3u])
+                 <<" frame_count="<<code2::load_le16(t.memory.data()+0x2B6A4u)
+                 <<"\n"<<std::flush;
         if(t.error || t.original_image_invalid || !image ||
            std::uint64_t(image)+8u>t.memory.size() ||
            !code2::load_le16(t.memory.data()+image+2u) ||
