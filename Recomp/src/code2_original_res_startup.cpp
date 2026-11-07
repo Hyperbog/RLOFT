@@ -9,6 +9,7 @@
 #define RLOFT_STARTUP_GATE_NO_MAIN
 #include "code2_startup_gate.cpp"
 #include "game/resources/Resources.hpp"
+#include "game/resources/PaletteLoader.hpp"
 #include "game/core/Game.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
 #include "game/save/Save.hpp"
