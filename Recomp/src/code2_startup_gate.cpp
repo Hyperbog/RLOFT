@@ -1765,12 +1765,7 @@ void original_boot_03ea4(u32 slot,code2::s32 level) noexcept {
 void original_boot_03de4(u32 slot,code2::s32 level) noexcept {
     code2::function_03de4(current->machine,slot,static_cast<u32>(level));
 }
-void original_19888_missing_chars_intro() noexcept {
-    // Original 20440 actually enters 19888 when CHARS is absent. The
-    // intro/cinematic/callback graph is not retained in this native host.
-    // Refuse it explicitly; never silently skip original initialization.
-    stop("ORIGINAL_20440_CHARS_MISSING_19888_INTRO_NOT_CONNECTED");
-}
+void original_19888_live_intro() noexcept;
 void original_16cd0_chars_load() noexcept {
     if(!current->live_continuation || current->original_03838_completed!=1u ||
        code2::load_le32(current->data.data()+0xC65Cu)==0u ||
@@ -4015,6 +4010,7 @@ void interrupt_vector_matrix_probe() {
     std::cout<<"ORIGINAL_375FE_MODE_SWITCH=256/256 PASS\n"
              <<"DOS_VECTOR_INSTALLED=NO\nORIGINAL_DOS_PARITY=NO\n";
 }
+#include "original_code2_live_intro.inc"
 void run(const rloft_recomp::OriginalLeImage& img,bool original,
          bool extended,bool execute_application=false,
          GameConfig game_config=GameConfig::Unset,
@@ -4991,7 +4987,7 @@ void attach_original_vga(
     source.game.call_16d04=&original_16d04_after_dos_open;
     source.game.call_3838=&original_03838_sintab_load;
     source.game.call_16cd0=&original_16cd0_chars_load;
-    source.game.call_19888=&original_19888_missing_chars_intro;
+    source.game.call_19888=&original_19888_live_intro;
     source.game.call_325b0=&original_325b0_live_palette;
     source.game.call_291b0=&original_291b0_boot_page;
     source.game.call_291c8=&original_291c8_boot_scanout;
