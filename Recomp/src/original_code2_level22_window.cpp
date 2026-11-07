@@ -38,6 +38,8 @@ static constexpr unsigned kGameWidth=320u,kGameHeight=400u;
 
 struct LiveWindow final {
     Owner game{nullptr,&source::destroy};
+    bool title_mode=false;
+    std::filesystem::path title_root,title_cd;
     HWND hwnd=nullptr;
     std::vector<std::uint32_t> scanout_rgba;
     // The native UI only reads an atomically published frame and input bits.
@@ -237,6 +239,89 @@ struct LiveWindow final {
         // partially written frame or half-updated palette.
         std::lock_guard<std::mutex> guard(frame_lock);
         scanout_rgba.swap(complete);
+    }
+    // The CODE.2 source owner invokes this on its guest worker thread after
+    // original planar VGA work. Win32 receives a copied RGB snapshot only.
+    static bool present_original_intro_frame(
+        void* context,const rloft::graphics::OriginalVgaHost& vga) noexcept {
+        auto* self=static_cast<LiveWindow*>(context);
+        if(!self || self->quit_requested.load(std::memory_order_acquire))
+            return false;
+        try {
+            if(vga.bios_mode()!=0x13u || vga.repeat_scanlines()!=1u)
+                return false;
+            const auto pixels=vga.scanout_indices();
+            if(pixels.size()!=kGameWidth*kGameHeight)return false;
+            std::vector<std::uint32_t> rgb(pixels.size());
+            for(std::size_t i=0;i<pixels.size();++i) {
+                const auto c=vga.palette(pixels[i]);
+                const auto expand=[](unsigned channel)->std::uint32_t {
+                    return (channel<<2u)|(channel>>4u);
+                };
+                rgb[i]=(expand(c.r)<<16u)|(expand(c.g)<<8u)|expand(c.b);
+            }
+            {
+                std::lock_guard<std::mutex> lock(self->frame_lock);
+                self->scanout_rgba.swap(rgb);
+                self->posted_title=
+                    "Ravenloft: Strahd's Possession - Original CODE.2 [Experimental]";
+            }
+            if(self->hwnd && !self->quit_requested.load(std::memory_order_acquire))
+                PostMessageA(self->hwnd,kSourceFrameReady,0,0);
+            return true;
+        }catch(...) {return false;}
+    }
+    // This keeps the original 20440 worker active across the film and
+    // 19464 mouse loop. Answer only the suspended DOS INT33 requests.
+    void title_worker_loop() {
+        try {
+            enable_experimental_source();
+            game.reset(source::create(title_root,title_cd,5u));
+            machine::attach_original_intro_frame_observer(
+                game->canonical.get(),this,&present_original_intro_frame);
+            if(source::test_advance_through_original_video_mode(game.get())!=10u)
+                throw std::runtime_error("Original CODE2 did not reach second 16D04");
+            auto next=machine::advance_original_second_init(game->canonical.get());
+            unsigned range_calls=0,mouse_calls=0;
+            while(!quit_requested.load(std::memory_order_acquire)) {
+                if(next==2u) {
+                    if(range_calls>=2u)
+                        throw std::runtime_error("Extra source INT33 range request");
+                    next=machine::answer_mouse_range(
+                        game->canonical.get(),range_calls==0u?8u:7u);
+                    ++range_calls;
+                } else if(next==12u) {
+                    const auto snap=mouse_snapshot.load(std::memory_order_acquire);
+                    const bool initial=mouse_calls++==0u;
+                    next=machine::answer_original_mouse_pointer(
+                        game->canonical.get(),initial?4u:3u,
+                        initial?0u:static_cast<std::uint32_t>((snap>>32u)&3u),
+                        initial?0x140u:static_cast<std::uint32_t>((snap>>16u)&0xFFFFu),
+                        initial?0xC8u:static_cast<std::uint32_t>(snap&0xFFFFu));
+                    if(!initial)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                } else if(next==13u) {
+                    next=machine::answer_original_mouse_callback(
+                        game->canonical.get());
+                } else if(next==0u) {
+                    break; // Genuine source child termination.
+                } else {
+                    throw std::runtime_error(
+                        "Unconnected original title DOS service: "+
+                        std::to_string(next));
+                }
+            }
+        }catch(const std::exception& e) {
+            if(quit_requested.load(std::memory_order_acquire))return;
+            failed=true;
+            error=e.what();
+            {
+                std::lock_guard<std::mutex> lock(frame_lock);
+                posted_error=error;
+            }
+            if(hwnd)PostMessageA(hwnd,kSourceFrameReady,0,0);
+            std::cerr<<"RLOFT_ORIGINAL_TITLE_SOURCE_STOP="<<error<<"\n";
+        }
     }
     bool audited_portal_roundtrip(const machine::Evidence& proof) const noexcept {
         // A stale 320x400 buffer is not proof of a post-portal frame.
@@ -444,7 +529,7 @@ struct LiveWindow final {
     int show(HINSTANCE instance) {
         WNDCLASSA cls{};
         cls.hInstance=instance;
-        cls.lpszClassName="RLOFT_SOURCE_LEVEL22_VGA_WINDOW";
+        cls.lpszClassName="RLOFT_SOURCE_CODE2_VGA_WINDOW";
         cls.lpfnWndProc=&wnd_proc;
         cls.hCursor=LoadCursorA(nullptr,IDC_ARROW);
         cls.hbrBackground=static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
@@ -453,14 +538,14 @@ struct LiveWindow final {
         RECT rect{0,0,640,800};
         AdjustWindowRect(&rect,style,FALSE);
         hwnd=CreateWindowExA(0,cls.lpszClassName,
-           "Ravenloft CODE.2 - Level 22 [EXPERIMENTAL]",
+           title_mode?"Ravenloft: Strahd's Possession - Original Title [Experimental]":"Ravenloft CODE.2 - Level 22 [EXPERIMENTAL]",
            style,CW_USEDEFAULT,CW_USEDEFAULT,
            rect.right-rect.left,rect.bottom-rect.top,
            nullptr,nullptr,instance,this);
         if(!hwnd)throw std::runtime_error("Could not create original VGA window");
         ShowWindow(hwnd,SW_SHOWNORMAL);
         UpdateWindow(hwnd);
-        gameplay_worker=std::thread([this]{worker_loop();});
+        gameplay_worker=std::thread([this]{if(title_mode)title_worker_loop();else worker_loop();});
         MSG msg{};
         while(GetMessageA(&msg,nullptr,0,0)>0){
             TranslateMessage(&msg);
@@ -489,6 +574,8 @@ int main(int argc,char** argv){
             std::string(argv[5])=="--smoke-key-map";
         const bool intro_smoke=argc==6 &&
             std::string(argv[5])=="--smoke-intro";
+        const bool title_mode=argc==6 &&
+            std::string(argv[5])=="--title";
         const bool saved_smoke=argc==7 &&
             std::string(argv[5])=="--smoke-save23";
         const bool saved_first_frame_smoke=argc==7 &&
@@ -501,10 +588,10 @@ int main(int argc,char** argv){
         if((argc!=5 && argc!=6 && argc!=7) ||
            std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root" ||
-           (argc==6 && !ordinary_smoke && !portal_smoke && !key_map_smoke && !intro_smoke) ||
+           (argc==6 && !ordinary_smoke && !portal_smoke && !key_map_smoke && !intro_smoke && !title_mode) ||
            (argc==7 && !saved_start))
             throw std::invalid_argument(
-                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-key-map|--smoke-portal|--smoke-intro|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
+                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-key-map|--smoke-portal|--smoke-intro|--title|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
         const auto root=std::filesystem::absolute(argv[2]);
         const auto cd=std::filesystem::absolute(argv[4]);
         if(!std::filesystem::is_regular_file(root/"CODE.2"))
@@ -526,6 +613,19 @@ int main(int argc,char** argv){
             if(_putenv_s("RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS","1")!=0 ||
                _putenv_s("RLOFT_RECOMP_EXPERIMENTAL_PORTAL_SOURCE_PROBE","1")!=0)
                 throw std::runtime_error("Cannot enable owner-local authentic portal diagnostic");
+        }
+        if(title_mode) {
+            if(std::filesystem::exists(root/"CHARS"))
+                throw std::runtime_error(
+                    "Original first-boot title requires an installation without CHARS; original CHARS is never removed");
+            if(!std::filesystem::is_regular_file(cd/"CINE00.ANM") ||
+               !std::filesystem::is_regular_file(cd/"CINE12.ANM"))
+                throw std::runtime_error("Original CD must contain CINE00 and CINE12");
+            LiveWindow live;
+            live.title_mode=true;
+            live.title_root=root;
+            live.title_cd=cd;
+            return live.show(GetModuleHandleA(nullptr));
         }
         if(intro_smoke) {
             // Stop only after the ORIGINAL title draws and first 1A1F4
