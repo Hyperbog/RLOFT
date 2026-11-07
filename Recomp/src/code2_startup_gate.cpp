@@ -149,6 +149,9 @@ struct Session {
     u32 original_intro_bios_chain_calls=0u;
     u32 original_title_presentations=0u;
     u32 original_title_mouse_polls=0u;
+    void* original_intro_frame_context=nullptr;
+    rloft::canonical_code2_runtime::OriginalIntroFrameObserver
+        original_intro_frame_observer=nullptr;
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
@@ -5109,6 +5112,20 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
         throw std::runtime_error(
             "Original CODE2 VGA 290F4/29234 source did not establish 320x400");
     return static_cast<std::uint32_t>(owner->pending.service);
+}
+void attach_original_intro_frame_observer(
+    Opaque* owner,void* context,OriginalIntroFrameObserver callback) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::DosMouseReset ||
+       !context || !callback)
+        throw std::invalid_argument(
+            "CODE2 title observer requires initial suspended original guest");
+    auto& s=held(owner);
+    if(s.original_intro_frame_observer)
+        throw std::logic_error("CODE2 original title frame observer already installed");
+    s.original_intro_frame_context=context;
+    s.original_intro_frame_observer=callback;
 }
 void mount_original_cd_media(
     Opaque* owner,const std::filesystem::path& extracted_cd_root) {
