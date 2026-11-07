@@ -90,6 +90,8 @@ endforeach()
 foreach(consumer IN ITEMS
         rloft_original_code2_live_level_files_test
         rloft_original_code2_saved_level_policy_test
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
         rloft_original_code2_init_resources
         rloft_code1_code2_staged_boot
         rloft_original_code2_world_frame
@@ -100,6 +102,19 @@ foreach(consumer IN ITEMS
     target_link_libraries(${consumer} PRIVATE rloft_game_save)
 endforeach()
 target_link_libraries(rloft_original_code2_world_frame PRIVATE rloft_game_world)
+# CODE.2 native entry and staged owners include the original 36CEC
+# compositor; its non-inline World.cpp must be present at final link.
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot
+        rloft_original_code2_369d8_raster_test)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing World ABI consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_world)
+endforeach()
 if(WIN32)
     target_link_libraries(rloft_code2_level22_window
         PRIVATE rloft_game_save rloft_game_world)
