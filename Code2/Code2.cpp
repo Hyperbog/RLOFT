@@ -23603,7 +23603,9 @@ static_assert(0x301A8u-0x3012Cu==124u);
     const u32 hdr=static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,rec+3u)))))+payload-8u;
     const s32 len=static_cast<s16>(load_le16(dg(m,hdr)));
     const u32 block=b.call_3104c?b.call_3104c(static_cast<u32>(len+4)):0u;
-    for(s32 i=0;i<len;++i)*dg(m,block+3u+static_cast<u32>(i))=*dg(m,payload+static_cast<u32>(i));
+    // Original 301EC increments ECX before writing [ECX+3]: the first
+    // glyph width therefore lives at font+4, after the image pointer.
+    for(s32 i=0;i<len;++i)*dg(m,block+4u+static_cast<u32>(i))=*dg(m,payload+static_cast<u32>(i));
     // The compiler copies the nine-byte descriptor to a local, rewrites local
     // word +3 to 8 and local dword +5 to hdr, then 2FD9C consumes only +5.
     const u32 image=app70_load_image_from_header(m,b,hdr,stream);
