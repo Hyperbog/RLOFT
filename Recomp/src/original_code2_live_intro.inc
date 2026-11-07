@@ -8,6 +8,14 @@ void intro_require_no_active_sound() noexcept {
         stop("ORIGINAL_INTRO_ACTIVE_AIL_DEVICE_NOT_CONNECTED");
 }
 u32 intro_tick() noexcept { return code2::function_30700(current->machine); }
+void intro_publish_original_vga() noexcept {
+    if(current->original_intro_frame_observer) {
+        if(!current->original_vga ||
+           !current->original_intro_frame_observer(
+               current->original_intro_frame_context,*current->original_vga))
+            stop("ORIGINAL_INTRO_NATIVE_WINDOW_CLOSED");
+    }
+}
 // Original 30708 calls 19C80 with the *pre-increment* source tick.
 // The existing original mouse graph supplies 19C80's timer-side state.
 void intro_irq8_dispatch(u32) noexcept {
@@ -56,6 +64,7 @@ void intro_pump() noexcept {
 }
 void intro_wait(u32 delay,u32 flags) noexcept {
     original_game_over_2e614_timing(delay,flags);
+    intro_publish_original_vga();
     ++current->original_intro_frame_waits;
     if(code2::load_le32(current->data.data()+0x7F78u)==0u)
         ++current->original_intro_cine00_frames;
@@ -288,6 +297,7 @@ void intro_title_page() noexcept {
     };
     code2::function_1ea78(current->machine,title);
     ++current->original_title_presentations;
+    intro_publish_original_vga();
     std::cerr<<"CODE2_ORIGINAL_19464_SOURCE_TITLE_PRESENT"
              <<" page_flips="<<current->original_title_presentations
              <<" guest_vga=RETAINED"
@@ -296,6 +306,7 @@ void intro_title_page() noexcept {
 }
 void intro_title_redraw() noexcept {
     original_game_over_1a288_cursor_redraw();
+    intro_publish_original_vga();
 }
 void intro_title_reset() noexcept {
     original_game_over_1a9f8_mouse_reset();
@@ -314,8 +325,41 @@ void intro_title_fade(bool fade_in,u32 source,u32 first,
     else code2::function_32220(current->machine,b,source,
         static_cast<code2::s32>(first),static_cast<code2::s32>(last),red,green,blue);
 }
+// A real DOS INT33 callback drives original 19D18 asynchronously.
+// The native host samples INT33 through the retained source 1A1F4
+// boundary and dispatches the ORIGINAL 19D18 body on this same worker.
+// It is an explicit host-mouse adaptation, not fabricated title motion.
+void intro_title_mouse_event() noexcept {
+    auto& m=current->machine;
+    const u32 buttons=code2::load_le16(current->data.data()+0x2B7A8u);
+    const u32 dos_x=code2::load_le16(current->data.data()+0x2B7ACu);
+    const u32 dos_y=code2::load_le16(current->data.data()+0x2B7AEu);
+    code2::Application33Boundary video=current->original_mouse_resources;
+    video.call_30700=&intro_tick;
+    video.call_1aacc=&original_game_over_1aacc_cursor_restore;
+    video.call_1a288=&intro_title_redraw;
+    code2::Application34Boundary mouse=current->original_mouse_init_callbacks;
+    mouse.app33=&video;
+    mouse.call_2e34c=+[]() noexcept -> u32 {
+        return code2::function_2e34c(current->machine);
+    };
+    mouse.call_1f820=+[]() noexcept {
+        code2::function_1f820(current->machine);
+    };
+    mouse.call_29738=+[](u32 p) noexcept {
+        code2::function_29738(current->machine,p);
+    };
+    mouse.call_296c0=+[](u32 y,u32 x,u32 h,u32 w) noexcept {
+        code2::function_296c0(current->machine,
+            static_cast<code2::s32>(y),static_cast<code2::s32>(x),
+            static_cast<code2::s32>(h),static_cast<code2::s32>(w));
+    };
+    code2::function_19d18(m,mouse,1u,buttons,dos_x*2u,dos_y,0u);
+}
 u32 intro_title_click() noexcept {
     const auto pressed=original_game_over_1a1f4_mouse_button();
+    ++current->original_title_mouse_polls;
+    intro_title_mouse_event();
     if(current->original_title_presentations==0u)
         stop("ORIGINAL_19464_TITLE_CLICK_BEFORE_SOURCE_FRAME");
     if(const char* gate=std::getenv("RLOFT_RECOMP_TITLE_RENDER_INPUT_GATE");
