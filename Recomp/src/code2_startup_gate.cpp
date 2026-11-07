@@ -147,6 +147,8 @@ struct Session {
     u32 original_intro_frame_waits=0u;
     u32 original_intro_cine00_frames=0u;
     u32 original_intro_bios_chain_calls=0u;
+    u32 original_title_presentations=0u;
+    u32 original_title_mouse_polls=0u;
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
