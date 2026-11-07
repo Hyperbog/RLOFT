@@ -1,0 +1,47 @@
+# Independently compiled host-owned game systems.
+# This module is intentionally loaded AFTER the existing game/test targets:
+# CODE.1 and CODE.2 retain their single reconstructed source ownership.
+
+add_library(rloft_game_audio STATIC src/game/audio/Audio.cpp)
+add_library(rloft_game_resources STATIC src/game/resources/Resources.cpp)
+foreach(system_target IN ITEMS rloft_game_audio rloft_game_resources)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+target_include_directories(rloft_game_audio PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/game/audio")
+target_include_directories(rloft_game_resources PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/game/resources")
+
+# Only owner-facing decoders depend on the host-only VOC codec.
+foreach(consumer IN ITEMS
+        rloft_host_original_voc_waveout
+        rloft_original_voc_pcm8_tests)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing audio consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_audio)
+endforeach()
+
+# Palette resolver is independent of CODE.2. Link it into all guest-host
+# owners and its direct regression, never compile CODE.2 a second time.
+foreach(consumer IN ITEMS
+        rloft_original_scene_palette_selection_test
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot
+        rloft_original_code2_world_frame)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing resource consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_resources)
+endforeach()
+if(WIN32)
+    if(NOT TARGET rloft_code2_level22_window)
+        message(FATAL_ERROR "Missing Windows retained CODE.2 player")
+    endif()
+    target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_resources)
+endif()
