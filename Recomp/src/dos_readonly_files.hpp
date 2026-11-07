@@ -97,7 +97,15 @@ public:
             match=it->path();
         }
         if(ec) return {true,5u};
-        if(matches==0u && !media_root_.empty()) {
+        const bool cinematic =
+            wanted.size()==10u && wanted.compare(0,4,"CINE")==0 &&
+            wanted[4]>='0' && wanted[4]<='9' &&
+            wanted[5]>='0' && wanted[5]<='9' &&
+            wanted.compare(6,4,".ANM")==0;
+        // Only 139AC's original CINEdd.ANM filenames cross the CD
+        // mount. Ordinary SOUND/CHARS/INIT/WORK lookups remain rooted
+        // in the original install, with no accidental CD fallback.
+        if(matches==0u && cinematic && !media_root_.empty()) {
             for(std::filesystem::directory_iterator it(media_root_,ec),end;
                 !ec && it!=end; it.increment(ec)) {
                 if(ascii_upper(it->path().filename().string())!=wanted)
