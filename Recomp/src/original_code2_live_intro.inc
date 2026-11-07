@@ -8,9 +8,64 @@ void intro_require_no_active_sound() noexcept {
         stop("ORIGINAL_INTRO_ACTIVE_AIL_DEVICE_NOT_CONNECTED");
 }
 u32 intro_tick() noexcept { return code2::function_30700(current->machine); }
-void intro_pump() noexcept { original_scene_poll_source_events(); }
+// Original 30708 calls 19C80 with the *pre-increment* source tick.
+// The existing original mouse graph supplies 19C80's timer-side state.
+void intro_irq8_dispatch(u32) noexcept {
+    if(current->data[0xA79Cu]!=0u)
+        stop("ORIGINAL_CINE_IRQ8_19C80_PENDING_SOUND_EVENT");
+    auto mouse=current->original_mouse_init_callbacks;
+    auto video=current->original_mouse_resources;
+    video.call_30700=&intro_tick;
+    mouse.app33=&video;
+    code2::function_19c80(current->machine,mouse);
+}
+// Original 30BB4 saved the host fixture's prior IRQ8 vector. The host
+// acknowledges it explicitly; this is NOT execution of a real DOS BIOS ISR.
+void intro_irq8_prior_bios(u32 offset,u16 selector) noexcept {
+    if(offset!=0x9008u || selector!=0x20u ||
+       code2::load_le32(current->data.data()+0xF582u)!=offset ||
+       code2::load_le16(current->data.data()+0xF586u)!=selector)
+        stop("ORIGINAL_CINE_IRQ8_PREVIOUS_VECTOR_UNKNOWN");
+    ++current->original_intro_bios_chain_calls;
+}
+void intro_arm_irq8() noexcept {
+    if(current->source_int08_scheduler.armed() ||
+       current->keyboard_irq.call_19c80 ||
+       current->keyboard_irq.far_chain ||
+       !current->live_continuation ||
+       current->data[0xF575u]!=1u)
+        stop("ORIGINAL_CINE_IRQ8_SETUP_CHANGED");
+    current->keyboard_irq.call_19c80=&intro_irq8_dispatch;
+    current->keyboard_irq.far_chain=&intro_irq8_prior_bios;
+    const auto contract=rloft::source_int08::validate(
+        current->machine,current->data.size(),current->ivt,
+        current->keyboard_irq);
+    if(!contract.ready)stop(contract.reason);
+    if(!current->source_int08_scheduler.arm_bios_pit(
+        rloft::original_irq8::ElapsedScheduler::Clock::now(),8192u))
+        stop("ORIGINAL_CINE_IRQ8_PIT_RATE_INVALID");
+    std::cerr<<"CODE2_RETAINED_INT08_SOURCE=ARMED"
+             <<" source_isr=30708 source_tick=F58C"
+             <<" upstream_vector=HOST_FIXTURE_9008_20"
+             <<" pit_hz=1193182 divisor=65536"
+             <<" dos_bios_parity=NOT_CLAIMED\n"<<std::flush;
+}
+void intro_pump() noexcept {
+    original_scene_poll_source_events();
+    if(current->source_int08_scheduler.armed())std::this_thread::yield();
+}
 void intro_wait(u32 delay,u32 flags) noexcept {
     original_game_over_2e614_timing(delay,flags);
+    ++current->original_intro_frame_waits;
+    if((current->original_intro_frame_waits%50u)==0u)
+        std::cerr<<"CODE2_RETAINED_CINE_ORIGINAL_FRAMES="
+                 <<current->original_intro_frame_waits
+                 <<" mode="<<code2::load_le32(current->data.data()+0x7F78u)
+                 <<" source_irq8="
+                 <<current->source_int08_scheduler.delivered()
+                 <<" old_vector_ack="
+                 <<current->original_intro_bios_chain_calls
+                 <<"\n"<<std::flush;
 }
 u32 intro_keyboard() noexcept {
     code2::Application71Boundary b{};
@@ -195,6 +250,7 @@ void original_19888_live_intro() noexcept {
     if(current->code.size()<0x131DBu ||
        std::memcmp(current->code.data()+0x131D0u,"CINE00.ANM",11u)!=0)
         stop("ORIGINAL_INTRO_CODE2_CINE_FILENAME_TEMPLATE_MISMATCH");
+    intro_arm_irq8();
     code2::Application25Boundary packets{};
     packets.read_312ec_value=&intro_read_scalar;
     packets.call_312ec=&intro_read_guest;
