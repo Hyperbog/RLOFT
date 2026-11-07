@@ -6,6 +6,7 @@ on:
       - 'dev/linux.sh'
       - 'Recomp/src/**'
       - 'Recomp/CMakeLists.txt'
+      - 'Recomp/cmake/**'
       - 'Recomp/tools/**'
       - 'Code1/Code1.cpp'
       - 'Code2/Code2.cpp'
