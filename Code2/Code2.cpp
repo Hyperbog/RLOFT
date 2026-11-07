@@ -9119,6 +9119,10 @@ static_assert(0x139ABu-0x13834u==375u);
 
 struct Application26Boundary {
     Application25Boundary* app25=nullptr;
+    // Original 139AC uses DS:[131D0] via MOVS (no CS override).
+    // The flat LE source bytes hold CINE00.ANM in object 1 at file
+    // offset 4E0F4; read the original object image, not host DGROUP.
+    u8 (*read_cs8)(u32)=nullptr;
     s32 (*call_312a0)(u32)=nullptr;
     void (*call_325b0)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_2f580)(u32)=nullptr;
@@ -9160,7 +9164,9 @@ static void app26_append_cstr(Machine& m,u32 dst,u32 src) noexcept {
 
 [[nodiscard]] s32 function_139ac(Machine& m,Application26Boundary& b,s32 number) noexcept {
     u8 name[11]{};
-    for(u32 i=0u;i<11u;++i)name[i]=*dg(m,0x131D0u+i);
+    for(u32 i=0u;i<11u;++i)
+        name[i]=b.read_cs8?b.read_cs8(0x131D0u+i):
+            *dg(m,0x131D0u+i); // legacy bounded fixture fallback
     const s32 q=number/10;
     const s32 r=number%10;
     name[4]=static_cast<u8>(q+0x30);
