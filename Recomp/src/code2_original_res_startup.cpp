@@ -1045,6 +1045,12 @@ struct Opaque {
                 rloft::canonical_code2_runtime::canonical_machine(canonical.get())),
              canonical.get())) {
         if(level>=32u)throw std::out_of_range("CODE.2 scene level out of range");
+        // The retained original 20440->19888 cinematic may open
+        // CINE00.ANM through 312A0. Supply its real CD directory to
+        // the canonical DOS transport BEFORE any source guest resumes.
+        if(!cd.empty())
+            rloft::canonical_code2_runtime::mount_original_cd_media(
+                canonical.get(),cd);
         const auto source=rloft::canonical_code2_runtime::inspect(canonical.get());
         REQUIRE(source.source_353a0_executed &&
                 source.source_20608_executed &&
