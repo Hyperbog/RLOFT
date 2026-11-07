@@ -4,7 +4,7 @@
 // The first integration deliberately uses original no-audio-device state;
 // captions are decoded by 1C368 and logged, but not yet font-rendered.
 #include "../../Code2/Code2.cpp"
-#include "original_vga_host.hpp"
+#include "game/graphics/Graphics.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
