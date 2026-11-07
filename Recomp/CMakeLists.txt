@@ -1084,3 +1084,7 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window
         PRIVATE Threads::Threads winmm user32 gdi32)
 endif()
+
+# Host-system static libraries and their explicit consumers.
+# Keep this after all executable declarations (including WIN32-only player).
+include(cmake/GameSubsystems.cmake)
