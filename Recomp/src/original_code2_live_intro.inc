@@ -231,23 +231,104 @@ void intro_original_cursor_restore() noexcept {
     code2::function_1aacc(
         current->machine,current->original_mouse_draw_callbacks);
 }
-void intro_no_title_input() noexcept {
+// Original 19464 is reached before 20440's gameplay cursor initialization.
+// Run the SAME 1A0B0, 1A288, 1A510, 1A9F8 and 1A1F4 mouse code as
+// the existing retained gameplay graph; never substitute a title bitmap.
+void intro_title_mouse_init() noexcept {
     if(current->original_intro_cine00_frames!=405u ||
        current->original_intro_bios_chain_calls==0u ||
        current->original_intro_bios_chain_calls!=
-           current->source_int08_scheduler.delivered())
+           current->source_int08_scheduler.delivered() ||
+       current->original_20440_mouse_inits!=0u)
         stop("ORIGINAL_INTRO_19464_BEFORE_COMPLETE_CINE00");
     std::cerr<<"CODE2_LIVE_20440_CINE00_TO_19464_SOURCE_PASS"
              <<" cine00_frames="<<current->original_intro_cine00_frames
              <<" total_film_frames="<<current->original_intro_frame_waits
              <<" source_irq8="<<current->source_int08_scheduler.delivered()
              <<" original_guest=SAME"
-             <<" title_renderer=NOT_ENTERED"
              <<" DOS_BIOS_chain=HOST_FIXTURE\n"<<std::flush;
-    stop("ORIGINAL_INTRO_19464_SOURCE_ENTER_INPUT_NOT_CONNECTED");
+    original_20440_mouse_init();
 }
-u32 intro_no_title_click() noexcept {
-    stop("ORIGINAL_INTRO_TITLE_CLICK_INPUT_PENDING");
+void intro_title_copy(u32 dst,u32 src,u32 count) noexcept {
+    if(!count || std::uint64_t(dst)+count>current->data.size() ||
+       std::uint64_t(src)+count>current->data.size())
+        stop("ORIGINAL_19464_SOURCE_COPY_OUTSIDE_GUEST");
+    (void)code2::function_30cd4(current->machine,dst,src,count);
+}
+void intro_title_remap(u32 frame,u32 table,u32 image) noexcept {
+    if(frame!=0u || table!=0x759Cu || image!=0x880Du ||
+       current->original_20440_mouse_cursor_loads!=1u)
+        stop("ORIGINAL_19378_CURSOR_PALETTE_TABLE_INVALID");
+    code2::function_2aa9c(current->machine,frame,table,image);
+}
+void intro_title_text(u32 y,u32 x,u32 text,u32 font) noexcept {
+    if(y!=0u || x!=0u || text!=0x82C0u || font!=1u)
+        stop("ORIGINAL_192CC_TITLE_TEXT_ARGUMENTS_CHANGED");
+    code2::Application71Boundary wrapper{};
+    wrapper.call_303c8=+[](u32 ptr,u32 item) noexcept {
+        code2::Application56Boundary glyphs{};
+        glyphs.call_2a380=+[](u32 frame,u32 row,u32 column,u32 image) noexcept -> u32 {
+            original_scene_res_blit(frame,row,column,image);
+            return 0u;
+        };
+        code2::Application70Boundary b{};
+        b.app56=&glyphs;
+        b.app69=&current->game_audio;
+        code2::function_303c8(current->machine,b,ptr,item);
+    };
+    code2::function_3060c(current->machine,wrapper,y,x,text,font);
+}
+void intro_title_page() noexcept {
+    code2::Application43Boundary title{};
+    title.call_1a510=+[](u32 page) noexcept {
+        code2::Application33Boundary v{};
+        code2::Application34Boundary mouse{};
+        auto draw=original_game_over_cursor_callbacks(v,mouse);
+        code2::function_1a510(current->machine,draw,page);
+    };
+    code2::function_1ea78(current->machine,title);
+    ++current->original_title_presentations;
+    std::cerr<<"CODE2_ORIGINAL_19464_SOURCE_TITLE_PRESENT"
+             <<" page_flips="<<current->original_title_presentations
+             <<" guest_vga=RETAINED"
+             <<" source_192CC_ART=YES"
+             <<" source_3060C_TEXT=YES\n"<<std::flush;
+}
+void intro_title_redraw() noexcept {
+    original_game_over_1a288_cursor_redraw();
+}
+void intro_title_reset() noexcept {
+    original_game_over_1a9f8_mouse_reset();
+}
+void intro_title_fade(bool fade_in,u32 source,u32 first,
+                      u32 last,u32 red,u32 green,u32 blue) noexcept {
+    code2::Application56Boundary b{};
+    b.call_29ca0=+[](u32 palette,u32 start,u32 count) noexcept -> u32 {
+        if(start!=0u||count!=0x300u)
+            stop("ORIGINAL_19464_FADE_DAC_SLICE_CHANGED");
+        intro_palette_stream(palette);
+        return 0u;
+    };
+    if(fade_in)code2::function_322ec(current->machine,b,source,
+        static_cast<code2::s32>(first),static_cast<code2::s32>(last),red,green,blue);
+    else code2::function_32220(current->machine,b,source,
+        static_cast<code2::s32>(first),static_cast<code2::s32>(last),red,green,blue);
+}
+u32 intro_title_click() noexcept {
+    const auto pressed=original_game_over_1a1f4_mouse_button();
+    if(current->original_title_presentations==0u)
+        stop("ORIGINAL_19464_TITLE_CLICK_BEFORE_SOURCE_FRAME");
+    if(const char* gate=std::getenv("RLOFT_RECOMP_TITLE_RENDER_INPUT_GATE");
+       gate && std::strcmp(gate,"1")==0) {
+        std::cerr<<"CODE2_ORIGINAL_19464_RENDER_AND_INPUT_PASS"
+                 <<" original_menu=192CC_19464"
+                 <<" source_click_poll=1A1F4"
+                 <<" title_page_flips="<<current->original_title_presentations
+                 <<" mouse_buttons="<<pressed
+                 <<" original_guest=SAME\n"<<std::flush;
+        stop("ORIGINAL_19464_TITLE_RENDER_AND_MOUSE_POLL_VERIFIED");
+    }
+    return pressed;
 }
 u32 intro_not_yet_new_game() noexcept {
     stop("ORIGINAL_INTRO_NEW_GAME_07B94_NOT_CONNECTED");
@@ -335,9 +416,26 @@ void original_19888_live_intro() noexcept {
     menu.call_2e614=&intro_wait;
     menu.call_30700=&intro_tick;
     menu.call_30b40=&intro_keyboard;
-    menu.call_1a1f4=&intro_no_title_click;
+    menu.call_2aa9c=&intro_title_remap;
+    menu.call_2f29c=&original_scene_res_image;
+    menu.call_30cd4=&intro_title_copy;
+    menu.call_1aacc=&original_game_over_1aacc_cursor_restore;
+    menu.call_1a288=&intro_title_redraw;
+    menu.call_3060c=&intro_title_text;
+    menu.call_1ea78=&intro_title_page;
+    menu.call_1a9f8=&intro_title_reset;
+    menu.call_1a1f4=&intro_title_click;
     menu.call_7b94=&intro_not_yet_new_game;
-    menu.call_1a0b0=&intro_no_title_input;
+    menu.call_1a0b0=&intro_title_mouse_init;
+    menu.call_32220=+[](u32 p,u32 first,u32 last,u32 r,u32 g,u32 b) noexcept {
+        intro_title_fade(false,p,first,last,r,g,b);
+    };
+    menu.call_322ec=+[](u32 p,u32 first,u32 last,u32 r,u32 g,u32 b) noexcept {
+        intro_title_fade(true,p,first,last,r,g,b);
+    };
+    menu.call_205b4=+[](code2::s32) noexcept {
+        stop("ORIGINAL_19464_SUPERVISOR_TRANSITION_NOT_CONNECTED");
+    };
     code2::Application34Boundary frontend{};
     frontend.app33=&menu;
     frontend.call_2f844=+[]() noexcept {
