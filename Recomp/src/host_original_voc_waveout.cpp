@@ -2,8 +2,7 @@
 // Creative Voice PCM8. Real OS buffer completion only; no AIL/32 driver,
 // VOC codec guessing, Sound Blaster IRQ/DMA timing or source game callback
 // integration is implied. Never ships original game media.
-#include "original_voc_pcm8.hpp"
-#include "original_code2_pcm_packet.hpp"
+#include "game/audio/Audio.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
