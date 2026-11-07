@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.22)
 project(RavenloftReconstructionLinkGate LANGUAGES CXX)
 
+# Regression for original CODE.2 301A8 font glyph layout and planar packing.
+# Uses only synthetic raw font bytes; retail RES0 method-3 remains a live gate.
+add_executable(rloft_original_code2_type2_font_test
+    src/test_original_code2_301a8_font.cpp)
+set_target_properties(rloft_original_code2_type2_font_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_type2_font_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_type2_font_test PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME original_code2_301A8_type2_font_layout
+        COMMAND rloft_original_code2_type2_font_test)
+endif()
+
 # Original source 192CC/19464 title menu control-flow and state handoff.
 # Test callback records, not replacement title pixels or user input.
 add_executable(rloft_original_code2_title_menu_dispatch_test
