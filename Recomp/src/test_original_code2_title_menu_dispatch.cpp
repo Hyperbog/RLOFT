@@ -143,7 +143,8 @@ struct Gate {
                 "19464 source new-game state handoff mismatched");
         std::cout<<"CODE2_ORIGINAL_20440_19888_19464_TITLE_MENU_CHAIN_PASS"
                  <<" movie_branch=SKIPPED_BY_ORIGINAL_STATE"
-                 <<" original_palette_transition=12_TO_0"\n                 <<" original_title_resources=5"
+                 <<" original_palette_transition=12_TO_0"
+                 <<" original_title_resources=5"
                  <<" original_mouse_highlight=YES"
                  <<" original_new_game_call_7B94=YES"
                  <<" original_state_handoff=YES"
