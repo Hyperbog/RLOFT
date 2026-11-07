@@ -528,6 +528,11 @@ int main(int argc,char** argv){
                 throw std::runtime_error("Cannot enable owner-local authentic portal diagnostic");
         }
         if(intro_smoke) {
+            // Stop only after the ORIGINAL title draws and first 1A1F4
+            // mouse-input source poll has completed. The production
+            // title has no test-driven mouse clicks or synthetic scene.
+            if(_putenv_s("RLOFT_RECOMP_TITLE_RENDER_INPUT_GATE","1")!=0)
+                throw std::runtime_error("Cannot configure title source acceptance");
             // Only original physical media, with the genuine first-boot
             // absence of CHARS. No borrowed synthetic party or second
             // CODE.2 guest is started at the 19888 boundary.
@@ -542,26 +547,49 @@ int main(int argc,char** argv){
                 throw std::runtime_error(
                     "Original 20440 did not reach retained second 16D04");
             try {
-                (void)machine::advance_original_second_init(
+                auto next=machine::advance_original_second_init(
                     original->canonical.get());
+                unsigned ranges=0u,pointers=0u,callbacks=0u;
+                for(unsigned i=0;i<64u;++i) {
+                    if(next==2u) {
+                        if(ranges>=2u)
+                            throw std::runtime_error("Title repeated unexpected INT33 range");
+                        next=machine::answer_mouse_range(
+                            original->canonical.get(),ranges==0u?8u:7u);
+                        ++ranges;
+                    } else if(next==12u) {
+                        const auto command=pointers==0u?4u:3u;
+                        next=machine::answer_original_mouse_pointer(
+                            original->canonical.get(),command,0u,0x140u,0xC8u);
+                        ++pointers;
+                    } else if(next==13u) {
+                        next=machine::answer_original_mouse_callback(
+                            original->canonical.get());
+                        ++callbacks;
+                    } else {
+                        throw std::runtime_error(
+                            "Original title halted at unexpected DOS dependency "
+                            +std::to_string(next));
+                    }
+                }
+                throw std::runtime_error(
+                    "Original title input did not reach bounded first source poll");
             } catch(const std::exception& error) {
                 const std::string reason=error.what();
-                // The canonical worker executed the complete CINE00
-                // stream and reached original 19464's mouse-init call.
-                // It reports a source-only title entry, NOT a playable menu.
                 if(reason.find("LIVE_CODE2_SOURCE_STOP="
-                               "ORIGINAL_INTRO_19464_SOURCE_ENTER_INPUT_NOT_CONNECTED")
+                               "ORIGINAL_19464_TITLE_RENDER_AND_MOUSE_POLL_VERIFIED")
                        ==std::string::npos)
                     throw;
-                std::cout<<"CODE2_LIVE_20440_CINE00_19464_ENTRY_GATE_PASS"
+                std::cout<<"CODE2_LIVE_20440_CINE00_19464_RENDER_INPUT_GATE_PASS"
                          <<" original_guest=SAME"
                          <<" original_media=READ_ONLY_CD"
                          <<" cine00_frames=405"
-                         <<" title_input=NOT_CONNECTED\n";
+                         <<" original_title=192CC"
+                         <<" source_input_poll=1A1F4"
+                         <<" simulated_click=NO"
+                         <<" live_window=NOT_YET_CONNECTED\n";
                 return 0;
             }
-            throw std::runtime_error(
-                "Original intro executed without reported source timing boundary");
         }
         LiveWindow live;
         live.open_original_guest(root,cd);
