@@ -38,7 +38,20 @@ public:
         batch_limit_=max_interrupts_per_poll;
         return true;
     }
+    // Standard PC/AT IRQ0/INT08 timer: PIT channel 0 input 1193182 Hz,
+    // BIOS divisor 65536. This does not impersonate a DOS BIOS ISR.
+    bool arm_bios_pit(Time start,std::uint32_t max_interrupts_per_poll) noexcept {
+        disarm();
+        if(!max_interrupts_per_poll || max_interrupts_per_poll>8192u)
+            return false;
+        start_=observed_=start;
+        rate_=1u;
+        pit_divisor_=65536u;
+        batch_limit_=max_interrupts_per_poll;
+        return true;
+    }
     void disarm() noexcept {
+        pit_divisor_=0u;
         rate_=0u;batch_limit_=0u;delivered_=0u;
         start_=Time{};observed_=Time{};
     }
@@ -62,14 +75,16 @@ public:
         if(seconds.count()<0 || remainder.count()<0)
             return {Status::ClockReversed,0u,delivered_};
         const auto whole=static_cast<std::uint64_t>(seconds.count());
-        if(whole>std::numeric_limits<std::uint64_t>::max()/rate_)
+        const std::uint64_t frequency=pit_divisor_?1193182ull:rate_;
+        const std::uint64_t divisor=pit_divisor_?pit_divisor_:1ull;
+        if(whole>std::numeric_limits<std::uint64_t>::max()/frequency)
             return {Status::TickOverflow,0u,delivered_};
-        const std::uint64_t base=whole*rate_;
+        const std::uint64_t base=whole*frequency;
         const auto sub=static_cast<std::uint64_t>(remainder.count());
-        const std::uint64_t fraction=(sub*rate_)/1000000000ull;
+        const std::uint64_t fraction=(sub*frequency)/1000000000ull;
         if(base>std::numeric_limits<std::uint64_t>::max()-fraction)
             return {Status::TickOverflow,0u,delivered_};
-        const auto expected=base+fraction;
+        const auto expected=(base+fraction)/divisor;
         if(expected<delivered_)
             return {Status::ClockReversed,0u,delivered_};
         const auto owed=expected-delivered_;
@@ -86,6 +101,7 @@ private:
     Time start_{};
     Time observed_{};
     std::uint32_t rate_=0u;
+    std::uint32_t pit_divisor_=0u;
     std::uint32_t batch_limit_=0u;
     std::uint64_t delivered_=0u;
 };
