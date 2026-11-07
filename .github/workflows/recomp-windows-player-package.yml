@@ -129,7 +129,7 @@ jobs:
           try {
             $out = $p.StandardOutput.ReadToEndAsync()
             $err = $p.StandardError.ReadToEndAsync()
-            $exited = $p.WaitForExit(90000)
+            $exited = $p.WaitForExit(30000)
             if (-not $exited) {
               $p.Kill($true)
               $p.WaitForExit()
@@ -140,7 +140,7 @@ jobs:
             Write-Host "CODE2_RETAINED_INTRO_REAL_MEDIA_GATE passed=$passed exited=$exited code=$($p.ExitCode)"
             if (-not $passed) {
               @($all -split '[\r\n]+' | Where-Object {
-                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
+                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
               }) | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
               throw 'Real retained CODE.2 19888 CINE00 startup frontier failed'
             }
