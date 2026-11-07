@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.22)
 project(RavenloftReconstructionLinkGate LANGUAGES CXX)
 
+# Standalone original CODE.2 CINE00 source player; authentic ANM/T supplied locally.
+# This is a source-executed cinematic bridge, not the original 20440->19888
+# boot/title sequence or an accepted game-visible intro.
+add_executable(rloft_original_code2_cine00_player
+    src/code2_original_cine00_player.cpp)
+set_target_properties(rloft_original_code2_cine00_player PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_cine00_player PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_cine00_player PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+
 # Full canonical CODE.1/CODE.2 compile/link/leaf-execution witness; not yet DOS boot.
 add_executable(rloft_recomp_link_gate
     src/code1_compilation_unit.cpp
