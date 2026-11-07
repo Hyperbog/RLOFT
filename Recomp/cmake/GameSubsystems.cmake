@@ -20,7 +20,10 @@ target_include_directories(rloft_game_resources PUBLIC
 # Only owner-facing decoders depend on the host-only VOC codec.
 foreach(consumer IN ITEMS
         rloft_host_original_voc_waveout
-        rloft_original_voc_pcm8_tests)
+        rloft_original_voc_pcm8_tests
+        rloft_original_source_winmm_boundary_test
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
     if(NOT TARGET ${consumer})
         message(FATAL_ERROR "Missing audio consumer: ${consumer}")
     endif()
@@ -44,4 +47,11 @@ if(WIN32)
         message(FATAL_ERROR "Missing Windows retained CODE.2 player")
     endif()
     target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_resources)
+endif()
+
+# The retained Windows player instantiates WinMMSourceSfx::preflight,
+# which invokes source_audio::decode_original_length_prefixed_voc.
+# Its Audio.cpp definition must be linked into this executable.
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_audio)
 endif()
