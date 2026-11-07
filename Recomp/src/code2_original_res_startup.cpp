@@ -10,14 +10,14 @@
 #include "code2_startup_gate.cpp"
 #include "original_code2_palette_loader.hpp"
 #include "original_code2_scene_palette.hpp"
-#include "original_code2_guest_session.hpp"
+#include "game/core/Game.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
 #include "original_code2_saved_level_actor_proof.hpp"
 #include "../../Code2/graphics/original_res_image_archive.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include <memory>
 #include "original_media_identity.hpp"
-#include "original_vga_host.hpp"
+#include "game/graphics/Graphics.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
