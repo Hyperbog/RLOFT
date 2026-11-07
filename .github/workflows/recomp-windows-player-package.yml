@@ -34,7 +34,7 @@ jobs:
       - name: Build authentic source native host and extractor
         shell: pwsh
         run: |
-          cmake --build build/player --config Debug --parallel 2 --target rloft_code2_level22_window rloft_gog_cd_extract
+          cmake --build build/player --config Debug --parallel 2 --target rloft_code2_level22_window rloft_gog_cd_extract rloft_original_code2_cine00_player
           if ($LASTEXITCODE -ne 0) { throw "Native source host or extractor compilation failed" }
       - name: Sparse-checkout original owner media for mandatory native gameplay regression
         uses: actions/checkout@v4
@@ -44,6 +44,7 @@ jobs:
           sparse-checkout: |
             MASTER/Ravenloft - Strahd's Possession/RLOFT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/CINE00.ANM
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES9
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
           sparse-checkout-cone-mode: false
@@ -98,12 +99,46 @@ jobs:
               $p.Dispose()
             }
           }
+      - name: Run authentic CINE00 through compiled original CODE.2 dispatch
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          # CINE00 is read-only from the original preservation branch.
+          # Neither cinematic media nor player frames leave this runner.
+          $cine = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/CINE00.ANM").Path
+          $text = (Resolve-Path "original-media/MASTER/Ravenloft - Strahd's Possession/RLOFT/T").Path
+          $exe = (Resolve-Path "build/player/Debug/rloft_original_code2_cine00_player.exe").Path
+          $info = [Diagnostics.ProcessStartInfo]::new()
+          $info.FileName = $exe
+          $info.UseShellExecute = $false
+          $info.CreateNoWindow = $true
+          $info.RedirectStandardOutput = $true
+          $info.RedirectStandardError = $true
+          foreach ($arg in @($cine,$text)) { [void]$info.ArgumentList.Add($arg) }
+          $p = [Diagnostics.Process]::Start($info)
+          try {
+            $out = $p.StandardOutput.ReadToEndAsync()
+            $err = $p.StandardError.ReadToEndAsync()
+            $exited = $p.WaitForExit(120000)
+            if (-not $exited) {
+              $p.Kill($true)
+              $p.WaitForExit()
+            }
+            $all = @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()) -join "`n"
+            $passed = $exited -and $p.ExitCode -eq 0 -and $all.Contains('CODE2_CINE00_ORIGINAL_13834_PASS frames=405')
+            Write-Host "ORIGINAL_CODE2_CINE00_SOURCE_GATE passed=$passed exited=$exited code=$($p.ExitCode)"
+            if (-not $passed) {
+              @($all -split "`r?`n" | Where-Object { $_ -match 'FAIL|ERROR|CODE2_CINE00' }) |
+                Select-Object -Last 12 | ForEach-Object { Write-Host $_ }
+              throw 'Original CODE.2 CINE00 source playback did not pass'
+            }
+          } finally { $p.Dispose() }
       - name: Package only source executables and scripts
         shell: pwsh
         run: |
           $out = "build/player/RLOFT-Recomp-Player"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          foreach ($name in @('rloft_code2_level22_window.exe','rloft_gog_cd_extract.exe')) {
+          foreach ($name in @('rloft_code2_level22_window.exe','rloft_gog_cd_extract.exe','rloft_original_code2_cine00_player.exe')) {
             $src = Join-Path 'build/player/Debug' $name
             if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { throw "Missing build target: $src" }
             Copy-Item -LiteralPath $src -Destination $out
@@ -118,6 +153,8 @@ jobs:
             'The original 07938 Level23 saved-load sentinel 0xFFFFFFFF remains an open native acceptance gate.'
             'Download your own original GOG game; no commercial resources, saves, media, palettes or pictures are included.'
             'Run Play-RLOFT-Level22.cmd or Launch-RLOFT-Level22.ps1 with -GameFolder and optionally -CdRoot.'
+            'Original source CINE00 diagnostic: rloft_original_code2_cine00_player.exe CINE00.ANM T [LAST_FRAME.ppm].'
+            'CINE00 diagnostic is silent, does not draw subtitle glyphs, and does not enter the title menu.'
             'Full portal framebuffer and independent original DOS parity are NOT certified.'
           ) | Set-Content -Path (Join-Path $out 'README-BUILD.txt')
           Get-ChildItem -File $out | Sort-Object Name | Get-FileHash -Algorithm SHA256 |
