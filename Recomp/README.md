@@ -2,6 +2,21 @@
 
 **Active branch:** [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) (case-sensitive). This is the reconstructed original DOS CODE.1/CODE.2 workstream, distinct from `demo-v1` and from `DnD-Classics`, which preserves the original game files.
 
+## Production game-system layout — migration in progress
+
+See [GAME_SYSTEMS.md](GAME_SYSTEMS.md) for the C++17 core, graphics,
+audio, timing, filesystem, resource, UI, world, gameplay, scripts, save
+and modding ownership map. Active host implementations now reside under
+`src/game/`; historical includes remain compatibility forwards until
+the owning build targets can be migrated without breaking original CODE.2
+execution. Do not delete preservation evidence or move stable Code1/Code2
+source across branches.
+
+The Windows engineering package validates a source-only file whitelist and
+SHA-256 manifest with `tools/release_package_gate.py`. Production mode
+deliberately rejects a release while any of the 12 accepted-game gates
+remains open. Preview builds are not production certification.
+
 ## Current status — 2026-10-28 UTC
 
 **Part 36: native original IRQ9 source keyboard make/break — verified.** [Windows Player Build #121](https://github.com/Hyperbog/RLOFT/actions/runs/40616583040), [Windows milestone #734](https://github.com/Hyperbog/RLOFT/actions/runs/40616583058), [canonical source-link #1082](https://github.com/Hyperbog/RLOFT/actions/runs/40616583085) (**108/108 CTests**), [Linux portable #790](https://github.com/Hyperbog/RLOFT/actions/runs/40616583123) and [strict saved-source native #100](https://github.com/Hyperbog/RLOFT/actions/runs/40616583134) all passed on executable source `8f673ada8`. The host now runs compiled CODE.2 `308F8` scan make/break through original `30B40/F590`, with a bounded port 60h/61h and PIC acknowledgment bridge. A new source test verifies original IRQ9 vector installation, R key translation, arrow-key queue, and CTRL flag lifetime. **Only the sampled native one-shot keys exercise this IRQ9 path; DOS asynchronous cadence and held-key equivalence remain open.** The comprehensive Windows milestone #732 had an unresolved intermittent third-console-key failure; passing #734 does not prove the cause fixed. [Part36 source-input continuity](PART36_ORIGINAL_IRQ9_NATIVE_INPUT_20261027.md). Acceptance remains **3/12**.
