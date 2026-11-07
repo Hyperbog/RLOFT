@@ -59,7 +59,7 @@ struct Gate {
         ui.call_1ea78=[]() noexcept {++self().overlays;};
         ui.call_1a9f8=[]() noexcept {};
         ui.call_2aa9c=[](u32 src,u32 dest,u32 count) noexcept {
-            if(src!=0x759Cu||dest!=0x880Du||count!=0x880Du)
+            if(src!=0u||dest!=0x759Cu||count!=0x880Du)
                 std::terminate();
             ++self().blits;
         };
