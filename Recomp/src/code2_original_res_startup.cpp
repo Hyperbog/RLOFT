@@ -550,12 +550,17 @@ struct Session {
                 code2::load_le32(file.data()+4u+(item+1u)*4u):
                 static_cast<u32>(file.size());
             const u32 descriptor=entry+5u+128u;
-            if(it->second.file!=2u || next<=entry+5u+136u ||
-               next>file.size() || file[entry]!='E' ||
-               file[entry+1u]!='H' ||
+            // The widths region contains exactly 128 entries. The original
+            // 301A8 uses signed lengths and must never copy beyond it.
+            const bool body_present=next>entry+5u+136u && next<=file.size();
+            const auto glyph_count=body_present?static_cast<std::int16_t>(
+                code2::load_le16(file.data()+descriptor)):0;
+            const auto glyph_height=body_present?static_cast<std::int16_t>(
+                code2::load_le16(file.data()+descriptor+2u)):0;
+            if(it->second.file!=2u || !body_present ||
+               file[entry]!='E' || file[entry+1u]!='H' ||
                code2::load_le16(file.data()+entry+3u)!=136u ||
-               code2::load_le16(file.data()+descriptor)==0u ||
-               code2::load_le16(file.data()+descriptor+2u)==0u ||
+               glyph_count<=0 || glyph_count>128 || glyph_height<=0 ||
                file[descriptor+4u]==0u || file[descriptor+6u]!=3u) {
                 t.original_image_invalid=true;t.error=true;return;
             }
