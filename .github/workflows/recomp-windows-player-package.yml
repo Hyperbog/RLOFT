@@ -137,13 +137,14 @@ jobs:
             }
             $all = [string]::Join([Environment]::NewLine, @($out.GetAwaiter().GetResult(),$err.GetAwaiter().GetResult()))
             $passed = $exited -and $p.ExitCode -eq 0 -and
-              $all.Contains('CODE2_LIVE_20440_CINE00_19464_ENTRY_GATE_PASS') -and
-              $all.Contains('CODE2_LIVE_20440_CINE00_TO_19464_SOURCE_PASS') -and
+              $all.Contains('CODE2_LIVE_20440_CINE00_19464_RENDER_INPUT_GATE_PASS') -and
+              $all.Contains('CODE2_ORIGINAL_19464_RENDER_AND_INPUT_PASS') -and
+              $all.Contains('CODE2_ORIGINAL_19464_SOURCE_TITLE_PRESENT') -and
               $all.Contains('cine00_frames=405')
             Write-Host "CODE2_RETAINED_INTRO_REAL_MEDIA_GATE passed=$passed exited=$exited code=$($p.ExitCode)"
             if (-not $passed) {
               @($all -split '[\r\n]+' | Where-Object {
-                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|CODE2_RETAINED_CINE_ORIGINAL_FRAMES|CODE2_LIVE_20440|CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
+                $_ -match 'LIVE_CODE2_SOURCE_STOP|CODE2_RETAINED_19888|CODE2_RETAINED_CINE_ORIGINAL_FRAMES|CODE2_LIVE_20440|CODE2_ORIGINAL_19464|CODE2_FIRST_BOOT_RESOURCE_PREFLIGHT|SOURCE_STAGE|ERROR|FAIL|ORIGINAL_INTRO'
               }) | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
               throw 'Real retained CODE.2 19888 CINE00 startup frontier failed'
             }
