@@ -2,7 +2,7 @@
 // Tests absent-file return AND present-file exact 14-byte DOS read,
 // actor byte, palette bank, DAC and audio callback sequence.
 #include "../../Code2/Code2.cpp"
-#include "../src/original_code2_5e38_game_options.hpp"
+#include "../src/game/ui/UI.hpp"
 #include <array>
 #include <cstdint>
 #include <cstring>
