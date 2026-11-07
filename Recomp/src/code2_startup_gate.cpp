@@ -793,6 +793,11 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
                 stop("ORIGINAL_CINE_DOS_FILENAME_REJECTED");
         } else {
             name=guest_dos_basename(path);
+            // The original CODE.2 resource code uses the literal
+            // "COLORS." at DGROUP:CFC. DOS 8.3 resolves the empty
+            // extension to the original file COLORS.
+            if(path==0xCFCu && name=="COLORS.")
+                name="COLORS";
         }
         const auto result=current->host_files->open(name,access_share);
         if(result.carry)stop("HOST_DOS_AH3D_GUEST_PATH_OPEN_FAILED");
