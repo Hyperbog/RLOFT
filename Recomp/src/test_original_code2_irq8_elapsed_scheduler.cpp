@@ -81,6 +81,30 @@ int main() {
         require(!timer.armed() && timer.delivered()==0u &&
                 timer.poll(start+milliseconds(30),fire).status==Status::NotArmed,
                 "disarm did not prevent later interrupt dispatch");
+        // Independently verify BIOS PIT divisor timing: 1193182 / 65536
+        // is 18.2065... IRQ0s per second, not a guessed 18 Hz clock.
+        require(timer.arm_bios_pit(start,32u),
+                "BIOS PIT original IRQ8 clock rejected");
+        a=timer.poll(start+milliseconds(54),fire);
+        require(a.status==Status::Delivered && a.interrupts==0u,
+                "PIT first sub-55ms interval fired too soon");
+        a=timer.poll(start+milliseconds(55),fire);
+        require(a.status==Status::Delivered && a.interrupts==1u,
+                "PIT first 55ms IRQ8 absent");
+        a=timer.poll(start+milliseconds(110),fire);
+        require(a.status==Status::Delivered && a.interrupts==1u,
+                "PIT second 110ms IRQ8 absent");
+        a=timer.poll(start+seconds(1),fire);
+        require(a.status==Status::Delivered && a.interrupts==16u &&
+                timer.delivered()==18u && ordered &&
+                chain_callbacks==tick_callbacks &&
+                code2::function_30700(guest)==58u,
+                "PIT 1-second rational cadence or source interrupt chain changed");
+        timer.disarm();
+        std::cout<<"ORIGINAL_CODE2_BIOS_PIT_RATIONAL_IRQ8_PASS"
+                 <<" input_hz=1193182 divisor=65536 ticks_1s=18"
+                 <<" IRQ8_original_30708=EXECUTED"
+                 <<" DOS_BIOS_prior_vector=FIXTURE_ONLY\n";
         std::cout<<"ORIGINAL_30708_HOST_ELAPSED_SOURCE_IRQ8_PASS"
                  <<" source_tick_callbacks=8 chained_vectors=8"
                  <<" reject_clock_reversal=YES reject_backlog=YES"
