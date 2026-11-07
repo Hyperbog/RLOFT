@@ -1,7 +1,7 @@
 // Source-selected CODE.2 181B4 validation must not contain a
 // hard-coded Level22/23/26 transition allowlist. This is a policy
 // test, not evidence that all 32 original levels are playable.
-#include "original_code2_saved_level_policy.hpp"
+#include "game/save/Save.hpp"
 #include <cstdint>
 #include <initializer_list>
 #include <iostream>
