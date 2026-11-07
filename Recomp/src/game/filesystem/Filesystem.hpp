@@ -1,0 +1,254 @@
+#pragma once
+// Read-only, fail-closed host transport for DOS INT 21h AH=3Dh/3Fh/3Eh.
+// This is a host service component, not an emulation of DOS/4GW or game boot.
+// No writes, implicit host-current-directory lookup, or DOS device access.
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <utility>
+
+namespace rloft_recomp {
+struct DosFileResult {
+    bool carry;
+    std::uint16_t ax;
+};
+// DOS INT 21h AH=42h: carry-clear returns DX:AX, carry-set AX=error.
+struct DosSeekResult {
+    bool carry;
+    std::uint16_t ax;
+    std::uint16_t dx;
+    std::uint32_t offset() const noexcept {
+        return (static_cast<std::uint32_t>(dx)<<16u)|ax;
+    }
+};
+
+class ReadOnlyDosFiles {
+public:
+    explicit ReadOnlyDosFiles(std::filesystem::path installation_root)
+        : root_(std::move(installation_root)) {
+        std::error_code ec;
+        const auto st=std::filesystem::symlink_status(root_,ec);
+        if(ec || !std::filesystem::is_directory(st) ||
+           std::filesystem::is_symlink(st))
+            throw std::invalid_argument("DOS file root must be an existing non-symlink directory");
+    }
+
+    // An exact original CODE.1 CHARS payload may be transferred by the
+    // R.EXE supervisor into the next CODE.2 process without changing the
+    // original installation. This overlay is intentionally limited to the
+    // 0x920-byte CHARS file, never an arbitrary DOS pathname or write API.
+    static constexpr std::size_t kCharsBytes=0x920u;
+    void install_virtual_chars(const std::uint8_t* bytes,std::size_t count) {
+        if(!bytes || count!=kCharsBytes || virtual_chars_active_)
+            throw std::invalid_argument("CODE.1 CHARS handoff must be one exact 0x920-byte payload");
+        std::copy_n(bytes,count,virtual_chars_.begin());
+        virtual_chars_active_=true;
+    }
+    bool has_virtual_chars() const noexcept {return virtual_chars_active_;}
+
+    // Read-only second original-media directory, generally the extracted CD
+    // RLOFT. Installation files take priority exactly as DOS working-dir
+    // lookups do. Never search an arbitrary parent/current directory.
+    void mount_readonly_media(std::filesystem::path cd_root) {
+        if(!media_root_.empty())
+            throw std::logic_error("Original DOS media root already mounted");
+        std::error_code ec;
+        const auto st=std::filesystem::symlink_status(cd_root,ec);
+        if(ec || !std::filesystem::is_directory(st) ||
+           std::filesystem::is_symlink(st))
+            throw std::invalid_argument("Original media must be a non-symlink directory");
+        media_root_=std::move(cd_root);
+    }
+    bool has_readonly_media() const noexcept {return !media_root_.empty();}
+
+    // AL=00h (read-only, compatibility sharing) only. Other modes fail
+    // without opening the host file; original callers retain DOS errors.
+    DosFileResult open(const std::string& dos_name,std::uint8_t al) {
+        if(al!=0u) return {true,12u}; // invalid access
+        if(!valid_basename(dos_name)) return {true,3u}; // path not found
+        const auto wanted=ascii_upper(dos_name);
+        if(wanted=="CHARS" && virtual_chars_active_) {
+            if(files_.size()>=0xFFF9u)return {true,4u};
+            std::uint16_t handle=5u;
+            while(files_.count(handle)!=0u && handle<0xFFFEu)++handle;
+            if(files_.count(handle)!=0u)return {true,4u};
+            files_.emplace(handle,OpenFile{std::ifstream{},0u,true});
+            return {false,handle};
+        }
+        std::filesystem::path match;
+        unsigned matches=0;
+        std::error_code ec;
+        for(std::filesystem::directory_iterator it(root_,ec),end; !ec && it!=end;
+            it.increment(ec)) {
+            const auto name=it->path().filename().string();
+            if(ascii_upper(name)!=wanted)continue;
+            ++matches;
+            const auto status=it->symlink_status(ec);
+            if(ec || !std::filesystem::is_regular_file(status) ||
+               std::filesystem::is_symlink(status))
+                return {true,5u}; // access denied
+            match=it->path();
+        }
+        if(ec) return {true,5u};
+        const bool cinematic =
+            wanted.size()==10u && wanted.compare(0,4,"CINE")==0 &&
+            wanted[4]>='0' && wanted[4]<='9' &&
+            wanted[5]>='0' && wanted[5]<='9' &&
+            wanted.compare(6,4,".ANM")==0;
+        // Only 139AC's original CINEdd.ANM filenames cross the CD
+        // mount. Ordinary SOUND/CHARS/INIT/WORK lookups remain rooted
+        // in the original install, with no accidental CD fallback.
+        if(matches==0u && cinematic && !media_root_.empty()) {
+            for(std::filesystem::directory_iterator it(media_root_,ec),end;
+                !ec && it!=end; it.increment(ec)) {
+                if(ascii_upper(it->path().filename().string())!=wanted)
+                    continue;
+                ++matches;
+                const auto st=it->symlink_status(ec);
+                if(ec || !std::filesystem::is_regular_file(st) ||
+                   std::filesystem::is_symlink(st))
+                    return {true,5u};
+                match=it->path();
+            }
+            if(ec)return {true,5u};
+        }
+        if(matches==0u) return {true,2u}; // file not found
+        if(matches!=1u) return {true,5u}; // ambiguous on case-sensitive hosts
+        if(files_.size()>=0xFFF9u)return {true,4u}; // too many open files
+        std::uint16_t handle=5u;
+        while(files_.count(handle)!=0u && handle<0xFFFEu)++handle;
+        if(files_.count(handle)!=0u)return {true,4u};
+        std::ifstream file(match,std::ios::in|std::ios::binary);
+        if(!file.is_open())return {true,5u};
+        files_.emplace(handle,OpenFile{std::move(file),0u});
+        return {false,handle};
+    }
+
+    // Count is the DOS CX word, not an unbounded C++ allocation request.
+    DosFileResult read(std::uint16_t handle,std::uint8_t* destination,
+                       std::size_t count) {
+        auto it=files_.find(handle);
+        if(it==files_.end())return {true,6u}; // invalid handle
+        if(count>0xFFFFu)return {true,1u}; // invalid function/unsupported count
+        if(count && destination==nullptr)return {true,5u};
+        if(!count)return {false,0u};
+        auto& opened=it->second;
+        if(count>std::numeric_limits<std::uint32_t>::max()-opened.cursor)
+            return {true,1u}; // constrained 32-bit guest position
+        if(opened.virtual_chars) {
+            const auto left=opened.cursor<kCharsBytes?
+                kCharsBytes-opened.cursor:0u;
+            const auto n=std::min(count,left);
+            if(n)std::copy_n(virtual_chars_.data()+opened.cursor,n,destination);
+            opened.cursor+=static_cast<std::uint32_t>(n);
+            return {false,static_cast<std::uint16_t>(n)};
+        }
+        auto& file=opened.stream;
+        // Clear EOF/fail status before every positioned read. The explicit
+        // guest cursor also makes seek-after-EOF independent of host iostream
+        // recovery behavior and preserves independent DOS handles.
+        file.clear();
+        file.seekg(static_cast<std::streamoff>(opened.cursor),std::ios::beg);
+        if(file.fail())return {true,5u};
+        file.read(reinterpret_cast<char*>(destination),
+                  static_cast<std::streamsize>(count));
+        const auto actual=file.gcount();
+        if(file.bad() || actual<0)return {true,5u};
+        opened.cursor+=static_cast<std::uint32_t>(actual);
+        return {false,static_cast<std::uint16_t>(actual)};
+    }
+
+    // Signed CX:DX relative displacement. AL=0 start, 1 current, 2 end.
+    // No writes occur; seeking beyond EOF is allowed, just as on DOS files.
+    DosSeekResult seek(std::uint16_t handle,std::int32_t displacement,
+                       std::uint8_t origin) {
+        const auto it=files_.find(handle);
+        if(it==files_.end())return {true,6u,0u};
+        if(origin>2u)return {true,1u,0u};
+        std::int64_t base=0;
+        if(origin==1u)base=it->second.cursor;
+        if(origin==2u && it->second.virtual_chars)
+            base=kCharsBytes;
+        if(origin==2u && !it->second.virtual_chars) {
+            auto& file=it->second.stream;
+            file.clear();
+            file.seekg(0,std::ios::end);
+            if(file.fail())return {true,5u,0u};
+            const auto end=file.tellg();
+            if(end<0)return {true,5u,0u};
+            base=static_cast<std::int64_t>(end);
+        }
+        const auto target=base+static_cast<std::int64_t>(displacement);
+        if(target<0 || target>std::numeric_limits<std::uint32_t>::max())
+            return {true,1u,0u};
+        it->second.cursor=static_cast<std::uint32_t>(target);
+        return {false,static_cast<std::uint16_t>(target&0xFFFFu),
+                static_cast<std::uint16_t>((target>>16u)&0xFFFFu)};
+    }
+
+    DosFileResult close(std::uint16_t handle) {
+        const auto it=files_.find(handle);
+        if(it==files_.end())return {true,6u};
+        if(it->second.virtual_chars) {
+            files_.erase(it);
+            return {false,0u};
+        }
+        // A successful EOF read leaves failbit/eofbit set; that is not
+        // a failed DOS AH=3Eh close. Clear prior read status first.
+        it->second.stream.clear();
+        it->second.stream.close();
+        const bool failed=it->second.stream.fail();
+        files_.erase(it);
+        return failed?DosFileResult{true,5u}:DosFileResult{false,0u};
+    }
+
+    std::size_t open_handles() const noexcept {return files_.size();}
+
+private:
+    static std::string ascii_upper(const std::string& s) {
+        std::string v=s;
+        for(char& ch:v)if(ch>='a' && ch<='z')ch=static_cast<char>(ch-'a'+'A');
+        return v;
+    }
+    static bool valid_basename(const std::string& v) {
+        if(v.empty() || v.size()>12u)return false;
+        const auto dot=v.find('.');
+        if(dot==std::string::npos) {
+            if(v.size()>8u)return false;
+        } else if(dot==0u || dot>8u || dot==v.size()-1u ||
+                  v.size()-dot-1u>3u ||
+                  v.find('.',dot+1u)!=std::string::npos)
+            return false;
+        for(unsigned char ch:v) {
+            if(ch=='.')continue;
+            if(!((ch>='A'&&ch<='Z')||(ch>='a'&&ch<='z')||
+                 (ch>='0'&&ch<='9')||ch=='_'||ch=='-'||ch=='$'))
+                return false;
+        }
+        const auto stem=ascii_upper(v.substr(0,dot));
+        if(stem=="CON"||stem=="PRN"||stem=="AUX"||stem=="NUL")
+            return false;
+        if(stem.size()==4u && ((stem.substr(0,3)=="COM")||
+            (stem.substr(0,3)=="LPT")) && stem[3]>='1' && stem[3]<='9')
+            return false;
+        return true;
+    }
+    struct OpenFile {
+        std::ifstream stream;
+        std::uint32_t cursor;
+        bool virtual_chars=false;
+    };
+    std::filesystem::path root_;
+    std::filesystem::path media_root_;
+    std::array<std::uint8_t,kCharsBytes> virtual_chars_{};
+    bool virtual_chars_active_=false;
+    std::map<std::uint16_t,OpenFile> files_;
+};
+} // namespace rloft_recomp
