@@ -14,6 +14,8 @@ on:
       - 'Recomp/src/original_code2_live_full_frame.inc'
       - 'Recomp/src/canonical_code2_runtime_owner.hpp'
       - 'Recomp/CMakeLists.txt'
+      - 'Recomp/cmake/**'
+      - 'Recomp/src/game/**'
       - '.github/workflows/recomp-retained-07938-level23.yml'
 
 permissions:
