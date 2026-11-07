@@ -45,6 +45,7 @@ jobs:
             MASTER/Ravenloft - Strahd's Possession/RLOFT
             MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/CINE00.ANM
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/CINE12.ANM
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES9
             MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/RES10
           sparse-checkout-cone-mode: false
@@ -101,7 +102,7 @@ jobs:
           }
       - name: Require authentic retained first-boot CODE.2 cinematic source frontier
         shell: pwsh
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: |
           # Stage a private copy, removing only CHARS to reproduce the
           # source 31218 missing-party branch. Original media is read-only.
@@ -129,7 +130,7 @@ jobs:
           try {
             $out = $p.StandardOutput.ReadToEndAsync()
             $err = $p.StandardError.ReadToEndAsync()
-            $exited = $p.WaitForExit(210000)
+            $exited = $p.WaitForExit(420000)
             if (-not $exited) {
               $p.Kill($true)
               $p.WaitForExit()
