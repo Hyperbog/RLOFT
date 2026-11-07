@@ -5,6 +5,7 @@
 // captions are decoded by 1C368 and logged, but not yet font-rendered.
 #include "../../Code2/Code2.cpp"
 #include "original_vga_host.hpp"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -22,7 +23,8 @@ namespace fs=std::filesystem;
 using Vga=rloft::graphics::OriginalVgaHost;
 [[noreturn]] void fail(const char* reason) noexcept {
     std::fprintf(stderr,"CODE2_CINE00_SOURCE_FAIL: %s\n",reason);
-    std::abort(); // All CODE.2 callback ABI slots are noexcept.
+    std::fflush(stderr);
+    std::_Exit(2); // No Windows CRT abort dialog; callbacks remain noexcept.
 }
 struct Player {
     std::vector<u8> mem=std::vector<u8>(0x400000u,0u);
@@ -30,6 +32,10 @@ struct Player {
     Vga vga{};
     std::ifstream cine,txt;
     u32 ticks=0,frames=0,commands=0,subtitles=0;
+    // 13AD8 requests 0x1F400 BYTES from the DOS heap. It is not a
+    // DGROUP destination address. Keep its allocated buffer beyond the
+    // original CODE.2 static data (including T handle at 0x22224).
+    static constexpr u32 kCinematicHeap=0x100000u;
     u8 draw_page=0,display_page=0;
     static Player* active;
     Player(const fs::path& cinematic,const fs::path& text)
@@ -37,7 +43,7 @@ struct Player {
         if(!cine || !txt)throw std::runtime_error("CINE00.ANM and T are required");
         machine.data=mem.data();
         code2::store_le32(mem.data()+0x7F7Cu,1u);
-        code2::store_le32(mem.data()+0x7F84u,0x1F400u);
+        code2::store_le32(mem.data()+0x7F84u,kCinematicHeap);
         code2::store_le32(mem.data()+0x7F94u,1u);
         code2::store_le32(mem.data()+0x22224u,2u);
         // Original DOS no-card branch: no synthetic successful AIL driver.
