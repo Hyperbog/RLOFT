@@ -92,6 +92,13 @@ void install_original_chars_handoff(Opaque*,const std::uint8_t*,
 // extracted-CD directory; no host-current-directory fallback or writes.
 // Attach at the first DOS mouse-reset pause, before source execution.
 void mount_original_cd_media(Opaque*,const std::filesystem::path&);
+// Optional native presentation witness called on the retained CODE.2
+// worker thread after an original frame finishes. Returning false
+// requests controlled source shutdown; the observer never owns VGA.
+using OriginalIntroFrameObserver =
+    bool (*)(void*,const rloft::graphics::OriginalVgaHost&) noexcept;
+void attach_original_intro_frame_observer(
+    Opaque*,void* context,OriginalIntroFrameObserver);
 // Answer only the actual compiled 20440 -> 16D04 entry request.
 // Executes compiled 16D04 on the suspended original CODE.2 worker
 // using its retained heap/RAM and the borrowed original INIT callbacks.
