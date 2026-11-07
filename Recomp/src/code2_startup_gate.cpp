@@ -144,6 +144,8 @@ struct Session {
     std::array<GuestVector,256> ivt{};
     // Disarmed until real host timer cadence and old vector service are verified.
     rloft::original_irq8::ElapsedScheduler source_int08_scheduler{};
+    u32 original_intro_frame_waits=0u;
+    u32 original_intro_bios_chain_calls=0u;
     code2::Runtime112Boundary startup{};
     code2::Runtime119Boundary init{};
     code2::Runtime119Boundary post{};
