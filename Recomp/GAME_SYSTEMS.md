@@ -12,7 +12,7 @@ The executable must retain **one authoritative CODE.1/CODE.2 guest, heap, resour
 | **Core / runtime lifecycle** | `src/game/core/Game.hpp` (persistent guest session API), `src/canonical_code2_runtime_owner.hpp`, original CODE.1/CODE.2 | Define source-state ownership and orderly shutdown |
 | **Memory / DOS extender** | `src/dos_paragraph_memory.hpp`, `src/dpmi_*memory.hpp`, `src/dpmi_selector_descriptors.hpp`, `src/extender_data_break.hpp` | Shared DOS/4GW service facade; no synthetic allocations |
 | **Filesystem / asset I/O** | `src/game/filesystem/Filesystem.hpp` (read-only DOS transport), `src/original_code2_checked_dos_seek.hpp` | Source-selected file reads, overlay policy, DOS errors |
-| **Resources / asset cache** | `src/game/resources/Resources.hpp` (325B0 COLORS loader and scene-bank selection), `src/code2_original_res_startup.cpp`, `Code2/graphics/original_res_image_archive.hpp` | Extract archive resolver/decompression/cache without copying guest |
+| **Resources / asset cache** | `src/game/resources/Resources.hpp` (dependency-free scene-bank selection), `src/game/resources/PaletteLoader.hpp` (original 325B0 COLORS I/O), `src/code2_original_res_startup.cpp`, `Code2/graphics/original_res_image_archive.hpp` | Extract archive resolver/decompression/cache without copying guest |
 | **Graphics / VGA** | `src/game/graphics/Graphics.hpp`, `Code2/graphics/`, compiled CODE.2 drawing | Retained real framebuffer, palette, original title glyphs |
 | **UI / fonts / menus** | `src/game/ui/UI.hpp` (original 5E38 GAME.OPT load and settings), CODE.2 `301A8/303C8/30508/192CC/19464` | Connect decoded RES0 font and physical menu selection |
 | **Input / cursor** | CODE.2 `308F8/30B40/1A288/1A1F4`, `src/original_dpmi_real_mode_mouse.hpp` | Authentic physical INT33 and IRQ9 lifetime |
@@ -33,7 +33,7 @@ The executable must retain **one authoritative CODE.1/CODE.2 guest, heap, resour
 - **Timing**: moved the original IRQ8 elapsed scheduler into `game/timing/Timing.hpp`.
 - **Filesystem**: moved the bounded DOS file transport into `game/filesystem/Filesystem.hpp`.
 - **Core**: moved the persistent CODE.2 guest-session API into `game/core/Game.hpp`.
-- **Resources**: consolidated 325B0 COLORS palette-loading and scene palette-bank selection into `game/resources/Resources.hpp`.
+- **Resources**: extracted scene palette-bank selection to `game/resources/Resources.hpp` and original 325B0 COLORS I/O to `game/resources/PaletteLoader.hpp`. The independent headers keep palette metadata tests free of CODE.2 executable dependencies.
 - **World**: moved the original 36CEC scene clipping/raster adapter into `game/world/World.hpp`.
 - **UI**: moved original 5E38 GAME.OPT guest-state and device-settings handling into `game/ui/UI.hpp`.
 - **Save**: merged WORK/LEV file transport, saved actor verification and original source-selected restore/transition checks into `game/save/Save.hpp`.
