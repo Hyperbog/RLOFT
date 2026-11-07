@@ -21,7 +21,7 @@ struct Gate {
     unsigned polls=0,blits=0,restores=0,displays=0,overlays=0;
     unsigned titles=0,mouse_inits=0,mouse_updates=0,button_calls=0;
     unsigned palette_calls=0,new_game_calls=0,frontends=0;
-    unsigned title_palette_requests=0,chars_checks=0;
+    unsigned title_palette_requests=0,new_game_palette_requests=0,chars_checks=0;
     static Gate* active;
     static Gate& self() noexcept {return *active;}
     Gate() {
@@ -88,9 +88,11 @@ struct Gate {
         ui.call_20294=[]() noexcept {++self().displays;};
         ui.call_325b0=[](u32 target,u32 start,u32 bank,
                             u32 name,u32 count) noexcept {
-            if(target!=0xC054u||start!=0u||bank!=12u||
+            if(target!=0xC054u||start!=0u||
                name!=0xCF4u||count!=0x100u)std::terminate();
-            ++self().title_palette_requests;
+            if(bank==12u)++self().title_palette_requests;
+            else if(bank==0u)++self().new_game_palette_requests;
+            else std::terminate();
         };
         ui.call_29234=[](u32 p) noexcept {
             if(p!=0xC054u)std::terminate();
@@ -121,8 +123,9 @@ struct Gate {
         const auto base=15u;
         require(frontends==1u && chars_checks==1u,
                 "20440 did not dispatch missing-CHARS 19888");
-        require(title_palette_requests==1u,
-                "19888 omitted original COLORS bank-12 request");
+        require(title_palette_requests==1u &&
+                new_game_palette_requests==1u,
+                "19888/19464 title-to-new-game COLORS 12->0 transition missing");
         require(mouse_inits==1u,"19464 original mouse initialization");
         require(polls==2u,"19464 original hover-then-click polling");
         require(new_game_calls==1u,"19464 selection 1 did not call 7B94");
@@ -140,7 +143,7 @@ struct Gate {
                 "19464 source new-game state handoff mismatched");
         std::cout<<"CODE2_ORIGINAL_20440_19888_19464_TITLE_MENU_CHAIN_PASS"
                  <<" movie_branch=SKIPPED_BY_ORIGINAL_STATE"
-                 <<" original_title_resources=5"
+                 <<" original_palette_transition=12_TO_0"\n                 <<" original_title_resources=5"
                  <<" original_mouse_highlight=YES"
                  <<" original_new_game_call_7B94=YES"
                  <<" original_state_handoff=YES"
