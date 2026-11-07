@@ -761,7 +761,36 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
     if(access_share!=0u || (!current->host_files && path!=0x143Cu))
         stop("ORIGINAL_DOS_AH3D_OPEN_ARGUMENTS_DIFFER");
     if(current->host_files) {
-        const auto name=guest_dos_basename(path);
+        std::string name;
+        if(path==0x759Cu && current->host_files->has_readonly_media()) {
+            // Original 139AC constructs INFO.DAT's drive-qualified
+            // cinematic filename, e.g. D:\\CINE00.ANM. Resolve the
+            // explicit mounted CD root; never accept a traversable path.
+            std::string raw;
+            for(unsigned i=0;i<0x60u;++i) {
+                const char ch=static_cast<char>(seg8(0x30u,path+i));
+                if(ch==0)break;
+                raw+=ch;
+            }
+            std::string prefix;
+            for(unsigned i=0;i<0x50u;++i) {
+                const char ch=static_cast<char>(seg8(0x30u,0xF061u+i));
+                if(ch==0)break;
+                prefix+=ch;
+            }
+            if(raw.size()!=prefix.size()+11u ||
+               raw.compare(0,prefix.size(),prefix)!=0 ||
+               raw[prefix.size()]!='\\\\')
+                stop("ORIGINAL_CINE_DOS_CD_PREFIX_MISMATCH");
+            name=raw.substr(prefix.size()+1u);
+            if(name.size()!=10u || name.substr(0,4)!="CINE" ||
+               name[4]<'0' || name[4]>'9' ||
+               name[5]<'0' || name[5]>'9' ||
+               name.substr(6)!=".ANM")
+                stop("ORIGINAL_CINE_DOS_FILENAME_REJECTED");
+        } else {
+            name=guest_dos_basename(path);
+        }
         const auto result=current->host_files->open(name,access_share);
         if(result.carry)stop("HOST_DOS_AH3D_GUEST_PATH_OPEN_FAILED");
         current->host_descriptor_flags[result.ax]=0u;
