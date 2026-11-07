@@ -780,7 +780,7 @@ code2::s32 stop_at_real_dos_ah3d_open(u32 path,u8 access_share) noexcept {
             }
             if(raw.size()!=prefix.size()+11u ||
                raw.compare(0,prefix.size(),prefix)!=0 ||
-               raw[prefix.size()]!='\\\\')
+               raw[prefix.size()]!='\\')
                 stop("ORIGINAL_CINE_DOS_CD_PREFIX_MISMATCH");
             name=raw.substr(prefix.size()+1u);
             if(name.size()!=10u || name.substr(0,4)!="CINE" ||
