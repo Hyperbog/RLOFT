@@ -22,18 +22,7 @@ constexpr unsigned kSceneDescriptorStride = 3u;
 constexpr unsigned kOriginalSceneCount = 32u;
 constexpr unsigned kOriginalColorsBanks = 15u;
 
-inline unsigned select_bank(const std::vector<std::uint8_t>& original_dgroup,
-                            unsigned level_id) {
-    if (level_id >= kOriginalSceneCount)
-        throw std::out_of_range("original CODE.2 scene index is not 0..31");
-    const auto offset = kSceneTableOffset +
-                        std::size_t(level_id)*kSceneDescriptorStride;
-    if (offset >= original_dgroup.size())
-        throw std::out_of_range("original CODE.2 scene palette table missing");
-    const unsigned bank = original_dgroup[offset];
-    if (bank >= kOriginalColorsBanks)
-        throw std::runtime_error("original CODE.2 scene selects an unavailable COLORS bank");
-    return bank;
-}
+unsigned select_bank(const std::vector<std::uint8_t>& original_dgroup,
+                     unsigned level_id);
 
 }} // namespace rloft::original_scene_palette
