@@ -22,6 +22,8 @@ foreach(consumer IN ITEMS
         rloft_host_original_voc_waveout
         rloft_original_voc_pcm8_tests
         rloft_original_source_winmm_boundary_test
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
         rloft_original_code2_init_resources
         rloft_code1_code2_staged_boot)
     if(NOT TARGET ${consumer})
