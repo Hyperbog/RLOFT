@@ -174,7 +174,7 @@ void intro_palette_stream(u32 palette) noexcept {
 void intro_color_bank(u32 dst,u32 start,u32 bank,u32 name,u32 count) noexcept {
     if(!current->host_files || dst!=0xC054u || start!=0u ||
        count!=0x100u || bank>=15u ||
-       (name!=0xCF4u && name!=0x654u))
+       (name!=0xCF4u && name!=0x654u && name!=0xCFCu))
         stop("ORIGINAL_INTRO_COLORS_SOURCE_ABI_CHANGED");
     code2::Application81Boundary b{};
     b.app72=&current->dos_file_io;
