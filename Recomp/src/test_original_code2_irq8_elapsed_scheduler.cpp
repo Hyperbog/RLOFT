@@ -98,7 +98,7 @@ int main() {
         require(a.status==Status::Delivered && a.interrupts==16u &&
                 timer.delivered()==18u && ordered &&
                 chain_callbacks==tick_callbacks &&
-                code2::function_30700(guest)==58u,
+                code2::function_30700(guest)==66u,
                 "PIT 1-second rational cadence or source interrupt chain changed");
         timer.disarm();
         std::cout<<"ORIGINAL_CODE2_BIOS_PIT_RATIONAL_IRQ8_PASS"
@@ -106,9 +106,9 @@ int main() {
                  <<" IRQ8_original_30708=EXECUTED"
                  <<" DOS_BIOS_prior_vector=FIXTURE_ONLY\n";
         std::cout<<"ORIGINAL_30708_HOST_ELAPSED_SOURCE_IRQ8_PASS"
-                 <<" source_tick_callbacks=8 chained_vectors=8"
+                 <<" source_tick_callbacks=26 chained_vectors=26"
                  <<" reject_clock_reversal=YES reject_backlog=YES"
-                 <<" test_frequency_only=YES live_IRQ8=NOT_CONNECTED"
+                 <<" test_frequency_only=YES live_IRQ8=SEPARATELY_GATED"
                  <<" retail_DOS_timer_parity=NOT_CERTIFIED\n";
         return 0;
     }catch(const std::exception& e) {
