@@ -16,6 +16,8 @@ from pathlib import Path
 
 CPP_INPUT = re.compile(r"\b((?:src|tests)/[A-Za-z0-9_./-]+\.cpp|test_[A-Za-z0-9_./-]+\.cpp)\b")
 TARGET = re.compile(r"\badd_executable\s*\(\s*([A-Za-z_][A-Za-z_0-9]*)", re.I)
+LIBRARY_TARGET = re.compile(r"\badd_library\s*\(\s*([A-Za-z_][A-Za-z_0-9]*)", re.I)
+MODULE_INCLUDE = re.compile(r'^\s*include\s*\(\s*["\']?(cmake/[A-Za-z_0-9./-]+\.cmake)["\']?\s*\)', re.I | re.M)
 CTEST = re.compile(r"\badd_test\s*\(\s*NAME\s+([A-Za-z_][A-Za-z_0-9]*)", re.I)
 FRAGMENT_INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+\.inc)"', re.M)
 
@@ -29,7 +31,23 @@ def audit(root: Path) -> dict:
     warnings: list[str] = []
     if not cmake_path.is_file():
         return {"errors": ["Missing Recomp/CMakeLists.txt"], "warnings": []}
-    cmake = cmake_path.read_text(encoding="utf-8")
+    # Recursively audit repo-local CMake modules; an unreferenced or missing
+    # compiled .cpp must remain an error after the build graph is modularized.
+    modules_seen: set[Path] = set()
+    def read_build(path: Path) -> str:
+        source = path.read_text(encoding="utf-8")
+        pieces = [source]
+        for name in MODULE_INCLUDE.findall(source):
+            module = (project / name).resolve()
+            if not module.is_relative_to(project.resolve()) or not module.is_file():
+                errors.append(f"Missing or escaped CMake module: {name}")
+            elif module in modules_seen:
+                errors.append(f"Duplicate or cyclic CMake module include: {name}")
+            else:
+                modules_seen.add(module)
+                pieces.append(read_build(module))
+        return "\\n".join(pieces)
+    cmake = read_build(cmake_path)
     cpp_references = set(CPP_INPUT.findall(cmake))
     cpp_files = {
         p.relative_to(project).as_posix()
@@ -46,7 +64,9 @@ def audit(root: Path) -> dict:
     for filename in sorted(cpp_files - cpp_references):
         errors.append(f"Unreferenced compiled C++ input: {filename}")
 
-    for kind, pattern in (("executable target", TARGET), ("CTest name", CTEST)):
+    for kind, pattern in (("executable target", TARGET),
+                          ("library target", LIBRARY_TARGET),
+                          ("CTest name", CTEST)):
         seen = Counter(pattern.findall(cmake))
         for name, count in sorted(seen.items()):
             if count > 1:
