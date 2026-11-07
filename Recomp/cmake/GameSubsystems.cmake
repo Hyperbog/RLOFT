@@ -57,3 +57,21 @@ endif()
 if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_audio)
 endif()
+
+# Original source record-index/metadata ABI, not a second decoded-image cache.
+add_library(rloft_game_resource_cache STATIC src/game/resources/ResourceCache.cpp)
+target_compile_features(rloft_game_resource_cache PUBLIC cxx_std_17)
+add_executable(rloft_resource_cache_test src/test_original_res_host_cache.cpp)
+target_compile_features(rloft_resource_cache_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_resource_cache_test PRIVATE rloft_game_resource_cache)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_31334_resource_record_host_abi
+        COMMAND rloft_resource_cache_test)
+endif()
+foreach(consumer IN ITEMS rloft_original_code2_init_resources
+                          rloft_code1_code2_staged_boot)
+    target_link_libraries(${consumer} PRIVATE rloft_game_resource_cache)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_resource_cache)
+endif()

@@ -9,6 +9,7 @@
 #define RLOFT_STARTUP_GATE_NO_MAIN
 #include "code2_startup_gate.cpp"
 #include "game/resources/Resources.hpp"
+#include "game/resources/ResourceCache.hpp"
 #include "game/resources/PaletteLoader.hpp"
 #include "game/core/Game.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
@@ -488,102 +489,39 @@ struct Session {
             return;
         }
         const auto& file=t.fixture.data[it->second.file];
-        const u32 count=code2::load_le32(file.data());
-        const std::uint64_t table_end=4u+std::uint64_t(count)*4u;
-        if(item>=count || table_end>file.size() ||
-           4u+std::uint64_t(item)*4u+4u>table_end) {
-            t.error=true;
-            return;
+        rloft::resource_cache::Record record{};
+        // 31334 remains the source-owned stream callback. The independent
+        // host adapter only validates the same indexed archive bytes.
+        if(!rloft::resource_cache::locate(file,item,record)) {
+            t.error=true;return;
         }
-        // Original RES directory: count:u32, then count absolute
-        // u32 record offsets. 2EB60 expects 31334(index,stream)
-        // to set the stream cursor BEFORE reading its 5-byte header.
-        const u32 entry=code2::load_le32(file.data()+4u+item*4u);
-        if(entry<table_end || std::uint64_t(entry)+5u>file.size()) {
-            t.error=true;
-            return;
-        }
+        const u32 entry=record.start;
         it->second.cursor=entry;
         if(item==579u && t.canonical_owner)
             std::cerr<<"CODE2_ORIGINAL_RES4_579_SOURCE_31334_SEEK_RETURN"
                      <<" offset="<<entry
-                     <<" type="<<unsigned(file[entry+2u])
+                     <<" type="<<unsigned(record.type)
                      <<" encoded_prefix="<<code2::load_le16(file.data()+entry+3u)
                      <<"\n"<<std::flush;
-        // The original retail 2FD9C decoder is common to ALL RES slot
-        // type-1 images, not only the boot RES0:59 and cursor RES0:62.
-        // Authenticate each original archive record before sharing the
-        // bounded stream with the exact same retained CODE.2 guest.
-        if(t.canonical_owner && file[entry+2u]==1u) {
-            const u32 next=(item+1u<count)?
-                code2::load_le32(file.data()+4u+(item+1u)*4u):
-                static_cast<u32>(file.size());
-            if(next<=entry+13u || next>file.size() ||
-               file[entry]!='E' || file[entry+1u]!='H' ||
-               file[entry+2u]!=1u ||
-               code2::load_le16(file.data()+entry+3u)!=8u ||
-               (file[entry+11u]!=0u && file[entry+11u]!=3u) ||
-               code2::load_le16(file.data()+entry+5u)==0u ||
-               code2::load_le16(file.data()+entry+7u)==0u ||
-               file[entry+9u]==0u) {
+        if(t.canonical_owner && rloft::resource_cache::tracked_type(record.type)) {
+            if(!rloft::resource_cache::authenticate(
+                   file,record,it->second.file-2u)) {
                 t.original_image_invalid=true;t.error=true;return;
             }
             t.original_image_record=item;
             t.original_image_handle=handle;
-            t.original_image_start=entry;
-            t.original_image_end=next;
+            t.original_image_start=record.start;
+            t.original_image_end=record.end;
             t.original_image_invalid=false;
-            std::cerr<<"CODE2_ORIGINAL_RESOURCE_TYPE1_METADATA"
-                     <<" archive="<<(it->second.file-2u)
-                     <<" entry="<<item
-                     <<" mode="<<unsigned(file[entry+11u])
-                     <<" frames="<<code2::load_le16(file.data()+entry+5u)
-                     <<" rows="<<code2::load_le16(file.data()+entry+7u)
-                     <<" width_units="<<unsigned(file[entry+9u])
-                     <<" end="<<next<<"\n"<<std::flush;
-        }
-        // The first fifteen RES0 records contain original type-2 fonts.
-        // Authenticate the 128 glyph widths and embedded type-1-compatible
-        // eight-byte descriptor before original 301A8 decodes the stream.
-        if(t.canonical_owner && file[entry+2u]==2u) {
-            const u32 next=(item+1u<count)?
-                code2::load_le32(file.data()+4u+(item+1u)*4u):
-                static_cast<u32>(file.size());
-            const u32 descriptor=entry+5u+128u;
-            // The widths region contains exactly 128 entries. The original
-            // 301A8 uses signed lengths and must never copy beyond it.
-            const bool body_present=next>entry+5u+136u && next<=file.size();
-            const auto glyph_count=body_present?static_cast<std::int16_t>(
-                code2::load_le16(file.data()+descriptor)):0;
-            const auto glyph_height=body_present?static_cast<std::int16_t>(
-                code2::load_le16(file.data()+descriptor+2u)):0;
-            if(it->second.file!=2u || !body_present ||
-               file[entry]!='E' || file[entry+1u]!='H' ||
-               code2::load_le16(file.data()+entry+3u)!=136u ||
-               glyph_count<=0 || glyph_count>128 || glyph_height<=0 ||
-               file[descriptor+4u]==0u || file[descriptor+6u]!=3u) {
-                t.original_image_invalid=true;t.error=true;return;
-            }
-            t.original_image_record=item;
-            t.original_image_handle=handle;
-            t.original_image_start=entry;
-            t.original_image_end=next;
-            t.original_image_invalid=false;
-        }
-        if(t.canonical_owner &&
-           (file[entry+2u]==6u || file[entry+2u]==7u)) {
-            const u32 next=(item+1u<count)?
-                code2::load_le32(file.data()+4u+(item+1u)*4u):
-                static_cast<u32>(file.size());
-            if(next<=entry+7u || next>file.size() ||
-               file[entry]!='E' || file[entry+1u]!='H') {
-                t.original_image_invalid=true;t.error=true;return;
-            }
-            t.original_image_record=item;
-            t.original_image_handle=handle;
-            t.original_image_start=entry;
-            t.original_image_end=next;
-            t.original_image_invalid=false;
+            if(record.type==1u)
+                std::cerr<<"CODE2_ORIGINAL_RESOURCE_TYPE1_METADATA"
+                         <<" archive="<<(it->second.file-2u)
+                         <<" entry="<<item
+                         <<" mode="<<unsigned(file[entry+11u])
+                         <<" frames="<<code2::load_le16(file.data()+entry+5u)
+                         <<" rows="<<code2::load_le16(file.data()+entry+7u)
+                         <<" width_units="<<unsigned(file[entry+9u])
+                         <<" end="<<record.end<<"\n"<<std::flush;
         }
         if(t.trace_materialize) {
             std::cerr<<"CODE2_2ECB4_RESOURCE_CALLBACK=31334_INDEXED_SEEK"
