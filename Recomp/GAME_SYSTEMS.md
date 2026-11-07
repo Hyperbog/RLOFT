@@ -56,3 +56,12 @@ No commercial game data is linked or packaged with these libraries.
 **Do not delete** original `MASTER` media, research evidence, `Code1/Code1.cpp`, `Code2/Code2.cpp`, or compatibility headers still included by existing build targets. Git already deduplicates identical blobs across branches. A file is removable only after verifying *all* CMake targets, source includes, tooling and GitHub workflows no longer refer to it, and after the relevant builds pass.
 
 Keep separate **engineering/preview artifacts** and a future **production release**. Production requires every gate in `Recomp/ACCEPTANCE_GATES.json` to be accepted and independent Windows game-visible testing. A successful CTest or packaging job alone is not that evidence. Never ship commercial resources, archives, saves, or original executables.
+
+## Phase 4: real resource-cache and Save/World binary interfaces
+
+- `game/resources/ResourceCache.cpp` resolves and authenticates RES directory records for the **existing** original CODE.2 31334 stream callback. Registered image pointers, heap allocations, decoder state and cache remain owned by the single guest.
+- `game/save/Save.cpp` implements the existing WORK/LEV overlay object methods, saved actor validation and source-selected restore/transition predicates out of line. The template-only exception-injection helper remains header-defined. No save bytes or original-media content are embedded.
+- `game/world/World.cpp` holds the existing 36CEC rasterization, table and clipping helpers. The generic `original_36cec_clip_run` template stays in the header. VGA and guest memory are passed by reference, retaining prior transactional rendering.
+- Libraries `rloft_game_resource_cache`, `rloft_game_save`, and `rloft_game_world` are linked only into their relevant host/test consumers. The CODE.2 reconstruction is not compiled twice.
+
+**Unchanged blocker:** The large CODE.2 startup and world diagnostic translation units still embed original CODE.2 source and `.cpp` harnesses; disassembling those into independent object files requires establishing CODE.2's non-inline symbol and guest-global ownership first.

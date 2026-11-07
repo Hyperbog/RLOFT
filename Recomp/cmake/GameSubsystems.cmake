@@ -75,3 +75,32 @@ endforeach()
 if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_resource_cache)
 endif()
+
+# Source-authenticated WORK/LEV and world-raster services; one original guest.
+add_library(rloft_game_save STATIC src/game/save/Save.cpp)
+add_library(rloft_game_world STATIC src/game/world/World.cpp)
+foreach(system_target IN ITEMS rloft_game_save rloft_game_world)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+foreach(consumer IN ITEMS
+        rloft_original_code2_live_level_files_test
+        rloft_original_code2_saved_level_policy_test
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot
+        rloft_original_code2_world_frame
+        rloft_original_code2_save_game)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing Save ABI consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_save)
+endforeach()
+target_link_libraries(rloft_original_code2_world_frame PRIVATE rloft_game_world)
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window
+        PRIVATE rloft_game_save rloft_game_world)
+endif()
