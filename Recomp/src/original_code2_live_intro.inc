@@ -2,7 +2,6 @@
 // All callbacks use current's authentic guest, DOS owner, Watcom heap, and VGA.
 // The first unapplied DOS timing/input service stops explicitly: no replacement
 // slideshow, synthetic tick count, or host-authored title behavior.
-namespace {
 void intro_require_no_active_sound() noexcept {
     if(code2::load_le32(current->data.data()+0xEE78u)!=0u ||
        code2::load_le32(current->data.data()+0xEE40u)!=0u)
@@ -270,4 +269,3 @@ void original_19888_live_intro() noexcept {
     code2::function_19888(current->machine,frontend);
     stop("ORIGINAL_19888_RETURN_UNEXPECTED_WITHOUT_TITLE_HANDOFF");
 }
-} // namespace
