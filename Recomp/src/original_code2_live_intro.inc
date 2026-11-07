@@ -53,9 +53,12 @@ void intro_read_local(void* dst,u32 size,u32 handle) noexcept {
         static_cast<u16>(handle),static_cast<u8*>(dst),size);
     if(r.carry||r.ax!=size)stop("ORIGINAL_INTRO_DOS_LOCAL_SHORT_READ");
 }
+void intro_text_seek(u32 offset,u32 origin,u32 handle) noexcept {
+    (void)original_level_source_seek(offset,origin,handle);
+}
 void intro_decode_text(u32 dst,u32 index) noexcept {
     code2::Application39Boundary b{};
-    b.call_3131c=&original_level_source_seek;
+    b.call_3131c=&intro_text_seek;
     b.call_312ec_local=&intro_read_local;
     b.call_312ec_dgroup=&intro_read_guest;
     code2::function_1c368(current->machine,b,dst,index);
