@@ -5067,6 +5067,17 @@ std::uint32_t answer_source_video_mode(Opaque* owner) {
             "Original CODE2 VGA 290F4/29234 source did not establish 320x400");
     return static_cast<std::uint32_t>(owner->pending.service);
 }
+void mount_original_cd_media(
+    Opaque* owner,const std::filesystem::path& extracted_cd_root) {
+    if(!owner || !owner->live_worker || !owner->live_worker->paused() ||
+       owner->pending.service!=
+           rloft::guest_continuation::Service::DosMouseReset)
+        throw std::logic_error("Original CD mount requires initial DOS reset pause");
+    auto& source=held(owner);
+    if(!source.host_files || source.original_31218_checks!=0u)
+        throw std::logic_error("Original DOS file owner already used");
+    source.host_files->mount_readonly_media(extracted_cd_root);
+}
 void install_original_chars_handoff(Opaque* owner,
                                     const std::uint8_t* bytes,
                                     std::size_t count) {
