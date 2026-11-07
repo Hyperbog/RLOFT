@@ -487,6 +487,8 @@ int main(int argc,char** argv){
             std::string(argv[5])=="--smoke";
         const bool key_map_smoke=argc==6 &&
             std::string(argv[5])=="--smoke-key-map";
+        const bool intro_smoke=argc==6 &&
+            std::string(argv[5])=="--smoke-intro";
         const bool saved_smoke=argc==7 &&
             std::string(argv[5])=="--smoke-save23";
         const bool saved_first_frame_smoke=argc==7 &&
@@ -499,10 +501,10 @@ int main(int argc,char** argv){
         if((argc!=5 && argc!=6 && argc!=7) ||
            std::string(argv[1])!="--root" ||
            std::string(argv[3])!="--cd-root" ||
-           (argc==6 && !ordinary_smoke && !portal_smoke && !key_map_smoke) ||
+           (argc==6 && !ordinary_smoke && !portal_smoke && !key_map_smoke && !intro_smoke) ||
            (argc==7 && !saved_start))
             throw std::invalid_argument(
-                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-key-map|--smoke-portal|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
+                "usage: rloft_code2_level22_window --root ORIGINAL_RLOFT --cd-root ORIGINAL_CD_RLOFT [--smoke|--smoke-key-map|--smoke-portal|--smoke-intro|--load-save SLOT_DIR|--smoke-save SLOT_DIR|--load-save23 SLOT_DIR|--smoke-save23 SLOT_DIR]");
         const auto root=std::filesystem::absolute(argv[2]);
         const auto cd=std::filesystem::absolute(argv[4]);
         if(!std::filesystem::is_regular_file(root/"CODE.2"))
@@ -524,6 +526,41 @@ int main(int argc,char** argv){
             if(_putenv_s("RLOFT_RECOMP_EXPERIMENTAL_LIVE_LEVEL_TRANSITIONS","1")!=0 ||
                _putenv_s("RLOFT_RECOMP_EXPERIMENTAL_PORTAL_SOURCE_PROBE","1")!=0)
                 throw std::runtime_error("Cannot enable owner-local authentic portal diagnostic");
+        }
+        if(intro_smoke) {
+            // Only original physical media, with the genuine first-boot
+            // absence of CHARS. No borrowed synthetic party or second
+            // CODE.2 guest is started at the 19888 boundary.
+            if(std::filesystem::exists(root/"CHARS") ||
+               !std::filesystem::is_regular_file(cd/"CINE00.ANM"))
+                throw std::runtime_error(
+                    "Original intro smoke requires absent CHARS and original CD CINE00");
+            Owner original{
+                source::create(root,cd,22u,nullptr,0u),&source::destroy};
+            if(source::test_advance_through_original_video_mode(
+                   original.get())!=10u)
+                throw std::runtime_error(
+                    "Original 20440 did not reach retained second 16D04");
+            try {
+                (void)machine::advance_original_second_init(
+                    original->canonical.get());
+            } catch(const std::exception& error) {
+                const std::string reason=error.what();
+                // A bounded witness of the REAL source frontend's
+                // unresolved IRQ8 dependency, not successful playback.
+                if(reason.find("LIVE_CODE2_SOURCE_STOP="
+                               "ORIGINAL_0CBC8_2E614_HOST_IRQ_NOT_AUTHENTICATED")
+                       ==std::string::npos)
+                    throw;
+                std::cout<<"CODE2_LIVE_20440_19888_CINE_SOURCE_FIRST_IRQ8_PASS"
+                         <<" original_guest=SAME"
+                         <<" original_media=READ_ONLY_CD"
+                         <<" full_movie=NOT_CONNECTED"
+                         <<" 19464_menu=NOT_REACHED\n";
+                return 0;
+            }
+            throw std::runtime_error(
+                "Original intro executed without reported source timing boundary");
         }
         LiveWindow live;
         live.open_original_guest(root,cd);
