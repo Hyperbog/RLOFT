@@ -542,6 +542,29 @@ struct Session {
                      <<" width_units="<<unsigned(file[entry+9u])
                      <<" end="<<next<<"\n"<<std::flush;
         }
+        // The first fifteen RES0 records contain original type-2 fonts.
+        // Authenticate the 128 glyph widths and embedded type-1-compatible
+        // eight-byte descriptor before original 301A8 decodes the stream.
+        if(t.canonical_owner && file[entry+2u]==2u) {
+            const u32 next=(item+1u<count)?
+                code2::load_le32(file.data()+4u+(item+1u)*4u):
+                static_cast<u32>(file.size());
+            const u32 descriptor=entry+5u+128u;
+            if(it->second.file!=2u || next<=entry+5u+136u ||
+               next>file.size() || file[entry]!='E' ||
+               file[entry+1u]!='H' ||
+               code2::load_le16(file.data()+entry+3u)!=136u ||
+               code2::load_le16(file.data()+descriptor)==0u ||
+               code2::load_le16(file.data()+descriptor+2u)==0u ||
+               file[descriptor+4u]==0u || file[descriptor+6u]!=3u) {
+                t.original_image_invalid=true;t.error=true;return;
+            }
+            t.original_image_record=item;
+            t.original_image_handle=handle;
+            t.original_image_start=entry;
+            t.original_image_end=next;
+            t.original_image_invalid=false;
+        }
         if(t.canonical_owner &&
            (file[entry+2u]==6u || file[entry+2u]==7u)) {
             const u32 next=(item+1u<count)?
@@ -715,7 +738,7 @@ struct Session {
         if(header!=0x2B670u || handle!=t.original_image_handle ||
            t.original_image_record==0xFFFFFFFFu ||
            t.original_image_invalid || t.memory[header+2u]!=2u ||
-           code2::load_le16(t.memory.data()+header+3u)<8u) {
+           code2::load_le16(t.memory.data()+header+3u)!=136u) {
             t.original_image_invalid=true;return 0u;
         }
         const auto before_position=original_logical_position();
