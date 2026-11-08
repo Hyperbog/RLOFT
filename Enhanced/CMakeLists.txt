@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(RavenloftDemoV1 LANGUAGES CXX)
+project(RavenloftEnhanced LANGUAGES CXX)
 
 # Every independent source/oracle test needs the same C++17 dialect as
 # rloft_boot_flow. Standalone targets do not inherit its PUBLIC feature;
