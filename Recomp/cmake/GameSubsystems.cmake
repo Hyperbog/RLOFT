@@ -208,6 +208,7 @@ endforeach()
 target_link_libraries(rloft_game_world PUBLIC rloft_game_vga)
 foreach(consumer IN ITEMS
         rloft_dos_readonly_files_test
+        rloft_original_code2_chars_access_test
         rloft_original_code2_level_loader
         rloft_original_code2_save_game
         rloft_original_code2_world_frame
