@@ -1,5 +1,6 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/INIT.hpp"
+#include "rloft/RES1.hpp"
 #include "rloft/RES2.hpp"
 #include "rloft/RES7.hpp"
 
@@ -774,6 +775,8 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       text_(source_.read("T")),
       init_(source_.read("INIT")),
       code1_(source_.read("CODE.1")) {
+    // Validate all RES1 slots without treating raw portrait markers as images.
+    (void)inspect_res1_archive(res1_);
     if (colors_.palettes.size() != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
     }
@@ -788,7 +791,7 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
 Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
     switch (archive) {
         case 0: return res0_.decode_type1(index);
-        case 1: return res1_.decode_type1(index);
+        case 1: return decode_res1_image(res1_, index);
         case 2:
             // The original inventory and encumbrance presenters call
             // RES2:0x25 and RES2:0x14..0x24 respectively. This is the
