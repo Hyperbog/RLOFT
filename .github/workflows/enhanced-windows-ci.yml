@@ -2,14 +2,14 @@ name: Ravenloft Enhanced - native Windows player
 
 on:
   push:
-    branches: [Ravenloft-Enhanced]
+    branches: [Ravenloft-Enhanced, Decomp]
     paths:
       - 'Enhanced/**'
       - 'Code1/**'
       - 'Code2/**'
       - '.github/workflows/enhanced-windows-ci.yml'
   pull_request:
-    branches: [Ravenloft-Enhanced]
+    branches: [Ravenloft-Enhanced, Decomp]
     paths:
       - 'Enhanced/**'
       - 'Code1/**'
