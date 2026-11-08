@@ -607,6 +607,7 @@ add_library(rloft_boot_flow
     src/persistent_media_cache.cpp
     src/COLORS.cpp
     src/T.cpp
+    src/RES0.cpp
     src/RES1.cpp
     src/RES2.cpp
     src/RES7.cpp
@@ -1258,6 +1259,10 @@ add_executable(RES1_tests tests/RES1_tests.cpp)
 target_link_libraries(RES1_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES1_tests COMMAND RES1_tests)
 
+add_executable(RES0_tests tests/RES0_tests.cpp)
+target_link_libraries(RES0_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES0_tests COMMAND RES0_tests)
+
 add_executable(RES7_tests tests/RES7_tests.cpp)
 target_link_libraries(RES7_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES7_tests COMMAND RES7_tests)
@@ -1770,6 +1775,7 @@ set(RLOFT_TEST_TARGETS
     environment_projection_tests
     environment_presenter_tests
     RES8_tests
+    RES0_tests
     RES1_tests
     RES2_tests
     RES7_tests

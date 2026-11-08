@@ -1,5 +1,6 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/INIT.hpp"
+#include "rloft/RES0.hpp"
 #include "rloft/RES1.hpp"
 #include "rloft/RES2.hpp"
 #include "rloft/RES7.hpp"
@@ -777,6 +778,7 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       code1_(source_.read("CODE.1")),
       code2_(source_.read("CODE.2")) {
     // Validate all RES1 slots without treating raw portrait markers as images.
+    (void)inspect_res0_archive(res0_);
     (void)inspect_res1_archive(res1_);
     if (colors_.palettes.size() != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
@@ -791,7 +793,7 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
 
 Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
     switch (archive) {
-        case 0: return res0_.decode_type1(index);
+        case 0: return decode_res0_image(res0_, index);
         case 1: return decode_res1_image(res1_, index);
         case 2:
             // The original inventory and encumbrance presenters call
@@ -813,7 +815,7 @@ Type1Raster RavenloftBootAssets::res0_type1(int index) const {
 }
 
 Type2Font RavenloftBootAssets::res0_font(int index) const {
-    return res0_.decode_type2(index);
+    return decode_res0_font(res0_, index);
 }
 
 std::vector<std::uint8_t> RavenloftBootAssets::music_sequence(
