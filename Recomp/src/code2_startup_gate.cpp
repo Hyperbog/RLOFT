@@ -1893,6 +1893,13 @@ void original_live_level_close(u32 handle) noexcept {
     }
     original_boot_file_close(handle);
 }
+u32 original_live_level_write_local(const u8* src,u32 size,u32 handle) noexcept {
+    if(handle!=rloft::live_level_files::Overlay::write_handle)
+        stop("ORIGINAL_LIVE_171FC_UNEXPECTED_SAVE_HANDLE");
+    const auto written=current->level_overlay.write(src,size);
+    if(written!=size)stop("ORIGINAL_LIVE_171FC_PRIVATE_SAVE_SHORT_WRITE");
+    return written;
+}
 u32 original_live_level_write_guest(u32 src,u32 size,u32 handle) noexcept {
     const auto result=rloft::guest_callbacks::write_level_from_guest(
         current->level_overlay,current->data,src,size,handle);
