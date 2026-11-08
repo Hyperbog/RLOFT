@@ -55,6 +55,7 @@ struct Gate {
         const auto flags=classify.event_mask(event);
         if(!flags)return;
         const auto prior=machine.cpu;
+        const auto original_nested_guard=data[0xD910u];
         machine.cpu.eax=flags;machine.cpu.ebx=sample.buttons;
         machine.cpu.ecx=sample.x;machine.cpu.edx=sample.y;machine.cpu.esi=0u;
         code2::function_27894(machine,isr);
@@ -65,7 +66,7 @@ struct Gate {
                 machine.cpu.ss==prior.ss &&
                 machine.cpu.esp==prior.esp &&
                 machine.cpu.ds==prior.ds &&
-                data[0xD910u]==0u,
+                data[0xD910u]==original_nested_guard,
                 "original 27894 register/stack/guard restoration");
         machine.cpu=prior;
     }
