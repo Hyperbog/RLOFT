@@ -1,0 +1,1782 @@
+cmake_minimum_required(VERSION 3.20)
+project(RavenloftDemoV1 LANGUAGES CXX)
+
+# Every independent source/oracle test needs the same C++17 dialect as
+# rloft_boot_flow. Standalone targets do not inherit its PUBLIC feature;
+# without this, MSVC silently compiles them in its older default mode
+# and reports missing std::optional/string_view (Full #652).
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# GitHub Actions passes the checked-out source SHA explicitly. A local
+# build deliberately declares itself unversioned rather than claiming
+# it contains the latest code on any branch.
+set(RLOFT_DEMO_SOURCE_SHA "local-unversioned" CACHE STRING
+    "Source commit compiled into the Windows demo executable")
+
+# Keep the Windows release self-contained: do not require a separately
+# installed Microsoft Visual C++ runtime on the user's machine.
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+enable_testing()
+
+# Offline regression for original CODE.2 VGA lookup semantics. This Python
+# test synthesizes table layouts rather than checking in proprietary assets.
+# It runs on local machines even when GitHub Actions runner quotas are spent.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    # Opt-in startup diagnostics must not record recoverable CODE.1
+    # character names as Win32 VK/OEM scan or up/down key codes.
+    add_test(
+        NAME alpha_code1_trace_input_privacy_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_code1_trace_privacy.py")
+    # The Alpha field runner needs a boot trace even when CINE/title/CODE.1
+    # fails before the first gameplay scene; no original media included.
+    add_test(
+        NAME alpha_boot_stage_trace_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_boot_stage_trace.py")
+    # Host-only input ownership: prevent title/character stale Escape
+    # and focus-loss mouse/keyboard events from leaking into next stage.
+    add_test(
+        NAME alpha_input_phase_isolation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_input_phase_isolation.py")
+    # Enhanced PC-first scene: native decoded RES3 sprite, textured
+    # original RES4 ground and independent 60Hz exploration display.
+    add_test(
+        NAME enhanced_level22_player_scene_source_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_level22_pipeline.py")
+    # One true CODE.1 -> CODE.2 game with source-authored OpenGL world.
+    add_test(NAME enhanced_game_gpu_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_gpu_integration.py")
+    # Player-port releases build quickly; exhaustive original-DOS x86
+    # source research remains an opt-in full workflow, not an Alpha gate.
+    add_test(
+        NAME enhanced_port_build_pipeline_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_port_build_pipeline.py")
+    # Live Level22 source event and active Level23 save continuity.
+    add_test(NAME enhanced_level22_quest_transition_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_level22_transition.py")
+    # Enhanced native explicit-target input is scene-bound, consumed
+    # once, and cannot fall through to original floor-item pickup.
+    add_test(NAME enhanced_native_combat_interaction_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_native_combat_interaction.py")
+    # E284 survivor/death sound bases 258C0/258BC loaded from INIT.
+    add_test(NAME enhanced_npc_sound_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_npc_sound_pipeline.py")
+    # Exact original DDA4 multiclass XP writes committed with Assassin
+    # corpse/relic transaction; level-up callbacks explicitly pending.
+    add_test(NAME enhanced_live_assassin_xp_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_live_assassin_xp.py")
+    # Live E5F0/C80C/1C328/C910 weapon strike and staged NPC death.
+    add_test(NAME enhanced_live_level22_weapon_strike_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_live_level22_weapon_strike.py")
+    # Source-backed normal gameplay hand clicks: mode header+290,
+    # original 24478 arbitration, no made-up OBJECTS[-1] values.
+    add_test(NAME enhanced_live_hand_dispatch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_live_hand_dispatch.py")
+    # Live player-hit inputs use original CODE.2 and not generic rules.
+    add_test(NAME enhanced_combat_input_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_game_combat_inputs.py")
+    # World music defaults come from authored LevelState RES5 cue and
+    # cannot regress back to a silent post-character-creation viewport.
+    add_test(
+        NAME enhanced_world_music_pipeline_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_world_music.py")
+    # Enhanced PC in-game Options + automap repaint, not a DOS-only UI demo.
+    add_test(
+        NAME enhanced_level22_ui_source_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_enhanced_level22_ui.py")
+    # Lock known-good original splash, cinematic, audio and CODE.1 animation files.
+    add_test(
+        NAME alpha_frontend_preservation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_frontend_preservation.py")
+    # Ordinary continuous cold startup release regression.
+    add_test(
+        NAME alpha_continuous_game_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_continuous_alpha_launch.py")
+    # Original CODE.2 07B94 numbered-slot Load: ten-source-slot
+    # geometry, save-directory copy chain and source-hash proof.
+    # Public CI verifies source-only contract; --original privately
+    # authenticates 558,689-byte CODE.2 x86 and DGROUP references.
+    add_test(
+        NAME alpha_original_load_slot_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_title_load_slot.py")
+    # Original 19464 title menu: CINE00 replay is real; 7B94 load
+    # remains visibly unavailable until source-correct whole SAVE.
+    # Alpha scope ends at FIRST Level22 gameplay scene, not Level23.
+    add_test(
+        NAME alpha_title_startup_order_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_alpha_title_startup.py")
+    # Source oracle for original CODE.2 1EA78, 291B0, 1F1D6
+    # byte-vs-DWORD VGA page side effects and callback ordering.
+    add_test(
+        NAME original_vga_page_cycle_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_vga_page_cycle.py")
+    # Original CODE.2 C050=1 vs EF4D=0 separate page domains;
+    # immutable initial source is never called live DOS draw state.
+    add_test(
+        NAME original_ground_c050_ef4d_domain_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_c050_ef4d_domains.py")
+    # Pre-Alpha field diagnostic: original install must only be READ,
+    # and normal game must execute on a unique disposable copy.
+    add_test(
+        NAME alpha_sandbox_normal_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_alpha_sandbox_normal_launch.py")
+    # Original 1F1D6/33DE0/33E28 dual-page planar source oracle.
+    add_test(
+        NAME original_ground_planar_fill_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_planar_fill.py")
+    # Structural release readiness, NOT game completion or DOS parity.
+    # Prevent accidental Alpha/Beta/Final promotion by CI test count.
+    add_test(
+        NAME release_readiness_manifest_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_release_gates.py"
+                --self-test)
+    # Ground open-field 1F388/1F2A5/335C8/34A74 must not hardcode Level22.
+    add_test(
+        NAME original_ground_level_independence_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_level_independence.py")
+    # Original 204B3/16CD0 CHARS file re-open after CODE.1.
+    add_test(
+        NAME original_chars_disk_handoff_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_chars_disk_handoff.py")
+    # CODE.2 375FE / 398E0 / 39A2C original x86 source synchronization.
+    # Read-only: no original game binaries required in public CI.
+    add_test(
+        NAME original_code2_runtime_sync_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_code2_runtime_source_sync.py")
+    # Exact CODE.1 10BB4 x86-to-C++ DS-break comparison guard.
+    # Uses only source during CI; optional privately authenticated original media.
+    add_test(
+        NAME original_code1_break_growth_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_code1_10aa9_break_growth.py")
+    # Read-only process safety tests; no build dispatch, original-media copy,
+    # DOS parity claim, or mutation of gameplay state.
+    add_test(
+        NAME native_research_preflight_self_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_research_preflight.py")
+    add_test(
+        NAME offline_renderer_verifier_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_offline_renderer_verify.py")
+    add_test(
+        NAME indexed_capture_comparison_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compare_indexed_captures.py")
+    # Scorecard consistency is checked during USER-AUTHORIZED
+    # CTest runs. Registration never triggers a build or CI.
+    add_test(
+        NAME subsystem_progress_tracker_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # Source 130A0 polling transition and selected F790 130DE provenance.
+    add_test(
+        NAME original_f790_selected_poll_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_selected_poll.py")
+    # Candidate-function coverage differential vs 17 original F790 E8 sites.
+    add_test(
+        NAME original_f790_candidate_coverage_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Original CODE.2 039D0/03A20 generated 15618 table and
+    # 1F255..1F384 FF50 partial upper/lower span. Both modes are
+    # source-only; actual DOS ground depth / C026/C027 remain unhooked.
+    add_test(
+        NAME original_ground_ff50_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
+    # Original mutable 1F227/1F305/1F369/34D46/34D95 C026/C027
+    # mode reads, 065CF/065E7 GAME.OPT menu toggles, source defaults.
+    add_test(
+        NAME original_ground_mode_option_bytes_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_mode_option_bytes.py")
+    # Exhaustive original object-1 absolute-address operands
+    # for FDBC page base / FF48 source texture origin, bounded
+    # against indirect alias and ES selector uncertainty.
+    # Read-only C050 original page toggle width and byte-literal audit.
+    # Offline aggregate report from opt-in developer keyboard metadata.
+    # Its tests never read user key sequences or original DOS files.
+    add_test(
+        NAME win32_scan_trace_summary_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_win32_scan_trace_summary.py")
+    # Win32 hardware scan metadata is developer-only and does not
+    # dispatch the original CODE.2 IRQ from ordinary gameplay.
+    # Offline M-PLAY-01 diagnostic integrity regression; no owned game media,
+    # native input mutation, Windows build dispatch or DOS acceptance.
+    # Normal launch must not silently gain diagnostic-party shortcuts.
+    add_test(
+        NAME original_front_end_showcase_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_front_end_showcase_contract.py")
+    add_test(
+        NAME mplay01_normal_launch_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_mplay01_normal_launch_contract.py")
+    add_test(
+        NAME mplay01_trace_integrity_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_mplay01_trace_audit.py")
+    add_test(
+        NAME win32_scan_observation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_win32_scan_observer_contract.py")
+    # CODE.2 raw keyboard controller, PIC EOI and IRET byte evidence.
+    add_test(
+        NAME original_dos_keyboard_isr_hardware_source_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_dos_keyboard_isr_hardware.py")
+    # Original CODE.2 30748/307F0/30950 keyboard IRQ original-byte witness.
+    add_test(
+        NAME original_dos_keyboard_irq_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_dos_keyboard_irq.py")
+    # CODE.2 30AEC/311E8 source-only native input/text semantics;
+    # optional authentic CODE.2 SHA verification is external to CI.
+    add_test(
+        NAME original_dos_feedback_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_dos_feedback_runtime.py")
+    # Original input-poll / optional F0C8 route and DOS AH=09 string mutation.
+    add_test(
+        NAME original_ground_input_callback_poll_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_input_callback_poll.py")
+    add_test(
+        NAME original_ground_c050_page_toggle_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_c050_page_toggle.py")
+    add_test(
+        NAME original_ground_vga_page_base_reference_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_vga_page_refs.py")
+    # Original 334C4 full prepass, 335C8 22220 reset and 32954 cache gate.
+    # Source-only pure model by default; independent immutable CODE.2 optional.
+    add_test(
+        NAME original_ground_cache_hit_22220_boundary_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_cache_hit_22220.py")
+    # Deliberately source-only: batches twelve pinned Python contracts.
+    # ORIGINAL binary evidence requires explicit, identity-verified
+    # CODE.2 and SINTAB supplied outside CI and is NOT inferred here.
+    add_test(
+        NAME original_ground_source_proof_batch_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_original_ground_proof_batch.py"
+                --source-only)
+    # Original 34A74 planar VGA 4-mask/2-mask helpers, exact 64x24
+    # SHLD/LODS/STOS unroll and first-phase implicit fall-through.
+    add_test(
+        NAME original_ground_raster_unrolled_plane_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_raster_unrolled_planes.py")
+    # Bounded original upper callbacks: exact 17 near-E8 call edges,
+    # five source bodies, 34A74 self-modifying immediate addresses.
+    # NOT a proof of indirect mutable FF50 alias safety.
+    add_test(
+        NAME original_ground_upper_callback_boundary_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_upper_callback_boundary.py")
+    # Original CODE.2 all direct FF50 DWORD operand bytes, 1F1C8 and 34A74.
+    # Only direct addressing is bounded; callback pointer aliasing remains open.
+    add_test(
+        NAME original_ground_ff50_direct_reference_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_direct_references.py")
+    # Original CODE.2 335C8 nearest 22220 and 4 exact ray
+    # materializer zero/signed-min source windows.
+    add_test(
+        NAME original_ground_nearest_22220_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_nearest_22220.py")
+    # Source-only 1F1C8 upper selection and post-callback FF50
+    # lower branch; original binary windows/calls optional.
+    add_test(
+        NAME original_ground_surface_dispatch_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_surface_dispatch.py")
+    # Original CODE.2 32F4C seven-store 28-byte ray sentinel
+    # initializer: unlike four source materializers it never updates 22220.
+    add_test(
+        NAME original_ground_sentinel_fill_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_sentinel_fill.py")
+    # Immutable original 32F4C/335C8 source, and read-only
+    # 22220/FF50 native F12 metadata projection provenance.
+    add_test(
+        NAME original_ground_source_projection_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_source_projection.py")
+    # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
+    # runtime type1 conversion; optional private CODE.2 binary oracle.
+    add_test(
+        NAME original_res4_eh6_runtime_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_res4_eh6_dispatch.py")
+    # Build-free original RES4 selected-entry/header triage (synthetic media).
+    # This never runs the original game or claims decoded/DOS raster parity.
+    add_test(
+        NAME original_res4_selection_probe_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_probe_original_res4_selection.py")
+    # Source 12E70 actor rectangle, 11AD8 mode bit 2 and 11B63 F790.
+    # Source-only by default; optional original CODE.2 oracle is private.
+    add_test(
+        NAME original_f790_actor_toggle_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_actor_toggle.py")
+    # Source 117A0 fanout multiplicity: successful scribe calls F790 TWICE.
+    add_test(
+        NAME original_f790_ordinary_slot_event_oracle_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_ordinary_slot_event_plan.py")
+    # Three proved CODE.2 feedback F790 call edges and strict IRQ expiry.
+    add_test(
+        NAME original_f790_feedback_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_feedback_edges.py")
+    # F790's 17 E8 source argument families; guard against live host hookup.
+    add_test(
+        NAME original_f790_runtime_event_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_runtime_event.py")
+    # Original LE object 2, mutable-container baseline, TEXT XOR and JSON provenance.
+    add_test(
+        NAME original_f790_static_resource_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_static_resources.py")
+    # CODE.2 original F790 0x41 item record arithmetic and literal/T gates.
+    add_test(
+        NAME original_f790_description_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_description_source.py")
+    # Original CODE.2 F790 F7CC text reader T[0x3F] is called
+    # before the item==-1 fast exit. F7D3 resolves to 1C368.
+    # Synced from byte-verified code1-decompilation, source-only in CI.
+    add_test(
+        NAME original_f790_stack_local_preread_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/../Code2/verify_f790_stack_local_preread.py")
+    # Original CODE.2 F790 category table and description-completeness gate.
+    add_test(
+        NAME original_f790_item_description_dispatch_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_item_description_dispatch.py")
+    # CODE.2 112EC -> 292BC and F790 -> 2932C VGA save/restore provenance.
+    add_test(
+        NAME original_f790_background_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_background_page.py")
+    # CODE.2 13118/112EC/F790 cadence and existing native modal expiry guard.
+    add_test(
+        NAME original_inventory_f790_cadence_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_inventory_f790_cadence.py")
+    # CODE.2 12988/10A70/11268/112EC + native modal operation
+    # contract. Optional external CODE.2 byte-check can be run with
+    # --original-code2; the original copyrighted file is not in CI.
+    add_test(
+        NAME original_modal_graphics_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_modal_graphics_contract.py")
+endif()
+
+add_library(rloft_boot_flow
+    src/anm_cinematic.cpp
+    src/assassin_relic_transition.cpp
+    src/level22_mist_timeline.cpp
+    src/level22_quest_playback.cpp
+    src/boot_flow.cpp
+    src/character_creation_flow.cpp
+    src/character_creation_presenter.cpp
+    src/character_palette_remap.cpp
+    src/character_stats.cpp
+    src/character_sheet.cpp
+    src/character_modal_stats.cpp
+    src/character_transfer.cpp
+    src/exploration_state.cpp
+    src/exploration_session.cpp
+    src/exploration_frame.cpp
+    src/exploration_scene.cpp
+    src/level_display.cpp
+    src/party_presentation.cpp
+    src/object_catalog.cpp
+    src/original_random.cpp
+    src/placed_scene_catalog.cpp
+    src/npc_catalog.cpp
+    src/level22_story.cpp
+    src/level22_encounter.cpp
+    src/original_pickup_ribbon_text.cpp
+    src/level22_viewport_target.cpp
+    src/level_world_state.cpp
+    src/level_continuity.cpp
+    src/inventory_screen.cpp
+    src/inventory_runtime.cpp
+    src/inventory_save_codec.cpp
+    src/inventory_item_description.cpp
+    src/inventory_world_drop.cpp
+    src/inventory_encumbrance.cpp
+    src/inventory_party_order.cpp
+    src/combat_hit_check.cpp
+    src/combat_strength_attack.cpp
+    src/combat_player_hit_inputs.cpp
+    src/combat_level22_strike.cpp
+    src/original_npc_sound.cpp
+    src/combat_hand_dispatch.cpp
+    src/combat_live_hand_request.cpp
+    src/combat_attack_timing.cpp
+    src/combat_attack_status_service.cpp
+    src/combat_damage_dice.cpp
+    src/combat_class_level.cpp
+    src/combat_rod_of_smiting.cpp
+    src/combat_npc_injury_prelude.cpp
+    src/combat_npc_death_followon.cpp
+    src/combat_npc_respawn.cpp
+    src/combat_xp_distribution.cpp
+    src/combat_xp_award_service.cpp
+    src/combat_progression_thresholds.cpp
+    src/combat_level_change_gate.cpp
+    src/combat_level_change_sequence.cpp
+    src/combat_level_up_hp.cpp
+    src/combat_level_spell_tables.cpp
+    src/combat_irq_message.cpp
+    src/combat_irq_display.cpp
+    src/combat_irq_display_runtime.cpp
+    src/original_dos_feedback_runtime.cpp
+    src/original_dos_keyboard_irq.cpp
+    src/original_dos_keyboard_session.cpp
+    src/win32_scan_observation.cpp
+    src/combat_original_text_runtime.cpp
+    src/combat_original_sprite_runtime.cpp
+    src/combat_original_vga_address.cpp
+    src/combat_original_sprite_raster.cpp
+    src/combat_original_sprite_machine.cpp
+    src/combat_original_sprite_raster_binding.cpp
+    src/combat_original_composite.cpp
+    src/combat_original_vga_copy.cpp
+    src/combat_original_vga_copy_binding.cpp
+    src/combat_original_dgroup_move.cpp
+    src/combat_original_overlay.cpp
+    src/combat_original_vga_page_stack.cpp
+    src/combat_original_vga_page_stack_binding.cpp
+    src/combat_original_overlay_backing_clip.cpp
+    src/combat_original_overlay_backing_clip_binding.cpp
+    src/combat_original_vga_backing.cpp
+    src/combat_original_vga_backing_binding.cpp
+    src/combat_original_overlay_position.cpp
+    src/combat_original_overlay_draw.cpp
+    src/combat_original_overlay_probe.cpp
+    src/combat_original_overlay_predicates.cpp
+    src/combat_original_sprite_clip.cpp
+    src/combat_original_sprite_clip_binding.cpp
+    src/combat_original_clipped_raster.cpp
+    src/combat_original_clipped_raster_binding.cpp
+    src/combat_level_message.cpp
+    src/combat_harm_prelude.cpp
+    src/combat_damage_stat_bonus.cpp
+    src/combat_weapon_damage_gate.cpp
+    src/combat_attack_target.cpp
+    src/combat_hand_predicates.cpp
+    src/combat_single_hand_eligibility.cpp
+    src/combat_hand_pair_eligibility.cpp
+    src/combat_hand_pair_early_gate.cpp
+    src/combat_target_priority.cpp
+    src/combat_visible_target.cpp
+    src/party_hud.cpp
+    src/party_panel_controls.cpp
+    src/party_modal_presenter.cpp
+    src/top_edge_menu.cpp
+    src/top_edge_menu_presenter.cpp
+    src/quit_confirm.cpp
+    src/options_menu.cpp
+    src/exploration_ui.cpp
+    src/exploration_hud_presenter.cpp
+    src/exploration_presenter.cpp
+    src/exploration_frame_capture.cpp
+    src/exploration_world.cpp
+    src/enhanced_game_save.cpp
+    src/enhanced_gpu_world_mesh.cpp
+    src/exploration_collision.cpp
+    src/original_entity_collision.cpp
+    src/exploration_motion.cpp
+    src/exploration_legacy_input.cpp
+    src/exploration_hit_regions.cpp
+    src/exploration_locomotion.cpp
+    src/exploration_runtime_motion.cpp
+    src/exploration_runtime.cpp
+    src/exploration_preview.cpp
+    src/dev_level_diagnostics.cpp
+    src/dev_session_trace.cpp
+    src/environment_view.cpp
+    src/view_sweep_record.cpp
+    src/view_sweep_setup.cpp
+    src/view_sweep_traversal.cpp
+    src/view_sweep_runs.cpp
+    src/view_sweep_influence.cpp
+    src/fixed_projection.cpp
+    src/first_person_entity_projection.cpp
+    src/npc_scene.cpp
+    src/loose_item_scene.cpp
+    src/placed_object_scene.cpp
+    src/scene_shape_bounds.cpp
+    src/scene_shape_selector.cpp
+    src/scene_source_banks.cpp
+    src/world_scene_record.cpp
+    src/world_scene_selection.cpp
+    src/world_scene_draw_calls.cpp
+    src/world_scene_render_plan.cpp
+    src/type7_column_traversal.cpp
+    src/type7_microcode_plan.cpp
+    src/type7_rasterizer_setup.cpp
+    src/type7_rasterizer_patch.cpp
+    src/sintab_pixel_microcode.cpp
+    src/type7_scene_pixel_executor.cpp
+    src/type7_vga_plane_masks.cpp
+    src/type7_vga_raster_dispatch.cpp
+    src/type7_vga_scene_trace.cpp
+    src/type7_vga_trace_validation.cpp
+    src/type7_vga_frame_trace.cpp
+    src/vga_planar_memory.cpp
+    src/renderer_tables.cpp
+    src/micro_rasterizer_layout.cpp
+    src/micro_rasterizer_plan.cpp
+    src/environment_projection.cpp
+    src/environment_presenter.cpp
+    src/automap_presentation.cpp
+    src/original_automap_file_export.cpp
+    src/automap_annotations.cpp
+    src/automap_annotation_presenter.cpp
+    src/automap_viewport_presenter.cpp
+    src/automap_screen_state.cpp
+    src/automap_controls.cpp
+    src/automap_modal.cpp
+    src/automap_screen_presenter.cpp
+    src/surface_texture.cpp
+    src/surface_column_scaler.cpp
+    src/surface_shading.cpp
+    src/surface_fill.cpp
+    src/original_ground_planar_fill_replay.cpp
+    src/original_ground_texture_raster.cpp
+    src/original_ground_res4_audit.cpp
+    src/surface_wall_presenter.cpp
+    src/surface_prepass.cpp
+    src/surface_sintab_prepass_executor.cpp
+    src/surface_sintab_main_executor.cpp
+    src/game_source.cpp
+    src/persistent_media_cache.cpp
+    src/resource_assets.cpp
+    src/startup_presenter.cpp
+    src/indexed_font_presenter.cpp
+    src/sound_config.cpp
+    src/voc_decoder.cpp
+    src/xmidi.cpp
+)
+target_include_directories(rloft_boot_flow PUBLIC include)
+target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
+# MSBuild's /m parallelizes projects, but the main static library is one
+# large project containing most game sources. Allow two cl.exe processes
+# within that project on private-repository Windows runners. Keep this
+# scoped to the library so all 164 individual test projects do not each
+# spawn extra compiler processes during full builds.
+if(MSVC)
+    target_compile_options(rloft_boot_flow PRIVATE /MP2)
+endif()
+
+if(WIN32)
+    target_link_libraries(rloft_boot_flow PRIVATE Advapi32)
+endif()
+
+if(MSVC)
+    target_compile_options(rloft_boot_flow PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_boot_flow PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(boot_flow_tests tests/boot_flow_tests.cpp)
+target_link_libraries(boot_flow_tests PRIVATE rloft_boot_flow)
+add_test(NAME boot_flow_tests COMMAND boot_flow_tests)
+
+add_executable(exploration_state_tests tests/exploration_state_tests.cpp)
+target_link_libraries(exploration_state_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_state_tests COMMAND exploration_state_tests)
+
+add_executable(exploration_session_tests tests/exploration_session_tests.cpp)
+target_link_libraries(exploration_session_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_session_tests COMMAND exploration_session_tests)
+
+add_executable(exploration_frame_tests tests/exploration_frame_tests.cpp)
+target_link_libraries(exploration_frame_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_frame_tests COMMAND exploration_frame_tests)
+
+add_executable(exploration_scene_tests tests/exploration_scene_tests.cpp)
+target_link_libraries(exploration_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_scene_tests COMMAND exploration_scene_tests)
+
+add_executable(level_display_tests tests/level_display_tests.cpp)
+target_link_libraries(level_display_tests PRIVATE rloft_boot_flow)
+add_test(NAME level_display_tests COMMAND level_display_tests)
+
+add_executable(party_presentation_tests tests/party_presentation_tests.cpp)
+target_link_libraries(party_presentation_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
+
+add_executable(object_catalog_tests tests/object_catalog_tests.cpp)
+target_link_libraries(object_catalog_tests PRIVATE rloft_boot_flow)
+add_test(NAME object_catalog_tests COMMAND object_catalog_tests)
+
+add_executable(original_random_tests tests/original_random_tests.cpp)
+target_link_libraries(original_random_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_random_tests COMMAND original_random_tests)
+
+add_executable(placed_scene_catalog_tests tests/placed_scene_catalog_tests.cpp)
+target_link_libraries(placed_scene_catalog_tests PRIVATE rloft_boot_flow)
+add_test(NAME placed_scene_catalog_tests COMMAND placed_scene_catalog_tests)
+
+add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
+target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
+add_test(NAME npc_catalog_tests COMMAND npc_catalog_tests)
+
+add_executable(level22_story_tests tests/level22_story_tests.cpp)
+target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_story_tests COMMAND level22_story_tests)
+
+add_executable(original_pickup_ribbon_text_tests tests/original_pickup_ribbon_text_tests.cpp)
+target_link_libraries(original_pickup_ribbon_text_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_pickup_ribbon_text_tests COMMAND original_pickup_ribbon_text_tests)
+
+add_executable(original_pickup_message_tests tests/original_pickup_message_tests.cpp)
+target_link_libraries(original_pickup_message_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_pickup_message_tests COMMAND original_pickup_message_tests)
+
+add_executable(level22_encounter_tests tests/level22_encounter_tests.cpp)
+target_link_libraries(level22_encounter_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_encounter_tests COMMAND level22_encounter_tests)
+
+add_executable(level22_viewport_target_tests tests/level22_viewport_target_tests.cpp)
+target_link_libraries(level22_viewport_target_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_viewport_target_tests COMMAND level22_viewport_target_tests)
+
+add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
+target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
+add_test(NAME level_world_state_tests COMMAND level_world_state_tests)
+
+# PC-port equipment graphics must show both gauntlet/bracer copies,
+# with an immutable source asset and safe transparency.
+add_executable(enhanced_inventory_blit_tests
+    tests/enhanced_inventory_blit_tests.cpp)
+target_link_libraries(enhanced_inventory_blit_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_inventory_blit_tests
+    COMMAND enhanced_inventory_blit_tests)
+
+add_executable(inventory_screen_tests tests/inventory_screen_tests.cpp)
+target_link_libraries(inventory_screen_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
+
+add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
+target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
+add_executable(inventory_save_codec_tests tests/inventory_save_codec_tests.cpp)
+target_link_libraries(inventory_save_codec_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_save_codec_tests COMMAND inventory_save_codec_tests)
+add_executable(inventory_item_description_tests tests/inventory_item_description_tests.cpp)
+target_link_libraries(inventory_item_description_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_item_description_tests COMMAND inventory_item_description_tests)
+add_executable(inventory_world_drop_tests tests/inventory_world_drop_tests.cpp)
+target_link_libraries(inventory_world_drop_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_world_drop_tests COMMAND inventory_world_drop_tests)
+add_executable(inventory_encumbrance_tests tests/inventory_encumbrance_tests.cpp)
+target_link_libraries(inventory_encumbrance_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_encumbrance_tests COMMAND inventory_encumbrance_tests)
+add_executable(inventory_party_order_tests tests/inventory_party_order_tests.cpp)
+target_link_libraries(inventory_party_order_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_party_order_tests COMMAND inventory_party_order_tests)
+add_executable(combat_hit_check_tests tests/combat_hit_check_tests.cpp)
+target_link_libraries(combat_hit_check_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hit_check_tests COMMAND combat_hit_check_tests)
+
+add_executable(combat_player_hit_inputs_tests
+    tests/combat_player_hit_inputs_tests.cpp)
+target_link_libraries(combat_player_hit_inputs_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_player_hit_inputs_tests COMMAND combat_player_hit_inputs_tests)
+
+add_executable(combat_level22_strike_tests tests/combat_level22_strike_tests.cpp)
+target_link_libraries(combat_level22_strike_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level22_strike_tests COMMAND combat_level22_strike_tests)
+
+add_executable(original_npc_sound_tests tests/original_npc_sound_tests.cpp)
+target_link_libraries(original_npc_sound_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_npc_sound_tests COMMAND original_npc_sound_tests)
+
+add_executable(combat_hand_dispatch_tests tests/combat_hand_dispatch_tests.cpp)
+target_link_libraries(combat_hand_dispatch_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
+
+add_executable(combat_live_hand_request_tests tests/combat_live_hand_request_tests.cpp)
+target_link_libraries(combat_live_hand_request_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_live_hand_request_tests COMMAND combat_live_hand_request_tests)
+
+add_executable(enhanced_combat_target_arming_tests
+    tests/enhanced_combat_target_arming_tests.cpp)
+target_link_libraries(enhanced_combat_target_arming_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_combat_target_arming_tests
+    COMMAND enhanced_combat_target_arming_tests)
+add_executable(combat_attack_timing_tests tests/combat_attack_timing_tests.cpp)
+target_link_libraries(combat_attack_timing_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_attack_timing_tests COMMAND combat_attack_timing_tests)
+add_executable(combat_attack_status_service_tests tests/combat_attack_status_service_tests.cpp)
+target_link_libraries(combat_attack_status_service_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_attack_status_service_tests COMMAND combat_attack_status_service_tests)
+add_executable(combat_damage_dice_tests tests/combat_damage_dice_tests.cpp)
+target_link_libraries(combat_damage_dice_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_damage_dice_tests COMMAND combat_damage_dice_tests)
+add_executable(combat_class_level_tests tests/combat_class_level_tests.cpp)
+target_link_libraries(combat_class_level_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_class_level_tests COMMAND combat_class_level_tests)
+add_executable(combat_rod_of_smiting_tests tests/combat_rod_of_smiting_tests.cpp)
+target_link_libraries(combat_rod_of_smiting_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_rod_of_smiting_tests COMMAND combat_rod_of_smiting_tests)
+add_executable(combat_npc_injury_prelude_tests tests/combat_npc_injury_prelude_tests.cpp)
+target_link_libraries(combat_npc_injury_prelude_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_npc_injury_prelude_tests COMMAND combat_npc_injury_prelude_tests)
+add_executable(combat_npc_death_followon_tests tests/combat_npc_death_followon_tests.cpp)
+target_link_libraries(combat_npc_death_followon_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_npc_death_followon_tests COMMAND combat_npc_death_followon_tests)
+add_executable(combat_npc_respawn_tests tests/combat_npc_respawn_tests.cpp)
+target_link_libraries(combat_npc_respawn_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_npc_respawn_tests COMMAND combat_npc_respawn_tests)
+add_executable(combat_xp_distribution_tests tests/combat_xp_distribution_tests.cpp)
+target_link_libraries(combat_xp_distribution_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_xp_distribution_tests COMMAND combat_xp_distribution_tests)
+
+add_executable(combat_xp_award_service_tests tests/combat_xp_award_service_tests.cpp)
+target_link_libraries(combat_xp_award_service_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_xp_award_service_tests COMMAND combat_xp_award_service_tests)
+add_executable(combat_progression_thresholds_tests tests/combat_progression_thresholds_tests.cpp)
+target_link_libraries(combat_progression_thresholds_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_progression_thresholds_tests COMMAND combat_progression_thresholds_tests)
+add_executable(combat_level_change_gate_tests tests/combat_level_change_gate_tests.cpp)
+target_link_libraries(combat_level_change_gate_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_change_gate_tests COMMAND combat_level_change_gate_tests)
+add_executable(combat_level_change_sequence_tests tests/combat_level_change_sequence_tests.cpp)
+target_link_libraries(combat_level_change_sequence_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_change_sequence_tests COMMAND combat_level_change_sequence_tests)
+add_executable(combat_level_up_hp_tests tests/combat_level_up_hp_tests.cpp)
+target_link_libraries(combat_level_up_hp_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_up_hp_tests COMMAND combat_level_up_hp_tests)
+add_executable(combat_level_spell_tables_tests tests/combat_level_spell_tables_tests.cpp)
+target_link_libraries(combat_level_spell_tables_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_spell_tables_tests COMMAND combat_level_spell_tables_tests)
+add_executable(combat_irq_message_tests tests/combat_irq_message_tests.cpp)
+target_link_libraries(combat_irq_message_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_irq_message_tests COMMAND combat_irq_message_tests)
+add_executable(combat_irq_display_tests tests/combat_irq_display_tests.cpp)
+target_link_libraries(combat_irq_display_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_irq_display_tests COMMAND combat_irq_display_tests)
+add_executable(combat_level_message_tests tests/combat_level_message_tests.cpp)
+target_link_libraries(combat_level_message_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_message_tests COMMAND combat_level_message_tests)
+add_executable(combat_irq_display_runtime_tests tests/combat_irq_display_runtime_tests.cpp)
+target_link_libraries(combat_irq_display_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_irq_display_runtime_tests COMMAND combat_irq_display_runtime_tests)
+add_executable(win32_scan_observation_tests tests/win32_scan_observation_tests.cpp)
+target_link_libraries(win32_scan_observation_tests PRIVATE rloft_boot_flow)
+add_test(NAME win32_scan_observation_tests COMMAND win32_scan_observation_tests)
+add_executable(original_dos_keyboard_session_tests tests/original_dos_keyboard_session_tests.cpp)
+target_link_libraries(original_dos_keyboard_session_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_dos_keyboard_session_tests COMMAND original_dos_keyboard_session_tests)
+add_executable(original_dos_keyboard_irq_tests tests/original_dos_keyboard_irq_tests.cpp)
+target_link_libraries(original_dos_keyboard_irq_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_dos_keyboard_irq_tests COMMAND original_dos_keyboard_irq_tests)
+add_executable(original_dos_feedback_runtime_tests tests/original_dos_feedback_runtime_tests.cpp)
+target_link_libraries(original_dos_feedback_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_dos_feedback_runtime_tests COMMAND original_dos_feedback_runtime_tests)
+add_executable(combat_original_text_runtime_tests tests/combat_original_text_runtime_tests.cpp)
+target_link_libraries(combat_original_text_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_text_runtime_tests COMMAND combat_original_text_runtime_tests)
+add_executable(combat_original_sprite_runtime_tests tests/combat_original_sprite_runtime_tests.cpp)
+target_link_libraries(combat_original_sprite_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_runtime_tests COMMAND combat_original_sprite_runtime_tests)
+add_executable(combat_original_vga_address_tests tests/combat_original_vga_address_tests.cpp)
+target_link_libraries(combat_original_vga_address_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_address_tests COMMAND combat_original_vga_address_tests)
+add_executable(combat_original_sprite_raster_tests tests/combat_original_sprite_raster_tests.cpp)
+target_link_libraries(combat_original_sprite_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_raster_tests COMMAND combat_original_sprite_raster_tests)
+add_executable(combat_original_sprite_machine_tests tests/combat_original_sprite_machine_tests.cpp)
+target_link_libraries(combat_original_sprite_machine_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_machine_tests COMMAND combat_original_sprite_machine_tests)
+add_executable(combat_original_sprite_raster_binding_tests tests/combat_original_sprite_raster_binding_tests.cpp)
+target_link_libraries(combat_original_sprite_raster_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_raster_binding_tests COMMAND combat_original_sprite_raster_binding_tests)
+add_executable(combat_original_composite_tests tests/combat_original_composite_tests.cpp)
+target_link_libraries(combat_original_composite_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_composite_tests COMMAND combat_original_composite_tests)
+add_executable(combat_original_vga_copy_tests tests/combat_original_vga_copy_tests.cpp)
+target_link_libraries(combat_original_vga_copy_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_copy_tests COMMAND combat_original_vga_copy_tests)
+add_executable(combat_original_vga_copy_binding_tests tests/combat_original_vga_copy_binding_tests.cpp)
+target_link_libraries(combat_original_vga_copy_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_copy_binding_tests COMMAND combat_original_vga_copy_binding_tests)
+add_executable(combat_original_dgroup_move_tests tests/combat_original_dgroup_move_tests.cpp)
+target_link_libraries(combat_original_dgroup_move_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_dgroup_move_tests COMMAND combat_original_dgroup_move_tests)
+add_executable(combat_original_overlay_tests tests/combat_original_overlay_tests.cpp)
+target_link_libraries(combat_original_overlay_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_tests COMMAND combat_original_overlay_tests)
+add_executable(combat_original_vga_page_stack_tests tests/combat_original_vga_page_stack_tests.cpp)
+target_link_libraries(combat_original_vga_page_stack_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_page_stack_tests COMMAND combat_original_vga_page_stack_tests)
+add_executable(combat_original_vga_page_stack_binding_tests tests/combat_original_vga_page_stack_binding_tests.cpp)
+target_link_libraries(combat_original_vga_page_stack_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_page_stack_binding_tests COMMAND combat_original_vga_page_stack_binding_tests)
+add_executable(combat_original_overlay_backing_clip_tests tests/combat_original_overlay_backing_clip_tests.cpp)
+target_link_libraries(combat_original_overlay_backing_clip_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_backing_clip_tests COMMAND combat_original_overlay_backing_clip_tests)
+add_executable(combat_original_overlay_backing_clip_binding_tests tests/combat_original_overlay_backing_clip_binding_tests.cpp)
+target_link_libraries(combat_original_overlay_backing_clip_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_backing_clip_binding_tests COMMAND combat_original_overlay_backing_clip_binding_tests)
+add_executable(combat_original_vga_backing_tests tests/combat_original_vga_backing_tests.cpp)
+target_link_libraries(combat_original_vga_backing_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_backing_tests COMMAND combat_original_vga_backing_tests)
+add_executable(combat_original_vga_backing_binding_tests tests/combat_original_vga_backing_binding_tests.cpp)
+target_link_libraries(combat_original_vga_backing_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_backing_binding_tests COMMAND combat_original_vga_backing_binding_tests)
+add_executable(combat_original_overlay_position_tests tests/combat_original_overlay_position_tests.cpp)
+target_link_libraries(combat_original_overlay_position_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_position_tests COMMAND combat_original_overlay_position_tests)
+add_executable(combat_original_overlay_draw_tests tests/combat_original_overlay_draw_tests.cpp)
+target_link_libraries(combat_original_overlay_draw_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_draw_tests COMMAND combat_original_overlay_draw_tests)
+add_executable(combat_original_overlay_probe_tests tests/combat_original_overlay_probe_tests.cpp)
+target_link_libraries(combat_original_overlay_probe_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_probe_tests COMMAND combat_original_overlay_probe_tests)
+add_executable(combat_original_overlay_chain_tests tests/combat_original_overlay_chain_tests.cpp)
+target_link_libraries(combat_original_overlay_chain_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_chain_tests COMMAND combat_original_overlay_chain_tests)
+add_executable(combat_original_overlay_predicates_tests tests/combat_original_overlay_predicates_tests.cpp)
+target_link_libraries(combat_original_overlay_predicates_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_predicates_tests COMMAND combat_original_overlay_predicates_tests)
+add_executable(combat_original_sprite_clip_tests tests/combat_original_sprite_clip_tests.cpp)
+target_link_libraries(combat_original_sprite_clip_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_clip_tests COMMAND combat_original_sprite_clip_tests)
+add_executable(combat_original_overlay_predicate_clip_chain_tests tests/combat_original_overlay_predicate_clip_chain_tests.cpp)
+target_link_libraries(combat_original_overlay_predicate_clip_chain_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_predicate_clip_chain_tests COMMAND combat_original_overlay_predicate_clip_chain_tests)
+add_executable(combat_original_clipped_raster_tests tests/combat_original_clipped_raster_tests.cpp)
+target_link_libraries(combat_original_clipped_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_clipped_raster_tests COMMAND combat_original_clipped_raster_tests)
+add_executable(combat_original_clipped_raster_binding_tests tests/combat_original_clipped_raster_binding_tests.cpp)
+target_link_libraries(combat_original_clipped_raster_binding_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_clipped_raster_binding_tests COMMAND combat_original_clipped_raster_binding_tests)
+add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
+target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
+add_executable(combat_damage_stat_bonus_tests tests/combat_damage_stat_bonus_tests.cpp)
+target_link_libraries(combat_damage_stat_bonus_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_damage_stat_bonus_tests COMMAND combat_damage_stat_bonus_tests)
+add_executable(combat_weapon_damage_gate_tests tests/combat_weapon_damage_gate_tests.cpp)
+target_link_libraries(combat_weapon_damage_gate_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_weapon_damage_gate_tests COMMAND combat_weapon_damage_gate_tests)
+add_executable(combat_attack_target_tests tests/combat_attack_target_tests.cpp)
+target_link_libraries(combat_attack_target_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_attack_target_tests COMMAND combat_attack_target_tests)
+add_executable(combat_hand_predicates_tests tests/combat_hand_predicates_tests.cpp)
+target_link_libraries(combat_hand_predicates_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hand_predicates_tests COMMAND combat_hand_predicates_tests)
+add_executable(combat_single_hand_eligibility_tests tests/combat_single_hand_eligibility_tests.cpp)
+target_link_libraries(combat_single_hand_eligibility_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_single_hand_eligibility_tests COMMAND combat_single_hand_eligibility_tests)
+add_executable(combat_hand_pair_eligibility_tests tests/combat_hand_pair_eligibility_tests.cpp)
+target_link_libraries(combat_hand_pair_eligibility_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hand_pair_eligibility_tests COMMAND combat_hand_pair_eligibility_tests)
+add_executable(combat_hand_pair_early_gate_tests tests/combat_hand_pair_early_gate_tests.cpp)
+target_link_libraries(combat_hand_pair_early_gate_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hand_pair_early_gate_tests COMMAND combat_hand_pair_early_gate_tests)
+add_executable(combat_target_priority_tests tests/combat_target_priority_tests.cpp)
+target_link_libraries(combat_target_priority_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_target_priority_tests COMMAND combat_target_priority_tests)
+add_executable(combat_visible_target_tests tests/combat_visible_target_tests.cpp)
+target_link_libraries(combat_visible_target_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_visible_target_tests COMMAND combat_visible_target_tests)
+
+add_executable(party_hud_tests tests/party_hud_tests.cpp)
+target_link_libraries(party_hud_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_hud_tests COMMAND party_hud_tests)
+
+add_executable(party_panel_controls_tests tests/party_panel_controls_tests.cpp)
+target_link_libraries(party_panel_controls_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_panel_controls_tests COMMAND party_panel_controls_tests)
+
+add_executable(top_edge_menu_tests tests/top_edge_menu_tests.cpp)
+target_link_libraries(top_edge_menu_tests PRIVATE rloft_boot_flow)
+add_test(NAME top_edge_menu_tests COMMAND top_edge_menu_tests)
+
+add_executable(top_edge_menu_presenter_tests tests/top_edge_menu_presenter_tests.cpp)
+target_link_libraries(top_edge_menu_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME top_edge_menu_presenter_tests COMMAND top_edge_menu_presenter_tests)
+
+add_executable(quit_confirm_tests tests/quit_confirm_tests.cpp)
+target_link_libraries(quit_confirm_tests PRIVATE rloft_boot_flow)
+add_test(NAME quit_confirm_tests COMMAND quit_confirm_tests)
+
+add_executable(exploration_ui_tests tests/exploration_ui_tests.cpp)
+target_link_libraries(exploration_ui_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_ui_tests COMMAND exploration_ui_tests)
+
+add_executable(exploration_hud_presenter_tests tests/exploration_hud_presenter_tests.cpp)
+target_link_libraries(exploration_hud_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_tests)
+
+# Enhanced PC port renders original decoded RES3 sprites without DOS VGA
+# execution. Synthetic clipping/mask/SINTAB regressions need no media.
+# Keep expensive DOS-only scene tracing out of normal enhanced play.
+# Modern world soundtrack: the original level-header RES5 cue must
+# start once, transition on level change and resume after cinematics.
+add_executable(enhanced_world_music_tests
+    tests/enhanced_world_music_tests.cpp)
+target_link_libraries(enhanced_world_music_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_world_music_tests COMMAND enhanced_world_music_tests)
+
+add_executable(enhanced_scene_mode_tests
+    tests/enhanced_scene_mode_tests.cpp)
+target_link_libraries(enhanced_scene_mode_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_scene_mode_tests COMMAND enhanced_scene_mode_tests)
+
+# Native in-game options (same window/framebuffer) and real audio toggle.
+add_executable(enhanced_options_presenter_tests
+    tests/enhanced_options_presenter_tests.cpp)
+target_link_libraries(enhanced_options_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_options_presenter_tests
+    COMMAND enhanced_options_presenter_tests)
+
+add_executable(title_keyboard_tests tests/title_keyboard_tests.cpp)
+target_link_libraries(title_keyboard_tests PRIVATE rloft_boot_flow)
+add_test(NAME title_keyboard_tests COMMAND title_keyboard_tests)
+
+add_executable(enhanced_game_save_tests tests/enhanced_game_save_tests.cpp)
+target_link_libraries(enhanced_game_save_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_game_save_tests COMMAND enhanced_game_save_tests)
+
+add_executable(enhanced_gpu_camera_tests tests/enhanced_gpu_camera_tests.cpp)
+target_link_libraries(enhanced_gpu_camera_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_gpu_camera_tests COMMAND enhanced_gpu_camera_tests)
+
+add_executable(enhanced_gpu_backdrop_tests tests/enhanced_gpu_backdrop_tests.cpp)
+target_link_libraries(enhanced_gpu_backdrop_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_gpu_backdrop_tests COMMAND enhanced_gpu_backdrop_tests)
+
+add_executable(enhanced_gpu_world_mesh_tests tests/enhanced_gpu_world_mesh_tests.cpp)
+target_link_libraries(enhanced_gpu_world_mesh_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_gpu_world_mesh_tests COMMAND enhanced_gpu_world_mesh_tests)
+
+add_executable(enhanced_type7_compositor_tests
+    tests/enhanced_type7_compositor_tests.cpp)
+target_link_libraries(enhanced_type7_compositor_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_type7_compositor_tests
+    COMMAND enhanced_type7_compositor_tests)
+
+add_executable(exploration_presenter_tests tests/exploration_presenter_tests.cpp)
+target_link_libraries(exploration_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_presenter_tests COMMAND exploration_presenter_tests)
+add_executable(exploration_frame_capture_tests tests/exploration_frame_capture_tests.cpp)
+target_link_libraries(exploration_frame_capture_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_frame_capture_tests COMMAND exploration_frame_capture_tests)
+add_executable(exploration_preview_tests tests/exploration_preview_tests.cpp)
+target_link_libraries(exploration_preview_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_preview_tests COMMAND exploration_preview_tests)
+add_executable(dev_session_trace_tests tests/dev_session_trace_tests.cpp)
+target_link_libraries(dev_session_trace_tests PRIVATE rloft_boot_flow)
+add_test(NAME dev_session_trace_tests COMMAND dev_session_trace_tests)
+
+add_executable(dev_level_diagnostics_tests tests/dev_level_diagnostics_tests.cpp)
+target_link_libraries(dev_level_diagnostics_tests PRIVATE rloft_boot_flow)
+add_test(NAME dev_level_diagnostics_tests COMMAND dev_level_diagnostics_tests)
+
+add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
+target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_world_tests COMMAND exploration_world_tests)
+
+add_executable(exploration_collision_tests tests/exploration_collision_tests.cpp)
+target_link_libraries(exploration_collision_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_collision_tests COMMAND exploration_collision_tests)
+add_executable(original_entity_collision_tests tests/original_entity_collision_tests.cpp)
+target_link_libraries(original_entity_collision_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_entity_collision_tests COMMAND original_entity_collision_tests)
+
+add_executable(exploration_motion_tests tests/exploration_motion_tests.cpp)
+target_link_libraries(exploration_motion_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_motion_tests COMMAND exploration_motion_tests)
+
+add_executable(exploration_legacy_input_tests tests/exploration_legacy_input_tests.cpp)
+target_link_libraries(exploration_legacy_input_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_legacy_input_tests COMMAND exploration_legacy_input_tests)
+
+add_executable(exploration_hit_regions_tests tests/exploration_hit_regions_tests.cpp)
+target_link_libraries(exploration_hit_regions_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_hit_regions_tests COMMAND exploration_hit_regions_tests)
+
+add_executable(exploration_locomotion_tests tests/exploration_locomotion_tests.cpp)
+target_link_libraries(exploration_locomotion_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_locomotion_tests COMMAND exploration_locomotion_tests)
+
+add_executable(exploration_runtime_motion_tests tests/exploration_runtime_motion_tests.cpp)
+target_link_libraries(exploration_runtime_motion_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_runtime_motion_tests COMMAND exploration_runtime_motion_tests)
+add_executable(exploration_gameplay_cadence_tests tests/exploration_gameplay_cadence_tests.cpp)
+target_link_libraries(exploration_gameplay_cadence_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_gameplay_cadence_tests COMMAND exploration_gameplay_cadence_tests)
+
+add_executable(level_continuity_tests tests/level_continuity_tests.cpp)
+target_link_libraries(level_continuity_tests PRIVATE rloft_boot_flow)
+add_test(NAME level_continuity_tests COMMAND level_continuity_tests)
+
+add_executable(exploration_runtime_tests tests/exploration_runtime_tests.cpp)
+target_link_libraries(exploration_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_runtime_tests COMMAND exploration_runtime_tests)
+
+add_executable(environment_view_tests tests/environment_view_tests.cpp)
+target_link_libraries(environment_view_tests PRIVATE rloft_boot_flow)
+add_test(NAME environment_view_tests COMMAND environment_view_tests)
+
+add_executable(view_sweep_record_tests tests/view_sweep_record_tests.cpp)
+target_link_libraries(view_sweep_record_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_record_tests COMMAND view_sweep_record_tests)
+
+add_executable(view_sweep_setup_tests tests/view_sweep_setup_tests.cpp)
+target_link_libraries(view_sweep_setup_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_setup_tests COMMAND view_sweep_setup_tests)
+
+add_executable(view_sweep_traversal_tests tests/view_sweep_traversal_tests.cpp)
+target_link_libraries(view_sweep_traversal_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_traversal_tests COMMAND view_sweep_traversal_tests)
+
+add_executable(view_sweep_runs_tests tests/view_sweep_runs_tests.cpp)
+target_link_libraries(view_sweep_runs_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_runs_tests COMMAND view_sweep_runs_tests)
+
+add_executable(view_sweep_influence_tests tests/view_sweep_influence_tests.cpp)
+target_link_libraries(view_sweep_influence_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_influence_tests COMMAND view_sweep_influence_tests)
+
+add_executable(fixed_projection_tests tests/fixed_projection_tests.cpp)
+target_link_libraries(fixed_projection_tests PRIVATE rloft_boot_flow)
+add_test(NAME fixed_projection_tests COMMAND fixed_projection_tests)
+
+add_executable(first_person_entity_projection_tests tests/first_person_entity_projection_tests.cpp)
+target_link_libraries(first_person_entity_projection_tests PRIVATE rloft_boot_flow)
+add_test(NAME first_person_entity_projection_tests COMMAND first_person_entity_projection_tests)
+
+add_executable(npc_scene_tests tests/npc_scene_tests.cpp)
+target_link_libraries(npc_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME npc_scene_tests COMMAND npc_scene_tests)
+
+add_executable(scene_shape_selector_tests tests/scene_shape_selector_tests.cpp)
+target_link_libraries(scene_shape_selector_tests PRIVATE rloft_boot_flow)
+add_test(NAME scene_shape_selector_tests COMMAND scene_shape_selector_tests)
+
+add_executable(loose_item_scene_tests tests/loose_item_scene_tests.cpp)
+target_link_libraries(loose_item_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME loose_item_scene_tests COMMAND loose_item_scene_tests)
+
+add_executable(placed_object_scene_tests tests/placed_object_scene_tests.cpp)
+target_link_libraries(placed_object_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME placed_object_scene_tests COMMAND placed_object_scene_tests)
+
+add_executable(scene_source_banks_tests tests/scene_source_banks_tests.cpp)
+target_link_libraries(scene_source_banks_tests PRIVATE rloft_boot_flow)
+add_test(NAME scene_source_banks_tests COMMAND scene_source_banks_tests)
+
+add_executable(world_scene_record_tests tests/world_scene_record_tests.cpp)
+target_link_libraries(world_scene_record_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_record_tests COMMAND world_scene_record_tests)
+
+add_executable(world_scene_selection_tests tests/world_scene_selection_tests.cpp)
+target_link_libraries(world_scene_selection_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_selection_tests COMMAND world_scene_selection_tests)
+
+add_executable(world_scene_draw_calls_tests tests/world_scene_draw_calls_tests.cpp)
+target_link_libraries(world_scene_draw_calls_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_draw_calls_tests COMMAND world_scene_draw_calls_tests)
+
+add_executable(world_scene_render_plan_tests tests/world_scene_render_plan_tests.cpp)
+target_link_libraries(world_scene_render_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_render_plan_tests COMMAND world_scene_render_plan_tests)
+
+add_executable(type7_column_traversal_tests tests/type7_column_traversal_tests.cpp)
+target_link_libraries(type7_column_traversal_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_column_traversal_tests COMMAND type7_column_traversal_tests)
+
+add_executable(type7_visible_runs_tests tests/type7_visible_runs_tests.cpp)
+target_link_libraries(type7_visible_runs_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_visible_runs_tests COMMAND type7_visible_runs_tests)
+
+add_executable(type7_microcode_plan_tests tests/type7_microcode_plan_tests.cpp)
+target_link_libraries(type7_microcode_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_microcode_plan_tests COMMAND type7_microcode_plan_tests)
+
+add_executable(type7_rasterizer_setup_tests tests/type7_rasterizer_setup_tests.cpp)
+target_link_libraries(type7_rasterizer_setup_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_rasterizer_setup_tests COMMAND type7_rasterizer_setup_tests)
+
+add_executable(type7_rasterizer_patch_tests tests/type7_rasterizer_patch_tests.cpp)
+target_link_libraries(type7_rasterizer_patch_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_rasterizer_patch_tests COMMAND type7_rasterizer_patch_tests)
+
+add_executable(sintab_pixel_microcode_tests tests/sintab_pixel_microcode_tests.cpp)
+target_link_libraries(sintab_pixel_microcode_tests PRIVATE rloft_boot_flow)
+add_test(NAME sintab_pixel_microcode_tests COMMAND sintab_pixel_microcode_tests)
+
+add_executable(type7_scene_pixel_executor_tests tests/type7_scene_pixel_executor_tests.cpp)
+target_link_libraries(type7_scene_pixel_executor_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_scene_pixel_executor_tests COMMAND type7_scene_pixel_executor_tests)
+
+add_executable(type7_vga_plane_masks_tests tests/type7_vga_plane_masks_tests.cpp)
+target_link_libraries(type7_vga_plane_masks_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_plane_masks_tests COMMAND type7_vga_plane_masks_tests)
+
+add_executable(type7_vga_raster_dispatch_tests tests/type7_vga_raster_dispatch_tests.cpp)
+target_link_libraries(type7_vga_raster_dispatch_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_raster_dispatch_tests COMMAND type7_vga_raster_dispatch_tests)
+
+add_executable(type7_vga_scene_trace_tests tests/type7_vga_scene_trace_tests.cpp)
+target_link_libraries(type7_vga_scene_trace_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_scene_trace_tests COMMAND type7_vga_scene_trace_tests)
+
+add_executable(type7_vga_trace_validation_tests tests/type7_vga_trace_validation_tests.cpp)
+target_link_libraries(type7_vga_trace_validation_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_trace_validation_tests COMMAND type7_vga_trace_validation_tests)
+
+add_executable(type7_vga_frame_trace_tests tests/type7_vga_frame_trace_tests.cpp)
+target_link_libraries(type7_vga_frame_trace_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_frame_trace_tests COMMAND type7_vga_frame_trace_tests)
+
+add_executable(vga_planar_memory_tests tests/vga_planar_memory_tests.cpp)
+target_link_libraries(vga_planar_memory_tests PRIVATE rloft_boot_flow)
+add_test(NAME vga_planar_memory_tests COMMAND vga_planar_memory_tests)
+
+add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
+target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
+add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
+
+add_executable(micro_rasterizer_layout_tests tests/micro_rasterizer_layout_tests.cpp)
+target_link_libraries(micro_rasterizer_layout_tests PRIVATE rloft_boot_flow)
+add_test(NAME micro_rasterizer_layout_tests COMMAND micro_rasterizer_layout_tests)
+
+add_executable(micro_rasterizer_plan_tests tests/micro_rasterizer_plan_tests.cpp)
+target_link_libraries(micro_rasterizer_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME micro_rasterizer_plan_tests COMMAND micro_rasterizer_plan_tests)
+
+add_executable(environment_projection_tests tests/environment_projection_tests.cpp)
+target_link_libraries(environment_projection_tests PRIVATE rloft_boot_flow)
+add_test(NAME environment_projection_tests COMMAND environment_projection_tests)
+
+add_executable(environment_presenter_tests tests/environment_presenter_tests.cpp)
+target_link_libraries(environment_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME environment_presenter_tests COMMAND environment_presenter_tests)
+
+add_executable(automap_presentation_tests tests/automap_presentation_tests.cpp)
+target_link_libraries(automap_presentation_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_presentation_tests COMMAND automap_presentation_tests)
+
+add_executable(original_automap_file_export_tests tests/original_automap_file_export_tests.cpp)
+target_link_libraries(original_automap_file_export_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_automap_file_export_tests COMMAND original_automap_file_export_tests)
+
+add_executable(automap_annotations_tests tests/automap_annotations_tests.cpp)
+target_link_libraries(automap_annotations_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_annotations_tests COMMAND automap_annotations_tests)
+
+add_executable(automap_annotation_presenter_tests tests/automap_annotation_presenter_tests.cpp)
+target_link_libraries(automap_annotation_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_annotation_presenter_tests COMMAND automap_annotation_presenter_tests)
+
+# Enhanced native PC map keyboard uses the existing original
+# on-screen nav actions without leaking keys into world movement.
+add_executable(enhanced_automap_keyboard_tests
+    tests/enhanced_automap_keyboard_tests.cpp)
+target_link_libraries(enhanced_automap_keyboard_tests PRIVATE rloft_boot_flow)
+add_test(NAME enhanced_automap_keyboard_tests
+    COMMAND enhanced_automap_keyboard_tests)
+
+add_executable(automap_viewport_presenter_tests tests/automap_viewport_presenter_tests.cpp)
+target_link_libraries(automap_viewport_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_viewport_presenter_tests COMMAND automap_viewport_presenter_tests)
+
+add_executable(automap_screen_state_tests tests/automap_screen_state_tests.cpp)
+target_link_libraries(automap_screen_state_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_screen_state_tests COMMAND automap_screen_state_tests)
+
+add_executable(automap_controls_tests tests/automap_controls_tests.cpp)
+target_link_libraries(automap_controls_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_controls_tests COMMAND automap_controls_tests)
+
+add_executable(automap_modal_tests tests/automap_modal_tests.cpp)
+target_link_libraries(automap_modal_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_modal_tests COMMAND automap_modal_tests)
+
+add_executable(automap_screen_presenter_tests tests/automap_screen_presenter_tests.cpp)
+target_link_libraries(automap_screen_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_screen_presenter_tests COMMAND automap_screen_presenter_tests)
+
+add_executable(surface_texture_tests tests/surface_texture_tests.cpp)
+target_link_libraries(surface_texture_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_texture_tests COMMAND surface_texture_tests)
+
+add_executable(surface_column_scaler_tests tests/surface_column_scaler_tests.cpp)
+target_link_libraries(surface_column_scaler_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_column_scaler_tests COMMAND surface_column_scaler_tests)
+
+add_executable(surface_shading_tests tests/surface_shading_tests.cpp)
+target_link_libraries(surface_shading_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_shading_tests COMMAND surface_shading_tests)
+
+add_executable(surface_fill_tests tests/surface_fill_tests.cpp)
+target_link_libraries(surface_fill_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
+# Exact CODE.2 C050/EF4D/FDBC page state, callback ordering and
+# byte-only toggles. SOURCE-ONLY model: no speculative live page flip.
+# CODE.2 07BB9..07C18 original title Load slot geometry:
+# tested standalone, intentionally NOT wired to incomplete SAVE## loader.
+add_executable(original_title_load_slot_tests
+    tests/original_title_load_slot_tests.cpp)
+target_include_directories(original_title_load_slot_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_title_load_slot_tests PRIVATE cxx_std_17)
+add_test(NAME original_title_load_slot_tests COMMAND original_title_load_slot_tests)
+# Original CODE.2 07C70..07D42 model of SAVE##->WORK load results.
+# Pure, no game filesystem writes. Keep unhooked pending full restore.
+add_executable(original_title_load_workflow_tests
+    tests/original_title_load_workflow_tests.cpp)
+target_include_directories(original_title_load_workflow_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_title_load_workflow_tests PRIVATE cxx_std_17)
+add_test(NAME original_title_load_workflow_tests
+    COMMAND original_title_load_workflow_tests)
+
+add_executable(original_vga_page_cycle_tests
+    tests/original_vga_page_cycle_tests.cpp)
+target_include_directories(original_vga_page_cycle_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_vga_page_cycle_tests PRIVATE cxx_std_17)
+add_test(NAME original_vga_page_cycle_tests COMMAND original_vga_page_cycle_tests)
+
+add_executable(original_ground_planar_fill_replay_tests tests/original_ground_planar_fill_replay_tests.cpp)
+target_link_libraries(original_ground_planar_fill_replay_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_ground_planar_fill_replay_tests COMMAND original_ground_planar_fill_replay_tests)
+# Source-proven original 335C8 nearest-depth initialization and
+# four 330E7/33278/3337F/33487 materializer updates. This model is
+# intentionally UNHOOKED from live native sweep rays until original
+# empty-record materialization provenance is established.
+add_executable(original_ground_nearest_22220_tests
+    tests/original_ground_nearest_22220_tests.cpp)
+target_include_directories(original_ground_nearest_22220_tests
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_ground_nearest_22220_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_nearest_22220_tests
+    COMMAND original_ground_nearest_22220_tests)
+add_executable(original_ground_texture_raster_tests tests/original_ground_texture_raster_tests.cpp)
+target_link_libraries(original_ground_texture_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_ground_texture_raster_tests COMMAND original_ground_texture_raster_tests)
+add_executable(original_ground_res4_audit_tests tests/original_ground_res4_audit_tests.cpp)
+target_link_libraries(original_ground_res4_audit_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_ground_res4_audit_tests COMMAND original_ground_res4_audit_tests)
+
+add_executable(surface_wall_presenter_tests tests/surface_wall_presenter_tests.cpp)
+target_link_libraries(surface_wall_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_wall_presenter_tests COMMAND surface_wall_presenter_tests)
+
+add_executable(surface_prepass_tests tests/surface_prepass_tests.cpp)
+target_link_libraries(surface_prepass_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_prepass_tests COMMAND surface_prepass_tests)
+add_executable(surface_sintab_prepass_executor_tests
+    tests/surface_sintab_prepass_executor_tests.cpp)
+target_link_libraries(surface_sintab_prepass_executor_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_sintab_prepass_executor_tests
+    COMMAND surface_sintab_prepass_executor_tests)
+add_executable(surface_sintab_main_executor_tests
+    tests/surface_sintab_main_executor_tests.cpp)
+target_link_libraries(surface_sintab_main_executor_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_sintab_main_executor_tests
+    COMMAND surface_sintab_main_executor_tests)
+
+add_executable(original_party_modal_blit_tests tests/original_party_modal_blit_tests.cpp)
+target_link_libraries(original_party_modal_blit_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_party_modal_blit_tests COMMAND original_party_modal_blit_tests)
+
+# Source-proven CODE.2 F66C ribbon layout; not yet live-wired to RNG/rendering.
+add_executable(original_feedback_ribbon_layout_tests tests/original_feedback_ribbon_layout_tests.cpp)
+target_include_directories(original_feedback_ribbon_layout_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_layout_tests COMMAND original_feedback_ribbon_layout_tests)
+
+# Original CODE.2 F66C -> 30288/30508, isolated pending renderer cadence proof.
+add_executable(original_feedback_ribbon_text_tests tests/original_feedback_ribbon_text_tests.cpp)
+target_include_directories(original_feedback_ribbon_text_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_text_tests COMMAND original_feedback_ribbon_text_tests)
+
+# Source-verified F790 event-only ribbon preparation; not live-wired.
+add_executable(original_feedback_ribbon_epoch_tests tests/original_feedback_ribbon_epoch_tests.cpp src/original_random.cpp)
+target_include_directories(original_feedback_ribbon_epoch_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)
+
+# Original CODE.2 F66C tiled RES2:3 raster, cached across VGA presents.
+add_executable(original_feedback_ribbon_raster_tests
+    tests/original_feedback_ribbon_raster_tests.cpp)
+target_link_libraries(original_feedback_ribbon_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_feedback_ribbon_raster_tests COMMAND original_feedback_ribbon_raster_tests)
+
+# Original CODE.2 112EC saves the 0x1400-byte VGA ribbon backing page.
+add_executable(original_f790_background_page_tests
+    tests/original_f790_background_page_tests.cpp)
+target_link_libraries(original_f790_background_page_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_background_page_tests COMMAND original_f790_background_page_tests)
+
+# Unwired source-defined 112EC -> 2932C -> F790 -> F66C coordinator.
+add_executable(original_f790_modal_sequence_tests
+    tests/original_f790_modal_sequence_tests.cpp)
+target_link_libraries(original_f790_modal_sequence_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_modal_sequence_tests COMMAND original_f790_modal_sequence_tests)
+
+# Exact original F790 ten-entry category dispatch; textual branches remain gated.
+add_executable(original_f790_item_category_route_tests
+    tests/original_f790_item_category_route_tests.cpp)
+target_include_directories(original_f790_item_category_route_tests PRIVATE include)
+add_test(NAME original_f790_item_category_route_tests COMMAND original_f790_item_category_route_tests)
+
+# Full original CODE.2 F790 category-specific record arithmetic model.
+# Original source strings and tables remain injected, not fabricated.
+add_executable(original_f790_item_description_source_tests
+    tests/original_f790_item_description_source_tests.cpp)
+target_include_directories(original_f790_item_description_source_tests PRIVATE include)
+add_test(NAME original_f790_item_description_source_tests COMMAND original_f790_item_description_source_tests)
+
+# Authentic original CODE.2 object-2 DS resources and original T decoder.
+# Native CTests run synthetic fixtures; supplied originals can be tested locally.
+add_executable(original_f790_static_resources_tests
+    tests/original_f790_static_resources_tests.cpp)
+target_include_directories(original_f790_static_resources_tests PRIVATE include)
+add_test(NAME original_f790_static_resources_tests COMMAND original_f790_static_resources_tests)
+
+add_executable(original_t_text_archive_tests
+    tests/original_t_text_archive_tests.cpp)
+target_include_directories(original_t_text_archive_tests PRIVATE include)
+add_test(NAME original_t_text_archive_tests COMMAND original_t_text_archive_tests)
+
+# Source CODE.2 11AD8..11B68 single/all-actor mode, 291B0/11268/F790
+# ordering. Isolated prefix only: no unproved live button mapping or item actions.
+add_executable(original_actor_modal_toggle_prefix_tests
+    tests/original_actor_modal_toggle_prefix_tests.cpp)
+target_include_directories(original_actor_modal_toggle_prefix_tests PRIVATE include)
+add_test(NAME original_actor_modal_toggle_prefix_tests
+    COMMAND original_actor_modal_toggle_prefix_tests)
+
+# CODE.2 039D0/03A20 dynamic 15618 table and 1F255..1F384
+# source FF50 upper/lower span. Isolated - no unproved 22220 live hook.
+add_executable(original_ground_ff50_source_span_tests
+    tests/original_ground_ff50_source_span_tests.cpp)
+target_include_directories(original_ground_ff50_source_span_tests PRIVATE include)
+add_test(NAME original_ground_ff50_source_span_tests
+    COMMAND original_ground_ff50_source_span_tests)
+
+# CODE.2 1F227..1F3DA upper overlay/texture/mode selection and
+# post-upper-callback FF50 lower branch. Isolated, no live host behavior.
+add_executable(original_ground_surface_dispatch_tests
+    tests/original_ground_surface_dispatch_tests.cpp)
+target_include_directories(original_ground_surface_dispatch_tests PRIVATE include)
+target_compile_features(original_ground_surface_dispatch_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_surface_dispatch_tests
+    COMMAND original_ground_surface_dispatch_tests)
+
+# Read-only original 335C8/32F4C source 22220 and generated FF50
+# F12 projection: never changes gameplay, pixels, RNG or DOS state.
+add_executable(original_ground_source_projection_tests
+    tests/original_ground_source_projection_tests.cpp)
+target_include_directories(original_ground_source_projection_tests
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_ground_source_projection_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_source_projection_tests
+    COMMAND original_ground_source_projection_tests)
+
+# Original CODE.2 DS + original T archive + injected MUTABLE nested weights.
+add_executable(original_f790_resolved_description_tests
+    tests/original_f790_resolved_description_tests.cpp)
+target_include_directories(original_f790_resolved_description_tests PRIVATE include)
+add_test(NAME original_f790_resolved_description_tests COMMAND original_f790_resolved_description_tests)
+
+# Source-only original OBJECTS + mutable container F5F8 + original DATA/T text.
+add_executable(original_f790_runtime_description_tests
+    tests/original_f790_runtime_description_tests.cpp)
+target_link_libraries(original_f790_runtime_description_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_runtime_description_tests COMMAND original_f790_runtime_description_tests)
+
+# Exact original CODE.2 direct-call argument provenance, no game assets.
+add_executable(original_f790_caller_catalog_tests
+    tests/original_f790_caller_catalog_tests.cpp)
+target_include_directories(original_f790_caller_catalog_tests PRIVATE include)
+add_test(NAME original_f790_caller_catalog_tests COMMAND original_f790_caller_catalog_tests)
+
+# Isolated CODE.2 130A0 selected-poll 130DE F790 event projection.
+add_executable(original_f790_selected_poll_tests
+    tests/original_f790_selected_poll_tests.cpp)
+target_include_directories(original_f790_selected_poll_tests PRIVATE include)
+add_test(NAME original_f790_selected_poll_tests COMMAND original_f790_selected_poll_tests)
+
+# Original CODE.2 scribe success/rejection/strict-expiry F790 event edges.
+add_executable(original_f790_feedback_edges_tests
+    tests/original_f790_feedback_edges_tests.cpp)
+target_link_libraries(original_f790_feedback_edges_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_feedback_edges_tests COMMAND original_f790_feedback_edges_tests)
+
+# Source F790 feedback text/known/held snapshot BEFORE native redraw.
+add_executable(original_f790_feedback_source_snapshot_tests
+    tests/original_f790_feedback_source_snapshot_tests.cpp)
+target_link_libraries(original_f790_feedback_source_snapshot_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_feedback_source_snapshot_tests COMMAND original_f790_feedback_source_snapshot_tests)
+
+# Preserve source 117A0 status->all F790 call edges (scribe success fires TWICE).
+add_executable(original_f790_ordinary_slot_event_plan_tests
+    tests/original_f790_ordinary_slot_event_plan_tests.cpp)
+target_link_libraries(original_f790_ordinary_slot_event_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_ordinary_slot_event_plan_tests COMMAND original_f790_ordinary_slot_event_plan_tests)
+
+# Original F5F8 subtype-0x14 early return must ignore mutable bag contents.
+add_executable(original_f5f8_special_weight_tests
+    tests/original_f5f8_special_weight_tests.cpp)
+target_link_libraries(original_f5f8_special_weight_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f5f8_special_weight_tests COMMAND original_f5f8_special_weight_tests)
+
+add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
+target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
+
+# Persistent source-media cache: checked hashes, one-time original extraction,
+# unchanged GameSource/ResArchive consumer interface.
+add_executable(persistent_media_cache_tests tests/persistent_media_cache_tests.cpp)
+target_link_libraries(persistent_media_cache_tests PRIVATE rloft_boot_flow)
+if(MSVC)
+    target_compile_options(persistent_media_cache_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(persistent_media_cache_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME persistent_media_cache_tests COMMAND persistent_media_cache_tests)
+
+add_executable(game_source_tests tests/game_source_tests.cpp)
+target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
+add_test(NAME game_source_tests COMMAND game_source_tests)
+
+add_executable(presenter_tests tests/presenter_tests.cpp)
+target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME presenter_tests COMMAND presenter_tests)
+
+add_executable(type7_scene_shape_tests tests/type7_scene_shape_tests.cpp)
+target_link_libraries(type7_scene_shape_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_scene_shape_tests COMMAND type7_scene_shape_tests)
+
+add_executable(type7_native_raster_tests tests/type7_native_raster_tests.cpp)
+target_link_libraries(type7_native_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_native_raster_tests COMMAND type7_native_raster_tests)
+
+add_executable(indexed_font_presenter_tests tests/indexed_font_presenter_tests.cpp)
+target_link_libraries(indexed_font_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME indexed_font_presenter_tests COMMAND indexed_font_presenter_tests)
+
+add_executable(voc_decoder_tests tests/voc_decoder_tests.cpp)
+target_link_libraries(voc_decoder_tests PRIVATE rloft_boot_flow)
+add_test(NAME voc_decoder_tests COMMAND voc_decoder_tests)
+
+add_executable(xmidi_tests tests/xmidi_tests.cpp)
+target_link_libraries(xmidi_tests PRIVATE rloft_boot_flow)
+add_test(NAME xmidi_tests COMMAND xmidi_tests)
+
+add_executable(character_flow_tests tests/character_flow_tests.cpp)
+target_link_libraries(character_flow_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_flow_tests COMMAND character_flow_tests)
+
+add_executable(character_stats_tests tests/character_stats_tests.cpp)
+target_link_libraries(character_stats_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_stats_tests COMMAND character_stats_tests)
+
+add_executable(character_sheet_tests tests/character_sheet_tests.cpp)
+target_link_libraries(character_sheet_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_sheet_tests COMMAND character_sheet_tests)
+
+add_executable(character_modal_stats_tests tests/character_modal_stats_tests.cpp)
+target_link_libraries(character_modal_stats_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_modal_stats_tests COMMAND character_modal_stats_tests)
+
+add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
+target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
+add_executable(character_starting_equipment_tests tests/character_starting_equipment_tests.cpp)
+target_link_libraries(character_starting_equipment_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_starting_equipment_tests COMMAND character_starting_equipment_tests)
+
+add_executable(character_palette_remap_tests tests/character_palette_remap_tests.cpp)
+target_link_libraries(character_palette_remap_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_palette_remap_tests COMMAND character_palette_remap_tests)
+
+add_executable(sound_config_tests tests/sound_config_tests.cpp)
+target_link_libraries(sound_config_tests PRIVATE rloft_boot_flow)
+add_test(NAME sound_config_tests COMMAND sound_config_tests)
+
+add_executable(options_menu_tests tests/options_menu_tests.cpp)
+target_link_libraries(options_menu_tests PRIVATE rloft_boot_flow)
+add_test(NAME options_menu_tests COMMAND options_menu_tests)
+
+set(RLOFT_TEST_TARGETS
+    boot_flow_tests
+    exploration_state_tests
+    exploration_session_tests
+    exploration_frame_tests
+    exploration_scene_tests
+    level_display_tests
+    party_presentation_tests
+    object_catalog_tests
+    original_random_tests
+    placed_scene_catalog_tests
+    npc_catalog_tests
+    level22_story_tests
+    level22_encounter_tests
+    level22_viewport_target_tests
+    level_world_state_tests
+    inventory_screen_tests
+    inventory_runtime_tests
+    inventory_item_description_tests
+    inventory_world_drop_tests
+    inventory_encumbrance_tests
+    inventory_party_order_tests
+    combat_hit_check_tests
+    combat_hand_dispatch_tests
+    combat_attack_timing_tests
+    combat_attack_status_service_tests
+    combat_damage_dice_tests
+    combat_class_level_tests
+    combat_rod_of_smiting_tests
+    combat_npc_injury_prelude_tests
+    combat_npc_death_followon_tests
+    combat_npc_respawn_tests
+    combat_xp_distribution_tests
+    combat_progression_thresholds_tests
+    combat_level_change_gate_tests
+    combat_level_change_sequence_tests
+    combat_level_up_hp_tests
+    combat_level_spell_tables_tests
+    combat_irq_message_tests
+    combat_irq_display_tests
+    combat_irq_display_runtime_tests
+    combat_original_text_runtime_tests
+    combat_original_sprite_runtime_tests
+    combat_original_vga_address_tests
+    combat_original_sprite_raster_tests
+    combat_original_sprite_machine_tests
+    combat_original_sprite_raster_binding_tests
+    combat_original_composite_tests
+    combat_original_vga_copy_tests
+    combat_original_vga_copy_binding_tests
+    combat_original_dgroup_move_tests
+    combat_original_overlay_tests
+    combat_original_vga_page_stack_tests
+    combat_original_vga_page_stack_binding_tests
+    combat_original_overlay_backing_clip_tests
+    combat_original_overlay_backing_clip_binding_tests
+    combat_original_vga_backing_tests
+    combat_original_vga_backing_binding_tests
+    combat_original_overlay_position_tests
+    combat_original_overlay_draw_tests
+    combat_original_overlay_probe_tests
+    combat_original_overlay_chain_tests
+    combat_original_overlay_predicates_tests
+    combat_original_sprite_clip_tests
+    combat_original_clipped_raster_tests
+    combat_original_clipped_raster_binding_tests
+    combat_original_overlay_predicate_clip_chain_tests
+    combat_level_message_tests
+    combat_harm_prelude_tests
+    combat_damage_stat_bonus_tests
+    combat_weapon_damage_gate_tests
+    combat_attack_target_tests
+    combat_hand_predicates_tests
+    combat_single_hand_eligibility_tests
+    combat_hand_pair_eligibility_tests
+    combat_hand_pair_early_gate_tests
+    combat_target_priority_tests
+    combat_visible_target_tests
+    party_hud_tests
+    party_panel_controls_tests
+    top_edge_menu_tests
+    top_edge_menu_presenter_tests
+    quit_confirm_tests
+    exploration_ui_tests
+    exploration_hud_presenter_tests
+    exploration_presenter_tests
+    exploration_frame_capture_tests
+    exploration_preview_tests
+    exploration_world_tests
+    exploration_collision_tests
+    original_entity_collision_tests
+    exploration_motion_tests
+    exploration_legacy_input_tests
+    exploration_hit_regions_tests
+    exploration_locomotion_tests
+    exploration_runtime_motion_tests
+    exploration_gameplay_cadence_tests
+    exploration_runtime_tests
+    environment_view_tests
+    view_sweep_record_tests
+    view_sweep_setup_tests
+    view_sweep_traversal_tests
+    view_sweep_runs_tests
+    view_sweep_influence_tests
+    fixed_projection_tests
+    first_person_entity_projection_tests
+    npc_scene_tests
+    scene_shape_selector_tests
+    loose_item_scene_tests
+    placed_object_scene_tests
+    scene_source_banks_tests
+    world_scene_record_tests
+    world_scene_selection_tests
+    world_scene_draw_calls_tests
+    world_scene_render_plan_tests
+    type7_column_traversal_tests
+    type7_visible_runs_tests
+    type7_microcode_plan_tests
+    type7_rasterizer_setup_tests
+    type7_rasterizer_patch_tests
+    sintab_pixel_microcode_tests
+    type7_scene_pixel_executor_tests
+    type7_vga_plane_masks_tests
+    type7_vga_raster_dispatch_tests
+    type7_vga_scene_trace_tests
+    type7_vga_trace_validation_tests
+    type7_vga_frame_trace_tests
+    vga_planar_memory_tests
+    renderer_tables_tests
+    micro_rasterizer_layout_tests
+    micro_rasterizer_plan_tests
+    environment_projection_tests
+    environment_presenter_tests
+    automap_presentation_tests
+    automap_annotations_tests
+    automap_annotation_presenter_tests
+    automap_viewport_presenter_tests
+    automap_screen_state_tests
+    automap_controls_tests
+    automap_modal_tests
+    automap_screen_presenter_tests
+    surface_texture_tests
+    surface_column_scaler_tests
+    surface_shading_tests
+    surface_fill_tests
+    original_ground_texture_raster_tests
+    original_ground_res4_audit_tests
+    surface_wall_presenter_tests
+    surface_prepass_tests
+    surface_sintab_prepass_executor_tests
+    surface_sintab_main_executor_tests
+    game_source_tests
+    presenter_tests
+    type7_scene_shape_tests
+    type7_native_raster_tests
+    indexed_font_presenter_tests
+    voc_decoder_tests
+    xmidi_tests
+    character_flow_tests
+    character_stats_tests
+    character_sheet_tests
+    character_modal_stats_tests
+    character_transfer_tests
+    character_starting_equipment_tests
+    character_palette_remap_tests
+    sound_config_tests
+    options_menu_tests
+)
+if(MSVC)
+    foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
+        target_compile_options(${test_target} PRIVATE /UNDEBUG)
+    endforeach()
+else()
+    foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
+        target_compile_options(${test_target} PRIVATE -UNDEBUG)
+    endforeach()
+endif()
+
+add_executable(rloft_res4_ground_probe tools/rloft_res4_ground_probe.cpp)
+target_link_libraries(rloft_res4_ground_probe PRIVATE rloft_boot_flow)
+target_compile_features(rloft_res4_ground_probe PRIVATE cxx_std_17)
+
+add_executable(rloft_starting_equipment_probe tools/rloft_starting_equipment_probe.cpp)
+target_link_libraries(rloft_starting_equipment_probe PRIVATE rloft_boot_flow)
+target_compile_features(rloft_starting_equipment_probe PRIVATE cxx_std_17)
+
+if(WIN32)
+    add_executable(
+        ravenloft_demo_v1 WIN32
+        src/win32_audio.cpp
+        src/win32_gpu_scene.cpp
+        src/win32_main.cpp
+        src/win32_midi.cpp
+    )
+    target_compile_definitions(ravenloft_demo_v1 PRIVATE
+        "RLOFT_DEMO_SOURCE_SHA=\"${RLOFT_DEMO_SOURCE_SHA}\"")
+    target_link_libraries(
+        ravenloft_demo_v1
+        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Ole32 Advapi32 Winmm Opengl32 Glu32
+    )
+    target_compile_features(ravenloft_demo_v1 PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(ravenloft_demo_v1 PRIVATE /W4 /permissive-)
+    endif()
+endif()
+
+add_executable(original_numbered_effect_flags_tests tests/original_numbered_effect_flags_tests.cpp)
+target_link_libraries(original_numbered_effect_flags_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_numbered_effect_flags_tests COMMAND original_numbered_effect_flags_tests)
+
+add_executable(original_mist_staging_tests tests/original_mist_staging_tests.cpp)
+target_link_libraries(original_mist_staging_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_mist_staging_tests COMMAND original_mist_staging_tests)
+
+add_executable(level22_mist_timeline_tests tests/level22_mist_timeline_tests.cpp)
+target_link_libraries(level22_mist_timeline_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_mist_timeline_tests COMMAND level22_mist_timeline_tests)
+
+add_executable(level22_quest_playback_tests tests/level22_quest_playback_tests.cpp)
+target_link_libraries(level22_quest_playback_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_quest_playback_tests COMMAND level22_quest_playback_tests)
+
+add_executable(assassin_relic_transition_tests tests/assassin_relic_transition_tests.cpp)
+target_link_libraries(assassin_relic_transition_tests PRIVATE rloft_boot_flow)
+add_test(NAME assassin_relic_transition_tests COMMAND assassin_relic_transition_tests)
