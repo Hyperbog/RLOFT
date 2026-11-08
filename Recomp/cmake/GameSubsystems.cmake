@@ -242,3 +242,117 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE
         rloft_game_dos_filesystem rloft_game_vga)
 endif()
+
+# Independent CODE.2 host presentation and interactive input adapters.
+# They borrow the same source guest; CODE.2 is never compiled into libraries.
+add_library(rloft_game_presentation STATIC src/game/ui/Presentation.cpp)
+add_library(rloft_game_input STATIC src/game/input/Input.cpp)
+foreach(system_target IN ITEMS rloft_game_presentation rloft_game_input)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+add_executable(rloft_original_code2_presentation_input_test
+    src/test_original_code2_presentation_input_adapters.cpp)
+target_compile_features(rloft_original_code2_presentation_input_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_presentation_input_test PRIVATE
+    rloft_game_presentation rloft_game_input)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_presentation_input_host_abi
+        COMMAND rloft_original_code2_presentation_input_test)
+endif()
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing CODE2 presentation/input owner: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE
+        rloft_game_presentation rloft_game_input)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_presentation rloft_game_input)
+endif()
+
+# Phase 9: independently compiled borrowed title-event and mouse ABI.
+add_library(rloft_game_title_interaction STATIC src/game/ui/TitleInteraction.cpp)
+add_library(rloft_game_mouse_lifecycle STATIC src/game/input/MouseLifecycle.cpp)
+foreach(system_target IN ITEMS rloft_game_title_interaction rloft_game_mouse_lifecycle)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+add_executable(rloft_original_code2_title_mouse_host_test
+    src/test_original_code2_title_mouse_host.cpp)
+target_compile_features(rloft_original_code2_title_mouse_host_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_title_mouse_host_test PRIVATE
+    rloft_game_title_interaction rloft_game_mouse_lifecycle)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_19464_title_mouse_1a064_callback_host_abi
+        COMMAND rloft_original_code2_title_mouse_host_test)
+endif()
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing CODE2 original title/mouse guest owner: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE
+        rloft_game_title_interaction rloft_game_mouse_lifecycle)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_title_interaction rloft_game_mouse_lifecycle)
+endif()
+
+# Phase 10: physical title mouse edge retention, independent from CODE.2.
+add_library(rloft_game_mouse_dispatch STATIC src/game/input/MouseDispatch.cpp)
+target_compile_features(rloft_game_mouse_dispatch PUBLIC cxx_std_17)
+if(MSVC)
+    target_compile_options(rloft_game_mouse_dispatch PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_game_mouse_dispatch PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_executable(rloft_original_code2_mouse_dispatch_test
+    src/test_original_code2_mouse_dispatch.cpp)
+target_compile_features(rloft_original_code2_mouse_dispatch_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_mouse_dispatch_test PRIVATE
+    rloft_game_mouse_dispatch)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_19464_physical_mouse_edges
+        COMMAND rloft_original_code2_mouse_dispatch_test)
+endif()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_mouse_dispatch)
+endif()
+
+# Phase 10 source regression: execute real reconstructed 27894->19D18.
+# This test compiles the original CODE.2 only inside its own fixture.
+add_executable(rloft_original_code2_27894_mouse_isr_test
+    src/test_original_code2_27894_mouse_isr.cpp)
+set_target_properties(rloft_original_code2_27894_mouse_isr_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_27894_mouse_isr_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_27894_mouse_isr_test
+        PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+target_link_libraries(rloft_original_code2_27894_mouse_isr_test PRIVATE
+    rloft_game_mouse_dispatch rloft_game_title_interaction rloft_game_vga)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_27894_19D18_mouse_isr_execution
+        COMMAND rloft_original_code2_27894_mouse_isr_test)
+endif()

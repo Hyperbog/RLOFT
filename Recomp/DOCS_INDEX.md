@@ -4,6 +4,11 @@ The [current README](README.md) is the entry point for building, launching, bran
 
 ## Current operating contracts
 
+- [November 2026 production-source engineering baseline, obsolete-file audit,
+  reproducible builds and unaccepted release criteria](PRODUCTION_BASELINE.md)
+- [Current modular C++17 game-system ownership, host libraries and original
+  CODE.2 title mouse dispatch](GAME_SYSTEMS.md)
+
 - [Part 36 original CODE.2 IRQ9 keyboard make/break and Windows Build #121 — source test 108/108 and current limits](PART36_ORIGINAL_IRQ9_NATIVE_INPUT_20261027.md)
 - [Part 35 saved-world and native input continuity — exact Windows Level22/23 source-frame receipts, keyboard/INT33 changes and remaining playability blockers](PART35_SOURCE_SAVES_AND_PHYSICAL_INPUT_20261027.md)
 - [Engine-wide original CODE.1/CODE.2 execution plan — common loader, rendering, audio, mechanics and source callback coverage](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md)

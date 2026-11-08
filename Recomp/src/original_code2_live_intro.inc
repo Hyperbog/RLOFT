@@ -351,55 +351,7 @@ void intro_title_fade(bool fade_in,u32 source,u32 first,
     else code2::function_32220(current->machine,b,source,
         static_cast<code2::s32>(first),static_cast<code2::s32>(last),red,green,blue);
 }
-// A real DOS INT33 callback drives original 19D18 asynchronously.
-// The native host samples INT33 through the retained source 1A1F4
-// boundary and dispatches the ORIGINAL 19D18 body on this same worker.
-// It is an explicit host-mouse adaptation, not fabricated title motion.
-void intro_title_mouse_event() noexcept {
-    auto& m=current->machine;
-    const u32 buttons=code2::load_le16(current->data.data()+0x2B7A8u);
-    const u32 dos_x=code2::load_le16(current->data.data()+0x2B7ACu);
-    const u32 dos_y=code2::load_le16(current->data.data()+0x2B7AEu);
-    code2::Application33Boundary video=current->original_mouse_resources;
-    video.call_30700=&intro_tick;
-    video.call_1aacc=&original_game_over_1aacc_cursor_restore;
-    video.call_1a288=&intro_title_redraw;
-    code2::Application34Boundary mouse=current->original_mouse_init_callbacks;
-    mouse.app33=&video;
-    mouse.call_2e34c=+[]() noexcept -> u32 {
-        return code2::function_2e34c(current->machine);
-    };
-    mouse.call_1f820=+[]() noexcept {
-        code2::function_1f820(current->machine);
-    };
-    mouse.call_29738=+[](u32 p) noexcept {
-        code2::function_29738(current->machine,p);
-    };
-    mouse.call_296c0=+[](u32 y,u32 x,u32 h,u32 w) noexcept {
-        code2::function_296c0(current->machine,
-            static_cast<code2::s32>(y),static_cast<code2::s32>(x),
-            static_cast<code2::s32>(h),static_cast<code2::s32>(w));
-    };
-    code2::function_19d18(m,mouse,1u,buttons,dos_x*2u,dos_y,0u);
-}
-u32 intro_title_click() noexcept {
-    const auto pressed=original_game_over_1a1f4_mouse_button();
-    ++current->original_title_mouse_polls;
-    intro_title_mouse_event();
-    if(current->original_title_presentations==0u)
-        stop("ORIGINAL_19464_TITLE_CLICK_BEFORE_SOURCE_FRAME");
-    if(const char* gate=std::getenv("RLOFT_RECOMP_TITLE_RENDER_INPUT_GATE");
-       gate && std::strcmp(gate,"1")==0) {
-        std::cerr<<"CODE2_ORIGINAL_19464_RENDER_AND_INPUT_PASS"
-                 <<" original_menu=192CC_19464"
-                 <<" source_click_poll=1A1F4"
-                 <<" title_page_flips="<<current->original_title_presentations
-                 <<" mouse_buttons="<<pressed
-                 <<" original_guest=SAME\n"<<std::flush;
-        stop("ORIGINAL_19464_TITLE_RENDER_AND_MOUSE_POLL_VERIFIED");
-    }
-    return pressed;
-}
+#include "original_code2_title_interaction.inc"
 u32 intro_not_yet_new_game() noexcept {
     stop("ORIGINAL_INTRO_NEW_GAME_07B94_NOT_CONNECTED");
 }

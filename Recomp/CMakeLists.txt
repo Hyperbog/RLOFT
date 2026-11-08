@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(RavenloftReconstructionLinkGate LANGUAGES CXX)
 
+# Register all source tests, including the original 192CC/19464 entry tests.
+include(CTest)
+
 # Regression for original CODE.2 301A8 font glyph layout and planar packing.
 # Uses only synthetic raw font bytes; retail RES0 method-3 remains a live gate.
 add_executable(rloft_original_code2_type2_font_test
@@ -124,7 +127,6 @@ set_target_properties(rloft_dpmi_selector_descriptors_test PROPERTIES
 add_executable(rloft_dpmi_linear_memory_test src/test_dpmi_linear_memory.cpp)
 set_target_properties(rloft_dpmi_linear_memory_test PROPERTIES
     CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-include(CTest)
 if(BUILD_TESTING)
     add_test(NAME canonical_host_readonly_dos_file_service_contract
         COMMAND rloft_dos_readonly_files_test)

@@ -1,5 +1,5 @@
 // Asset-free Creative Voice PCM8 parser test, no OS audio device.
-#include "original_voc_pcm8.hpp"
+#include "game/audio/Audio.hpp"
 #include "original_code2_pcm_packet.hpp"
 #include <algorithm>
 #include <cstdint>

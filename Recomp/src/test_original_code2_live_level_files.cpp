@@ -2,7 +2,6 @@
 // bounded private file transport. These tests never contain retail media.
 #include "game/save/Save.hpp"
 #include "original_code2_owner_work_snapshot.hpp"
-#include "original_code2_saved_level_actor_proof.hpp"
 #include "../../Code2/graphics/original_levels_grid.hpp"
 #include <chrono>
 #include <filesystem>

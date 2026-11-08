@@ -44,6 +44,10 @@ bool OriginalVgaHost::write_port8(std::uint16_t port, std::uint8_t value) noexce
 
 std::uint8_t OriginalVgaHost::read_port8(std::uint16_t port) noexcept{
         switch (port) {
+        // Original source 277F0/27844 reads the currently selected
+        // sequencer/GC index before its IRQ VGA save/restore sequence.
+        case 0x3C4: return seq_index_;
+        case 0x3CE: return gc_index_;
         case 0x3C5:
             if (seq_index_==2 || seq_index_==4) return sequencer_[seq_index_];
             break;

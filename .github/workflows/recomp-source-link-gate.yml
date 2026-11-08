@@ -1,6 +1,14 @@
 name: Canonical reconstructed CODE.1 + CODE.2 source link gate
 
 on:
+  pull_request:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/**'
+      - 'Code2/graphics/**'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
+      - '.github/workflows/recomp-source-link-gate.yml'
   push:
     branches: [Recomp]
     paths:
@@ -30,6 +38,13 @@ jobs:
       - name: Configure source-build target (not native engine)
         shell: pwsh
         run: cmake -S Recomp -B build/recomp -A x64
+      - name: Inventory obsolete compatibility forwards without deleting live sources
+        shell: pwsh
+        run: |
+          python -m unittest discover -s Recomp/tools -p test_audit_compatibility_headers.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Compatibility-header audit tests failed" }
+          python Recomp/tools/audit_compatibility_headers.py --root .
+          if ($LASTEXITCODE -ne 0) { throw "Compatibility-header inventory failed" }
       - name: Compile and link both complete reconstruction files
         shell: pwsh
         run: cmake --build build/recomp --config Debug --parallel 2

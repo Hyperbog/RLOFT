@@ -1,5 +1,14 @@
 name: RLOFT Linux portable recompilation C++ regression
 on:
+  pull_request:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/**'
+      - 'Recomp/cmake/**'
+      - 'Recomp/CMakeLists.txt'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
+      - '.github/workflows/recomp-linux-ci.yml'
   push:
     branches: [Recomp]
     paths:
@@ -36,6 +45,10 @@ jobs:
         run: |
           python3 -m unittest discover -s Recomp/tools -p test_audit_recomp_source_layout.py -v
           python3 Recomp/tools/audit_recomp_source_layout.py --root .
+      - name: Inventory compatibility forwarding headers before cleanup
+        run: |
+          python3 -m unittest discover -s Recomp/tools -p test_audit_compatibility_headers.py -v
+          python3 Recomp/tools/audit_compatibility_headers.py --root .
       - name: Compile and test portable C++ through the same developer script
         run: bash dev/linux.sh test
       - name: Archive failure evidence for diagnosis

@@ -86,3 +86,26 @@ Keep separate **engineering/preview artifacts** and a future **production releas
 - `game/graphics/Graphics.cpp` now implements `OriginalVgaHost`'s bounded VGA ports, four-plane latches, DAC6 palette, retrace and scanout. `Graphics.hpp` retains field layout, constants and signatures. `rloft_game_vga` is independently compiled; `rloft_game_world` links to it transitively.
 - `src/original_code2_vga_callback_registration.inc` contains original `attach_original_vga` presentation, cursor, resource, sound, source movement and experimental 1FC14 callback assignments byte-identically. The fragment is compiled INSIDE the original owning guest function to preserve its single CODE.2 state, source callback ABI and order.
 - Existing DOS file, VGA, source 290F4, saved-world and Windows native acceptance tests remain the behavioral gates. This refactor does not certify DOS/BIOS or analog VGA parity.
+
+## Phase 8: presentation services and interactive input
+
+- `game/ui/Presentation.hpp/.cpp` validates source `20294` page push, two 320×400 planar fills, page pop and `291B0` selection against borrowed guest counters and DGROUP depth. Only the original `2E590/29B40/2E5D4` routines actually change the VGA device.
+- `game/input/Input.hpp/.cpp` holds the bounded host 308F8 port 60h/61h/PIC acknowledgment latch, exact original 20440 INT33 mouse service signatures, and the private E0ss physical-scan preflight. Original `308F8` make/break events and `30B40/F590` key mapping still execute on the same guest. No second input queue or mouse driver is introduced.
+- Static targets `rloft_game_presentation` and `rloft_game_input` link to retained source owners and the new media-free `original_code2_presentation_input_host_abi` regression.
+- This boundary refactor does not establish retail DOS interrupt cadence, mouse callback delivery, live `19464` selection or pixel-identical VGA presentation. Existing original-game acceptance gates remain open.
+
+## Phase 9: CODE.2 title interaction and mouse callback lifetime
+
+- `game/ui/TitleInteraction.hpp/.cpp` reads the retained `33CB0` guest mouse snapshot at `2B7A8/2B7AC/2B7AE` and passes original `19D18(1,buttons,2*x,y,0)` arguments without host-authored hover/menu selection. `original_code2_title_interaction.inc` preserves original `19464 → 1A1F4 → 19D18` on the same guest.
+- `game/input/MouseLifecycle.hpp/.cpp` verifies the original `1A064/33A7C` INT33 function `0Ch` register frame, event mask, handler address and single successful source-owned install. `original_code2_mouse_callback_lifecycle.inc` remains compiled inside the retained source owner; no duplicated CODE.2 device or callback table.
+- Two independent C++17 static libraries and media-free regression `original_code2_19464_title_mouse_1a064_callback_host_abi` exercise invalid/missing guest frames, callback ACK, mouse snapshot and original title frame gating.
+- `1A9F8` cursor reset is not asserted to uninstall the DOS mouse callback. Actual asynchronous INT33 delivery, title click-to-new-game handoff, retail DOS cadence and all whole-game release acceptance gates remain unverified.
+
+## Phase 10: physical title input and reconstructed 27894 ISR execution
+
+- `game/input/MouseDispatch.hpp/.cpp`: one bounded native UI-to-source-worker queue retains physical button down/up edges between original INT33 fn03 requests; movement-only snapshots coalesce, invalid positions or overflow fail closed, focus/capture loss discards pending down edges. The first source fn04 set-position remains the original center request.
+- `game/ui/TitleInteraction.hpp/.cpp`: per-Session INT33 fn0C event classifier (motion=1, L down/up=2/4, R down/up=8/16) begins at the source-initialized center (DOS X=320, Y=200), not a synthetic selection or pointer location.
+- `original_code2_title_interaction.inc`: after the original `19464` calls original `1A1F4`, read the original `33CB0` DGROUP mouse state and, only if a registered function-0Ch callback has observed a change, run **original reconstructed `27894`** on the same guest. The code invokes original `277F0` VGA save, original `19D18` mouse body, original `27844` VGA restore, and the source CPU/stack guard. Host supplies a synthetic interrupt entry register frame on the retained worker; DOS asynchronous timing and the real-mode segment setup of `3566C` remain unverified.
+- `game/graphics/Graphics.cpp` now exposes VGA index-port reads (3C4h/3CEh) required by `277F0` alongside existing indexed data registers.
+- New media-free CTests `original_code2_19464_physical_mouse_edges` and `original_code2_27894_19D18_mouse_isr_execution` cover the bounded mailbox and actual `Code2.cpp` ISR callback invocation against the modular VGA host. The existing `original_code2_192CC_19464_title_menu_dispatch` independently covers original source selection with a test-only mouse callback; it does not establish physical click-through.
+- Pull-request Linux and Windows source-link workflows are enabled for the `Recomp` branch, so source regression results can be collected before merge. **Do not mark live title/menu, retail DOS IRQ cadence, first-boot transition to original 7B94, or production release accepted without native original-media execution.**
