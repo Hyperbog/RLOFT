@@ -152,3 +152,43 @@ endforeach()
 if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_guest_callbacks)
 endif()
+
+# Original 139AC DOS filename and original 30BB4 source vector contracts.
+# Compiled outside the canonical CODE.2 owner; never replace DOS semantics.
+add_library(rloft_game_host_dos_services STATIC src/game/filesystem/DosServices.cpp)
+add_library(rloft_game_interrupt_lifecycle STATIC src/game/timing/InterruptLifecycle.cpp)
+target_link_libraries(rloft_game_interrupt_lifecycle PUBLIC rloft_game_guest_callbacks)
+foreach(system_target IN ITEMS
+        rloft_game_host_dos_services
+        rloft_game_interrupt_lifecycle)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+add_executable(rloft_original_code2_dos_interrupt_host_test
+    src/test_original_code2_dos_interrupt_host.cpp)
+target_compile_features(rloft_original_code2_dos_interrupt_host_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_dos_interrupt_host_test PRIVATE
+    rloft_game_host_dos_services rloft_game_interrupt_lifecycle)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_139ac_dos_path_30bb4_vector_host_contract
+        COMMAND rloft_original_code2_dos_interrupt_host_test)
+endif()
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing original DOS/IRQ host consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE
+        rloft_game_host_dos_services rloft_game_interrupt_lifecycle)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_host_dos_services rloft_game_interrupt_lifecycle)
+endif()
