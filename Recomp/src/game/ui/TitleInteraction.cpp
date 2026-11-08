@@ -17,6 +17,20 @@ bool read_source_mouse_event(const std::uint8_t* guest,
            le16(guest+kDosY),0u};
     return true;
 }
+std::uint32_t CallbackDispatch::event_mask(const MouseEvent& state) noexcept {
+    const std::uint32_t buttons=state.buttons&3u;
+    std::uint32_t flags=0u;
+    if(state.dos_x_doubled!=previous_dos_x_ ||
+       state.dos_y!=previous_dos_y_)flags|=1u;
+    if((buttons^previous_buttons_)&1u)
+        flags|=(buttons&1u)?2u:4u;
+    if((buttons^previous_buttons_)&2u)
+        flags|=(buttons&2u)?8u:16u;
+    previous_buttons_=buttons;
+    previous_dos_x_=state.dos_x_doubled;
+    previous_dos_y_=state.dos_y;
+    return flags;
+}
 bool source_title_presented(unsigned original_page_presentations) noexcept {
     return original_page_presentations!=0u;
 }
