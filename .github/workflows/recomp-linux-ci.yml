@@ -1,5 +1,14 @@
 name: RLOFT Linux portable recompilation C++ regression
 on:
+  pull_request:
+    branches: [Recomp]
+    paths:
+      - 'Recomp/src/**'
+      - 'Recomp/cmake/**'
+      - 'Recomp/CMakeLists.txt'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
+      - '.github/workflows/recomp-linux-ci.yml'
   push:
     branches: [Recomp]
     paths:
