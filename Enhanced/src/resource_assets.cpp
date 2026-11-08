@@ -1,6 +1,7 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/INIT.hpp"
 #include "rloft/RES2.hpp"
+#include "rloft/RES7.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -796,7 +797,7 @@ Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
                 res2_.emplace(source_.read("RES2"));
             }
             return decode_res2_image(*res2_, index);
-        case 7: return res7_.decode_type1(index);
+        case 7: return decode_res7_image(res7_, index);
         case 8: return res8_.decode_type1(index);
         default:
             throw std::out_of_range("Demo v1 has no loaded type-1 archive for requested bank");

@@ -605,6 +605,7 @@ add_library(rloft_boot_flow
     src/COLORS.cpp
     src/T.cpp
     src/RES2.cpp
+    src/RES7.cpp
     src/RES8.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -1245,6 +1246,10 @@ add_executable(RES2_tests tests/RES2_tests.cpp)
 target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES2_tests COMMAND RES2_tests)
 
+add_executable(RES7_tests tests/RES7_tests.cpp)
+target_link_libraries(RES7_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES7_tests COMMAND RES7_tests)
+
 add_executable(automap_presentation_tests tests/automap_presentation_tests.cpp)
 target_link_libraries(automap_presentation_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_presentation_tests COMMAND automap_presentation_tests)
@@ -1741,6 +1746,7 @@ set(RLOFT_TEST_TARGETS
     environment_presenter_tests
     RES8_tests
     RES2_tests
+    RES7_tests
     T_tests
     automap_presentation_tests
     automap_annotations_tests
