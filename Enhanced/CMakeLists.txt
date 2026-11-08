@@ -429,6 +429,7 @@ add_library(rloft_boot_flow
     src/character_modal_stats.cpp
     src/CHARS.cpp
     src/character_transfer.cpp
+    src/LEVELS.cpp
     src/exploration_state.cpp
     src/exploration_session.cpp
     src/exploration_frame.cpp
@@ -657,6 +658,10 @@ add_test(NAME INFO_tests COMMAND INFO_tests)
 add_executable(exploration_state_tests tests/exploration_state_tests.cpp)
 target_link_libraries(exploration_state_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_state_tests COMMAND exploration_state_tests)
+
+add_executable(LEVELS_tests tests/LEVELS_tests.cpp)
+target_link_libraries(LEVELS_tests PRIVATE rloft_boot_flow)
+add_test(NAME LEVELS_tests COMMAND LEVELS_tests)
 
 add_executable(exploration_session_tests tests/exploration_session_tests.cpp)
 target_link_libraries(exploration_session_tests PRIVATE rloft_boot_flow)
@@ -1623,6 +1628,7 @@ add_test(NAME options_menu_tests COMMAND options_menu_tests)
 set(RLOFT_TEST_TARGETS
     boot_flow_tests
     exploration_state_tests
+    LEVELS_tests
     exploration_session_tests
     exploration_frame_tests
     exploration_scene_tests

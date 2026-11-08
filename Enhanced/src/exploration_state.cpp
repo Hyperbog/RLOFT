@@ -1,4 +1,5 @@
 #include "rloft/exploration_state.hpp"
+#include "rloft/LEVELS.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -241,23 +242,13 @@ bool PartyImage::active(std::size_t actor) const {
 
 LevelState ExplorationStateCodec::parse_archive_level(
     const std::vector<std::uint8_t>& levels_dat, int level_id) {
-    require_range(0, 4, levels_dat.size(), "LEVELS.DAT header");
-    const auto count = static_cast<std::size_t>(u32(levels_dat.data()));
-    if (level_id < 0 || static_cast<std::size_t>(level_id) >= count) {
+    // One LEVELS.DAT container owner; retain the existing compact-record
+    // gameplay decoder. LEVnnn.DAT direct saves use parse_direct_level().
+    if (level_id < 0) throw std::out_of_range("LEVELS.DAT level id");
+    const LevelsArchive archive(levels_dat);
+    if (static_cast<std::size_t>(level_id) >= archive.level_count())
         throw std::out_of_range("LEVELS.DAT level id");
-    }
-    const auto table_size = 4 + count * 4;
-    require_range(4, count * 4, levels_dat.size(), "LEVELS.DAT directory");
-    const auto start = static_cast<std::size_t>(
-        u32(levels_dat.data() + 4 + static_cast<std::size_t>(level_id) * 4));
-    const auto end = static_cast<std::size_t>(
-        static_cast<std::size_t>(level_id + 1) < count
-            ? u32(levels_dat.data() + 4 + static_cast<std::size_t>(level_id + 1) * 4)
-            : levels_dat.size());
-    if (start < table_size || end <= start || end > levels_dat.size()) {
-        throw std::runtime_error("invalid LEVELS.DAT record offsets");
-    }
-    return parse_record(slice(levels_dat, start, end, "LEVELS.DAT record"),
+    return parse_record(archive.record(static_cast<std::size_t>(level_id)),
                         LevelStorage::ArchiveCompact);
 }
 
