@@ -1,9 +1,9 @@
 // Original 19464 title mouse bridge. Same CODE.2 session; 19D18 owns
 // pointer handling, guest data, and source menu outcomes.
-// A real DOS INT33 callback drives original 19D18 asynchronously.
-// The native host samples INT33 through the retained source 1A1F4
-// boundary and dispatches the ORIGINAL 19D18 body on this same worker.
-// It is an explicit host-mouse adaptation, not fabricated title motion.
+// Native input reaches original INT33 fn03 through retained 1A1F4.
+// The host invokes reconstructed 27894 on the same CODE.2 worker after
+// observing a change; this does NOT certify asynchronous DOS fn0C IRQ timing.
+// Original 27894 invokes source 19D18; no host menu behavior is substituted.
 // Host only binds original source 19D18 arguments. The canonical CODE.2
 // 27894 ISR, not a direct UI-side call, invokes this registered callback.
 u32 intro_title_source_19d18(u32 flags,u32 buttons,u32 arg3,
