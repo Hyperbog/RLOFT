@@ -860,6 +860,10 @@ std::uint16_t RavenloftBootAssets::init_u16(
            (static_cast<std::uint16_t>(init_[byte_offset + 1U]) << 8U);
 }
 
+SampleAdLibrary RavenloftBootAssets::sample_ad_library() const {
+    return parse_sample_ad(source_.read("SAMPLE.AD"));
+}
+
 std::vector<EnvironmentProfile> RavenloftBootAssets::environment_profiles() const {
     return decode_environment_profiles(init_);
 }

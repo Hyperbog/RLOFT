@@ -604,6 +604,7 @@ add_library(rloft_boot_flow
     src/startup_presenter.cpp
     src/indexed_font_presenter.cpp
     src/sound_config.cpp
+    src/SAMPLE.cpp
     src/voc_decoder.cpp
     src/xmidi.cpp
 )
@@ -1565,6 +1566,10 @@ add_test(NAME character_palette_remap_tests COMMAND character_palette_remap_test
 add_executable(sound_config_tests tests/sound_config_tests.cpp)
 target_link_libraries(sound_config_tests PRIVATE rloft_boot_flow)
 add_test(NAME sound_config_tests COMMAND sound_config_tests)
+
+add_executable(SAMPLE_tests tests/SAMPLE_tests.cpp)
+target_link_libraries(SAMPLE_tests PRIVATE rloft_boot_flow)
+add_test(NAME SAMPLE_tests COMMAND SAMPLE_tests)
 
 add_executable(options_menu_tests tests/options_menu_tests.cpp)
 target_link_libraries(options_menu_tests PRIVATE rloft_boot_flow)

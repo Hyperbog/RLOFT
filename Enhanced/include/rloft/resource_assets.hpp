@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "rloft/game_source.hpp"
+#include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
 
 namespace rloft {
@@ -105,6 +106,8 @@ public:
     [[nodiscard]] Type1Raster res0_type1(int index) const;
     [[nodiscard]] Type2Font res0_font(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
+    // Original AIL FM timbres, loaded only when a caller requests OPL2 data.
+    [[nodiscard]] SampleAdLibrary sample_ad_library() const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
