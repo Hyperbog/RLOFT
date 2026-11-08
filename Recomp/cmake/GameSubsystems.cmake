@@ -192,3 +192,52 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE
         rloft_game_host_dos_services rloft_game_interrupt_lifecycle)
 endif()
+
+# Independent host DOS file I/O and VGA device; guest/source handlers remain
+# exclusively compiled inside the retained CODE.2 owner.
+add_library(rloft_game_dos_filesystem STATIC src/game/filesystem/Filesystem.cpp)
+add_library(rloft_game_vga STATIC src/game/graphics/Graphics.cpp)
+foreach(system_target IN ITEMS rloft_game_dos_filesystem rloft_game_vga)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+target_link_libraries(rloft_game_world PUBLIC rloft_game_vga)
+foreach(consumer IN ITEMS
+        rloft_dos_readonly_files_test
+        rloft_original_code2_level_loader
+        rloft_original_code2_save_game
+        rloft_original_code2_world_frame
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing original DOS file consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_dos_filesystem)
+endforeach()
+foreach(consumer IN ITEMS
+        rloft_original_vga_host_tests
+        rloft_original_code2_vga_boot_test
+        rloft_original_code2_graphics_frame
+        rloft_original_code2_cine00_player
+        rloft_original_code2_scene_actor_source_test
+        rloft_original_code2_game_over_vga_strip_test
+        rloft_original_code2_world_frame
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing original VGA host consumer: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_vga)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_dos_filesystem rloft_game_vga)
+endif()
