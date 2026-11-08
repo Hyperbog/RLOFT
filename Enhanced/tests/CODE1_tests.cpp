@@ -48,6 +48,10 @@ void original_file_tests(const std::vector<std::uint8_t>& bytes) {
     corrupted = bytes;
     corrupted[0x3E724U + 0x06D8U] = 2;
     rejects([&] { (void)rloft::Code1ClassRules::from_code1(corrupted); });
+    corrupted = bytes;
+    for (unsigned i = 0; i < 4U; ++i)
+        corrupted[0x25D24U + 0x3CU + i] = 0xFFU;
+    rejects([&] { (void)rloft::Code1ClassRules::from_code1(corrupted); });
     corrupted = bytes; corrupted.resize(17);
     rejects([&] { (void)rloft::Code1ClassRules::from_code1(corrupted); });
 }

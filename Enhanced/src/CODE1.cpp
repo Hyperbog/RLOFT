@@ -30,6 +30,9 @@ void verify_code1_layout(const std::vector<std::uint8_t>& b) {
     }
     const auto le = kModule + static_cast<std::size_t>(
         read32(b, kModule + 0x3CU));
+    if (le > b.size() || b.size() - le < 0x84U) {
+        throw std::runtime_error("CODE.1 nested LE header exceeds file");
+    }
     if (le != 0x27BDCU || b[le] != 'L' || b[le + 1U] != 'E' ||
         read32(b, le + 0x14U) != 0x18U ||
         read32(b, le + 0x18U) != 1U ||
