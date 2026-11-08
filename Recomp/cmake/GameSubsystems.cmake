@@ -315,3 +315,25 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE
         rloft_game_title_interaction rloft_game_mouse_lifecycle)
 endif()
+
+# Phase 10: physical title mouse edge retention, independent from CODE.2.
+add_library(rloft_game_mouse_dispatch STATIC src/game/input/MouseDispatch.cpp)
+target_compile_features(rloft_game_mouse_dispatch PUBLIC cxx_std_17)
+if(MSVC)
+    target_compile_options(rloft_game_mouse_dispatch PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_game_mouse_dispatch PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_executable(rloft_original_code2_mouse_dispatch_test
+    src/test_original_code2_mouse_dispatch.cpp)
+target_compile_features(rloft_original_code2_mouse_dispatch_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_mouse_dispatch_test PRIVATE
+    rloft_game_mouse_dispatch)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_19464_physical_mouse_edges
+        COMMAND rloft_original_code2_mouse_dispatch_test)
+endif()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_mouse_dispatch)
+endif()
