@@ -434,6 +434,7 @@ add_library(rloft_boot_flow
     src/exploration_scene.cpp
     src/level_display.cpp
     src/party_presentation.cpp
+    src/OBJECTS.cpp
     src/object_catalog.cpp
     src/original_random.cpp
     src/placed_scene_catalog.cpp
@@ -674,6 +675,10 @@ add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
 add_executable(object_catalog_tests tests/object_catalog_tests.cpp)
 target_link_libraries(object_catalog_tests PRIVATE rloft_boot_flow)
 add_test(NAME object_catalog_tests COMMAND object_catalog_tests)
+
+add_executable(OBJECTS_tests tests/OBJECTS_tests.cpp)
+target_link_libraries(OBJECTS_tests PRIVATE rloft_boot_flow)
+add_test(NAME OBJECTS_tests COMMAND OBJECTS_tests)
 
 add_executable(original_random_tests tests/original_random_tests.cpp)
 target_link_libraries(original_random_tests PRIVATE rloft_boot_flow)
@@ -1594,6 +1599,7 @@ set(RLOFT_TEST_TARGETS
     level_display_tests
     party_presentation_tests
     object_catalog_tests
+    OBJECTS_tests
     original_random_tests
     placed_scene_catalog_tests
     npc_catalog_tests
