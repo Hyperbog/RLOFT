@@ -437,6 +437,7 @@ add_library(rloft_boot_flow
     src/object_catalog.cpp
     src/original_random.cpp
     src/placed_scene_catalog.cpp
+    src/NPCS.cpp
     src/npc_catalog.cpp
     src/level22_story.cpp
     src/level22_encounter.cpp
@@ -684,6 +685,10 @@ add_test(NAME placed_scene_catalog_tests COMMAND placed_scene_catalog_tests)
 add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
 target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
 add_test(NAME npc_catalog_tests COMMAND npc_catalog_tests)
+
+add_executable(NPCS_tests tests/NPCS_tests.cpp)
+target_link_libraries(NPCS_tests PRIVATE rloft_boot_flow)
+add_test(NAME NPCS_tests COMMAND NPCS_tests)
 
 add_executable(level22_story_tests tests/level22_story_tests.cpp)
 target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)

@@ -13,6 +13,8 @@ namespace rloft {
 struct NpcDefinition final {
     static constexpr std::size_t kSerializedSize = 0x45;
 
+    // Preserve original 20-byte name including nonzero bytes after first NUL.
+    std::array<std::uint8_t, 20> original_name_bytes{};
     std::string name;
     std::uint16_t local_shape_base{};
     std::uint16_t collision_half_extent{};
@@ -35,6 +37,8 @@ struct NpcDefinition final {
     std::uint32_t initial_runtime_flags{};
     std::uint8_t behavior_flags_39{};
     std::uint8_t behavior_flags_3a{};
+    std::uint8_t unresolved_3b{};
+    std::uint8_t unresolved_3c{};
     std::uint16_t ambient_sound_id{};
     std::uint16_t attack_sound_id{};
     std::uint16_t damage_sound_id{};
@@ -50,6 +54,8 @@ public:
 
     [[nodiscard]] std::size_t size() const noexcept { return npcs_.size(); }
     [[nodiscard]] const NpcDefinition& at(std::size_t npc_id) const;
+    [[nodiscard]] NpcDefinition& edit(std::size_t npc_id);
+    [[nodiscard]] std::vector<std::uint8_t> encode() const;
 
 private:
     std::vector<NpcDefinition> npcs_;
