@@ -10,6 +10,8 @@
 #include "game/core/GuestCallbacks.hpp"
 #include "game/filesystem/DosServices.hpp"
 #include "game/timing/InterruptLifecycle.hpp"
+#include "game/ui/Presentation.hpp"
+#include "game/input/Input.hpp"
 #include "original_code2_video_boot.hpp"
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_scene.hpp"
@@ -1061,15 +1063,11 @@ code2::Runtime101MouseRegs source_mouse_present_2e340() noexcept {
 code2::Runtime101MouseRegs interrupt_mouse_range_boundary(
     u32 command,u32 ebx,u32 ecx,u32 edx) noexcept {
     if(current->live_continuation && current->original_20440_mouse_started) {
-        const bool new_y=(command==8u && ebx==0u &&
-                          ecx==0u && edx==0x18Fu);
-        const bool new_x=(command==7u && ebx==0u &&
-                          ecx==0u && edx==0x27Eu);
-        const bool set_pos=(command==4u && ebx==0u &&
-                            ecx==0x140u && edx==0xC8u);
-        const bool read_pos=(command==3u && ebx==0u &&
-                             ecx==0u && edx==0u);
-        if(!new_y && !new_x && !set_pos && !read_pos)
+        const auto mouse=rloft::input::classify_20440_mouse(
+            command,ebx,ecx,edx);
+        const bool new_y=mouse==rloft::input::MouseCommand::RangeY;
+        const bool new_x=mouse==rloft::input::MouseCommand::RangeX;
+        if(mouse==rloft::input::MouseCommand::Unsupported)
             stop("ORIGINAL_20440_INT33_MOUSE_COMMAND_UNEXPECTED");
         if((new_x||new_y) && current->original_20440_mouse_inits!=0u)
             stop("ORIGINAL_20440_INT33_MOUSE_RANGE_AFTER_INIT");
@@ -1303,8 +1301,8 @@ void original_video_palette_29234(u32 palette_buffer) noexcept {
 // page), two original 29B40 rectangular planar fills, then 2E5D4 (pop).
 // These are original CODE.2 functions on the SAME running CODE.2 stack.
 void original_291b0_source_page(u32 page) noexcept {
-    if(page>1u || !current->original_vga ||
-       current->original_source_video_modes!=1u)
+    if(!rloft::presentation::can_select_page(page,
+        current->original_vga && current->original_source_video_modes==1u)
         stop("ORIGINAL_291B0_PAGE_UNSUPPORTED");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1319,11 +1317,14 @@ void original_291b0_source_page(u32 page) noexcept {
 }
 void original_2e590_presentation_reset(u32 page) noexcept {
     std::cerr<<"CODE2_ORIGINAL_LIVE_VGA_TRACE=20294_2E590_SOURCE_PAGE_PUSH\n"<<std::flush;
-    if(page!=0u || !current->live_continuation ||
-       !current->original_vga || current->original_source_video_modes!=1u ||
-       current->original_source_dac_streams!=1u ||
-       current->original_source_page_pushes!=current->original_source_page_pops ||
-       current->data[0xF0D0u]!=0u)
+    if(!rloft::presentation::can_push_20294(page,
+        current->live_continuation!=nullptr,
+        current->original_vga && current->original_source_video_modes==1u,
+        current->original_source_dac_streams==1u,
+        {current->original_source_page_pushes,
+         current->original_source_page_pops,
+         current->original_source_planar_fills},
+        current->data[0xF0D0u])
         stop("ORIGINAL_20294_PAGE_STACK_PUSH_PREREQUISITES");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1341,13 +1342,11 @@ void original_2e590_presentation_reset(u32 page) noexcept {
 }
 void original_29b40_source_rectangle(u32 row,u32 x,u32 rows,u32 pixels,
                                     u32 color) noexcept {
-    if(row!=0u || x!=0u || rows!=400u || pixels!=320u ||
-       color!=0u || !current->original_vga ||
-       current->original_source_page_pushes!=current->original_source_page_pops+1u ||
-       current->original_source_planar_fills<
-           2u*current->original_source_page_pops ||
-       current->original_source_planar_fills>=
-           2u*current->original_source_page_pushes)
+    if(!rloft::presentation::can_clear_20294(row,x,rows,pixels,color,
+        current->original_vga!=nullptr,
+        {current->original_source_page_pushes,
+         current->original_source_page_pops,
+         current->original_source_planar_fills})
         stop("ORIGINAL_20294_29B40_CLEAR_PARAMETERS_CHANGED");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1363,10 +1362,12 @@ void original_29b40_source_rectangle(u32 row,u32 x,u32 rows,u32 pixels,
     }
 }
 void original_2e5d4_source_page_pop() noexcept {
-    if(!current->original_vga ||
-       current->original_source_page_pushes!=current->original_source_page_pops+1u ||
-       current->original_source_planar_fills!=2u*current->original_source_page_pushes ||
-       current->data[0xF0D0u]!=1u)
+    if(!rloft::presentation::can_pop_20294(
+        current->original_vga!=nullptr,
+        {current->original_source_page_pushes,
+         current->original_source_page_pops,
+         current->original_source_planar_fills},
+        current->data[0xF0D0u])
         stop("ORIGINAL_20294_2E5D4_PAGE_STACK_IMBALANCED");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1508,28 +1509,24 @@ void original_scene_poll_source_events() noexcept;
 // Deliver owner-supplied PC make/break scans through the compiled CODE.2
 // 308F8 interrupt routine. Port callbacks represent a bounded 8042/PIC
 // transaction; this is NOT physical DOS IRQ timing or key-repeat parity.
-static thread_local u8 original_irq9_host_scan=0u;
-static thread_local u8 original_irq9_port61=0u;
-static thread_local unsigned original_irq9_eoi_count=0u;
+static thread_local rloft::input::Irq9Ports original_irq9_ports{};
 u8 original_irq9_host_in8(code2::u16 port) noexcept {
-    if(port==0x60u)return original_irq9_host_scan;
-    if(port==0x61u)return original_irq9_port61;
+    u8 value=0u;
+    if(original_irq9_ports.read8(port,value))return value;
     stop("ORIGINAL_308F8_IRQ9_UNRECOGNIZED_PORT_READ");
 }
 void original_irq9_host_out8(code2::u16 port,u8 value) noexcept {
-    if(port==0x61u){original_irq9_port61=value;return;}
-    if(port==0x20u && value==0x20u){++original_irq9_eoi_count;return;}
+    if(original_irq9_ports.write8(port,value))return;
     stop("ORIGINAL_308F8_IRQ9_UNRECOGNIZED_PORT_WRITE");
 }
 void original_irq9_source_event(u8 scan) noexcept {
-    original_irq9_host_scan=scan;
-    original_irq9_port61=0u;
+    original_irq9_ports.begin_scan(scan);
     code2::Application71Boundary irq{};
     irq.in8=&original_irq9_host_in8;
     irq.out8=&original_irq9_host_out8;
-    const unsigned eoi_before=original_irq9_eoi_count;
+    const unsigned eoi_before=original_irq9_ports.eoi_count();
     code2::interrupt_308f8(current->machine,irq);
-    if(original_irq9_eoi_count!=eoi_before+1u)
+    if(original_irq9_ports.eoi_count()!=eoi_before+1u)
         stop("ORIGINAL_308F8_IRQ9_SOURCE_EOI_MISSING");
 }
 u32 original_30b40_keyboard_poll() noexcept {
@@ -1665,11 +1662,12 @@ u32 original_30b40_keyboard_poll() noexcept {
     // that table with a BIOS scan/ASCII pair made R/S/T and other game
     // commands unreachable. Keep the older already-mapped acceptance
     // responses untouched, including 0x148 movement and private 0xFFF*.
-    if((source_key&0xFF00u)==0xE000u) {
-        const u32 scan=source_key&0xFFu;
-        if(scan==0u || scan>0x58u ||
-           0xF590u+scan*4u+4u>current->data.size())
+    if(rloft::input::is_host_set1_key(source_key)) {
+        u8 scan_byte=0u;
+        if(!rloft::input::decode_host_set1_key(
+               source_key,current->data.size(),scan_byte))
             stop("ORIGINAL_30B40_PHYSICAL_SCAN_OUT_OF_BOUNDS");
+        const u32 scan=scan_byte;
         if(current->data[0xF575u]!=1u)
             stop("ORIGINAL_30B40_SOURCE_IRQ9_VECTOR_NOT_INSTALLED");
         if(!rloft::host_interrupts::source_irq9_installed(
@@ -1690,7 +1688,7 @@ u32 original_30b40_keyboard_poll() noexcept {
                  <<" hardware_scan="<<scan
                  <<" original_mapped_key="<<source_key
                  <<" original_source=308F8_MAKE_30B40_F590_308F8_BREAK"
-                 <<" source_irq9_eoi="<<original_irq9_eoi_count
+                 <<" source_irq9_eoi="<<original_irq9_ports.eoi_count()
                  <<" irq9_physical_parity=OPEN\n"<<std::flush;
     }
     if(const char* live=std::getenv("RLOFT_RECOMP_EXPERIMENTAL_1FC14_SCENE_SOURCE");

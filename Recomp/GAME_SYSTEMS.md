@@ -86,3 +86,10 @@ Keep separate **engineering/preview artifacts** and a future **production releas
 - `game/graphics/Graphics.cpp` now implements `OriginalVgaHost`'s bounded VGA ports, four-plane latches, DAC6 palette, retrace and scanout. `Graphics.hpp` retains field layout, constants and signatures. `rloft_game_vga` is independently compiled; `rloft_game_world` links to it transitively.
 - `src/original_code2_vga_callback_registration.inc` contains original `attach_original_vga` presentation, cursor, resource, sound, source movement and experimental 1FC14 callback assignments byte-identically. The fragment is compiled INSIDE the original owning guest function to preserve its single CODE.2 state, source callback ABI and order.
 - Existing DOS file, VGA, source 290F4, saved-world and Windows native acceptance tests remain the behavioral gates. This refactor does not certify DOS/BIOS or analog VGA parity.
+
+## Phase 8: presentation services and interactive input
+
+- `game/ui/Presentation.hpp/.cpp` validates source `20294` page push, two 320×400 planar fills, page pop and `291B0` selection against borrowed guest counters and DGROUP depth. Only the original `2E590/29B40/2E5D4` routines actually change the VGA device.
+- `game/input/Input.hpp/.cpp` holds the bounded host 308F8 port 60h/61h/PIC acknowledgment latch, exact original 20440 INT33 mouse service signatures, and the private E0ss physical-scan preflight. Original `308F8` make/break events and `30B40/F590` key mapping still execute on the same guest. No second input queue or mouse driver is introduced.
+- Static targets `rloft_game_presentation` and `rloft_game_input` link to retained source owners and the new media-free `original_code2_presentation_input_host_abi` regression.
+- This boundary refactor does not establish retail DOS interrupt cadence, mouse callback delivery, live `19464` selection or pixel-identical VGA presentation. Existing original-game acceptance gates remain open.

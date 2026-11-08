@@ -242,3 +242,40 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE
         rloft_game_dos_filesystem rloft_game_vga)
 endif()
+
+# Independent CODE.2 host presentation and interactive input adapters.
+# They borrow the same source guest; CODE.2 is never compiled into libraries.
+add_library(rloft_game_presentation STATIC src/game/ui/Presentation.cpp)
+add_library(rloft_game_input STATIC src/game/input/Input.cpp)
+foreach(system_target IN ITEMS rloft_game_presentation rloft_game_input)
+    target_compile_features(${system_target} PUBLIC cxx_std_17)
+    if(MSVC)
+        target_compile_options(${system_target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${system_target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+add_executable(rloft_original_code2_presentation_input_test
+    src/test_original_code2_presentation_input_adapters.cpp)
+target_compile_features(rloft_original_code2_presentation_input_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_presentation_input_test PRIVATE
+    rloft_game_presentation rloft_game_input)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_presentation_input_host_abi
+        COMMAND rloft_original_code2_presentation_input_test)
+endif()
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing CODE2 presentation/input owner: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE
+        rloft_game_presentation rloft_game_input)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE
+        rloft_game_presentation rloft_game_input)
+endif()
