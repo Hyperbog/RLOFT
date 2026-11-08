@@ -864,32 +864,10 @@ std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
 }
 
 std::string RavenloftBootAssets::text(int index) const {
-    if (text_.size() < 4) {
-        throw std::runtime_error("T text archive is truncated");
-    }
-    const auto count = static_cast<std::int32_t>(u32(text_.data()));
-    if (index < 0 || index >= count) {
+    if (index < 0 || static_cast<std::uint32_t>(index) >= text_.count()) {
         throw std::out_of_range("T text record index");
     }
-
-    const auto table_at = 4U + static_cast<std::size_t>(index) * 4U;
-    if (table_at + 4U > text_.size()) {
-        throw std::runtime_error("T text index exceeds archive");
-    }
-    const auto record_at = static_cast<std::size_t>(u32(text_.data() + table_at));
-    if (record_at + 2U > text_.size()) {
-        throw std::runtime_error("T text record offset exceeds archive");
-    }
-    const auto length = static_cast<std::size_t>(u16(text_.data() + record_at));
-    if (record_at + 2U + length > text_.size()) {
-        throw std::runtime_error("T text record payload exceeds archive");
-    }
-
-    std::string out(length, '\0');
-    for (std::size_t i = 0; i < length; ++i) {
-        out[i] = static_cast<char>(text_[record_at + 2U + i] ^ 0xDCU);
-    }
-    return out;
+    return text_.decoded(static_cast<std::uint32_t>(index));
 }
 
 std::uint16_t RavenloftBootAssets::init_u16(

@@ -9,6 +9,7 @@
 
 #include "rloft/game_source.hpp"
 #include "rloft/COLORS.hpp"
+#include "rloft/T.hpp"
 #include "rloft/RES8.hpp"
 #include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
@@ -136,7 +137,7 @@ private:
     Res8Archive res8_;
     ResArchive res10_;
     ColorsFile colors_;
-    std::vector<std::uint8_t> text_;
+    TArchive text_;
     std::vector<std::uint8_t> init_;
     std::vector<std::uint8_t> code1_;
 };

@@ -603,6 +603,7 @@ add_library(rloft_boot_flow
     src/game_source.cpp
     src/persistent_media_cache.cpp
     src/COLORS.cpp
+    src/T.cpp
     src/RES2.cpp
     src/RES8.cpp
     src/resource_assets.cpp
@@ -1431,6 +1432,10 @@ add_executable(original_t_text_archive_tests
 target_include_directories(original_t_text_archive_tests PRIVATE include)
 add_test(NAME original_t_text_archive_tests COMMAND original_t_text_archive_tests)
 
+add_executable(T_tests tests/T_tests.cpp)
+target_link_libraries(T_tests PRIVATE rloft_boot_flow)
+add_test(NAME T_tests COMMAND T_tests)
+
 # Source CODE.2 11AD8..11B68 single/all-actor mode, 291B0/11268/F790
 # ordering. Isolated prefix only: no unproved live button mapping or item actions.
 add_executable(original_actor_modal_toggle_prefix_tests
@@ -1736,6 +1741,7 @@ set(RLOFT_TEST_TARGETS
     environment_presenter_tests
     RES8_tests
     RES2_tests
+    T_tests
     automap_presentation_tests
     automap_annotations_tests
     automap_annotation_presenter_tests
