@@ -351,7 +351,7 @@ else()
         PRIVATE -O0 -Wall -Wextra -Wpedantic)
 endif()
 target_link_libraries(rloft_original_code2_27894_mouse_isr_test PRIVATE
-    rloft_game_mouse_dispatch rloft_game_title_interaction)
+    rloft_game_mouse_dispatch rloft_game_title_interaction rloft_game_vga)
 if(BUILD_TESTING)
     add_test(NAME original_code2_27894_19D18_mouse_isr_execution
         COMMAND rloft_original_code2_27894_mouse_isr_test)
