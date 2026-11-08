@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 
 namespace rloft {
@@ -105,6 +106,13 @@ RendererTables RendererTables::parse(
         u32(b.data() + p);
     p += 4U;
 
+    // Reject malicious block counts before reserving an unbounded vector.
+    // Every physical scale block needs at least a 2-byte size and 0x205
+    // body bytes; even the original 512-byte trailer only tightens this.
+    if (out.scale_block_count > (b.size() - p) / (2U + 0x205U)) {
+        throw std::runtime_error(
+            "SINTAB scale-block count exceeds remaining file");
+    }
     out.scale_blocks.reserve(
         static_cast<std::size_t>(
             out.scale_block_count));
@@ -206,6 +214,81 @@ RendererTables RendererTables::parse(
             "SINTAB trailer is not all zero");
     }
 
+    return out;
+}
+
+// Rebuild only the documented SINTAB fields; x86 rasterizer bytes are
+// serialized as opaque data and never executed by this serializer.
+std::vector<std::uint8_t> RendererTables::encode() const {
+    if (scale_block_count != scale_blocks.size() ||
+        static_cast<std::uint64_t>(runtime_lookup_max) + 1U !=
+            runtime_lookup.size() ||
+        zero_trailer.size() != 512U ||
+        !std::all_of(zero_trailer.begin(), zero_trailer.end(),
+                     [](std::uint8_t byte) { return byte == 0U; })) {
+        throw std::invalid_argument("SINTAB inconsistent count, lookup or trailer");
+    }
+
+    std::uint64_t sum = 0U;
+    for (const auto& block : scale_blocks) {
+        if (block.rasterizer_x86.empty() ||
+            block.rasterizer_x86.back() != 0xC3U ||
+            block.rasterizer_x86.size() > 0xFFFFU - 0x204U ||
+            block.serialized_size != 0x204U + block.rasterizer_x86.size() ||
+            !std::is_sorted(block.code_patch_offset.begin(),
+                            block.code_patch_offset.end())) {
+            throw std::invalid_argument("SINTAB invalid scale block layout");
+        }
+        for (const auto offset : block.code_patch_offset) {
+            if (offset < 0x204U || offset >= block.serialized_size) {
+                throw std::invalid_argument("SINTAB code patch offset outside block");
+            }
+        }
+        sum += block.serialized_size;
+    }
+    if (sum != scale_block_payload_bytes) {
+        throw std::invalid_argument("SINTAB scale payload total mismatch");
+    }
+    const std::uint64_t output_size = 0x1B44ULL +
+        2ULL * runtime_lookup.size() + 4ULL +
+        2ULL * scale_blocks.size() + sum + zero_trailer.size();
+    if (output_size > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::overflow_error("SINTAB exceeds supported 32-bit file size");
+    }
+
+    std::vector<std::uint8_t> out;
+    out.reserve(static_cast<std::size_t>(output_size));
+    const auto write16 = [&out](std::uint16_t value) {
+        out.push_back(static_cast<std::uint8_t>(value));
+        out.push_back(static_cast<std::uint8_t>(value >> 8U));
+    };
+    const auto write32 = [&out](std::uint32_t value) {
+        for (unsigned shift = 0; shift < 32U; shift += 8U) {
+            out.push_back(static_cast<std::uint8_t>(value >> shift));
+        }
+    };
+    for (auto value : sine_q16_signmag) write32(value);
+    for (auto value : tangent_q16) write32(value);
+    for (auto value : projection_a) write16(value);
+    for (auto value : projection_b) write16(value);
+    for (auto value : constants) write32(value);
+    for (auto value : view_angle_tenths) write32(static_cast<std::uint32_t>(value));
+    write32(scale_block_count);
+    write32(runtime_lookup_max);
+    write32(renderer_aux_value);
+    for (auto value : runtime_lookup) write16(value);
+    write32(scale_block_payload_bytes);
+    for (const auto& block : scale_blocks) {
+        write16(block.serialized_size);
+        for (auto value : block.code_patch_offset) write16(value);
+        for (auto value : block.scale_step) write16(value);
+        out.insert(out.end(), block.rasterizer_x86.begin(),
+                   block.rasterizer_x86.end());
+    }
+    out.insert(out.end(), zero_trailer.begin(), zero_trailer.end());
+    if (out.size() != output_size) {
+        throw std::logic_error("SINTAB serialized size accounting mismatch");
+    }
     return out;
 }
 

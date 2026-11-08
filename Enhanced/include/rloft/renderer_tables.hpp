@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -38,6 +39,11 @@ struct RendererTables final {
         const std::vector<std::uint8_t>& bytes);
     [[nodiscard]] static RendererTables load(
         const GameSource& source);
+
+    // Re-encode the complete original SINTAB grammar, including all
+    // generated x86 rasterizer bytes and the 512-byte reserved trailer.
+    // This only serializes data; it never executes the embedded code.
+    [[nodiscard]] std::vector<std::uint8_t> encode() const;
 
     [[nodiscard]] std::uint32_t c6d8() const noexcept {
         return constants[0];

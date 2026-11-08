@@ -3,6 +3,10 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <fstream>
+#include <iterator>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -83,9 +87,45 @@ std::vector<std::uint8_t> fixed_prefix(
     return b;
 }
 
+// Optional original-file regression. CI has no copyrighted SINTAB;
+// set RLOFT_SINTAB_PATH or pass a file path to exercise the real 127 blocks.
+void original_roundtrip(const char* path) {
+    if (path == nullptr || *path == '\0') return;
+    std::ifstream stream(path, std::ios::binary);
+    if (!stream) throw std::runtime_error("cannot open original SINTAB");
+    const std::vector<std::uint8_t> bytes(
+        (std::istreambuf_iterator<char>(stream)),
+        std::istreambuf_iterator<char>());
+    const auto original = rloft::RendererTables::parse(bytes);
+    if (bytes.size() != 333757U || original.scale_blocks.size() != 127U ||
+        original.runtime_lookup.size() != 509U ||
+        original.encode() != bytes) {
+        throw std::runtime_error("original SINTAB roundtrip mismatch");
+    }
+    // A modded runtime lookup and a scale step must be serializable without
+    // altering any original microcode bodies or the reserved trailer.
+    auto edited = original;
+    edited.runtime_lookup[0] ^= 1U;
+    edited.scale_blocks[0].scale_step[0] ^= 1U;
+    const auto encoded = edited.encode();
+    const auto parsed = rloft::RendererTables::parse(encoded);
+    if (parsed.runtime_lookup[0] != edited.runtime_lookup[0] ||
+        parsed.scale_blocks[0].scale_step[0] != edited.scale_blocks[0].scale_step[0] ||
+        parsed.encode() != encoded ||
+        parsed.zero_trailer != original.zero_trailer) {
+        throw std::runtime_error("modified SINTAB roundtrip mismatch");
+    }
+    auto invalid = original;
+    invalid.scale_blocks[0].code_patch_offset[0] = 0U;
+    bool failed = false;
+    try { (void)invalid.encode(); }
+    catch (const std::invalid_argument&) { failed = true; }
+    if (!failed) throw std::runtime_error("invalid SINTAB code patch accepted");
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     auto prefix = fixed_prefix(127);
     const auto t =
         rloft::RendererTables::parse_prefix(prefix);
@@ -144,4 +184,7 @@ int main() {
     assert(parsed.scale_blocks[0]
                .rasterizer_x86[0] == 0xC3U);
     assert(parsed.zero_trailer.size() == 512U);
+    assert(parsed.encode() == full);
+    if (argc > 2) throw std::invalid_argument("usage: renderer_tables_tests [SINTAB]");
+    original_roundtrip(argc == 2 ? argv[1] : std::getenv("RLOFT_SINTAB_PATH"));
 }
