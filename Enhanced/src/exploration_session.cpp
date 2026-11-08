@@ -1,4 +1,5 @@
 #include "rloft/exploration_session.hpp"
+#include "rloft/CHARS.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -70,7 +71,7 @@ ExplorationSessionState ExplorationSessionLoader::load_fresh_party(
         static_cast<int>(ExplorationSessionState::kFreshLevelId),
         &used_direct_save);
     return ExplorationSessionState::fresh_party(
-        PartyImage::from_bytes(chars),
+        CharsCodec::decode(chars),
         std::move(level),
         used_direct_save);
 }

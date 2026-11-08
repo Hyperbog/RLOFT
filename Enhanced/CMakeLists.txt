@@ -426,6 +426,7 @@ add_library(rloft_boot_flow
     src/character_stats.cpp
     src/character_sheet.cpp
     src/character_modal_stats.cpp
+    src/CHARS.cpp
     src/character_transfer.cpp
     src/exploration_state.cpp
     src/exploration_session.cpp
@@ -630,6 +631,10 @@ endif()
 add_executable(boot_flow_tests tests/boot_flow_tests.cpp)
 target_link_libraries(boot_flow_tests PRIVATE rloft_boot_flow)
 add_test(NAME boot_flow_tests COMMAND boot_flow_tests)
+
+add_executable(CHARS_tests tests/CHARS_tests.cpp)
+target_link_libraries(CHARS_tests PRIVATE rloft_boot_flow)
+add_test(NAME CHARS_tests COMMAND CHARS_tests)
 
 add_executable(INIT_tests tests/INIT_tests.cpp)
 target_link_libraries(INIT_tests PRIVATE rloft_boot_flow)
