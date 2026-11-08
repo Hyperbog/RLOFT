@@ -601,6 +601,7 @@ add_library(rloft_boot_flow
     src/INIT.cpp
     src/game_source.cpp
     src/persistent_media_cache.cpp
+    src/COLORS.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
     src/indexed_font_presenter.cpp
@@ -1568,6 +1569,10 @@ add_executable(character_palette_remap_tests tests/character_palette_remap_tests
 target_link_libraries(character_palette_remap_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_palette_remap_tests COMMAND character_palette_remap_tests)
 
+add_executable(COLORS_tests tests/COLORS_tests.cpp)
+target_link_libraries(COLORS_tests PRIVATE rloft_boot_flow)
+add_test(NAME COLORS_tests COMMAND COLORS_tests)
+
 add_executable(sound_config_tests tests/sound_config_tests.cpp)
 target_link_libraries(sound_config_tests PRIVATE rloft_boot_flow)
 add_test(NAME sound_config_tests COMMAND sound_config_tests)
@@ -1745,6 +1750,7 @@ set(RLOFT_TEST_TARGETS
     character_transfer_tests
     character_starting_equipment_tests
     character_palette_remap_tests
+    COLORS_tests
     sound_config_tests
     options_menu_tests
 )

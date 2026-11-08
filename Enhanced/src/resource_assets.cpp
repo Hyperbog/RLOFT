@@ -728,11 +728,11 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       res7_(source_.read("RES7")),
       res8_(source_.read("RES8")),
       res10_(source_.read("RES10")),
-      colors_(source_.read("COLORS")),
+      colors_(parse_colors(source_.read("COLORS"))),
       text_(source_.read("T")),
       init_(source_.read("INIT")),
       code1_(source_.read("CODE.1")) {
-    if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
+    if (colors_.palettes.size() != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
     }
     // Certified CODE.1 baseline from Runtime/CODE_OBJECT_MAP.md.
@@ -914,25 +914,11 @@ std::string RavenloftBootAssets::code1_cstring(
 }
 
 Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
-    if (index < 0 || index >= 15) throw std::out_of_range("COLORS palette index");
-    brightness = std::clamp(brightness, 0, 63);
-
-    Palette6 result;
-    const auto start = 1U + static_cast<std::size_t>(index) * 768U;
-    std::copy_n(colors_.begin() + static_cast<std::ptrdiff_t>(start), 768, result.rgb.begin());
-
-    if (brightness == 0) return result;
-    for (std::size_t i = 0; i < 256; ++i) {
-        auto* rgb = result.rgb.data() + i * 3;
-        const int peak = std::max({static_cast<int>(rgb[0]), static_cast<int>(rgb[1]), static_cast<int>(rgb[2])});
-        if (peak == 0) continue;
-        const int boost = ((63 - peak) * brightness + 31) / 63;
-        const int target = peak + boost;
-        for (int c = 0; c < 3; ++c) {
-            rgb[c] = static_cast<std::uint8_t>((static_cast<int>(rgb[c]) * target + peak / 2) / peak);
-        }
+    if (index < 0 || index >= static_cast<int>(colors_.palettes.size())) {
+        throw std::out_of_range("COLORS palette index");
     }
-    return result;
+    return brighten_colors(
+        colors_.palettes[static_cast<std::size_t>(index)], brightness);
 }
 
 }  // namespace rloft

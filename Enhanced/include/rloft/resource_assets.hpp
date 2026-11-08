@@ -8,14 +8,11 @@
 #include <optional>
 
 #include "rloft/game_source.hpp"
+#include "rloft/COLORS.hpp"
 #include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
 
 namespace rloft {
-
-struct Palette6 {
-    std::array<std::uint8_t, 768> rgb{};
-};
 
 struct Type1Raster {
     int count{};
@@ -135,7 +132,7 @@ private:
     ResArchive res7_;
     ResArchive res8_;
     ResArchive res10_;
-    std::vector<std::uint8_t> colors_;
+    ColorsFile colors_;
     std::vector<std::uint8_t> text_;
     std::vector<std::uint8_t> init_;
     std::vector<std::uint8_t> code1_;
