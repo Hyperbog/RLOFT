@@ -12,6 +12,8 @@
 #include "game/timing/InterruptLifecycle.hpp"
 #include "game/ui/Presentation.hpp"
 #include "game/input/Input.hpp"
+#include "game/input/MouseLifecycle.hpp"
+#include "game/ui/TitleInteraction.hpp"
 #include "original_code2_video_boot.hpp"
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_scene.hpp"
@@ -2080,34 +2082,7 @@ void original_20440_mouse_clip(u32 y0,u32 x0,u32 y1,u32 x1) noexcept {
         static_cast<code2::s32>(x0),static_cast<code2::s32>(y1),
         static_cast<code2::s32>(x1));
 }
-void original_20440_mouse_interrupt_39148(u32 intr,u32 regs,
-                                           u32 output,u32 segments) noexcept {
-    if(intr!=0x33u || regs!=0xA7ACu || output!=0xA7C8u ||
-       segments!=0xA79Eu ||
-       code2::load_le16(current->data.data()+regs)!=0x000Cu ||
-       code2::load_le16(current->data.data()+regs+8u)!=0xFFFFu ||
-       code2::load_le32(current->data.data()+regs+12u)!=0x27894u)
-        stop("ORIGINAL_1A064_INT33_CALLBACK_FRAME_CHANGED");
-    rloft::guest_continuation::Reply reply{};
-    const rloft::guest_continuation::Request request{
-        rloft::guest_continuation::Service::Original20440MouseCallback,
-        intr,regs,output,segments,0u};
-    if(!current->live_continuation->suspend(request,reply))
-        stop("ORIGINAL_1A064_INT33_CALLBACK_SHUTDOWN");
-    if(reply.ax!=0u)stop("ORIGINAL_1A064_INT33_CALLBACK_HOST_FAILED");
-    code2::store_le32(current->data.data()+output,reply.ax);
-    ++current->original_20440_mouse_callback_installs;
-}
-u32 original_20440_mouse_interrupt_result(u32 out) noexcept {
-    if(out!=0xA7C8u)stop("ORIGINAL_1A064_INT33_RESPONSE_POINTER_CHANGED");
-    return code2::load_le32(current->data.data()+out);
-}
-void original_20440_mouse_irq(u32 intr,u32 in,u32 out,u32 seg) noexcept {
-    code2::Runtime98Boundary boundary{};
-    boundary.call_39148=&original_20440_mouse_interrupt_39148;
-    boundary.read_output_eax=&original_20440_mouse_interrupt_result;
-    (void)code2::function_33a7c(boundary,intr,in,out,seg);
-}
+#include "original_code2_mouse_callback_lifecycle.inc"
 void original_20440_mouse_init() noexcept {
     // On first boot 20440 calls 19888 before its later RES0:44
     // retain/1A0B0 game branch. The ORIGINAL title 19464 invokes
@@ -4860,7 +4835,13 @@ std::uint32_t answer_original_mouse_callback(Opaque* owner) {
            rloft::guest_continuation::Service::Original20440MouseCallback ||
        owner->pending.ax!=0x33u || owner->pending.bx!=0xA7ACu ||
        owner->pending.cx!=0xA7C8u || owner->pending.dx!=0xA79Eu ||
-       !held(owner).original_20440_mouse_started)
+       !rloft::input::mouse_lifecycle::may_install(
+           held(owner).original_20440_mouse_started,
+           held(owner).original_20440_mouse_callback_installs) ||
+       !rloft::input::mouse_lifecycle::callback_frame_1a064(
+           held(owner).data.data(),held(owner).data.size(),
+           owner->pending.ax,owner->pending.bx,
+           owner->pending.cx,owner->pending.dx))
         throw std::logic_error("Original CODE2 not waiting for INT33 fn0C callback registration");
     const auto request=owner->pending;
     owner->live_worker->resume(request,{0u,0u,0u,0u});

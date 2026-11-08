@@ -93,3 +93,10 @@ Keep separate **engineering/preview artifacts** and a future **production releas
 - `game/input/Input.hpp/.cpp` holds the bounded host 308F8 port 60h/61h/PIC acknowledgment latch, exact original 20440 INT33 mouse service signatures, and the private E0ss physical-scan preflight. Original `308F8` make/break events and `30B40/F590` key mapping still execute on the same guest. No second input queue or mouse driver is introduced.
 - Static targets `rloft_game_presentation` and `rloft_game_input` link to retained source owners and the new media-free `original_code2_presentation_input_host_abi` regression.
 - This boundary refactor does not establish retail DOS interrupt cadence, mouse callback delivery, live `19464` selection or pixel-identical VGA presentation. Existing original-game acceptance gates remain open.
+
+## Phase 9: CODE.2 title interaction and mouse callback lifetime
+
+- `game/ui/TitleInteraction.hpp/.cpp` reads the retained `33CB0` guest mouse snapshot at `2B7A8/2B7AC/2B7AE` and passes original `19D18(1,buttons,2*x,y,0)` arguments without host-authored hover/menu selection. `original_code2_title_interaction.inc` preserves original `19464 → 1A1F4 → 19D18` on the same guest.
+- `game/input/MouseLifecycle.hpp/.cpp` verifies the original `1A064/33A7C` INT33 function `0Ch` register frame, event mask, handler address and single successful source-owned install. `original_code2_mouse_callback_lifecycle.inc` remains compiled inside the retained source owner; no duplicated CODE.2 device or callback table.
+- Two independent C++17 static libraries and media-free regression `original_code2_19464_title_mouse_1a064_callback_host_abi` exercise invalid/missing guest frames, callback ACK, mouse snapshot and original title frame gating.
+- `1A9F8` cursor reset is not asserted to uninstall the DOS mouse callback. Actual asynchronous INT33 delivery, title click-to-new-game handoff, retail DOS cadence and all whole-game release acceptance gates remain unverified.
