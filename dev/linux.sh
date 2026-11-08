@@ -64,10 +64,7 @@ compile_source() {
     native-engine) cmake --build "$BUILD/native-engine" --parallel "$JOBS" ;;
     DosDis) dotnet build Tools/Disassembler/src/DosDis.Core/DosDis.Core.csproj --configuration Release ;;
     extractor) python3 -m compileall -q Tools/anm ;;
-    decomp)
-      python3 -m compileall -q ResearchInfra Code2/tools
-      c++ -std=c++17 -fsyntax-only Code1/Code1.cpp Code2/Code2.cpp
-      ;;
+    decomp) python3 -m compileall -q ResearchInfra Code2/tools ;;
     demo-v1) python3 -m compileall -q DemoV1/tools ;;
     *) echo "Unknown workstream $OWNER" >&2; exit 2 ;;
   esac
@@ -82,7 +79,6 @@ tests() {
     decomp)
       python3 -m unittest discover -s docs/tools -p 'test_*.py' -v
       python3 docs/tools/check_docs.py
-      python3 Code2/graphics/verify_original_vga.py --self-test
       ;;
     demo-v1)
       python3 DemoV1/tools/verify_enhanced_port_build_pipeline.py

@@ -1,0 +1,99 @@
+name: Ravenloft Enhanced - native Windows player
+
+on:
+  push:
+    branches: [Ravenloft-Enhanced, Decomp]
+    paths:
+      - 'Enhanced/**'
+      - 'Code1/**'
+      - 'Code2/**'
+      - '.github/workflows/enhanced-windows-ci.yml'
+  pull_request:
+    branches: [Ravenloft-Enhanced, Decomp]
+    paths:
+      - 'Enhanced/**'
+      - 'Code1/**'
+      - 'Code2/**'
+      - '.github/workflows/enhanced-windows-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enhanced-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure recovered enhanced game
+        shell: pwsh
+        run: |
+          cmake -S Enhanced -B build/enhanced -A x64 -DRLOFT_DEMO_SOURCE_SHA=${{ github.sha }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Ravenloft.exe engine and primary gameplay regressions
+        shell: pwsh
+        run: |
+          cmake --build build/enhanced --config Release --parallel 2 --target ravenloft_demo_v1 boot_flow_tests character_flow_tests title_keyboard_tests exploration_session_tests inventory_runtime_tests enhanced_game_save_tests level22_story_tests level22_encounter_tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run end-user critical-path source tests
+        shell: pwsh
+        run: |
+          ctest --test-dir build/enhanced -C Release --output-on-failure -R "^(boot_flow_tests|character_flow_tests|title_keyboard_tests|exploration_session_tests|inventory_runtime_tests|enhanced_game_save_tests|level22_story_tests|level22_encounter_tests)$"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Stage source-only Windows executable
+        shell: pwsh
+        run: |
+          $folder = "build/enhanced/Release"
+          if (-not (Test-Path "$folder/ravenloft_demo_v1.exe")) {
+            throw "Native enhanced game executable missing."
+          }
+          Copy-Item "$folder/ravenloft_demo_v1.exe" "$folder/Ravenloft.exe" -Force
+          Copy-Item "Enhanced/Windows/Play-Ravenloft.cmd" "$folder/Play-Ravenloft.cmd" -Force
+          Copy-Item "Enhanced/Windows/Play-Ravenloft.ps1" "$folder/Play-Ravenloft.ps1" -Force
+          Set-Content -NoNewline -Path "$folder/build-source-sha.txt" -Value "${{ github.sha }}"
+          $hash = (Get-FileHash "$folder/Ravenloft.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -NoNewline -Path "$folder/Ravenloft.exe.sha256" -Value "$hash  Ravenloft.exe"
+          New-Item -ItemType Directory -Force -Path "$folder/Game" | Out-Null
+          Copy-Item "Enhanced/Windows/ORIGINAL-GAME-FILES-GO-HERE.txt" "$folder/Game/" -Force
+
+      - name: Validate original-media launcher and exact package contract
+        shell: pwsh
+        run: |
+          $folder = "build/enhanced/Release"
+          $src = (Get-Content "$folder/build-source-sha.txt" -Raw).Trim()
+          if ($src -cnotmatch '^[0-9a-fA-F]{40}$') { throw "Malformed source identity" }
+          $exe = "$folder/Ravenloft.exe"
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = "$actual  Ravenloft.exe"
+          $recorded = (Get-Content "$folder/Ravenloft.exe.sha256" -Raw).Trim()
+          if ($recorded -cne $expected) { throw "Native package hash mismatch" }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "$folder/Play-Ravenloft.ps1").Path,
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) { throw "Windows launcher syntax errors" }
+          if (-not (Test-Path "$folder/Game/ORIGINAL-GAME-FILES-GO-HERE.txt")) {
+            throw "Original-media setup marker is missing"
+          }
+
+      - name: Publish native player with no commercial game media
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Enhanced-Windows-x64
+          path: |
+            build/enhanced/Release/Ravenloft.exe
+            build/enhanced/Release/Ravenloft.exe.sha256
+            build/enhanced/Release/build-source-sha.txt
+            build/enhanced/Release/Play-Ravenloft.cmd
+            build/enhanced/Release/Play-Ravenloft.ps1
+            build/enhanced/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt
+          if-no-files-found: error

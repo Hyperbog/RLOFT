@@ -1,0 +1,30 @@
+RAVENLOFT: STRAHD'S POSSESSION — NATIVE WINDOWS PRE-ALPHA
+
+The game needs original resources from your legally owned copy.
+Original game assets are NOT bundled with this Windows executable.
+
+RECOMMENDED (full intro, music, character creation and Level 22)
+Copy the CONTENTS of the following original directory into Game:
+
+  DnD-Classics/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT
+
+The required files include RES0, INIT, T, CODE.1, CODE.2, RES10,
+CINE00.ANM and CINE12.ANM. The other RLOFT installation directory
+without CINE/RES10 is NOT sufficient for the complete cinematic intro.
+
+You can instead put your original GOG disc image at Game/game.gog.
+The launcher also recognizes Game/RLOFT, Game/CD_Extracted/RLOFT
+and other common nested folders.
+
+If Game has no usable files, the launcher automatically checks the
+RLOFT_GAME_DIR environment variable, the GOG Windows registry key
+for product 1432905053, and common GOG/Steam installation paths.
+No folder chooser or developer mode appears.
+
+Double-click Play-Ravenloft-Alpha.cmd. The launcher validates the
+EXE checksum, copies owned media to an isolated temporary workspace,
+removes CHARS only from that temporary copy so the intro always starts,
+and runs the game continuously through character creation to Level 22.
+
+Your original files, installed game, original CHARS and saves are
+never overwritten or modified. Current gameplay remains Pre-Alpha.

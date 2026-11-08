@@ -1,0 +1,516 @@
+#include "rloft/inventory_world_drop.hpp"
+#include "rloft/exploration_motion.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+#include <utility>
+
+namespace rloft {
+
+namespace {
+
+// 1E8C8 prefers an active group-1 record; otherwise it scans
+// group-2. Its group-1 sentinel can be type zero with bit 0x10
+// set, while group-2 terminates at the first zero type.
+const CellControlRecord* source_control_at(
+    const LevelState& level,int row,int col) noexcept {
+    for(const auto& rec:level.group1) {
+        if(rec.kind()==0U && (rec.control()&0x10U)==0U)break;
+        if(rec.row()==row && rec.column()==col)return &rec;
+    }
+    for(const auto& rec:level.group2) {
+        if(rec.kind()==0U)break;
+        if(rec.row()==row && rec.column()==col)return &rec;
+    }
+    return nullptr;
+}
+
+// Original 1E930 independently reads the group-2 position byte
+// +6, returning 0x8000 for a missing record.
+std::uint32_t source_dynamic_position(
+    const LevelState& level,int row,int col) noexcept {
+    for(const auto& rec:level.group2) {
+        if(rec.kind()==0U)break;
+        if(rec.row()==row && rec.column()==col)
+            return static_cast<std::uint32_t>(rec.raw[6])<<12U;
+    }
+    return 0x8000U;
+}
+
+bool source_unsigned_overlap(
+    std::uint32_t coordinate,std::uint32_t center,
+    std::uint32_t half_extent) noexcept {
+    return coordinate>=center-half_extent &&
+           coordinate<=center+half_extent;
+}
+} // namespace
+
+bool InventoryWorldDropModel::placement_passable_2d5d0(
+    const ExplorationSessionState& session,
+    const LevelWorldState& world,
+    const NpcCatalog& npcs,
+    std::uint32_t y,std::uint32_t x,
+    std::uint32_t actor_mode) {
+    // Original CODE.2 2D5D0 uses 0x190 as an ACTOR INDEX / MODE.
+    // Its rectangle is fixed at +/-0x5800 Q16 (2D5E2..2D629),
+    // regardless of the actor index. This is the mode used by 2195C.
+    if(actor_mode!=0x190U || session.level.width<=0 ||
+       session.level.height<=0 ||
+       session.level.cell_words.empty())return false;
+    constexpr std::uint32_t kHalfExtent=0x5800U;
+    const auto signed_cell=[](std::uint32_t coord)->int {
+        const auto hi=static_cast<std::uint16_t>(coord>>16U);
+        return hi<=0x7FFFU ? static_cast<int>(hi) :
+               static_cast<int>(hi)-0x10000;
+    };
+    const int low_row=signed_cell(y-kHalfExtent);
+    const int high_row=signed_cell(y+kHalfExtent);
+    const int low_col=signed_cell(x-kHalfExtent);
+    const int high_col=signed_cell(x+kHalfExtent);
+    const auto& level=session.level;
+
+    // 2D647..2D93F: scan inclusive square; off-map cells are
+    // skipped by the original instructions, not treated as walls.
+    // F048 scripted early-exit is not active in a fresh game and
+    // remains unmodeled for mutable save/script state.
+    for(int col=low_col;col<=high_col;++col) {
+        for(int row=low_row;row<=high_row;++row) {
+            if(row<0 || col<0 || row>=level.height ||
+               col>=level.width)continue;
+            const auto index=static_cast<std::size_t>(row)*
+                static_cast<std::size_t>(level.width)+
+                static_cast<std::size_t>(col);
+            if(index>=level.cell_words.size())return false;
+            const auto word=level.cell_words[index];
+            const CellControlRecord* record=nullptr;
+            if((word&0x0080U)!=0U || (word&0x1000U)!=0U)
+                record=source_control_at(level,row,col);
+
+            // 2D6DC..2D811: dynamic record, its group-2
+            // position/status, and the mode-0x190 conservative
+            // blocked branch; type-8 record is explicitly skipped.
+            if((word&0x0080U)!=0U &&
+               source_dynamic_position(level,row,col)!=0U &&
+               record!=nullptr && record->kind()!=8U)
+                return false;
+
+            // 2D811..2D93A: bit0x0800 blocks mode 0x190;
+            // bit0x1000 allows missing/type1 controls, blocks
+            // type8 and other records. Otherwise all low-six
+            // nonzero geometry codes block.
+            if((word&0x003FU)!=0U) {
+                if((word&0x0800U)!=0U)return false;
+                if((word&0x1000U)!=0U) {
+                    if(record && record->kind()!=1U)return false;
+                } else return false;
+            }
+        }
+    }
+
+    // 2D94E..2D971 calls 2C800 even for actor mode 0x190.
+    // Exclude source NPC +0x0B bit 02; compare each original
+    // unsigned Q16 rectangle with NPCS +0x16 plus 0x3E8.
+    for(const auto& npc:world.npcs) {
+        if((npc.runtime_flags&0x02000000U)!=0U)continue;
+        const auto extent=static_cast<std::uint32_t>(
+            npcs.at(npc.npc_type_id).collision_half_extent)+0x3E8U;
+        if(source_unsigned_overlap(x,npc.x_position_16_16,extent) &&
+           source_unsigned_overlap(y,npc.y_position_16_16,extent))
+            return false;
+    }
+
+    // 2D972 skips placed-object 2CC88 only in mode 0x190.
+    // 2D9B0..2D9D5 still invokes 2C9DC: the player's own
+    // +/-0x8FA0 Q16 collision square independently vetoes
+    // a forward position, causing 2195C to fall back to
+    // the actual player coordinates.
+    if(source_unsigned_overlap(x,session.coordinate_a,0x8FA0U) &&
+       source_unsigned_overlap(y,session.coordinate_b,0x8FA0U))
+        return false;
+    return true;
+}
+
+
+Level16SeedRitualCheck Level16SeedRitualModel::evaluate_21880(
+    const ExplorationSessionState& session,
+    const LevelWorldState& world,
+    const LiveObjectRecord* candidate,
+    bool evict_oldest) noexcept {
+    Level16SeedRitualCheck result{};
+    if(session.level_id!=16U) {
+        result.status=Level16SeedRitualStatus::NotLevel16;
+        return result;
+    }
+    // Original 2189F calls 1C1DC(0x44) and returns early
+    // whenever that bit is already set in persistent 0x22200.
+    constexpr auto byte=Level16SeedRitualCheck::kEventBit/8U;
+    constexpr auto mask=static_cast<std::uint8_t>(
+        1U<<(Level16SeedRitualCheck::kEventBit%8U));
+    if((session.persistent_event_flags[byte]&mask)!=0U) {
+        result.status=Level16SeedRitualStatus::AlreadyFlagged;
+        return result;
+    }
+    const auto add=[&](const LiveObjectRecord& record) {
+        if(record.object_type_id!=kSeedObjectId)return;
+        // 218DB..218F7: cmp source unsigned XY byte against
+        // WORD at live 0x17618+6 (x high word) and +2 (y high
+        // word). Low fixed-point fractions do NOT matter.
+        const auto x=static_cast<std::uint16_t>(
+            record.x_position_16_16>>16U);
+        const auto y=static_cast<std::uint16_t>(
+            record.y_position_16_16>>16U);
+        for(std::size_t i=0U;i<kSourceCells.size();++i)
+            if(x==kSourceCells[i][0] &&
+               y==kSourceCells[i][1])
+                result.present[i]=true;
+    };
+    // 2195C evicts the oldest record before appending when
+    // the source array reaches 0x12C entries. The pure check
+    // must audit the POST-eviction state, not the old source.
+    for(std::size_t i=evict_oldest?1U:0U;
+        i<world.loose_items.size();++i)
+        add(world.loose_items[i]);
+    if(candidate)add(*candidate);
+    bool complete=true;
+    for(const bool present:result.present)
+        if(!present)complete=false;
+    result.status=complete
+        ? Level16SeedRitualStatus::ReadyForSourceActions
+        : Level16SeedRitualStatus::MissingSeed;
+    return result;
+}
+
+HolySymbolGrantResult HolySymbolRewardModel::grant_15050(
+    PartyImage& party,InventoryRuntimeState& inventory) {
+    HolySymbolGrantResult out{};
+    constexpr std::int16_t kHolySymbolId=0x73;
+    if(inventory.held.object_id==-1) {
+        // CODE.2 150AB..150C8: empty 8600 -> 1A344(0x73,0).
+        inventory.held={kHolySymbolId,0U};
+        out.status=HolySymbolGrantStatus::GivenToCursor;
+        return out;
+    }
+
+    // Original 150C9..1511D visits character actor indices 0..3,
+    // ignoring the +0x10 status-word 0x8000 empty-character bit,
+    // then scans only ordinary slots 0..11 for the first -1.
+    for(std::size_t actor=0U;actor<PartyImage::kActorCount;++actor) {
+        if(!party.active(actor))continue;
+        const auto base=actor*PartyImage::kActorSize;
+        for(std::size_t slot=0U;slot<12U;++slot) {
+            const auto at=base+0x40U+slot*2U;
+            const auto raw=static_cast<std::uint16_t>(
+                party.bytes[at] |
+                (static_cast<std::uint16_t>(
+                    party.bytes[at+1U])<<8U));
+            if(raw!=0xFFFFU)continue;
+            // Original 150F4 stores DI and invokes
+            // 0F238(actor,slot,0). That helper clears just
+            // the corresponding item-known bit when the
+            // freshly stored slot is nonempty.
+            party.bytes[at]=static_cast<std::uint8_t>(
+                kHolySymbolId);
+            party.bytes[at+1U]=0U;
+            const auto bits_at=base+0x12BU+(slot/8U);
+            const auto mask=static_cast<std::uint8_t>(
+                1U<<(slot%8U));
+            party.bytes[bits_at]=static_cast<std::uint8_t>(
+                party.bytes[bits_at]&~mask);
+            out.status=HolySymbolGrantStatus::GivenToPartySlot;
+            out.actor=actor;
+            out.slot=slot;
+            return out;
+        }
+    }
+    // 1511F..1513C invokes original 2195C to create an
+    // ordinary loose world item when party+cursor are full.
+    // Do NOT invent the world placement or consume the
+    // pending reward before the original event runner exists.
+    out.status=HolySymbolGrantStatus::NeedsWorldSpawn;
+    return out;
+}
+
+InventoryWorldDropResult InventoryWorldDropModel::drop(
+    LevelWorldState& world,
+    const ExplorationSessionState& session,
+    InventoryRuntimeState& inventory,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const PlacementProbe& can_place,
+    bool center_fraction) {
+    InventoryWorldDropResult result{};
+    const auto held=inventory.held;
+    if(held.object_id==-1)return result;
+    if(held.object_id<0 ||
+       static_cast<std::size_t>(held.object_id)>=objects.size()) {
+        result.status=InventoryWorldDropStatus::InvalidInventoryObject;
+        return result;
+    }
+    if(session.level.width<=0 || session.level.height<=0 ||
+       session.level.cell_words.empty() ||
+       world.loose_items.size()>0x12CU) {
+        result.status=InventoryWorldDropStatus::InvalidWorldPosition;
+        return result;
+    }
+
+    // Original CODE.2 2195C: screen seed 0x80, subtract 0xA0,
+    // IDIV 3 truncating toward zero, then facing minus quotient,
+    // normalized in original modulo-360 degree units.
+    constexpr std::int32_t screen_seed=0x80;
+    const auto correction=(screen_seed-0xA0)/3;
+    const auto angle=ExplorationMotionModel::normalize_heading(
+        static_cast<std::int32_t>(session.facing)-correction);
+    const auto delta=ExplorationMotionModel::direction_vector(
+        0x00018000U,angle,false,tables);
+    // The original inventory caller pushes DGROUP:255D4 as the
+    // fifth coordinate (Y) and 255D0 as the fourth coordinate (X).
+    // Preserve the actual CALL operand order.
+    auto x=session.coordinate_a+delta.delta_x;
+    auto y=session.coordinate_b+delta.delta_y;
+    // Original C02F source mode forces both Q16 low words to
+    // 0x8000 before passing the 2D5D0 placement predicate.
+    if(center_fraction) {
+        y=(y&0xFFFF0000U)|0x8000U;
+        x=(x&0xFFFF0000U)|0x8000U;
+    }
+    if(can_place && !can_place(y,x,0x190U)) {
+        x=session.coordinate_a;
+        y=session.coordinate_b;
+    }
+    const auto cell_y=static_cast<std::int16_t>(y>>16U);
+    const auto cell_x=static_cast<std::int16_t>(x>>16U);
+    const auto cell=static_cast<std::int64_t>(cell_y)*
+        session.level.width+cell_x;
+    if(cell_y<0 || cell_x<0 ||
+       cell_y>=session.level.height ||
+       cell_x>=session.level.width ||
+       cell<0 ||
+       static_cast<std::uint64_t>(cell)>=
+           session.level.cell_words.size() ||
+       cell>std::numeric_limits<std::uint16_t>::max()) {
+        result.status=InventoryWorldDropStatus::InvalidWorldPosition;
+        return result;
+    }
+
+    // Model 2195C append/evict first, then clear the exact
+    // original global cursor object/known byte. The new record
+    // has no reused slot's unknown high packed bits.
+    LiveObjectRecord next{};
+    next.y_position_16_16=y;
+    next.x_position_16_16=x;
+    next.cached_cell_index=static_cast<std::uint16_t>(cell);
+    next.object_type_id=static_cast<std::uint16_t>(held.object_id);
+    // Original 2195C clears 0x05F8 and uses (known&1)<<10.
+    next.packed_runtime_state=static_cast<std::uint16_t>(
+        (held.known&1U)<<10U);
+    // 2195C invokes 21880 only AFTER creating item 0x89.
+    // Unfinished source follow-on calls 13EF8(8) and
+    // 15050(0x73) must not be skipped when the fourth site
+    // becomes occupied. Preflight the would-be appended
+    // record; permit the other Level16 seed drops normally.
+    if(held.object_id==Level16SeedRitualModel::kSeedObjectId) {
+        const auto ritual=Level16SeedRitualModel::evaluate_21880(
+            session,world,&next,
+            world.loose_items.size()==0x12CU);
+        if(ritual.status==
+           Level16SeedRitualStatus::ReadyForSourceActions) {
+            result.status=
+                InventoryWorldDropStatus::SourceSpecialActionPending;
+            return result;
+        }
+    }
+    if(world.loose_items.size()==0x12CU)
+        world.loose_items.erase(world.loose_items.begin());
+    world.loose_items.push_back(next);
+    inventory.held={-1,0U};
+    result.status=InventoryWorldDropStatus::Dropped;
+    result.loose_item_index=world.loose_items.size()-1U;
+    result.cached_cell_index=next.cached_cell_index;
+    return result;
+}
+
+InventoryWorldDropResult
+InventoryWorldDropModel::spawn_holy_symbol_reward_15050(
+    LevelWorldState& world,
+    const ExplorationSessionState& session,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const PlacementProbe& can_place,
+    bool center_fraction) {
+    // Original 15050 falls through 1511F ONLY when cursor
+    // and all eligible ordinary party slots are occupied.
+    // 1511F..1513C calls 2195C(0x80,0x73,0,player_x,
+    // player_y,1,0). Its final clear-held argument is ZERO.
+    // Project the same original 2195C placement via an
+    // ephemeral object cursor. The caller's actual held
+    // item is neither passed nor changed, and even an
+    // unsuccessful world placement cannot lose the reward.
+    InventoryRuntimeState source_parameters{};
+    source_parameters.held={
+        static_cast<std::int16_t>(
+            Level16SeedRitualCheck::kGrantedObjectId),0U};
+    return drop(world,session,source_parameters,
+                objects,tables,can_place,center_fraction);
+}
+
+HolySymbolGrantResult HolySymbolRewardModel::grant_with_world_15050(
+    PartyImage& party,
+    InventoryRuntimeState& inventory,
+    LevelWorldState& world,
+    const ExplorationSessionState& session,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const std::function<bool(
+        std::uint32_t,std::uint32_t,std::uint32_t)>& can_place,
+    bool center_fraction) {
+    // Source 15050 first tries held cursor, then first ordinary
+    // inventory slot among active party members. Only the
+    // unoccupied/full-party case reaches 1511F world creation.
+    auto reward=grant_15050(party,inventory);
+    if(reward.status!=HolySymbolGrantStatus::NeedsWorldSpawn)
+        return reward;
+    const auto spawn=InventoryWorldDropModel::
+        spawn_holy_symbol_reward_15050(
+            world,session,objects,tables,can_place,center_fraction);
+    if(spawn.status==InventoryWorldDropStatus::Dropped) {
+        reward.status=HolySymbolGrantStatus::SpawnedInWorld;
+        reward.loose_item_index=spawn.loose_item_index;
+    } else {
+        // Not a completed original 15050 reward. The call did
+        // not make irreversible changes to cursor, party or
+        // world; leave event-8 completion orchestration pending.
+        reward.status=HolySymbolGrantStatus::WorldPlacementRejected;
+    }
+    return reward;
+}
+
+Level16RitualCompletion Level16RitualCompletionModel::complete_21880(
+    ExplorationSessionState& session,
+    LevelWorldState& world,
+    InventoryRuntimeState& inventory,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const InventoryWorldDropModel::PlacementProbe& can_place,
+    const Event8Playback& present_event_8,
+    bool center_fraction) {
+    if(!present_event_8)
+        throw std::invalid_argument(
+            "original event 8 requires a real playback callback");
+    Level16RitualCompletion output{};
+    if(session.level_id!=16U ||
+       inventory.held.object_id!=
+           Level16SeedRitualModel::kSeedObjectId)
+        return output;
+
+    // The ordinary native D-key path has already returned
+    // SourceSpecialActionPending. Recheck against CURRENT
+    // source world before any irreversible external playback.
+    auto simulated_world=world;
+    auto simulated_held=inventory;
+    const auto check=InventoryWorldDropModel::drop(
+        simulated_world,session,simulated_held,objects,
+        tables,can_place,center_fraction);
+    if(check.status!=InventoryWorldDropStatus::SourceSpecialActionPending) {
+        output.status=
+            check.status==InventoryWorldDropStatus::InvalidWorldPosition
+            ? Level16RitualCompletionStatus::InvalidPlacement
+            : Level16RitualCompletionStatus::NotReady;
+        return output;
+    }
+
+    // Original 21880 sets event flag 44h only AFTER the
+    // family-C fourth seed is appended. Re-use 2195C with a
+    // session where 44h is SET, bypassing its own recursive
+    // source 21880 completion hook during the projection.
+    // All writes here operate solely on disposable copies.
+    auto seeded_session=session;
+    seeded_session.persistent_event_flags[0x44U/8U] |=
+        static_cast<std::uint8_t>(1U<<(0x44U%8U));
+    auto seeded_world=world;
+    auto seeded_inventory=inventory;
+    const auto placed=InventoryWorldDropModel::drop(
+        seeded_world,seeded_session,seeded_inventory,
+        objects,tables,can_place,center_fraction);
+    if(placed.status!=InventoryWorldDropStatus::Dropped) {
+        output.status=Level16RitualCompletionStatus::InvalidPlacement;
+        return output;
+    }
+    output.placed_seed_index=placed.loose_item_index;
+
+    // Preflight 15050's cursor-first/party-first/world-fallback
+    // allocation on copies, too. When the final seed would
+    // occupy the 300th slot, 15050's later 2195C append may
+    // evict another oldest source record. Do not play the
+    // 182-frame event and then discover a broken inventory.
+    auto preview_world=seeded_world;
+    auto preview_inventory=seeded_inventory;
+    auto preview_party=seeded_session.party;
+    const auto grant_preview=HolySymbolRewardModel::
+        grant_with_world_15050(
+            preview_party,preview_inventory,preview_world,
+            seeded_session,objects,tables,can_place,center_fraction);
+    if(grant_preview.status==
+        HolySymbolGrantStatus::WorldPlacementRejected ||
+       grant_preview.status==HolySymbolGrantStatus::NeedsWorldSpawn) {
+        output.status=
+            Level16RitualCompletionStatus::RewardPlacementRejected;
+        return output;
+    }
+
+    // At this exact boundary CODE.2 2195C has appended the
+    // seed and 21880 has set 44h, but has NOT yet called
+    // 13EF8(8) or granted object 73h. Preserve that order
+    // for the event callback, which may read live state.
+    const auto source_world=world;
+    const auto source_inventory=inventory;
+    const auto source_session=session;
+    world=std::move(seeded_world);
+    inventory=std::move(seeded_inventory);
+    session.persistent_event_flags=
+        seeded_session.persistent_event_flags;
+
+    const auto restore=[&]() {
+        world=source_world;
+        inventory=source_inventory;
+        session=source_session;
+    };
+    try {
+        const auto event_status=present_event_8();
+        if(event_status!=Level16RitualPlayback::Completed) {
+            // The complete DOS cancellation behavior of 13EF8
+            // remains outside the current native transcript.
+            // Native failure-atomic policy: no completed quest,
+            // duplicate grant or stuck 44h bit after Escape/Quit.
+            restore();
+            output.status=
+                event_status==Level16RitualPlayback::Quit
+                ? Level16RitualCompletionStatus::Quit
+                : Level16RitualCompletionStatus::Escaped;
+            return output;
+        }
+        // 21880: AFTER 13EF8 returns, invoke 15050(0x73).
+        // No world effect is fabricated; the full 15050 branch
+        // is now source-backed through cursor, party or 2195C.
+        output.reward=HolySymbolRewardModel::grant_with_world_15050(
+            session.party,inventory,world,session,
+            objects,tables,can_place,center_fraction);
+        if(output.reward.status==
+                HolySymbolGrantStatus::WorldPlacementRejected ||
+           output.reward.status==
+                HolySymbolGrantStatus::NeedsWorldSpawn) {
+            restore();
+            output.status=
+                Level16RitualCompletionStatus::RewardPlacementRejected;
+            return output;
+        }
+    } catch(...) {
+        restore();
+        throw;
+    }
+    output.status=Level16RitualCompletionStatus::Completed;
+    return output;
+}
+
+} // namespace rloft

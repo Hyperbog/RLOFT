@@ -1,0 +1,349 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "rloft/original_ground_texture_raster.hpp"
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+std::uint8_t pixel(const rloft::IndexedFramebuffer& fb,int y,int x) {
+    return fb.pixels().at(
+        static_cast<std::size_t>(y)*320U+
+        static_cast<std::size_t>(x));
+}
+template<class Callback>
+bool rejected(Callback&& cb) {
+    try { cb(); }
+    catch(const std::exception&) {return true;}
+    return false;
+}
+}
+
+int main() {
+    using namespace rloft;
+    constexpr std::size_t kCode2Base=0x75F24U;
+    constexpr std::size_t kShadeAt=0xFE15U;
+    std::vector<std::uint8_t> code2(
+        kCode2Base+kShadeAt+256U,0U);
+    for(std::size_t i=0U;i<256U;++i) {
+        code2[kCode2Base+kShadeAt+i]=
+            static_cast<std::uint8_t>(i);
+    }
+    const auto shades=GroundTextureShadeTable::from_code2(code2);
+    assert(shades.subtract[0]==0U);
+    assert(shades.subtract[127]==127U);
+    assert(shades.subtract[254]==254U);
+    assert(shades.subtract[255]==255U);
+
+    // CODE.2 3838 copies projection_a into 19660, projection_b
+    // into 193E0. The self-patched 34998 routine reads low SINTAB
+    // sine WORDs, folds quadrants using 34270/34275, IMUL16 and
+    // SHLD DX,AX,3. This synthetic basis makes every expected
+    // signed 16-bit/byte result independently calculable.
+    RendererTables t{};
+    t.sine_q16_signmag[32U]=0x4000U;
+    t.sine_q16_signmag[58U]=0x7FFFU;
+    t.sine_q16_signmag[90U]=0xFFFFU;
+    for(std::size_t row=0U;row<128U;++row) {
+        t.projection_a[row]=0x0200U;
+        t.projection_b[row]=0x001FU;
+    }
+    const auto west=OriginalGroundTextureRaster::generate_ff58(
+        t,270U);
+    // relative heading 90: initial angle 58; delta angle 180.
+    // U origin: (8192*31)>>13=31
+    // V origin: (4096*31)>>13=15
+    // U delta: sin(180)=0; V delta: sin(270)=-16384,
+    // (-16384*512)>>13=-1024 => two's complement 0xFC00.
+    assert(west[0].origin_u==31U);
+    assert(west[0].origin_v==15U);
+    assert(west[0].delta_u==0U);
+    assert(west[0].delta_v==0xFC00U);
+    assert(west[127].delta_v==0xFC00U);
+
+    const auto north=OriginalGroundTextureRaster::generate_ff58(
+        t,0U);
+    // Relative=360: initial328 => U=-sin(32), V=sin(58).
+    assert(north[0].origin_u==0xF0U);
+    assert(north[0].origin_v==31U);
+    assert(north[0].delta_u==0x0400U);
+    assert(north[0].delta_v==0U);
+    const auto east=OriginalGroundTextureRaster::generate_ff58(
+        t,90U);
+    assert(east[0].origin_u==static_cast<std::uint8_t>(-31));
+    assert(east[0].origin_v==0xF0U);
+    assert(east[0].delta_u==0U);
+    assert(east[0].delta_v==0x0400U);
+    assert(rejected([&] {
+        (void)OriginalGroundTextureRaster::generate_ff58(t,360U);
+    }));
+
+    // Independent immutable SINTAB source checkpoints:
+    // sine[32]=0x87A8, sine[58]=0xD919, sine[90]=0xFFFF.
+    // Projection A/B at rows 0,79,80,127 were read directly
+    // from the original 333,757-byte SINTAB fixed prefix.
+    // These are NOT derived from the C++ implementation being tested.
+    RendererTables original_prefix{};
+    original_prefix.sine_q16_signmag[32U]=0x87A8U;
+    original_prefix.sine_q16_signmag[58U]=0xD919U;
+    original_prefix.sine_q16_signmag[90U]=0xFFFFU;
+    original_prefix.projection_a[0U]=0x0135U;
+    original_prefix.projection_a[79U]=0x02F9U;
+    original_prefix.projection_a[80U]=0x0307U;
+    original_prefix.projection_a[127U]=0x1AAFU;
+    original_prefix.projection_b[0U]=0x0125U;
+    original_prefix.projection_b[79U]=0x02D2U;
+    original_prefix.projection_b[80U]=0x02E0U;
+    original_prefix.projection_b[127U]=0x1959U;
+    const auto original_west=
+        OriginalGroundTextureRaster::generate_ff58(
+            original_prefix,270U);
+    assert(original_west[0].delta_u==0U);
+    assert(original_west[0].delta_v==0xFD96U);
+    assert(original_west[0].origin_u==0xF0U);
+    assert(original_west[0].origin_v==0x36U);
+    assert(original_west[79].delta_v==0xFA0EU);
+    assert(original_west[79].origin_u==0xC8U);
+    assert(original_west[79].origin_v==0xFDU);
+    assert(original_west[80].delta_v==0xF9F2U);
+    assert(original_west[80].origin_u==0xE0U);
+    assert(original_west[80].origin_v==0x0CU);
+    assert(original_west[127].delta_v==0xCAA2U);
+    assert(original_west[127].origin_u==0xFDU);
+    assert(original_west[127].origin_v==0xDDU);
+
+    // Exact original 0x300-byte FF58 row layout.
+    std::vector<std::uint8_t> ff58(128U*6U,0U);
+    for(std::size_t row=0U;row<128U;++row) {
+        ff58[row*6U+0U]=0x00U;
+        ff58[row*6U+1U]=0x04U; // +0x0400 <<16 => next texel/px
+        ff58[row*6U+2U]=0U;
+        ff58[row*6U+3U]=0U;
+        ff58[row*6U+4U]=0U;    // origin U0
+        // Source FF58 byte occupies Q32 bits 24..31.
+        // 34350 texel index uses bits 26..31, so V texel 2
+        // is encoded as byte 8 (not byte 2).
+        ff58[row*6U+5U]=8U;    // origin V2 (8 >> 2)
+    }
+    const auto records=OriginalGroundTextureRaster::decode_ff58(ff58);
+    assert(records[0].delta_u==0x400U);
+    assert(records[127].origin_v==8U);
+    assert(rejected([&] {
+        (void)OriginalGroundTextureRaster::decode_ff58(
+            std::vector<std::uint8_t>(127U*6U,0U));
+    }));
+
+    // Original 2F29C returns a resource with 2 header bytes followed
+    // by a raw 64x64 indexed tile. The tile deliberately distinguishes
+    // successive U samples and wraps every 64.
+    std::vector<std::uint8_t> source(
+        GroundTextureRasterSpec::kTextureBytes+
+        GroundTextureRasterSpec::kTextureHeaderBytes,0U);
+    source[0]=0xA5U;
+    source[1]=0x5AU;
+    for(std::size_t v=0U;v<64U;++v) {
+        for(std::size_t u=0U;u<64U;++u) {
+            source[2U+v*64U+u]=
+                static_cast<std::uint8_t>(v*64U+u);
+        }
+    }
+    IndexedFramebuffer fb;
+    fb.clear(0xEE);
+    GroundTextureRasterSpec spec{};
+    const auto lower=OriginalGroundTextureRaster::draw(
+        fb,source,shades,records,spec);
+    assert(lower.rows==128U);
+    assert(lower.individual_plane_rows==80U);
+    assert(lower.paired_plane_rows==48U);
+    assert(lower.source_reads==80U*256U+48U*128U);
+    assert(lower.indexed_writes==128U*256U);
+
+    // Lower 80 scanlines: four physical plane masks, four unique
+    // texture samples per VGA byte. This spans screen y259..180.
+    assert(pixel(fb,259,32)==128U);
+    assert(pixel(fb,259,33)==129U);
+    assert(pixel(fb,259,34)==130U);
+    assert(pixel(fb,259,35)==131U);
+    assert(pixel(fb,259,96)==128U); // original modulo-64 tile wrap
+    assert(pixel(fb,180,32)==
+           static_cast<std::uint8_t>(128U-79U));
+    assert(pixel(fb,180,33)==
+           static_cast<std::uint8_t>(129U-79U));
+
+    // Remaining 48: mask 0x0C samples U2 for lanes 2+3 and mask
+    // 0x03 samples U0 for lanes 0+1 (2-pixel texture grouping).
+    assert(pixel(fb,179,32)==
+           static_cast<std::uint8_t>(128U-80U));
+    assert(pixel(fb,179,33)==
+           static_cast<std::uint8_t>(128U-80U));
+    assert(pixel(fb,179,34)==
+           static_cast<std::uint8_t>(130U-80U));
+    assert(pixel(fb,179,35)==
+           static_cast<std::uint8_t>(130U-80U));
+    assert(pixel(fb,132,32)==1U);
+    assert(pixel(fb,132,33)==1U);
+    assert(pixel(fb,131,32)==0xEEU);
+    assert(pixel(fb,260,32)==0xEEU);
+    assert(pixel(fb,259,31)==0xEEU);
+    assert(pixel(fb,259,288)==0xEEU);
+
+    // Original 34ABF/34AC4 first-phase cap at 80 rows, followed
+    // by original 34B4D/34B53 signed (FF50-80)>0 paired-phase
+    // gate. These are SOURCE-AUTHENTIC raster row counts, not
+    // permission to set FF50 from unverified native wall geometry.
+    // Test 79/80/81 transition plus first and full 128-row limits.
+    for(const std::size_t cropped_rows : {1U,79U,80U,81U,128U}) {
+        fb.clear(0x6DU);
+        spec.row_count=cropped_rows;
+        const auto clipped=OriginalGroundTextureRaster::draw(
+            fb,source,shades,records,spec);
+        const auto single_rows=
+            cropped_rows<80U ? cropped_rows : 80U;
+        const auto paired_rows=cropped_rows-single_rows;
+        assert(clipped.rows==cropped_rows);
+        assert(clipped.individual_plane_rows==single_rows);
+        assert(clipped.paired_plane_rows==paired_rows);
+        assert(clipped.source_reads==single_rows*256U+
+                                    paired_rows*128U);
+        assert(clipped.indexed_writes==cropped_rows*256U);
+
+        const auto final_row=cropped_rows-1U;
+        const auto y=259-static_cast<int>(final_row);
+        const auto shade_at_final=
+            static_cast<std::uint8_t>(final_row);
+        const auto expected_first=static_cast<std::uint8_t>(
+            128U-shade_at_final);
+        const auto expected_second=static_cast<std::uint8_t>(
+            (final_row<80U ? 129U : 128U)-shade_at_final);
+        assert(pixel(fb,259,32)==128U);
+        assert(pixel(fb,y,32)==expected_first);
+        assert(pixel(fb,y,33)==expected_second);
+        if(final_row>=80U) {
+            const auto expected_third=static_cast<std::uint8_t>(
+                130U-shade_at_final);
+            assert(pixel(fb,y,34)==expected_third);
+            assert(pixel(fb,y,35)==expected_third);
+        }
+        // The original positive FF50 row limit must never alter
+        // the first undrawn scanline or horizontal side gutters.
+        assert(pixel(fb,y-1,32)==0x6DU);
+        assert(pixel(fb,260,32)==0x6DU);
+        assert(pixel(fb,259,31)==0x6DU);
+        assert(pixel(fb,259,288)==0x6DU);
+    }
+    // Restore full source-authenticated row budget for the original
+    // upper-case test following this bounded cropped floor fixture.
+    spec.row_count=GroundTextureRasterSpec::kMaxRows;
+
+    // Native-only color rule: low texels with shade 8 would wrap to
+    // palette entries 248..255. Historical mode must preserve SUB wrap.
+    GroundTextureShadeTable low_shades{};
+    low_shades.subtract[0U]=8U; // CODE.2 lower row 0 uses FE15[0]
+    auto low_tile=source;
+    low_tile[2U+2U*64U]=2U; // visible source U0,V2
+    auto native_spec=spec;
+    native_spec.row_count=1U;
+    native_spec.shade_policy=GroundShadePolicy::ClampToBlack;
+    fb.clear(0x55U);
+    const auto safe=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(safe.indexed_writes==256U);
+    assert(safe.shade_underflow_samples==4U); // 64-texel horizontal wrap
+    assert(safe.shade_underflow_pixels==4U);
+    assert(pixel(fb,259,32)==0U);
+    assert(pixel(fb,259,33)==121U); // original texel 129 minus shade 8
+    assert(pixel(fb,259,31)==0x55U);
+    native_spec.shade_policy=GroundShadePolicy::VgaWrap;
+    fb.clear(0x55U);
+    const auto wrapped=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(wrapped.shade_underflow_samples==4U);
+    assert(pixel(fb,259,32)==250U);
+    // The paired-phase floor duplicates one sampled texel twice.
+    native_spec.row_count=81U;
+    native_spec.shade_policy=GroundShadePolicy::ClampToBlack;
+    low_shades.subtract[80U]=8U; // CODE.2 lower row 80 uses FE15[80]
+    fb.clear(0x55U);
+    const auto paired=OriginalGroundTextureRaster::draw(
+        fb,low_tile,low_shades,records,native_spec);
+    assert(paired.shade_underflow_pixels>=2U);
+    assert(pixel(fb,179,32)==0U && pixel(fb,179,33)==0U);
+    assert(pixel(fb,180,32)==2U); // the low source texel remains 2 at row 79
+    const auto before_policy=fb.pixels();
+    native_spec.shade_policy=static_cast<GroundShadePolicy>(255U);
+    assert(rejected([&] {
+        (void)OriginalGroundTextureRaster::draw(
+            fb,low_tile,low_shades,records,native_spec);
+    }));
+    assert(fb.pixels()==before_policy);
+
+    // Original upper textured strip at 1F343/1F352 uses +80 and
+    // +1 shade index steps rather than reversed gradient indexing.
+    fb.clear(0xE9U);
+    spec.first_planar_byte_offset=0x148U; // screen x32,y4
+    spec.row_step_bytes=80;
+    spec.shade_index_step=1;
+    const auto upper=OriginalGroundTextureRaster::draw(
+        fb,source,shades,records,spec);
+    assert(upper.indexed_writes==128U*256U);
+    assert(pixel(fb,4,32)==
+           static_cast<std::uint8_t>(128U-254U));
+    assert(pixel(fb,4,33)==
+           static_cast<std::uint8_t>(129U-254U));
+    assert(pixel(fb,84,32)==
+           static_cast<std::uint8_t>(128U-174U));
+    assert(pixel(fb,84,33)==
+           static_cast<std::uint8_t>(128U-174U));
+    assert(pixel(fb,131,32)==1U);
+    assert(pixel(fb,3,32)==0xE9U);
+    assert(pixel(fb,132,32)==0xE9U);
+
+    // Runtime C048/C044 bytes patch origin AL/DL, preserving wrap.
+    spec.row_count=1U;
+    // FF58 origin and the mutable C048/C044 phase bytes
+    // occupy the high Q32 byte; 34350 samples bits 26..31.
+    // One TEXEL phase shift therefore requires +4 source
+    // bytes (4<<24 == 1<<26), not +1.
+    spec.phase_u=4U;
+    spec.phase_v=4U;
+    fb.clear(0xDDU);
+    const auto phase=OriginalGroundTextureRaster::draw(
+        fb,source,shades,records,spec);
+    assert(phase.source_reads==256U);
+    // y=3, x=1 => src(3*64+1)=193; shade254.
+    assert(pixel(fb,4,32)==
+           static_cast<std::uint8_t>(193U-254U));
+    assert(pixel(fb,5,32)==0xDDU);
+
+    // Reject malformed inputs transactionally: no intermediate writes.
+    const auto before=fb.pixels();
+    assert(rejected([&] {
+        auto short_tile=source;
+        short_tile.pop_back();
+        (void)OriginalGroundTextureRaster::draw(
+            fb,short_tile,shades,records,spec);
+    }));
+    assert(fb.pixels()==before);
+    assert(rejected([&] {
+        auto bad=spec;
+        bad.first_planar_byte_offset=0x50F0U; // wrong x origin
+        (void)OriginalGroundTextureRaster::draw(
+            fb,source,shades,records,bad);
+    }));
+    assert(fb.pixels()==before);
+    assert(rejected([&] {
+        auto bad=spec;
+        bad.row_count=129U;
+        (void)OriginalGroundTextureRaster::draw(
+            fb,source,shades,records,bad);
+    }));
+    assert(fb.pixels()==before);
+    assert(rejected([&] {
+        (void)GroundTextureShadeTable::from_code2(
+            std::vector<std::uint8_t>(32U,0U));
+    }));
+}

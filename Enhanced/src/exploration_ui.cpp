@@ -1,0 +1,153 @@
+#include "rloft/exploration_ui.hpp"
+
+#include "rloft/exploration_state.hpp"
+
+#include <stdexcept>
+#include <utility>
+
+namespace rloft {
+
+void ExplorationUiController::update_mouse(
+    int mouse_x,
+    int mouse_y) noexcept {
+    if (state_.screen != ExplorationUiScreen::Viewport) {
+        state_.top_edge_menu_visible = false;
+        state_.top_edge_hover = -1;
+        return;
+    }
+
+    state_.top_edge_menu_visible =
+        TopEdgeMenuModel::active_for_mouse_y(mouse_y);
+    state_.top_edge_hover =
+        state_.top_edge_menu_visible
+            ? TopEdgeMenuModel::selection_from_mouse_x(mouse_x)
+            : -1;
+}
+
+ExplorationUiScreen ExplorationUiController::screen_for_action(
+    TopEdgeMenuAction action) noexcept {
+    switch (action) {
+        case TopEdgeMenuAction::Rest:
+            return ExplorationUiScreen::Rest;
+        case TopEdgeMenuAction::Pray:
+            return ExplorationUiScreen::Pray;
+        case TopEdgeMenuAction::Memorize:
+            return ExplorationUiScreen::Memorize;
+        case TopEdgeMenuAction::Automap:
+            return ExplorationUiScreen::Automap;
+        case TopEdgeMenuAction::Load:
+            return ExplorationUiScreen::Load;
+        case TopEdgeMenuAction::Save:
+            return ExplorationUiScreen::Save;
+        case TopEdgeMenuAction::Quit:
+            return ExplorationUiScreen::QuitConfirm;
+        case TopEdgeMenuAction::Options:
+            return ExplorationUiScreen::Options;
+    }
+    return ExplorationUiScreen::Viewport;
+}
+
+bool ExplorationUiController::activate_top_edge_selection() {
+    if (state_.screen != ExplorationUiScreen::Viewport ||
+        !state_.top_edge_menu_visible ||
+        state_.top_edge_hover < 0) {
+        return false;
+    }
+
+    const auto action =
+        TopEdgeMenuModel::action_for_selection(state_.top_edge_hover);
+    state_.screen = screen_for_action(action);
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+    return true;
+}
+
+void ExplorationUiController::open_character(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    state_.selected_party_actor = actor_index;
+    state_.screen = ExplorationUiScreen::Character;
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+}
+
+void ExplorationUiController::open_automap() noexcept {
+    if(state_.screen!=ExplorationUiScreen::Viewport)return;
+    state_.screen=ExplorationUiScreen::Automap;
+    state_.top_edge_menu_visible=false;
+    state_.top_edge_hover=-1;
+}
+
+void ExplorationUiController::open_inventory(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    state_.selected_party_actor = actor_index;
+    state_.screen = ExplorationUiScreen::Inventory;
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+}
+
+void ExplorationUiController::open_party_panels(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+
+    // CODE.2 06C68 zeroes 6F90..6F9F. 13118 -> 112EC therefore opens with
+    // every active party column in inventory/equipment mode.
+    state_.party_panel_character_mode.fill(false);
+    state_.selected_party_actor = actor_index;
+    state_.screen = ExplorationUiScreen::PartyPanels;
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+}
+
+void ExplorationUiController::toggle_party_panel(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    if (state_.screen != ExplorationUiScreen::PartyPanels) {
+        throw std::logic_error(
+            "party panel toggle outside party modal");
+    }
+
+    // Primary-click 11AD8 toggles only the selected actor's low mode bit.
+    state_.party_panel_character_mode[actor_index] =
+        !state_.party_panel_character_mode[actor_index];
+    state_.selected_party_actor = actor_index;
+}
+
+void ExplorationUiController::exchange_party_panel_state(
+    std::size_t first,std::size_t second) {
+    if(first>=state_.party_panel_character_mode.size() ||
+       second>=state_.party_panel_character_mode.size())
+        throw std::out_of_range("party inventory reorder actor");
+    if(first==second)return;
+    std::swap(state_.party_panel_character_mode[first],
+              state_.party_panel_character_mode[second]);
+    if(state_.selected_party_actor==first)
+        state_.selected_party_actor=second;
+    else if(state_.selected_party_actor==second)
+        state_.selected_party_actor=first;
+}
+
+bool ExplorationUiController::party_panel_character_mode(
+    std::size_t actor_index) const {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    return state_.party_panel_character_mode[actor_index];
+}
+
+void ExplorationUiController::close_screen() noexcept {
+    state_.screen = ExplorationUiScreen::Viewport;
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+}
+
+}  // namespace rloft

@@ -1,0 +1,100 @@
+# Ravenloft: Strahd's Possession — original-source recompilation
+
+**Active branch:** [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) (case-sensitive). This is the reconstructed original DOS CODE.1/CODE.2 workstream, distinct from `demo-v1` and from `DnD-Classics`, which preserves the original game files.
+
+## November 2026 engineering baseline
+
+The independently compiled game systems, cleanup rules, reproducible Linux and
+Windows build commands and release blockers are documented in
+[PRODUCTION_BASELINE.md](PRODUCTION_BASELINE.md). The native player is an
+engineering preview, **not** a verified retail game release. The
+[acceptance ledger](ACCEPTANCE_GATES.json) remains at 3/12.
+
+## Production game-system layout — migration in progress
+
+See [GAME_SYSTEMS.md](GAME_SYSTEMS.md) for the C++17 core, graphics,
+audio, timing, filesystem, resource, UI, world, gameplay, scripts, save
+and modding ownership map. Active host implementations now reside under
+`src/game/`; historical includes remain compatibility forwards until
+the owning build targets can be migrated without breaking original CODE.2
+execution. Do not delete preservation evidence or move stable Code1/Code2
+source across branches.
+
+The Windows engineering package validates a source-only file whitelist and
+SHA-256 manifest with `tools/release_package_gate.py`. Production mode
+deliberately rejects a release while any of the 12 accepted-game gates
+remains open. Preview builds are not production certification.
+
+## Current status — 2026-10-28 UTC
+
+**Part 36: native original IRQ9 source keyboard make/break — verified.** [Windows Player Build #121](https://github.com/Hyperbog/RLOFT/actions/runs/40616583040), [Windows milestone #734](https://github.com/Hyperbog/RLOFT/actions/runs/40616583058), [canonical source-link #1082](https://github.com/Hyperbog/RLOFT/actions/runs/40616583085) (**108/108 CTests**), [Linux portable #790](https://github.com/Hyperbog/RLOFT/actions/runs/40616583123) and [strict saved-source native #100](https://github.com/Hyperbog/RLOFT/actions/runs/40616583134) all passed on executable source `8f673ada8`. The host now runs compiled CODE.2 `308F8` scan make/break through original `30B40/F590`, with a bounded port 60h/61h and PIC acknowledgment bridge. A new source test verifies original IRQ9 vector installation, R key translation, arrow-key queue, and CTRL flag lifetime. **Only the sampled native one-shot keys exercise this IRQ9 path; DOS asynchronous cadence and held-key equivalence remain open.** The comprehensive Windows milestone #732 had an unresolved intermittent third-console-key failure; passing #734 does not prove the cause fixed. [Part36 source-input continuity](PART36_ORIGINAL_IRQ9_NATIVE_INPUT_20261027.md). Acceptance remains **3/12**.
+
+**Part 35: original saved-world generalization and Windows input — verified.** The compiled `07938 → 181B4 → 1FC14` chain now accepts the authentic destination level from `SAVE.DAT` and its matching `LEVnnn.DAT`; the host no longer restricts saved restores to Level23. [Strict native Windows #40610693547](https://github.com/Hyperbog/RLOFT/actions/runs/40610693547) passed **both original Level22 and Level23 saved-world restoration through real source VGA frames**, and retained the exact original Level23 → 26 → 23 portal regression. Native Windows now queues ordinary BIOS-style keyboard input and supplies physical mouse position/buttons on genuine original INT33 function-3 reads while preserving the same guest worker. [Windows canonical #40610431758](https://github.com/Hyperbog/RLOFT/actions/runs/40610431758) passed **107/107 CTests** and [Windows Build #108](https://github.com/Hyperbog/RLOFT/actions/runs/40610431778) compiled and packaged. Mouse callback IRQ delivery, interactive combat/menu/dialogue, retail DOS parity and all-level gameplay are **not accepted**. See [Part35 source/input continuity](PART35_SOURCE_SAVES_AND_PHYSICAL_INPUT_20261027.md). Acceptance stays **3/12**.
+
+**Part 41 retained INT 08h lifecycle (2026-10-27 UTC):** New original-source vector preflight checks the complete compiled `30BB4 → 30708 → 30C38` install, handler and restore contract, rejects an unimplemented predecessor-chain service, and attaches a per-retained-guest elapsed scheduler to the already existing `2F868` event pump. Compiled original `2E614` is wired as a **fail-closed** game-over timing callback; the scheduler is **not armed** because the retail timer cadence, DOS predecessor handler, and active `19C80` service are not authenticated. The new source test checks vector order, saved memory, source hook/chain ordering, CPU restoration and proper revocation after restore. [Windows canonical #40442379550](https://github.com/Hyperbog/RLOFT/actions/runs/40442379550) **106/106 CTests PASS**; [Linux portable #40442379559](https://github.com/Hyperbog/RLOFT/actions/runs/40442379559) **PASS**, [Windows engineering package #40442379687](https://github.com/Hyperbog/RLOFT/actions/runs/40442379687) **PASS** at code [`2b8a470b`](https://github.com/Hyperbog/RLOFT/commit/2b8a470bcb7f273cd2e5ed9d7631c1680f041e6a). An earlier superseded implementation `fbab6ada` failed the comprehensive Windows milestone because its new test referenced nonexistent `CpuState::eip`; corrected test uses `esp`. Full-party defeat, Miles active music and original `205B4` production teardown remain guarded. The acceptance ledger is still **3/12**; this is not DOS hardware parity.
+
+**Development priority: engine-wide source execution, not level-by-level implementation.** Complete the original shared CODE.1/CODE.2 loader, resource renderer, VGA, audio, input/timer, actor, script and save subsystems so the *same binary and callbacks* process any valid game data. Individual Level 22/23/26 examples are regression fixtures only. The [engine-wide recompilation plan](ENGINE_WIDE_RECOMPILATION_PLAN_20261026.md) inventories shared code paths, current generic callback gaps and subsystem acceptance; percentages based on levels visited are invalid.
+
+**Measured acceptance:** **3/12 whole-game gates = 25.00%** accepted; **9** remain open. Original source-native portal regressions still verify **2/2 authenticated archive portal directions**, **3/3 source full-cycle indexed VGA scanouts** and three guest transitions. The current independent Windows canonical source-link gate [#40438921665](https://github.com/Hyperbog/RLOFT/actions/runs/40438921665) passed **104/104 CTests**, and [Windows comprehensive milestone #40433361604](https://github.com/Hyperbog/RLOFT/actions/runs/40433361604) succeeded at source `bfd47c28`, including its redirected-stdin integration stages. An earlier intermittent third-input timeout [#40321896354](https://github.com/Hyperbog/RLOFT/actions/runs/40321896354) remains a reliability question, not a current red-run assertion. These are different denominators, not a single game-completion estimate. See [evidence-based progress](PROGRESS_REPORT_20261026.md) and [the acceptance ledger](ACCEPTANCE_GATES.json).
+
+
+
+**Engine-wide source coverage checkpoint:** [shared original CODE.2 call-graph and callback closure](SHARED_ENGINE_CALLBACK_CLOSURE_20261026.md). The static audit now enumerates 985 reconstructed source-function bodies, 671 direct edges and 1,933 callback ABI mentions; unresolved source branches remain explicitly tracked. Original compiled `181B4` archived loading passes against **32/32** read-only original worlds and its direct-save load passes **17/17** preserved saved-world files. Source-clipping, overlay and actor SFX queue callbacks were connected generically; this is not complete combat, script, dialogue, audio-driver or game-wide frame coverage.
+
+**Original game-over scene and sampled audio expansion:** Source `1F1C8/1F494` callbacks reuse the existing original world/party renderer. Queued `28168` and direct `27F24` sound requests use original packets and the opt-in WinMM sampled device; original `28C54` active Miles music is **not** certified. Updated source regressions verify party death portraits, world callback order and direct-SFX queue integrity (canonical [104/104](https://github.com/Hyperbog/RLOFT/actions/runs/40439986244)); live IRQ8/exit and full retail DOS parity remain unimplemented, with **3/12 acceptance**.
+
+**Retained cursor, timer and exit expansion:** Source `1A9F8/1AACC/1A288` cursor callbacks are connected to retained mouse/VGA. Reconstructed `30708/2E614` timer and `205B4` shutdown are tested with actual compiled source and **test-only** external scheduling/exit observers (Windows canonical **104/104**). Live active AIL, full scene/party renderer, IRQ8 timing and original process exit remain guarded; acceptance **3/12**.
+
+**Retained game-over device integration:** [Original game-over closure and the current guest/VGA/audio/input boundary](ORIGINAL_GAME_OVER_COMPOSITOR_20261027.md). The original VGA source transfer, RES0 artwork/HUD, DOS heap and real INT33 polling now have retained-host callbacks; their source test passes with actual VGA memory. Active music/SFX, full scene/cursor/timing and shutdown are not connected, so **whole-party defeat remains guarded** (104/104 source tests, 3/12 acceptance).
+
+**Source game-over compositor checkpoint:** [Original `0CD44→0CCF4→0CBC8→0CADC` control-flow closure](ORIGINAL_GAME_OVER_COMPOSITOR_20261027.md) has source-tested exact artwork/page/audio/modal/exit choreography and a synthetic whole-party defeat cascade (canonical **102/102** CTests). The live retained guest **does not yet** render complete game-over graphics, audio or real user input; its whole-party `0CBC8` entry is still guarded. Acceptance remains **3/12**.
+
+**Shared actor/script/dialogue source checkpoint:** [original 1BDAC→0D550 actor action, 002A8 script dispatcher and 1C368 indexed text](ORIGINAL_SHARED_ACTOR_SCRIPT_DIALOGUE_20261026.md). Verified Windows source-link **103/103 CTests** and Linux/native saved-portal regression at the tested source commit. Type-15 saving-throw and non-party-wipe damage/cleanup use reconstructed original callbacks; the script dispatcher has source-executed multi-opcode coverage; indexed dialogue text decoding is proven. **Full equipment handling, whole-party game over, modal dialogue and active AIL audio remain open.** Source-backed bounded equipment modifiers (`24478`), surviving-party lethal cleanup (`0CD44→0AD24`) and restricted miss text (`3210F→385B0→1C21C`) now run. These are generic CODE.2 branches, not per-level work or retail DOS parity. This is not a finished-game acceptance percentage.
+
+The original CODE.2 runtime retains the same guest memory, heap, source VGA, resource caches and input loop across compiled gameplay callbacks. The experimental Windows host presents and accepts input on original Level 22. The saved Level 23 → Level 26 → Level 23 original-source portal diagnostic now **passes a strict native full-cycle acceptance**. This does not establish physical portal playability, general save-system coverage, complete DOS devices, or retail DOS frame/audio parity.
+
+**Retained original Level 23 save restoration: VERIFIED.** The preserved original `SAVE01` was loaded through compiled `0x07938 → 0x181B4(23)` on one guest. Its source-authored `C6C8=0xFFFFFFFF` no-departing-level sentinel is now supported, with 156 source save reads, 219 source saved-level reads, and zero departing-world writes. The [strict Windows evidence](https://github.com/Hyperbog/RLOFT/actions/runs/40271379104) contains `07938_RETAINED_LEVEL23_RESTORE_PASS`. Original `0x1BDAC` actors and `0x2D5D0` collision callbacks also execute and return.
+
+**Saved Level 23 restoration and authentic Level 23 → 26 → 23 native source frames: STRICT PASS.** [Windows retained-game acceptance #40320888276](https://github.com/Hyperbog/RLOFT/actions/runs/40320888276) at implementation [`b9c07cea`](https://github.com/Hyperbog/RLOFT/commit/b9c07cea4d440af1c9b790588e590e2943f4cc2a) succeeded, including `CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS`, native process exit code zero, 3 original `181B4` level transitions, 3 audited original `1FC14` post-level scanout frames, final Level 23 state and balanced scene/page/HUD/audio source cycles. Both portal directions invoke authentic `LEVELS.DAT` type-8 records through compiled `2D3D8`; the diagnostic's private keyboard command is **not a physical in-game walk**. Source `34DE8` Level 26 mode-4 polygon traversal legitimately produces zero polygon quads and visible sprites; the host acceptance now requires completed original cell/projection scans, actor, wall, scene, compass and raster-accounting returns rather than fabricated pixels. The [strict workflow](../.github/workflows/recomp-retained-07938-level23.yml) independently checks retained guest ownership, native 320×400 indexed scanout, RGB6 palette, and a complete post-scene `30B40` re-entry. **Retail DOS synchronized framebuffer/audio equivalence, physical input parity, general world coverage and release-mode fast-fail `0xC0000409` remain open.** See the [retained Level23/26 continuity report](ORIGINAL_RETAINED_07938_LEVEL23_20261026.md).
+
+The historical R01–R12 acceptance ledger remains in [`ACCEPTANCE_GATES.json`](ACCEPTANCE_GATES.json); an MSVC build or passing CTests never automatically accepts an unverified gameplay gate.
+
+## Build from source
+
+Windows x64 / Visual Studio 2022:
+
+```powershell
+cmake -S Recomp -B build/recomp -A x64 -DBUILD_TESTING=ON
+cmake --build build/recomp --config Debug --parallel 2
+ctest --test-dir build/recomp -C Debug --output-on-failure
+```
+
+Linux: `bash dev/linux.sh test` from the repository root. The [Windows milestone workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-milestone-windows.yml), [canonical source-link workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-source-link-gate.yml), and [Linux regression](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-linux-ci.yml) produce independent evidence. For the strict retained-save native acceptance, use the [separate source-backed Level 23 workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-retained-07938-level23.yml).
+
+## Download the latest Windows engineering build
+
+Open [Windows engineering builds](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-windows-player-package.yml) and choose an actual **successful** run for `Recomp`, then download its artifact. It contains rebuilt experimental executables, launch scripts and a source SHA, **never original game media**. The comprehensive [Windows milestone workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/recomp-milestone-windows.yml) also provides a larger diagnostics package. Read individual nonblocking portal steps; overall green does not imply playable cross-level success.
+
+## Owner-local Windows testing
+
+Extract the **whole** engineering package. Supply your own original GOG `RLOFT` directory containing `CODE.2`; the launch script auto-detects standard paths or accepts `-GameFolder`. Supply `-CdRoot` for an already-extracted original CD `RLOFT` folder, or leave it unset to use the owner-local `game.gog` extractor.
+
+```powershell
+.\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT'
+.\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT' -Smoke
+.\Launch-RLOFT-Level22.ps1 -GameFolder 'C:\Games\RLOFT' -CdRoot 'C:\Games\CD_Extracted\RLOFT' -SavedLevelFolder 'C:\Saves\SAVE01'
+```
+
+For a **strict** experimental Level 23 → 26 → 23 portal check, add `-SavedPortalSmoke`. The authentic `07938 → 181B4` no-departing-level sentinel now works; a passing restored Level 23 frame is not proof of the later portal. Require the strict workflow's explicit native full-cycle marker and zero exit code before claiming acceptance. The saved-game slot must contain unchanged `SAVE.DAT` and `LEV023.DAT`. No original game files, retail saves or `WORK` paths are rewritten. Original source guest and indexed VGA buffers remain private to the owner.
+
+**Controls:** W/S move forward/backward; A/D strafe; J/L and left/right arrows rotate. Other supported physical set-1 keypresses, including Esc, enter a bounded queue and execute original CODE.2 `308F8 → 30B40/F590` make/break translation. Movement W/S/A/D/J/L and arrow-key aliases still use a host-translated source `1FC14` navigation path. Alt+F4 closes the Windows host; mouse coordinates and left/right button state are supplied to original INT33 position polls when requested. Windows keyboard/mouse translation is **not** certified physical DOS IRQ9/callback parity; actual menu, combat and mouse-click actions still require gameplay verification. Fully playable cross-level rendering, Miles AIL audio, all scripted events and independent DOS frame synchronization remain open.
+
+## Repository organization
+
+- `Code1/`, `Code2/`, and `Recomp/src/`: retained original reconstruction and host adapters. `*.inc` fragments are compiled source dependencies, **not** disposable temporary files.
+- `Recomp/tests/`, `Recomp/tools/`: source regression and private-media diagnostics.
+- `Recomp/ACCEPTANCE_GATES.json`: authoritative historical 12-gate research acceptance record.
+- [Documentation index](DOCS_INDEX.md): the current entry points and selected technical evidence.
+- [Historical research log](README_HISTORY_20261017.md): consolidated prior README, branch guide, Windows milestone history and Level 22 playtest notes. Older dated source-address reports remain in their original paths to preserve cross-references.
+
+**Branch ownership:** keep recompilation changes in `Recomp`; do not relocate `Code1/` or `Code2/` without updating compilation and ABI contracts. Original commercial files stay immutable on `DnD-Classics` and are never embedded in CI packages. The `demo-v1` enhanced port is a separate workstream.

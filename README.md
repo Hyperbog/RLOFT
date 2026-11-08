@@ -1,42 +1,67 @@
-# Ravenloft: Strahd's Possession — source research and reconstruction
+# Ravenloft Enhanced
 
-**Goal:** faithfully reconstruct the original game and make its engine, data and behavior understandable, portable and moddable. A completed player-facing game is **not** yet verified.
+**One game. One development priority.** A native, playable and moddable port
+of *Ravenloft: Strahd's Possession*, built around the original game's assets,
+characters, levels, rules, scripts, sound and story.
 
-## Current workstreams (GitHub branches verified 2026-10-31)
-
-| Branch | Purpose |
-| --- | --- |
-| [`Decomp`](https://github.com/Hyperbog/RLOFT/tree/Decomp) | CODE.1 / CODE.2 decompilation and research evidence (this checkout) |
-| [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) | Native original-source runtime and Windows player package |
-| [`DosDis`](https://github.com/Hyperbog/RLOFT/tree/DosDis) | General-purpose game disassembler |
-| [`Ravenloft-Asset-Extractor`](https://github.com/Hyperbog/RLOFT/tree/Ravenloft-Asset-Extractor) | Original game asset extraction |
-| [`DnD-Classics`](https://github.com/Hyperbog/RLOFT/tree/DnD-Classics/MASTER) | Original commercial media; preserve unmodified |
-
-Earlier references to `demo-v1`, `native-engine`, `code1-decompilation` and lowercase `recomp` refer to historical workstreams or obsolete branch names, not currently listed branches. Recovery of earlier demo material requires inspecting actual historical commit/tag or Actions artifact records.
+**Development branch:** `Ravenloft-Enhanced`. This is a recovered **pre-alpha**,
+not a complete campaign or production game. The repository default branch is
+still named `Decomp` until GitHub repository settings are changed.
 
 ## Start here
 
-- [Decompilation guide](Decomp/README.md) and canonical [CODE.1](Code1/README.md) / [CODE.2](Code2/README.md) reconstructed sources.
-- [Active Recomp source and verification](https://github.com/Hyperbog/RLOFT/blob/Recomp/Recomp/README.md), [acceptance ledger](https://github.com/Hyperbog/RLOFT/blob/Recomp/Recomp/ACCEPTANCE_GATES.json), and [native Windows build workflows](https://github.com/Hyperbog/RLOFT/tree/Recomp/.github/workflows).
-- [Decomp / Recomp cross-examination](docs/RECOMP_DECOMP_AUDIT_20261031.md), [current branch ownership](docs/BRANCH_OWNERSHIP.md), [source identity register](docs/SHARED_SOURCE_REGISTER.md), and [documentation index](docs/INDEX.md).
-- [Read-only shared source-parity checker](ResearchInfra/check_shared_source.py): compare critical Git blobs after fetching both `Decomp` and `Recomp` refs.
-- [Original game resource format research](DatFiles/README.md) and [mod-forward methodology](MOD_FORWARD_METHODOLOGY.md).
+- **[Enhanced/](Enhanced/README.md)** — the only player-facing native game
+  application. Restored from the verified October 16, 2026 native-game source.
+- **[Enhanced project charter](Enhanced/ENHANCED_PC_PORT_CHARTER.md)** — what
+  we are building, and what is no longer an arbitrary release blocker.
+- **[Enhanced release gates](Enhanced/RELEASE_GATES.json)** — Alpha, Beta and
+  final game acceptance, measured by actual player-visible features.
+- **[Research/](Research/README.md)** — original CODE.1/CODE.2 reconstruction,
+  data-format research and authenticity comparisons.
+- **[Recomp/](Recomp/README.md)** — preserved, tested reconstructed-source host
+  infrastructure, retained as an *engineering reference*, not a competing
+  player product.
 
-## Evidence and acceptance
+## Build the game
 
-CODE.1 and CODE.2 reconstructed executable-byte accounting has been recorded as 100%. This is **not** a claim of complete semantic equivalence or a finished game. The Recomp checklist records **3 of 12 engineering gates** accepted; the full player-visible game remains unaccepted. A compiled Windows executable or passing CTests establishes only its tested engineering conditions.
+**Windows x64 (Visual Studio C++ and CMake):**
 
-Recompilation development must preserve exact original-source function behavior, keep the original media in its source-preservation branch, and verify game-visible startup, character creation, save/load, world rendering, input, combat, scripts, audio, and campaign progression in one runnable session. Do not distribute proprietary original game files with the reconstructed-source application.
-
-## Local verification
-
-From a checkout containing both branch refs:
-
-```sh
-python3 ResearchInfra/check_shared_source.py --self-test
-python3 ResearchInfra/check_shared_source.py --decomp-ref origin/Decomp --recomp-ref origin/Recomp
-g++ -std=c++17 -fsyntax-only Code1/Code1.cpp
-g++ -std=c++17 -fsyntax-only Code2/Code2.cpp
+```powershell
+cmake -S Enhanced -B build/enhanced -A x64
+cmake --build build/enhanced --config Release --target ravenloft_demo_v1
 ```
 
-For active Windows player packaging and full CTests, see the Recomp branch. A successful syntax check is not a gameplay test.
+The existing executable target name is retained until the native build and
+launcher contracts are migrated safely. The player binary is staged as
+`Ravenloft.exe` by CI. Original game media must be provided by the owner; do
+not commit or distribute it with binaries.
+
+## Repository rules
+
+1. `Enhanced/` is the authoritative game. Do not create another independent
+   implementation of character creation, inventory, world state or gameplay.
+2. Reuse independently verified `Code1/`, `Code2/`, `Recomp/` and research
+   routines *within* the enhanced game when they solve a real game problem.
+   Exact DOS instruction, port and IRQ equivalence are valuable research but
+   not mandatory milestones for the native player.
+3. Keep original commercial assets and executables unmodified on the
+   `DnD-Classics` preservation branch. Normal builds contain **no game media**.
+4. Never confuse a successful CTest/source reconstruction with a playable
+   feature. Validate title → character creation → Level 22 interaction →
+   save/restore → Level 23, then the full campaign, using a real Windows player.
+5. Preserve historical CMake targets and sources until an equivalent new
+   target runs and passes. Migrate consumers before deleting compatibility code.
+6. Keep dated diagnostic reports in Git history rather than copying hundreds of
+   old checkpoint documents into the active player directory.
+
+**Out of scope for this Ravenloft workstream:** DOSDis. It is independent and
+must not be imported, built or used as a release dependency.
+
+## Historical source recovery
+
+The October 16 native game source was recovered from
+[`8982fcc`](https://github.com/Hyperbog/RLOFT/tree/8982fcc1f0ca68781cf0a55c4af98f4f15f0fa1c/DemoV1).
+Its original build is preserved at
+[GitHub Actions #38982609266](https://github.com/Hyperbog/RLOFT/actions/runs/38982609266).
+This recovery retains engine code, tests, tools and source-safe launchers while
+excluding a historically committed Windows EXE and redundant date-stamped logs.

@@ -1,0 +1,282 @@
+# Part 38 — retained original 07938 saved Level 23 integration
+
+## Source / original-media provenance
+
+- Branch: `Recomp`; owner original media remain read-only and never enter packages.
+- Reconstructed original CODE.2 function `07938` is invoked on the SAME retained
+  source worker, DGROUP and native Watcom heap as `353A0 → 20608 → 20440 → 1FC14`.
+- Original `DnD-Classics/MASTER/Ravenloft - Strahd's Possession/cloud_saves/RLOFT/SAVE01`
+  contains a real `SAVE.DAT` (9,288 bytes, level 23 at offset 0x52) and
+  `LEV023.DAT`. The authentic source save position is x=738207, y=2926568
+  (16.16 fixed point), heading=50. It is not a Level 22 portal or fake camera.
+- Original archived Level 23 type-8 portal tiles to level 26 are (9,1) and
+  (37,1); the archived Level 26 reciprocal portal records are (68,30) and
+  (95,30). The saved player starts on tile (11,44): private diagnostic
+  portal-record invocation does **not** prove physical walking into a portal.
+
+## What the retained-host bridge does
+
+- `original_code2_live_07938_restore.inc` opt-in code accepts a specified
+  original slot with both `SAVE.DAT` and `LEV023.DAT`.
+- It checks the source save header, decodes the preserved LEV record, then
+  seeds the existing session-private `WORK\\LEV023.DAT` overlay.
+- The original reconstructed `07938` controls party state, camera, inventory,
+  clock, lighting, and the call into `181B4`; file callbacks present the
+  owner's unchanged SAVE.DAT bytes as read-only guest data.
+- The same session retains the source `1FC14` loop and indexed VGA.
+  A private `FFFA` source-test command selects the restore, never a retail key.
+- `--load-save23 DIR` enters the interactive Windows window after restoration;
+  `--smoke-save23 DIR` additionally requires the source authenticated
+  Level 23 → 26 → 23 archive portal pair and all three completed `1FC14`
+  native RGB6/indexed frame audits. Nothing is written into the retail WORK dir.
+
+## Validation boundaries
+
+The isolated original `07938 → 181B4` preserved media harness passed on the
+unaltered Level 23 save in the Part 37 Windows workflow. The prior
+`--smoke-portal` diagnostic timed out while attempting the first native Level
+23 scene; its nonblocking CI step can be red even when the overall engineering
+milestone is green. A native destination `1FC14` scene and post-frame audit
+are **not accepted** without explicit `07938_RETAINED_LEVEL23_RESTORE_PASS`,
+`171FC_181B4_LIVE_SOURCE_RETURN` and
+`1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS level=26` witnesses in the same
+run.
+
+The save-backed probe uses a separate explicitly nonblocking Windows CI step.
+Read its individual step logs, not the aggregate job's success icon, before
+claiming native gameplay/frame certification. Even a successful native indexed
+frame is not retail DOS synchronized frame parity or proof of user-controlled
+movement onto the portal tile.
+
+
+## Part 38 follow-up: verified original 07938 sentinel (strict Windows failure)
+
+Commit `c81521206fbaf42d36a0f7aea68cb01bd6d0aec6` introduced a
+**strict**, standalone, bounded Windows CI job that correctly fails when
+native preserved-source restoration or its portal frame is missing.
+
+- Strict workflow: https://github.com/Hyperbog/RLOFT/actions/runs/40265009326
+- Result: **failure**, native acceptance OPEN; window MSVC compilation PASS.
+- At the exact **compiled original** `07938 → 181B4(23)` callback:
+  `requested=23`, `guest_prior=4294967295 (0xFFFFFFFF)`,
+  `saved_world_overlay=1`, `save_reads=156`,
+  `restore_active=1`, `save_level_callbacks=1`.
+- The owner prior-level value is an original **no-departing-level sentinel**,
+  not the Level 22/23 same-level case assumed in the previous guard.
+- First unsupported callback:
+  `LIVE_CODE2_SOURCE_STOP=ORIGINAL_181B4_LIVE_UNVERIFIED_LEVEL_PAIR`.
+- No `07938_RETAINED_LEVEL23_RESTORE_PASS`, no
+  `1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS`, and no Level 26 frame.
+- The isolated untouched Level 23 `07938 → 181B4` saved-game harness still
+  passes. The ordinary Linux, source-link and Windows CTest regressions pass.
+
+### Bounded next fix (not implemented in this report)
+
+In `Recomp/src/original_code2_live_level_transition.inc`, support
+`prior==0xFFFFFFFF` **only** when all of the original saved-game inputs
+and existing retained-owner prerequisites are satisfied: active `07938`
+restore, `requested==23`, one source level callback, authenticated
+private `LEV023` overlay, and original save reads observed.
+
+The original `181B4` should then own whether the no-departing-level path
+skips `171FC`. Audit the original postload branches and make the
+`level_overlay.has(prior)` postcondition conditional on an actual
+departing level; do not synthesize, overwrite or remove real saved-world
+data, and do not broaden general level transition permissions.
+
+Rerun the dedicated strict workflow and require the actual
+`07938_RETAINED_LEVEL23_RESTORE_PASS` marker **before** interpreting
+the native `23 → 26` framebuffer test. A green aggregate milestone with
+a nonblocking timed-out portal test is not certification. Native
+movement-triggered portal entry and independent retail DOS parity remain
+separate acceptance gates.
+
+
+## 2026-10-26 restoration and renderer status — current acceptance
+
+The earlier sentinel error is fixed in [`138a2cf2`](https://github.com/Hyperbog/RLOFT/commit/138a2cf22bf333ba61e918668c8e6e01a765e6f2). In strict [run 40271379104](https://github.com/Hyperbog/RLOFT/actions/runs/40271379104), original `07938` performed 156 source save reads, original `181B4(23)` performed 219 source level reads, and **zero** writes of a departing world occurred. The same retained CODE.2 guest emitted `07938_RETAINED_LEVEL23_RESTORE_PASS`. This is a saved-world restore, not a full frame return.
+
+The [compiled original `2D5D0` integration](https://github.com/Hyperbog/RLOFT/commit/febdb63c4fc2a511250c1536a169503e6fd0012b) allowed the first Level23 `1BDAC` actor pass to return: three collision checks returned 1, 0, 1 without synthetic collision values.
+
+Strict [run 40273739122](https://github.com/Hyperbog/RLOFT/actions/runs/40273739122) reached the authentic `2C294` scene-record clear, multiple `35798` projections, and `21BF0`, but did not return from original `335DC` wall rendering. Source material and flush tracing in [run 40273999130](https://github.com/Hyperbog/RLOFT/actions/runs/40273999130) showed authentic RES4 material loads and completed original `3263C` VGA flushes through cumulative count 1928 within a 90-second test; `335DC` itself did not return before timeout. A cumulative flush count does not establish an infinite loop. Original `335DC` has two source-authored scan passes over 256 records; see [source-only run 40274120863](https://github.com/Hyperbog/RLOFT/actions/runs/40274120863).
+
+An exploratory Release-mode strict probe [run 40274297356](https://github.com/Hyperbog/RLOFT/actions/runs/40274297356) exited with Windows code `-1073740791` (`0xC0000409`), unlike Debug mode's bounded timeout. This is an **unresolved release-specific fast-fail**, not evidence that original render or DOS parity completed; the native acceptance workflow was returned to **Debug** until the cause is diagnosed.
+
+**Unaccepted:** first Level23 original `1FC14` full page/HUD/audio/indexed-RGB6 scanout after restoration; Level23→26 genuine type-8 portal framebuffer; later Level26→23 return; physical original DOS behavior parity. No invented level, camera, frame, or collision state is used to claim success.
+
+**Next bounded investigation:** instrument original `335DC` starting and ending ray-record indices and per-pass flush deltas (distinguish elapsed time from progress); isolate whether the reconstructed `3263C` bridge or source resource management dominates. Preserve original CODE.2 call order and the strict timeout while diagnosing the Release fast-fail separately.
+
+
+## 2026-10-26 Part 32 continuation — completed Level 23 scene; nested Level 26 preflight
+
+**The previous Level 23 ray-stall statement above is historical, not the present frontier.**
+At [strict run #40279091361](https://github.com/Hyperbog/RLOFT/actions/runs/40279091361)
+on `037209cd`, the same retained original guest completed both source
+`335DC` scan passes (`ray_count=256`, cumulative `3263C` flushes
+`2291`), original `2C294` scene/sprite returns, source page handoff,
+post-scene HUD/audio/random queries, and re-entered source `30B40`.
+**No Level 26 native frame or retail DOS-equivalent VGA frame was accepted.**
+
+The subsequent first Level 23→26 transition encountered a host-only
+`171FC` preflight wrongly requiring each of the three original 22-byte
+world-record families to have at most 150 entries. Original `LEVELS.DAT`
+contains Level 23 Family A/C/B counts `34/28/213`, and Level 26 counts
+`47/11/183`. The original Family B placed-item array has room for 600
+22-byte records between `0x22238` and `0x255D8`. [Commit
+`3d57d759`](https://github.com/Hyperbog/RLOFT/commit/3d57d759d75943d23af751deb55d7832c9389574)
+checks the three original families separately; [strict run
+#40306828750](https://github.com/Hyperbog/RLOFT/actions/runs/40306828750)
+advanced beyond that guard.
+
+The next `1BDAC` host acceptance guard rejected **two** completed
+original polygon-scan returns because it expected exactly one. The
+nonmutating diagnostic at [`10464c0a`](https://github.com/Hyperbog/RLOFT/commit/10464c0a8bbc27de8587518271eae6d48ce97848)
+and [strict run #40307645820](https://github.com/Hyperbog/RLOFT/actions/runs/40307645820)
+recorded genuine source Level 26, mode 4, active transition, polygon
+`scan_returns=2`, `quads=6`, `scanlines=162`, `cells=1320`,
+`projections=55`. [Commit `6adf7e11`](https://github.com/Hyperbog/RLOFT/commit/6adf7e11635cabce1d108a86d80bffb36b04c5b6)
+now accepts at least one actual prior `34DE8` scan without inserting
+polygon callbacks or altering guest state.
+
+**Current strict frontier:** [run #40308055341](https://github.com/Hyperbog/RLOFT/actions/runs/40308055341)
+again completed the genuine restored Level 23 `1FC14` scene,
+entered original destination-resource loading, passed the `1BDAC`
+polygon preflight and stopped at
+`LIVE_CODE2_SOURCE_STOP=ORIGINAL_2C294_ACTOR_PREDECESSOR_MISSING`.
+The `2C294` host guard currently expects exactly one cumulative actor
+update return, despite the nested `181B4 → 1F8FC` rendering progression.
+The following `Concurrent host access to a running original guest`
+message remains a secondary supervisor symptom until independently
+isolated. Strict result: **failed**; `restored=True`,
+`portal_full_cycle=False`, no genuine Level 26→23 return accepted.
+
+**Next source-safe step:** instrument the `2C294` actor-return count,
+the source guest level and subframe/transition boundaries. Then
+replace only demonstrably stale per-frame host assertions with
+monotonic or per-invocation source witnesses; do not zero live counters,
+synthesize actor updates, omit original callbacks, or accept a portal
+without the strict native full-cycle marker. This is a diagnostic
+and acceptance-boundary issue, **not** evidence of original DOS parity.
+
+
+## 2026-10-26 Level 26 actor/frame-boundary verification — native portal source return
+
+**Current source result:** [strict run #40310813259](https://github.com/Hyperbog/RLOFT/actions/runs/40310813259)
+at `9cbf6960` failed its overall full-cycle requirement, **but did prove
+compiled original `2D3D8(23→26)` returned** on the retained guest.
+It printed `2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN from=23 to=26
+portal_x=9 portal_y=1 target_x=68 target_y=29` from the unmodified
+`LEVELS.DAT` portal record. This is a private diagnostic record
+invocation, not physical walking onto the tile.
+
+### Verified host-trace accounting defect and correction
+
+- At [diagnostic run #40309915040](https://github.com/Hyperbog/RLOFT/actions/runs/40309915040)
+  on `f2ad779e`, the Level 26 `1BDAC` actor source returned, but
+  the shared trace reported `actor_returns=2 polygon_returns=2
+  scene_returns=1 wall_passes=1`, because the prior Level 23
+  `1FC14` scene and the nested `181B4 → 1F8FC` compositor both
+  used the same host trace.
+- [Commit `15217767`](https://github.com/Hyperbog/RLOFT/commit/15217767ac53e02789a995065eca4b3851c78bc9)
+  gives the mode-changing nested `1F8FC` its own stack-local
+  `OriginalFullFrameTrace`/`ExteriorSourceTrace`. Prior trace pointers
+  are restored on normal source return. The guest `Machine`, original
+  callback order, resource cache, heap, VGA and level data are unchanged.
+- At [strict run #40310346793](https://github.com/Hyperbog/RLOFT/actions/runs/40310346793),
+  the isolated Level 26 mode-4 `34DE8` **returned genuinely**, visiting
+  `540` map cells and calling `35798` for `16` projections, yet
+  legitimately yielded `0` quads and `0` scanlines. The former
+  `1BDAC` guard incorrectly insisted on nonempty raster geometry.
+- [Commit `9cbf6960`](https://github.com/Hyperbog/RLOFT/commit/9cbf6960491337ba5aa8fa3066d31ec9801f2715)
+  checks original completed polygon scan **and real cell/projection
+  callbacks**, instead of inventing or requiring visible polygons.
+
+### New exact original-source witnesses
+
+Strict [run #40310813259](https://github.com/Hyperbog/RLOFT/actions/runs/40310813259)
+recorded:
+
+```text
+CODE2_ORIGINAL_LEVEL26_1BDAC_SOURCE_RETURN actor_returns=1 polygon_returns=1 scene_returns=0 transition_active=1
+CODE2_ORIGINAL_LIVE_BOOT=1A5B0_SOURCE_VGA_PRESENT scanout=1
+CODE2_ORIGINAL_181B4_NESTED_1F8FC_SOURCE_RETURN polygon_returns=1 actor_returns=1 scene_returns=1 wall_passes=1 quads=0
+CODE2_ORIGINAL_GAMEPLAY_LEVEL=171FC_181B4_LIVE_SOURCE_RETURN from=23 to=26 source_write_calls=228 no_departing_level=NO source_read_calls=219
+CODE2_ORIGINAL_GAMEPLAY_LEVEL=2D3D8_AUTHENTIC_PORTAL_SOURCE_RETURN from=23 to=26 portal_x=9 portal_y=1 target_x=68 target_y=29
+CODE2_ORIGINAL_LEVEL26_1BDAC_SOURCE_RETURN actor_returns=1 polygon_returns=1 scene_returns=0 transition_active=0
+LIVE_CODE2_SOURCE_STOP=ORIGINAL_1FC14_SCENE_SOURCE_RASTER_INCOMPLETE
+```
+
+The original `1F8FC` VGA compositor and `171FC/181B4/2D3D8`
+portal source have therefore returned **without synthetic guest
+state or callbacks**. This is not the later `1FC14` full-cycle
+destination frame. There is no `1FC14_AFTER_181B4_FULL_CYCLE_SCANOUT_PASS
+level=26` marker, no Level 26→23 source return, and no retail DOS
+frame comparison; the mandatory strict CI run correctly failed.
+Linux regressions, canonical source link and Windows player-package
+build passed on `9cbf6960`.
+
+**Next bounded boundary:** inspect the actual `original_full_validate_1fc14_scene_handoff`
+predicates for the non-polygon Level 26 view. Instrument each independent
+condition (polygon-scan/cells/projections, actor and scene returns,
+compass, sprite-raster returns, page) before changing acceptance.
+A zero-quad original polygon scan is a real source result, not permission
+to skip other `1FC14` render, page, HUD or audio callbacks.
+The persistent `Concurrent host access to a running original guest`
+secondary supervisor message still needs separate lifecycle diagnosis.
+
+
+## 2026-10-26 Level 26 `1FC14` source scene and indexed scanout — strict PASS
+
+The historical failed investigations above remain as provenance; their
+`SOURCE_RASTER_INCOMPLETE` frontier is **closed for this authenticated
+Level 23/26 owner-media diagnostic**, not for all shipped levels.
+
+1. [Diagnostic source commit `46b5c2cb`](https://github.com/Hyperbog/RLOFT/commit/46b5c2cbc0ecf75629eab965e79884dabda43b33),
+   [strict Windows #40320502623](https://github.com/Hyperbog/RLOFT/actions/runs/40320502623),
+   captured original Level 26 `1FC14` source conditions: page `0`,
+   correct tick/exterior owners, one `34DE8` completion, 540 cell queries,
+   16 `35798` projections, zero polygon quads/scanlines, one actor,
+   one scene, one wall pass, zero sprites and zero sprite rasters,
+   one compass; level `26` and pending transition `26`.
+   Both zero-raster cases were authentic source outputs, not missing
+   callback returns.
+2. [Fix `b9c07cea`](https://github.com/Hyperbog/RLOFT/commit/b9c07cea4d440af1c9b790588e590e2943f4cc2a)
+   preserves source ownership and requires real polygon cells/projections,
+   complete actor/wall/scene/compass callbacks, exact sprite/raster counts,
+   and valid source-only empty-quad/empty-sprite conditions. It does not
+   inject geometry, force sprite callbacks or suppress original output.
+   [Strict Windows #40320888276](https://github.com/Hyperbog/RLOFT/actions/runs/40320888276)
+   returned `restored=True portal_full_cycle=True exited=True code=0`.
+3. [CI logging `bc7caf26`](https://github.com/Hyperbog/RLOFT/commit/bc7caf26f9f079fa33e39516fba090cb6f43e8a2)
+   retains per-level native receipts even when texture/ray messages fill
+   the log's last-90 window. [Strict Windows #40321360454](https://github.com/Hyperbog/RLOFT/actions/runs/40321360454)
+   **passed**, with exact `SOURCE_PORTAL_FRAME` lines in its job log:
+
+| Source event | CRTC page | 320×400 indexed frame SHA-256 | RGB6 palette SHA-256 |
+| --- | --- | --- | --- |
+| Post-restore Level 23 `1FC14`, scenes/post cycles/pages `6/6/6` | `32768` | `5560e3395b79eb19bc7034bc539eca0c4d0f24dcb014fbf8f309b1480f0345d5` | `0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812` |
+| Post-portal Level 26 `1FC14`, scenes/post cycles/pages `8/8/8` | `0` | `24c5a5c9d022db9f17e623f394b41ef61a80eaf3b122488dbace8d24ba1feace` | `546331d1ac5e96419f019e7b654bae64a8707c4b14a06b8cafeb2e4ffa71996a` |
+| After reciprocal portal Level 23 `1FC14`, scenes/post cycles/pages `10/10/10` | `32768` | `84f349176897e539b283e1657a0d78f11bd52132647629017b755f5be33cdae0` | `0af8ea393f1f266596af59c1a2013350b51000b7456d377ab284ebbc43db0812` |
+
+Authentic `2D3D8` portal records on the same guest:
+`23→26` from tile `(9,1)` to `(68,29)`, and `26→23`
+from tile `(68,30)` to `(9,2)`. After the private saved-slot
+restore, `audited_portal_roundtrip()` requires **six original
+keyboard ticks** total, **three transitions, three audited native
+post-level frames**, no pending level transition, destination back at
+Level 23, 320×400 scanout and balanced original source
+scene/post-cycle/page handoffs. The output is:
+
+```text
+CODE2_07938_RETAINED_LEVEL23_PORTAL_26_23_FULL_CYCLE_PASS original_07938=YES original_2D3D8=YES transitions=3 audited_frames=3 live_guest=UNCHANGED owner_files=READ_ONLY independent_DOS_frame_parity=OPEN
+RETAINED_07938_ACCEPTANCE_SOURCE restored=True portal_full_cycle=True exited=True code=0
+```
+
+**Acceptance boundaries:** PASS is a **bounded native original-source
+save/portal/frame diagnostic**, not literal human-controlled movement
+onto the portal, a full DOS peripheral implementation, synchronized
+original DOS indexed-pixel parity, audible AIL parity, release-mode
+runtime stability, or all-level gameplay. Keep the whole-game
+`R01–R12` ledger at **3 accepted / 12** until the scope of an
+individual coarse gate is independently met. A separate source-side
+guest-worker lifecycle/refactor and retail DOS oracle remain open.
