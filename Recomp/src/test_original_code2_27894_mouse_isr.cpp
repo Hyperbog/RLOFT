@@ -32,6 +32,8 @@ struct Gate {
         active=this;machine.data=data.data();
         machine.cpu.ds=0x20u;machine.cpu.ss=0x30u;
         machine.cpu.cs=0x40u;machine.cpu.esp=0xC000u;
+        require(vga.write_indexed_port(0x3C4u,0x0F02u),
+                "source VGA sequencer map mask test setup");
         code2::store_le16(data.data()+0xCF48u,1u);
         code2::store_le16(data.data()+0x9E37u,1u);
         source_mouse.call_2e34c=[]() noexcept -> u32 {return 0u;};
@@ -105,6 +107,7 @@ struct Gate {
         require(calls==3u && last_flags==4u,
                 "source 27894 left-up event reason");
         require(reads>=12u && writes>=12u &&
+                vga.map_mask()==15u &&
                 !invalid_video_port && !vga.unsupported_read(),
                 "original 277F0/27844 actual VGA port register lifecycle");
         // Source 27894 has its own nested-interrupt guard.
