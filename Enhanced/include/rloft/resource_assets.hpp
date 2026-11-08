@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "rloft/game_source.hpp"
+#include "rloft/INIT.hpp"
 
 namespace rloft {
 
@@ -60,23 +61,7 @@ struct Type7NativeRaster {
     std::vector<std::uint8_t> mask;
 };
 
-struct EnvironmentPlacement {
-    std::int16_t resource_selector{};
-    std::int16_t azimuth_degrees{};
-    std::int16_t draw_width_pixels{};
-    std::int16_t screen_y{};
-
-    [[nodiscard]] bool terminator() const noexcept {
-        return resource_selector == 0 && azimuth_degrees == 0 &&
-               draw_width_pixels == 0 && screen_y == 0;
-    }
-};
-
-struct EnvironmentProfile {
-    std::uint16_t res8_base{};
-    std::uint16_t stored_record_count{};
-    std::vector<EnvironmentPlacement> placements;
-};
+// EnvironmentPlacement and EnvironmentProfile live in INIT.hpp.
 
 [[nodiscard]] std::vector<EnvironmentProfile> decode_environment_profiles(
     const std::vector<std::uint8_t>& init_bytes);

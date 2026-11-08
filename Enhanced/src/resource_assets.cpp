@@ -1,4 +1,5 @@
 #include "rloft/resource_assets.hpp"
+#include "rloft/INIT.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -79,80 +80,9 @@ std::vector<std::uint8_t> lzss_4k(const std::uint8_t* src,
 
 std::vector<EnvironmentProfile> decode_environment_profiles(
     const std::vector<std::uint8_t>& init_bytes) {
-    constexpr std::size_t kProfileCountAt = 0x0545U;
-    constexpr std::size_t kProfilesAt = 0x0547U;
-    if (init_bytes.size() < kProfilesAt) {
-        throw std::runtime_error("INIT is truncated before environment profiles");
-    }
-
-    const auto profile_count =
-        static_cast<std::size_t>(u16(init_bytes.data() + kProfileCountAt));
-    std::size_t pos = kProfilesAt;
-    std::vector<EnvironmentProfile> out;
-    out.reserve(profile_count);
-
-    for (std::size_t profile_index = 0;
-         profile_index < profile_count;
-         ++profile_index) {
-        if (pos + 4U > init_bytes.size()) {
-            throw std::runtime_error("INIT environment profile header exceeds EOF");
-        }
-
-        EnvironmentProfile profile{};
-        profile.res8_base = u16(init_bytes.data() + pos);
-        profile.stored_record_count = u16(init_bytes.data() + pos + 2U);
-        pos += 4U;
-
-        if (profile.stored_record_count == 0) {
-            throw std::runtime_error("INIT environment profile has no terminator record");
-        }
-
-        const auto bytes_needed =
-            static_cast<std::size_t>(profile.stored_record_count) * 8U;
-        if (pos > init_bytes.size() ||
-            bytes_needed > init_bytes.size() - pos) {
-            throw std::runtime_error("INIT environment placement list exceeds EOF");
-        }
-
-        profile.placements.reserve(profile.stored_record_count);
-        for (std::size_t i = 0; i < profile.stored_record_count; ++i) {
-            EnvironmentPlacement placement{};
-            placement.resource_selector =
-                s16(init_bytes.data() + pos + 0U);
-            placement.azimuth_degrees =
-                s16(init_bytes.data() + pos + 2U);
-            placement.draw_width_pixels =
-                s16(init_bytes.data() + pos + 4U);
-            placement.screen_y =
-                s16(init_bytes.data() + pos + 6U);
-            pos += 8U;
-
-            if (placement.resource_selector == 0 &&
-                !placement.terminator()) {
-                throw std::runtime_error(
-                    "INIT environment terminator selector has nonzero payload");
-            }
-            if (placement.terminator() &&
-                i + 1U != profile.stored_record_count) {
-                throw std::runtime_error(
-                    "INIT environment profile has premature terminator");
-            }
-
-            profile.placements.push_back(placement);
-        }
-
-        if (!profile.placements.back().terminator()) {
-            throw std::runtime_error(
-                "INIT environment profile lacks final zero terminator");
-        }
-        out.push_back(std::move(profile));
-    }
-
-    if (pos != init_bytes.size()) {
-        throw std::runtime_error(
-            "INIT contains bytes after environment profile table");
-    }
-    return out;
+    // Compatibility entry point for existing renderer callers and synthetic
+    // fixtures. Actual INIT deserialization is now owned by INIT.cpp.
+    return decode_init_environment_profiles_at(init_bytes, 0x0545U);
 }
 
 int resolve_environment_res8_id(

@@ -596,6 +596,7 @@ add_library(rloft_boot_flow
     src/surface_sintab_prepass_executor.cpp
     src/surface_sintab_main_executor.cpp
     src/INFO.cpp
+    src/INIT.cpp
     src/game_source.cpp
     src/persistent_media_cache.cpp
     src/resource_assets.cpp
@@ -629,6 +630,10 @@ endif()
 add_executable(boot_flow_tests tests/boot_flow_tests.cpp)
 target_link_libraries(boot_flow_tests PRIVATE rloft_boot_flow)
 add_test(NAME boot_flow_tests COMMAND boot_flow_tests)
+
+add_executable(INIT_tests tests/INIT_tests.cpp)
+target_link_libraries(INIT_tests PRIVATE rloft_boot_flow)
+add_test(NAME INIT_tests COMMAND INIT_tests)
 
 add_executable(INFO_tests tests/INFO_tests.cpp)
 target_link_libraries(INFO_tests PRIVATE rloft_boot_flow)
