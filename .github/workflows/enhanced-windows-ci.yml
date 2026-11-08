@@ -58,11 +58,44 @@ jobs:
           Copy-Item "$folder/ravenloft_demo_v1.exe" "$folder/Ravenloft.exe" -Force
           Copy-Item "Enhanced/Windows/Play-Ravenloft.cmd" "$folder/Play-Ravenloft.cmd" -Force
           Copy-Item "Enhanced/Windows/Play-Ravenloft.ps1" "$folder/Play-Ravenloft.ps1" -Force
-          Set-Content -NoNewline -Path "$folder/SOURCE_COMMIT.txt" -Value "${{ github.sha }}"
+          Set-Content -NoNewline -Path "$folder/build-source-sha.txt" -Value "${{ github.sha }}"
           $hash = (Get-FileHash "$folder/Ravenloft.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
           Set-Content -NoNewline -Path "$folder/Ravenloft.exe.sha256" -Value "$hash  Ravenloft.exe"
           New-Item -ItemType Directory -Force -Path "$folder/Game" | Out-Null
           Copy-Item "Enhanced/Windows/ORIGINAL-GAME-FILES-GO-HERE.txt" "$folder/Game/" -Force
+
+      - name: Validate original-media launcher and exact package contract
+        shell: pwsh
+        run: |
+          $folder = "build/enhanced/Release"
+          $src = (Get-Content "$folder/build-source-sha.txt" -Raw).Trim()
+          if ($src -cnotmatch '^[0-9a-fA-F]{40}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Enhanced-Windows-x64
+          path: |
+            build/enhanced/Release/Ravenloft.exe
+            build/enhanced/Release/Ravenloft.exe.sha256
+            build/enhanced/Release/build-source-sha.txt
+            build/enhanced/Release/Play-Ravenloft.cmd
+            build/enhanced/Release/Play-Ravenloft.ps1
+            build/enhanced/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt
+          if-no-files-found: error
+) { throw "Malformed source identity" }
+          $exe = "$folder/Ravenloft.exe"
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = "$actual  Ravenloft.exe"
+          $recorded = (Get-Content "$folder/Ravenloft.exe.sha256" -Raw).Trim()
+          if ($recorded -cne $expected) { throw "Native package hash mismatch" }
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "$folder/Play-Ravenloft.ps1").Path,
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) { throw "Windows launcher syntax errors" }
+          if (-not (Test-Path "$folder/Game/ORIGINAL-GAME-FILES-GO-HERE.txt")) {
+            throw "Original-media setup marker is missing"
+          }
 
       - name: Publish native player with no commercial game media
         uses: actions/upload-artifact@v4
@@ -71,7 +104,7 @@ jobs:
           path: |
             build/enhanced/Release/Ravenloft.exe
             build/enhanced/Release/Ravenloft.exe.sha256
-            build/enhanced/Release/SOURCE_COMMIT.txt
+            build/enhanced/Release/build-source-sha.txt
             build/enhanced/Release/Play-Ravenloft.cmd
             build/enhanced/Release/Play-Ravenloft.ps1
             build/enhanced/Release/Game/ORIGINAL-GAME-FILES-GO-HERE.txt
