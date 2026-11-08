@@ -17,23 +17,21 @@ PartyModalPresenter::PartyModalPresenter(
     : assets_(assets),
       objects_(ObjectCatalog::load(assets.source())),
       original_objects_bytes_(assets.source().read("OBJECTS.DAT")),
-      original_code2_descriptions_(assets.source().read("CODE.2")),
+      original_code2_descriptions_(assets.code2_bytes()),
       original_t_descriptions_(assets.source().read("T")),
-      portrait_maps_(
-          ExplorationHudPresenter::portrait_maps_from_code2(
-              assets.source().read("CODE.2"))),
+      portrait_maps_(assets.code2_portrait_maps()),
       res0_base_(assets.init_u16(0x00)),
       res1_object_base_(assets.init_u16(0x02)),
       res1_portrait_base_(assets.init_u16(0x04)),
       font1_(assets.res0_font(1)),
       experience_table_(
           CharacterExperienceTable::from_code2(
-              assets.source().read("CODE.2"))),
+              assets.code2_bytes())),
       encumbrance_(
           InventoryEncumbranceModel::from_code2(
-              assets.source().read("CODE.2"))),
+              assets.code2_bytes())),
       equipment_hits_(OriginalEquipmentHitTables::from_code2(
-          assets.source().read("CODE.2"))) {}
+          assets.code2_bytes())) {}
 
 void PartyModalPresenter::draw_res2_local(
     IndexedFramebuffer& framebuffer,

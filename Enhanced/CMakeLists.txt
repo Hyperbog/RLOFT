@@ -421,6 +421,7 @@ add_library(rloft_boot_flow
     src/level22_quest_playback.cpp
     src/boot_flow.cpp
     src/CODE1.cpp
+    src/CODE2.cpp
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
     src/character_palette_remap.cpp
@@ -1586,6 +1587,10 @@ add_executable(CODE1_tests tests/CODE1_tests.cpp)
 target_link_libraries(CODE1_tests PRIVATE rloft_boot_flow)
 add_test(NAME CODE1_tests COMMAND CODE1_tests)
 
+add_executable(CODE2_tests tests/CODE2_tests.cpp)
+target_link_libraries(CODE2_tests PRIVATE rloft_boot_flow)
+add_test(NAME CODE2_tests COMMAND CODE2_tests)
+
 add_executable(character_stats_tests tests/character_stats_tests.cpp)
 target_link_libraries(character_stats_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_stats_tests COMMAND character_stats_tests)
@@ -1792,6 +1797,7 @@ set(RLOFT_TEST_TARGETS
     xmidi_tests
     character_flow_tests
     CODE1_tests
+    CODE2_tests
     character_stats_tests
     character_sheet_tests
     character_modal_stats_tests

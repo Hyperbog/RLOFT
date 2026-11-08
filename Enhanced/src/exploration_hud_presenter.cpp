@@ -5,19 +5,11 @@
 #include <stdexcept>
 
 namespace rloft {
-namespace {
-
-constexpr std::size_t kCode2DataFileBase = 0x75F24U;
-constexpr std::size_t kPortraitMapsDgroup = 0xCF70U;
-
-}  // namespace
 
 ExplorationHudPresenter::ExplorationHudPresenter(
     const RavenloftBootAssets& assets)
     : assets_(assets),
-      portrait_maps_(
-          portrait_maps_from_code2(
-              assets.source().read("CODE.2"))) {}
+      portrait_maps_(assets.code2_portrait_maps()) {}
 
 ExplorationHudBaseLayout ExplorationHudPresenter::base_layout(
     std::uint16_t res0_raster_base,
@@ -43,30 +35,9 @@ ExplorationHudBaseLayout ExplorationHudPresenter::base_layout(
 ExplorationHudPresenter::PortraitMaps
 ExplorationHudPresenter::portrait_maps_from_code2(
     const std::vector<std::uint8_t>& code2) {
-    constexpr std::size_t kBytes =
-        6U * 256U;
-    const auto start =
-        kCode2DataFileBase +
-        kPortraitMapsDgroup;
-
-    if (start > code2.size() ||
-        kBytes > code2.size() - start) {
-        throw std::runtime_error(
-            "CODE.2 is truncated before portrait remap tables");
-    }
-
-    PortraitMaps out{};
-    for (std::size_t state = 0;
-         state < out.size();
-         ++state) {
-        std::copy_n(
-            code2.begin() +
-                static_cast<std::ptrdiff_t>(
-                    start + state * 256U),
-            256,
-            out[state].begin());
-    }
-    return out;
+    // Source-only tests may pass a synthetic table span. Production assets
+    // first authenticate the complete bound CODE.2 with Code2Executable.
+    return Code2Executable::portrait_maps_from_raw(code2);
 }
 
 void ExplorationHudPresenter::draw_outline(

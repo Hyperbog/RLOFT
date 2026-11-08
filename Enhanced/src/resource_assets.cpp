@@ -774,7 +774,8 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       colors_(parse_colors(source_.read("COLORS"))),
       text_(source_.read("T")),
       init_(source_.read("INIT")),
-      code1_(source_.read("CODE.1")) {
+      code1_(source_.read("CODE.1")),
+      code2_(source_.read("CODE.2")) {
     // Validate all RES1 slots without treating raw portrait markers as images.
     (void)inspect_res1_archive(res1_);
     if (colors_.palettes.size() != 15U) {
