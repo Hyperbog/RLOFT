@@ -65,3 +65,10 @@ Keep separate **engineering/preview artifacts** and a future **production releas
 - Libraries `rloft_game_resource_cache`, `rloft_game_save`, and `rloft_game_world` are linked only into their relevant host/test consumers. The CODE.2 reconstruction is not compiled twice.
 
 **Unchanged blocker:** The large CODE.2 startup and world diagnostic translation units still embed original CODE.2 source and `.cpp` harnesses; disassembling those into independent object files requires establishing CODE.2's non-inline symbol and guest-global ownership first.
+
+## Phase 5: borrowed CODE.2 guest callback boundary
+
+- `src/game/core/GuestCallbacks.hpp/.cpp` isolates the host-owned DOS IVT get/set service and the original 171FC/181B4 guest-memory-to-private-save-overlay transfers. It receives the **existing** vector table, original DGROUP vector and session-owned `live_level_files::Overlay` by reference.
+- The `code2_startup_gate.cpp` original callback signatures, original source STOP reasons, IRQ callback counters and original non-overlay DOS read fallback remain intact.
+- `rloft_game_guest_callbacks` compiles separately, links the existing Save library and is required by the original startup, stacked mouse, resource startup, staged boot and Windows player entrypoints. A media-free ABI test verifies IRQ8/IRQ9 vector preservation, save roundtrips, and fail-closed bounds.
+- This is **not** independent compilation of `Code2/Code2.cpp`. Original non-inline game functions, suspended guest stack, source CPU and heap remain in the current canonical translation unit; splitting those needs a separately authenticated per-function ABI and single-owner dependency graph.

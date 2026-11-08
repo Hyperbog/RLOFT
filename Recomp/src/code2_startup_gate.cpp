@@ -7,6 +7,7 @@
 #include "original_media_identity.hpp"
 #include "canonical_code2_runtime_owner.hpp"
 #include "original_guest_continuation.hpp"
+#include "game/core/GuestCallbacks.hpp"
 #include "original_code2_video_boot.hpp"
 #include "original_sintab_raster.hpp"
 #include "original_code2_36cec_scene.hpp"
@@ -53,7 +54,7 @@ using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 enum class GameConfig { Unset, Overrides, SignedWrap };
 // Hypothetical mouse hardware outcomes, NEVER a claim of DOS observation.
 enum class MouseResetBranch { Stop, Present, Absent, MemoryHandoff, FreeBoundary, RangeX, RangeY, DiskSpace };
-struct GuestVector final { u32 offset{}; u16 selector{}; };
+using GuestVector=rloft::guest_callbacks::GuestVector;
 struct Session {
     rloft::guest_continuation::Worker* live_continuation=nullptr;
     std::jmp_buf escape;
@@ -719,13 +720,11 @@ void original_far_install(u32 target,u16 selector) noexcept {
 // used by original 30BB4. This is NOT host interrupt or IRQ emulation.
 void guest_get_vector(u8 vector,u32* offset,u16* selector) noexcept {
     ++current->irq_vector_reads;
-    const auto& entry=current->ivt[vector];
-    if(offset)*offset=entry.offset;
-    if(selector)*selector=entry.selector;
+    rloft::guest_callbacks::get_vector(current->ivt,vector,offset,selector);
 }
 void guest_set_vector(u8 vector,u32 offset,u16 selector) noexcept {
     ++current->irq_vector_sets;
-    current->ivt[vector]={offset,selector};
+    rloft::guest_callbacks::set_vector(current->ivt,vector,offset,selector);
 }
 void original_keyboard_vectors() noexcept {
     code2::function_30bb4(current->machine,current->keyboard_irq);
@@ -1894,17 +1893,17 @@ void original_live_level_close(u32 handle) noexcept {
     }
     original_boot_file_close(handle);
 }
-u32 original_live_level_write_local(const u8* src,u32 size,u32 handle) noexcept {
-    if(handle!=rloft::live_level_files::Overlay::write_handle)
-        stop("ORIGINAL_LIVE_171FC_UNEXPECTED_SAVE_HANDLE");
-    const auto written=current->level_overlay.write(src,size);
-    if(written!=size)stop("ORIGINAL_LIVE_171FC_PRIVATE_SAVE_SHORT_WRITE");
-    return written;
-}
 u32 original_live_level_write_guest(u32 src,u32 size,u32 handle) noexcept {
-    if(std::uint64_t(src)+size>current->data.size())
+    const auto result=rloft::guest_callbacks::write_level_from_guest(
+        current->level_overlay,current->data,src,size,handle);
+    using Status=rloft::guest_callbacks::OverlayIoStatus;
+    if(result.status==Status::GuestOutOfBounds)
         stop("ORIGINAL_LIVE_171FC_SOURCE_WRITE_OUT_OF_GUEST");
-    return original_live_level_write_local(current->data.data()+src,size,handle);
+    if(result.status==Status::InvalidHandle)
+        stop("ORIGINAL_LIVE_171FC_UNEXPECTED_SAVE_HANDLE");
+    if(result.status!=Status::Ok)
+        stop("ORIGINAL_LIVE_171FC_PRIVATE_SAVE_SHORT_WRITE");
+    return result.bytes;
 }
 u32 original_live_level_read_local(u8* dst,u32 size,u32 handle) noexcept {
     if(handle!=rloft::live_level_files::Overlay::read_handle)
@@ -1914,11 +1913,15 @@ u32 original_live_level_read_local(u8* dst,u32 size,u32 handle) noexcept {
     return read;
 }
 u32 original_live_level_read_guest(u32 dst,u32 size,u32 handle) noexcept {
-    if(std::uint64_t(dst)+size>current->data.size())
+    if(!rloft::guest_callbacks::guest_range(current->data,dst,size))
         stop("ORIGINAL_LIVE_181B4_SOURCE_READ_OUT_OF_GUEST");
     if(handle!=rloft::live_level_files::Overlay::read_handle)
         return original_boot_file_read(dst,size,handle);
-    return original_live_level_read_local(current->data.data()+dst,size,handle);
+    const auto result=rloft::guest_callbacks::read_level_into_guest(
+        current->level_overlay,current->data,dst,size,handle);
+    if(result.status!=rloft::guest_callbacks::OverlayIoStatus::Ok)
+        stop("ORIGINAL_LIVE_181B4_PRIVATE_SAVE_SHORT_READ");
+    return result.bytes;
 }
 void original_live_level_io_error(u32) noexcept {
     stop("ORIGINAL_LIVE_171FC_181B4_IO_SOURCE_ERROR");

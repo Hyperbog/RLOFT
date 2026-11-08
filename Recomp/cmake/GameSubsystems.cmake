@@ -119,3 +119,36 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window
         PRIVATE rloft_game_save rloft_game_world)
 endif()
+
+# Original guest callbacks borrow the retained IVT, guest byte vector,
+# and private WORK/LEV overlay. No duplicate CODE.2 symbol or guest owner.
+add_library(rloft_game_guest_callbacks STATIC src/game/core/GuestCallbacks.cpp)
+target_compile_features(rloft_game_guest_callbacks PUBLIC cxx_std_17)
+target_link_libraries(rloft_game_guest_callbacks PUBLIC rloft_game_save)
+if(MSVC)
+    target_compile_options(rloft_game_guest_callbacks PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(rloft_game_guest_callbacks PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_executable(rloft_original_code2_guest_callbacks_test
+    src/test_original_code2_guest_callbacks.cpp)
+target_compile_features(rloft_original_code2_guest_callbacks_test PRIVATE cxx_std_17)
+target_link_libraries(rloft_original_code2_guest_callbacks_test
+    PRIVATE rloft_game_guest_callbacks)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_borrowed_guest_vector_and_level_io_callbacks
+        COMMAND rloft_original_code2_guest_callbacks_test)
+endif()
+foreach(consumer IN ITEMS
+        rloft_code2_startup_gate
+        rloft_original_code2_stackful_mouse_gate
+        rloft_original_code2_init_resources
+        rloft_code1_code2_staged_boot)
+    if(NOT TARGET ${consumer})
+        message(FATAL_ERROR "Missing CODE2 guest callback owner: ${consumer}")
+    endif()
+    target_link_libraries(${consumer} PRIVATE rloft_game_guest_callbacks)
+endforeach()
+if(WIN32)
+    target_link_libraries(rloft_code2_level22_window PRIVATE rloft_game_guest_callbacks)
+endif()
