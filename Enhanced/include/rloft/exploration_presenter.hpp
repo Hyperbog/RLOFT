@@ -1,0 +1,206 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "rloft/environment_presenter.hpp"
+#include "rloft/exploration_hud_presenter.hpp"
+#include "rloft/exploration_runtime.hpp"
+#include "rloft/party_hud.hpp"
+#include "rloft/resource_assets.hpp"
+#include "rloft/surface_fill.hpp"
+#include "rloft/surface_wall_presenter.hpp"
+#include "rloft/surface_sintab_prepass_executor.hpp"
+#include "rloft/surface_sintab_main_executor.hpp"
+#include "rloft/type7_scene_pixel_executor.hpp"
+
+namespace rloft {
+
+struct ExplorationSurfaceCoverage final {
+    std::size_t fallback_main_runs{};
+    std::size_t sintab_main_runs_pending{};
+    std::size_t sintab_main_runs_rasterized{};
+    std::size_t sintab_main_indexed_writes{};
+    std::size_t sintab_main_runs_failed{};
+    std::size_t sintab_prepass_runs_pending{};
+    std::size_t sintab_prepass_runs_rasterized{};
+    std::size_t sintab_prepass_indexed_writes{};
+    std::size_t sintab_prepass_runs_failed{};
+    std::size_t type7_scene_calls_pending{};
+    // These calls could not be projected at all. Unlike fully occluded
+    // scenes, they cannot be classified as successfully completed.
+    std::size_t type7_plan_calls_failed{};
+    std::size_t type7_visible_columns_pending{};
+    std::size_t type7_unvalidated_wide_runs{};
+    std::size_t type7_calls_rasterized{};
+    std::size_t type7_columns_rasterized{};
+    std::size_t type7_indexed_writes{};
+    // Visible scene columns were submitted, but no opaque pixel reached
+    // the native viewport. This is not evidence that a tree/NPC was drawn.
+    std::size_t type7_calls_zero_pixels{};
+    std::size_t type7_calls_failed{};
+
+    [[nodiscard]] bool complete() const noexcept {
+        return sintab_main_runs_pending == 0 &&
+               sintab_main_runs_failed == 0 &&
+               sintab_prepass_runs_pending == 0 &&
+               sintab_prepass_runs_failed == 0 &&
+               type7_scene_calls_pending == 0 &&
+               type7_plan_calls_failed == 0 &&
+               type7_calls_failed == 0 &&
+               type7_calls_zero_pixels == 0 &&
+               type7_visible_columns_pending == 0 &&
+               type7_unvalidated_wide_runs == 0;
+    }
+};
+
+// A failed draw is not silently equated with an occluded object. Preserve
+// the original source identity and exact reason for offline diagnosis.
+struct Type7SceneRasterFailure final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::string reason;
+};
+
+struct SurfacePrepassRasterFailure final {
+    std::uint32_t resource_id{};
+    std::size_t first_ray{};
+    std::string reason;
+};
+
+struct SurfaceMainRasterFailure final {
+    std::uint32_t resource_id{};
+    std::size_t first_ray{};
+    std::string reason;
+};
+
+// Native-only pixel evidence, retaining source identity without treating
+// original RES3 offsets as stable public mod IDs.
+struct Type7SceneZeroPixelDraw final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::int32_t projected_source_top{};
+    std::size_t visible_columns{};
+};
+
+// Per-source native placement and palette-index evidence; contains no
+// extracted artwork or original source data. -1 bounds mean zero pixels.
+struct Type7SceneNativeDraw final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::int32_t source_top{};
+    std::size_t visible_columns{};
+    std::size_t potential_opaque_pixels{};
+    std::size_t indexed_writes{};
+    int left{-1}, top{-1}, right{-1}, bottom{-1};
+    std::uint8_t min_palette_index{}, max_palette_index{};
+    std::size_t shade_underflow_pixels{};
+};
+
+enum class Type7SceneRenderOutcome : std::uint8_t {
+    PlanningFailed,
+    FullyOccluded,
+    TraceUnavailable,
+    Rasterized,
+    RasterizedNoPixels,
+    RasterFailed,
+};
+
+struct ExplorationPresentedFrame final {
+    Palette6 palette{};
+    // Original-resourced RES8 sky/environment and RES4 ground BEFORE
+    // SINTAB walls and RES3 sprites. The optional 3D view uses this as
+    // its background so old 2D silhouettes cannot ghost through.
+    std::vector<std::uint8_t> environment_backdrop_indices;
+    bool ground_textured_rasterized{};
+    std::size_t ground_indexed_writes{};
+    std::size_t ground_shade_underflow_pixels{};
+    std::string ground_render_failure;
+    ExplorationSurfaceCoverage surface_coverage{};
+    std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;
+    std::vector<SurfaceMainRasterFailure> surface_main_failures;
+    std::vector<Type7SceneRasterFailure> type7_failures;
+    std::vector<Type7SceneZeroPixelDraw> type7_zero_pixel_draws;
+    std::vector<Type7SceneNativeDraw> type7_native_draws;
+    // Per original call position. Native diagnostics only; this is
+    // not a replacement for original DOS VGA write order.
+    std::vector<Type7SceneRenderOutcome> type7_scene_outcomes;
+    std::optional<std::string> type7_trace_failure;
+};
+
+class ExplorationPresenter final {
+public:
+    explicit ExplorationPresenter(
+        const RavenloftBootAssets& assets);
+
+    [[nodiscard]] IndexedFramebuffer& framebuffer() noexcept {
+        return framebuffer_;
+    }
+    [[nodiscard]] const IndexedFramebuffer& framebuffer() const noexcept {
+        return framebuffer_;
+    }
+
+    // Enhanced PC viewport: the existing original-resource environment,
+    // RES4 ground tile, SINTAB wall runs and RES3 type-7 scene geometry
+    // are composed into one native indexed framebuffer. RES3 decoded
+    // pixels/masks are scaled and blended without requiring DOS VGA
+    // machine-code/plane trace certification. HUD remains above scenery.
+    [[nodiscard]] ExplorationPresentedFrame present(
+        const ExplorationRuntimeFrame& frame,
+        const RendererTables& tables,
+        int presentation_mode = 0);
+
+    [[nodiscard]] static ExplorationSurfaceCoverage surface_coverage(
+        const ExplorationRuntimeFrame& frame,
+        const RendererTables& tables);
+
+    // Initial classification derived from original scene planning,
+    // before any VGA pixel execution. Tests can verify the distinction
+    // without requiring an entire installed DOS asset bundle.
+    [[nodiscard]] static std::vector<Type7SceneRenderOutcome>
+    initial_scene_outcomes(const ExplorationRuntimeFrame& frame);
+
+    // Original CODE.2 335C8 => 22220=0x800 when all original
+    // 256 ray records are non-drawable 0x93. Then 1F2A5/1F372
+    // resolves FF50=128 rows. The source 1F388 RES4 selector reads
+    // the current level header, so this proof is NOT Level22-only.
+    // Never infer it from missing rays or drawable source materials.
+    [[nodiscard]] static bool original_full_ground_eligible(
+        const ExplorationRuntimeFrame& frame);
+
+    // PC renderer uses verified shipped RES4 texture behind foreground
+    // walls even when the original 256-ray DOS ground bit gate is unknown.
+    [[nodiscard]] static bool enhanced_ground_eligible(
+        const ExplorationRuntimeFrame& frame);
+
+private:
+    void draw_environment(
+        const ExplorationRuntimeFrame& frame);
+
+    const RavenloftBootAssets& assets_;
+    IndexedFramebuffer framebuffer_;
+    ExplorationHudPresenter hud_;
+    SurfaceWallPresenter walls_;
+    SurfaceFillTable fill_table_{};
+    GroundTextureShadeTable ground_shades_{};
+    bool original_c026_initial_enabled_{};
+    Type7VgaPlaneMaskModel surface_vga_masks_;
+    std::unordered_map<std::uint32_t, SurfaceTexture>
+        surface_texture_cache_;
+    std::uint16_t res0_raster_base_{};
+    std::uint16_t res1_portrait_base_{};
+    std::unordered_map<std::uint16_t, std::vector<std::uint8_t>>
+        type7_source_cache_;
+    // Decoded native RES3 pixels; decode only once per resource identity.
+    std::unordered_map<std::uint16_t, Type7NativeRaster>
+        enhanced_type7_cache_;
+};
+
+}  // namespace rloft
