@@ -590,7 +590,7 @@ add_library(rloft_boot_flow
     src/automap_controls.cpp
     src/automap_modal.cpp
     src/automap_screen_presenter.cpp
-    src/surface_texture.cpp
+    src/RES4.cpp
     src/surface_column_scaler.cpp
     src/surface_shading.cpp
     src/surface_fill.cpp
@@ -1310,6 +1310,10 @@ add_executable(surface_texture_tests tests/surface_texture_tests.cpp)
 target_link_libraries(surface_texture_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_texture_tests COMMAND surface_texture_tests)
 
+add_executable(RES4_tests tests/RES4_tests.cpp)
+target_link_libraries(RES4_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES4_tests COMMAND RES4_tests)
+
 add_executable(surface_column_scaler_tests tests/surface_column_scaler_tests.cpp)
 target_link_libraries(surface_column_scaler_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_column_scaler_tests COMMAND surface_column_scaler_tests)
@@ -1779,6 +1783,7 @@ set(RLOFT_TEST_TARGETS
     automap_modal_tests
     automap_screen_presenter_tests
     surface_texture_tests
+    RES4_tests
     surface_column_scaler_tests
     surface_shading_tests
     surface_fill_tests
