@@ -1,6 +1,7 @@
 // Executes reconstructed CODE.2 27894 -> 19D18, not a substitute menu.
 #include "../../Code2/Code2.cpp"
 #include "game/input/MouseDispatch.hpp"
+#include "game/graphics/Graphics.hpp"
 #include "game/ui/TitleInteraction.hpp"
 #include <cstdint>
 #include <iostream>
@@ -18,6 +19,8 @@ struct Gate {
     code2::Machine machine{};
     code2::Application54Boundary isr{};
     code2::Application34Boundary source_mouse{};
+    rloft::graphics::OriginalVgaHost vga{};
+    bool invalid_video_port=false;
     rloft::input::mouse_dispatch::Mailbox inbox{};
     rloft::ui::title_interaction::CallbackDispatch classify{};
     unsigned calls=0u,reads=0u,writes=0u;
@@ -32,12 +35,18 @@ struct Gate {
         code2::store_le16(data.data()+0xCF48u,1u);
         code2::store_le16(data.data()+0x9E37u,1u);
         source_mouse.call_2e34c=[]() noexcept -> u32 {return 0u;};
-        isr.in8=[](code2::u16) noexcept -> u8 {
-            ++self().reads;return 0u;
+        isr.in8=[](code2::u16 port) noexcept -> u8 {
+            ++self().reads;return self().vga.read_port8(port);
         };
-        isr.out8=[](code2::u16,u8) noexcept {++self().writes;};
-        isr.out16=[](code2::u16,code2::u16) noexcept {
+        isr.out8=[](code2::u16 port,u8 value) noexcept {
             ++self().writes;
+            if(!self().vga.write_port8(port,value))
+                self().invalid_video_port=true;
+        };
+        isr.out16=[](code2::u16 port,code2::u16 value) noexcept {
+            ++self().writes;
+            if(!self().vga.write_indexed_port(port,value))
+                self().invalid_video_port=true;
         };
         isr.call_19d18=[](u32 flags,u32 buttons,u32 x,u32 y,
                             u32 sample_ptr) noexcept -> u32 {
@@ -95,8 +104,9 @@ struct Gate {
         deliver(sample);
         require(calls==3u && last_flags==4u,
                 "source 27894 left-up event reason");
-        require(reads>=12u && writes>=12u,
-                "original 277F0/27844 VGA port register lifecycle");
+        require(reads>=12u && writes>=12u &&
+                !invalid_video_port && !vga.unsupported_read(),
+                "original 277F0/27844 actual VGA port register lifecycle");
         // Source 27894 has its own nested-interrupt guard.
         data[0xD910u]=1u;
         const auto before=calls;
