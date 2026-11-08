@@ -1302,7 +1302,7 @@ void original_video_palette_29234(u32 palette_buffer) noexcept {
 // These are original CODE.2 functions on the SAME running CODE.2 stack.
 void original_291b0_source_page(u32 page) noexcept {
     if(!rloft::presentation::can_select_page(page,
-        current->original_vga && current->original_source_video_modes==1u)
+        current->original_vga && current->original_source_video_modes==1u))
         stop("ORIGINAL_291B0_PAGE_UNSUPPORTED");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1324,7 +1324,7 @@ void original_2e590_presentation_reset(u32 page) noexcept {
         {current->original_source_page_pushes,
          current->original_source_page_pops,
          current->original_source_planar_fills},
-        current->data[0xF0D0u])
+        current->data[0xF0D0u]))
         stop("ORIGINAL_20294_PAGE_STACK_PUSH_PREREQUISITES");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1346,7 +1346,7 @@ void original_29b40_source_rectangle(u32 row,u32 x,u32 rows,u32 pixels,
         current->original_vga!=nullptr,
         {current->original_source_page_pushes,
          current->original_source_page_pops,
-         current->original_source_planar_fills})
+         current->original_source_planar_fills}))
         stop("ORIGINAL_20294_29B40_CLEAR_PARAMETERS_CHANGED");
     try {
         rloft::source_video_boot::Bridge bridge(
@@ -1367,7 +1367,7 @@ void original_2e5d4_source_page_pop() noexcept {
         {current->original_source_page_pushes,
          current->original_source_page_pops,
          current->original_source_planar_fills},
-        current->data[0xF0D0u])
+        current->data[0xF0D0u]))
         stop("ORIGINAL_20294_2E5D4_PAGE_STACK_IMBALANCED");
     try {
         rloft::source_video_boot::Bridge bridge(
