@@ -2,6 +2,14 @@
 
 **Active branch:** [`Recomp`](https://github.com/Hyperbog/RLOFT/tree/Recomp) (case-sensitive). This is the reconstructed original DOS CODE.1/CODE.2 workstream, distinct from `demo-v1` and from `DnD-Classics`, which preserves the original game files.
 
+## November 2026 engineering baseline
+
+The independently compiled game systems, cleanup rules, reproducible Linux and
+Windows build commands and release blockers are documented in
+[PRODUCTION_BASELINE.md](PRODUCTION_BASELINE.md). The native player is an
+engineering preview, **not** a verified retail game release. The
+[acceptance ledger](ACCEPTANCE_GATES.json) remains at 3/12.
+
 ## Production game-system layout — migration in progress
 
 See [GAME_SYSTEMS.md](GAME_SYSTEMS.md) for the C++17 core, graphics,
