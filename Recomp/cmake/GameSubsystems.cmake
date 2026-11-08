@@ -337,3 +337,22 @@ if(WIN32)
     target_link_libraries(rloft_code2_level22_window PRIVATE
         rloft_game_mouse_dispatch)
 endif()
+
+# Phase 10 source regression: execute real reconstructed 27894->19D18.
+# This test compiles the original CODE.2 only inside its own fixture.
+add_executable(rloft_original_code2_27894_mouse_isr_test
+    src/test_original_code2_27894_mouse_isr.cpp)
+set_target_properties(rloft_original_code2_27894_mouse_isr_test PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(rloft_original_code2_27894_mouse_isr_test PRIVATE /Od /bigobj /W3)
+else()
+    target_compile_options(rloft_original_code2_27894_mouse_isr_test
+        PRIVATE -O0 -Wall -Wextra -Wpedantic)
+endif()
+target_link_libraries(rloft_original_code2_27894_mouse_isr_test PRIVATE
+    rloft_game_mouse_dispatch rloft_game_title_interaction)
+if(BUILD_TESTING)
+    add_test(NAME original_code2_27894_19D18_mouse_isr_execution
+        COMMAND rloft_original_code2_27894_mouse_isr_test)
+endif()
