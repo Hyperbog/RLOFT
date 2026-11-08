@@ -9,6 +9,7 @@
 #endif
 #define RLOFT_BUNDLE_NO_MAIN
 #include "code2_original_res_startup.cpp"
+#include "game/input/MouseDispatch.hpp"
 #include <windows.h>
 #include <cstdint>
 #include <cstdio>
@@ -59,6 +60,8 @@ struct LiveWindow final {
     // Packed: bits 32..33=buttons, 16..31=X, 0..15=Y.
     std::atomic<std::uint64_t> mouse_snapshot{
         (std::uint64_t{0x140u}<<16u)|0xC8u};
+    // Preserve short physical button transitions across original INT33 polls.
+    rloft::input::mouse_dispatch::Mailbox title_mouse_mailbox{};
     std::atomic<bool> quit_requested{false};
     std::string posted_title;
     std::string posted_error;
@@ -214,6 +217,8 @@ struct LiveWindow final {
             (std::uint64_t(buttons)<<32u)|
             (std::uint64_t(mouse_x)<<16u)|mouse_y,
             std::memory_order_release);
+        if(title_mode)
+            title_mouse_mailbox.publish({buttons,mouse_x,mouse_y});
     }
     void capture_source_vga() {
         if(!game || !game->guest || machine::pending_host_service(
@@ -291,13 +296,16 @@ struct LiveWindow final {
                         game->canonical.get(),range_calls==0u?8u:7u);
                     ++range_calls;
                 } else if(next==12u) {
-                    const auto snap=mouse_snapshot.load(std::memory_order_acquire);
                     const bool initial=mouse_calls++==0u;
+                    rloft::input::mouse_dispatch::Sample sample{};
+                    if(!initial && !title_mouse_mailbox.consume(sample))
+                        throw std::runtime_error(
+                            "Original title mouse mailbox overflow or invalid input");
                     next=machine::answer_original_mouse_pointer(
                         game->canonical.get(),initial?4u:3u,
-                        initial?0u:static_cast<std::uint32_t>((snap>>32u)&3u),
-                        initial?0x140u:static_cast<std::uint32_t>((snap>>16u)&0xFFFFu),
-                        initial?0xC8u:static_cast<std::uint32_t>(snap&0xFFFFu));
+                        initial?0u:sample.buttons,
+                        initial?0x140u:sample.x,
+                        initial?0xC8u:sample.y);
                     if(!initial)
                         std::this_thread::sleep_for(std::chrono::milliseconds(8));
                 } else if(next==13u) {
@@ -446,6 +454,7 @@ struct LiveWindow final {
             self->key_mask.store(0u,std::memory_order_release);
             self->clear_input_queue();
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            if(self->title_mode)self->title_mouse_mailbox.cancel_buttons();
             return 0;
         case WM_CAPTURECHANGED:
             // Losing Win32 capture does not necessarily mean a button was
@@ -453,12 +462,14 @@ struct LiveWindow final {
             // keeping a stale pressed state would make the original INT33
             // polling path believe a button is held indefinitely.
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            if(self->title_mode)self->title_mouse_mailbox.cancel_buttons();
             return 0;
         case WM_CANCELMODE:
             // Modal transitions can cancel capture without delivering a
             // corresponding WM_*BUTTONUP. Clear only button bits; preserve
             // the last published original-DOS mouse coordinates.
             self->mouse_snapshot.fetch_and(0xFFFFFFFFull,std::memory_order_release);
+            if(self->title_mode)self->title_mouse_mailbox.cancel_buttons();
             return 0;
         case WM_MOUSEMOVE:
         case WM_LBUTTONDOWN:
