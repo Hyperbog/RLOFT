@@ -4,12 +4,11 @@
 // The native host samples INT33 through the retained source 1A1F4
 // boundary and dispatches the ORIGINAL 19D18 body on this same worker.
 // It is an explicit host-mouse adaptation, not fabricated title motion.
-void intro_title_mouse_event() noexcept {
+// Host only binds original source 19D18 arguments. The canonical CODE.2
+// 27894 ISR, not a direct UI-side call, invokes this registered callback.
+u32 intro_title_source_19d18(u32 flags,u32 buttons,u32 arg3,
+                              u32 arg4,u32 sample_ptr) noexcept {
     auto& m=current->machine;
-    rloft::ui::title_interaction::MouseEvent event{};
-    if(!rloft::ui::title_interaction::read_source_mouse_event(
-           current->data.data(),current->data.size(),event))
-        stop("ORIGINAL_19464_TITLE_MOUSE_GUEST_SNAPSHOT_OUT_OF_BOUNDS");
     code2::Application33Boundary video=current->original_mouse_resources;
     video.call_30700=&intro_tick;
     video.call_1aacc=&original_game_over_1aacc_cursor_restore;
@@ -30,8 +29,49 @@ void intro_title_mouse_event() noexcept {
             static_cast<code2::s32>(y),static_cast<code2::s32>(x),
             static_cast<code2::s32>(h),static_cast<code2::s32>(w));
     };
-    code2::function_19d18(m,mouse,event.event,event.buttons,
-                          event.dos_x_doubled,event.dos_y,event.reserved);
+    code2::function_19d18(m,mouse,flags,buttons,arg3,arg4,sample_ptr);
+    return 0u;
+}
+void intro_title_mouse_event() noexcept {
+    if(!current->original_vga ||
+       current->original_20440_mouse_inits!=1u ||
+       current->original_20440_mouse_callback_installs!=1u)
+        stop("ORIGINAL_19464_27894_SOURCE_NOT_REGISTERED");
+    rloft::ui::title_interaction::MouseEvent sample{};
+    if(!rloft::ui::title_interaction::read_source_mouse_event(
+           current->data.data(),current->data.size(),sample))
+        stop("ORIGINAL_19464_TITLE_MOUSE_GUEST_SNAPSHOT_OUT_OF_BOUNDS");
+    const auto flags=current->original_title_dispatch.event_mask(sample);
+    if(flags==0u)return;
+    if(current->data[0xD910u]!=0u)
+        stop("ORIGINAL_19464_27894_NESTED_GUEST_ISR");
+    // Original 27894 consumes EAX=event reason, EBX=buttons,
+    // ECX=source half-X*2, EDX=Y, ESI=real-mode pointer segment.
+    // The no-aux-data fn0C title event uses a zero ESI segment.
+    auto& machine=current->machine;
+    const code2::CpuState before=machine.cpu;
+    machine.cpu.eax=flags;
+    machine.cpu.ebx=sample.buttons;
+    machine.cpu.ecx=sample.dos_x_doubled;
+    machine.cpu.edx=sample.dos_y;
+    machine.cpu.esi=0u;
+    auto v=intro_vga();
+    v.in8=+[](u16 port) noexcept -> u8 {
+        if(port!=0x3C4u && port!=0x3C5u &&
+           port!=0x3CEu && port!=0x3CFu)
+            stop("ORIGINAL_19464_27894_VGA_PORT_READ_UNSUPPORTED");
+        return current->original_vga->read_port8(port);
+    };
+    v.out8=+[](u16 port,u8 value) noexcept {
+        if(!current->original_vga->write_port8(port,value))
+            stop("ORIGINAL_19464_27894_VGA_PORT_WRITE_UNSUPPORTED");
+    };
+    v.call_19d18=&intro_title_source_19d18;
+    code2::function_27894(machine,v);
+    machine.cpu=before;
+    if(current->data[0xD910u]!=0u)
+        stop("ORIGINAL_19464_27894_SOURCE_STACK_NOT_RESTORED");
+    ++current->original_title_source_27894_events;
 }
 u32 intro_title_click() noexcept {
     const auto pressed=original_game_over_1a1f4_mouse_button();
