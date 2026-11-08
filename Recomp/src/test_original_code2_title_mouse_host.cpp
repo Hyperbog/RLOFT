@@ -71,6 +71,22 @@ void title_contract() {
     check(!read_source_mouse_event(nullptr,guest.size(),event) &&
           !read_source_mouse_event(guest.data(),guest.size()-1u,event),
           "fail closed on invalid borrowed input snapshot");
+    CallbackDispatch source{};
+    check(source.event_mask({1u,0u,0x140u,0xC8u,0u})==0u,
+          "original centered cursor cannot generate synthetic callback");
+    check(source.event_mask({1u,0u,0x14Au,0xDCu,0u})==1u,
+          "original fn0C movement reason");
+    check(source.event_mask({1u,1u,0x14Au,0xDCu,0u})==2u,
+          "original fn0C left press reason");
+    check(source.event_mask({1u,1u,0x14Au,0xDCu,0u})==0u,
+          "original fn0C holds do not repeat press");
+    check(source.event_mask({1u,0u,0x14Au,0xDCu,0u})==4u,
+          "original fn0C left release reason");
+    check(source.event_mask({1u,2u,0x14Au,0xDCu,0u})==8u &&
+          source.event_mask({1u,0u,0x14Au,0xDCu,0u})==16u,
+          "original fn0C right button reasons");
+    check(source.event_mask({1u,1u,0x150u,0xDDu,0u})==3u,
+          "simultaneous motion and left press mask");
     check(!source_title_presented(0u) &&
           source_title_presented(1u) && source_title_presented(14u),
           "original title frame prerequisite");
