@@ -1,0 +1,476 @@
+#include "rloft/level22_encounter.hpp"
+#include "rloft/combat_npc_death_followon.hpp"
+
+#ifdef NDEBUG
+#undef NDEBUG // Keep assertions active in Release CTest.
+#endif
+
+#include <cassert>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <stdexcept>
+
+namespace {
+
+void put16(
+    std::vector<std::uint8_t>& b,
+    std::size_t o,
+    std::uint16_t v) {
+    b[o] = static_cast<std::uint8_t>(v);
+    b[o + 1U] =
+        static_cast<std::uint8_t>(v >> 8U);
+}
+void put32(
+    std::vector<std::uint8_t>& b,
+    std::size_t o,
+    std::uint32_t v) {
+    for (int i = 0; i < 4; ++i) {
+        b[o + static_cast<std::size_t>(i)] =
+            static_cast<std::uint8_t>(
+                v >> (i * 8));
+    }
+}
+void set_item(
+    rloft::PartyImage& party,
+    std::size_t slot,
+    std::int16_t value) {
+    const auto at =
+        0x40U + slot * 2U;
+    const auto raw =
+        static_cast<std::uint16_t>(value);
+    party.bytes[at] =
+        static_cast<std::uint8_t>(raw);
+    party.bytes[at + 1U] =
+        static_cast<std::uint8_t>(
+            raw >> 8U);
+}
+
+rloft::NpcCatalog npc_catalog() {
+    std::vector<std::uint8_t> bytes(
+        4U + 10U * 0x45U, 0);
+    put32(bytes, 0, 10);
+    const auto r =
+        4U + 9U * 0x45U;
+    bytes[r] = 'A';
+    bytes[r + 0x1C] = 1;
+    bytes[r + 0x21] = 5;
+    bytes[r + 0x22] = 6;
+    put16(bytes, r + 0x23, 200);
+    put16(bytes, r + 0x41, 90);
+    put16(bytes, r + 0x43, 22);
+    return rloft::NpcCatalog::parse(
+        bytes);
+}
+
+rloft::ObjectCatalog object_catalog() {
+    std::vector<std::uint8_t> bytes(
+        4U + 0xEAU * 0x41U, 0);
+    put32(bytes, 0, 0xEA);
+    return rloft::ObjectCatalog::parse(
+        bytes);
+}
+
+}  // namespace
+
+int main() {
+    // Ensure the newly source-driven E284 four-drop plan and the
+    // previously reconstructed Level22 quest/pickup definitions
+    // continue to agree in both object IDs AND screen seeds.
+    const auto original_death =
+        rloft::CombatNpcDeathFollowOnModel::inspect(
+            9U,0,90U,22U,200U,0U,0U);
+    assert(original_death.drop_count==4U);
+    assert(original_death.set_story_dword_bf44);
+    for(std::size_t i=0U;i<4U;++i) {
+        const auto legacy_drop=
+            rloft::Level22Story::assassin_death_drops()[i];
+        assert(original_death.drops[i].object_id==
+               legacy_drop.object_id);
+        assert(original_death.drops[i].screen_seed==
+               legacy_drop.screen_seed);
+    }
+
+    rloft::RendererTables tables{};
+    // Synthetic Q16 unit factors sufficient for heading 0 test.
+    tables.sine_q16_signmag.fill(0);
+    tables.sine_q16_signmag[0] = 0x00010000U;
+    tables.sine_q16_signmag[90] = 0;
+
+    rloft::LevelWorldState world{};
+    rloft::LiveNpcRecord assassin{};
+    assassin.npc_type_id = 9;
+    assassin.x_position_16_16 =
+        0x000D8000U;
+    assassin.y_position_16_16 =
+        0x00078000U;
+    assassin.current_hp = 5;
+    assassin.packed_runtime_state = 0x8000U; // preserve unrelated original packed state
+    assassin.runtime_flags = 0xE0000001U; // pre-existing byte+0B flags
+    world.npcs.push_back(assassin);
+
+    // 0x258AA is not an uninitialized flag: it is the three SIGNED
+    // NPC filters copied from original level header +0x292..0x297.
+    rloft::LevelState level{};
+    level.width=30;
+    level.height=15;
+    for(std::size_t i=0;i<3U;++i) {
+        level.header[0x292U+i*2U]=0xFFU;
+        level.header[0x293U+i*2U]=0xFFU;
+    }
+    assert((level.respawn_npc_types()==
+        std::array<std::int16_t,3>{{-1,-1,-1}}));
+
+    // A modified header that tracks type9 MUST NOT silently skip the
+    // original RNG-consuming E0F8 call and mutate the level anyway.
+    auto unsupported=level;
+    unsupported.header[0x292U]=9U;
+    unsupported.header[0x293U]=0U;
+    assert(unsupported.respawn_npc_types()[0]==9);
+    bool correctly_rejected=false;
+    try {
+        auto probe_world=world;
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            probe_world,unsupported,0U,5U,0U,0U,
+            npc_catalog(),tables,{});
+    } catch(const std::logic_error&) {
+        correctly_rejected=true;
+    }
+    assert(correctly_rejected);
+    assert(world.npcs[0].current_hp==5);
+    // E31F branches to E553 for HP>0; E50F never scans filters.
+    // A matching type does not block a nonlethal hit.
+    auto survivor=world;
+    const auto surviving_hit=rloft::Level22EncounterModel::damage_assassin(
+        survivor,unsupported,0U,2U,0U,0U,npc_catalog(),tables,{});
+    assert(surviving_hit.damaged && !surviving_hit.died);
+    assert(survivor.npcs[0].current_hp==3);
+    assert(world.npcs[0].current_hp==5);
+    // A signed -1 tracker must also NOT match type 0xFFFF.
+    level.header[0x294U]=0U;
+    level.header[0x295U]=0U;
+    assert(level.respawn_npc_types()[1]==0);
+    level.header[0x294U]=0xFFU;
+    level.header[0x295U]=0xFFU;
+
+    // Nonlethal damage uses the reaction sound and reaction animation/count.
+    auto damage =
+        rloft::Level22EncounterModel::damage_assassin(
+            world,
+            level,
+            0,
+            2,
+            0,
+            0,
+            npc_catalog(),
+            tables,
+            [](std::uint32_t,
+               std::uint32_t,
+               std::uint32_t) {
+                return false;
+            });
+    assert(damage.damaged);
+    assert(!damage.died);
+    assert(damage.sound_kind ==
+           rloft::NpcSoundKind::DamageReaction);
+    assert(damage.sound_id == 90);
+    assert(world.npcs[0].current_hp == 3);
+    assert(world.npcs[0].action_state_countdown == 2);
+    assert((world.npcs[0].packed_runtime_state & 6U) == 6U);
+    assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
+    assert(world.npcs[0].runtime_flags == 0xD0000001U);
+
+    // Original quest drops must be one transaction: a late collision
+    // probe failure cannot leave a dead Assassin and a partial relic set.
+    const auto before_death=world;
+    auto aborted_world=world;
+    std::size_t drop_attempts=0U;
+    bool threw_late=false;
+    try {
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            aborted_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+            [&](std::uint32_t,std::uint32_t,std::uint32_t) {
+                if(++drop_attempts==3U)
+                    throw std::runtime_error("third drop cannot be placed");
+                return false;
+            });
+    }catch(const std::runtime_error&) {
+        threw_late=true;
+    }
+    assert(threw_late && drop_attempts==3U);
+    assert(aborted_world.npcs[0].current_hp==
+           before_death.npcs[0].current_hp);
+    assert(aborted_world.npcs[0].runtime_flags==
+           before_death.npcs[0].runtime_flags);
+    assert(aborted_world.npcs[0].packed_runtime_state==
+           before_death.npcs[0].packed_runtime_state);
+    assert(aborted_world.loose_items.size()==
+           before_death.loose_items.size());
+    // The same living NPC may safely be retried after rejected placement.
+    const auto retry=rloft::Level22EncounterModel::damage_assassin(
+        aborted_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){return false;});
+    assert(retry.died && retry.spawned_loose_items==4U);
+    assert(aborted_world.loose_items.size()==4U);
+
+    // At the original 300-record cap, four drops evict the oldest four
+    // source items. If the third placement throws, even the evictions
+    // must be rolled back (and the living Assassin remains present).
+    auto full_world=before_death;
+    for(unsigned n=0U;n<0x12CU;++n) {
+        rloft::LiveObjectRecord existing{};
+        existing.object_type_id=static_cast<std::uint16_t>(n);
+        full_world.loose_items.push_back(existing);
+    }
+    const auto before_full_death=full_world;
+    std::size_t full_attempts=0U;
+    bool full_abort=false;
+    try {
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            full_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+            [&](std::uint32_t,std::uint32_t,std::uint32_t) {
+                if(++full_attempts==3U)
+                    throw std::runtime_error("full world drop failed");
+                return false;
+            });
+    }catch(const std::runtime_error&){full_abort=true;}
+    assert(full_abort && full_attempts==3U);
+    assert(full_world.npcs[0].current_hp==
+           before_full_death.npcs[0].current_hp);
+    assert(full_world.loose_items.size()==0x12CU);
+    assert(full_world.loose_items.front().object_type_id==0U);
+    assert(full_world.loose_items.back().object_type_id==299U);
+    const auto full_success=rloft::Level22EncounterModel::damage_assassin(
+        full_world,level,0U,3U,1U,0U,npc_catalog(),tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){return false;});
+    assert(full_success.died && full_success.spawned_loose_items==4U);
+    assert(full_world.loose_items.size()==0x12CU);
+    assert(full_world.loose_items.front().object_type_id==4U);
+    for(std::size_t n=0U;n<4U;++n)
+        assert(full_world.loose_items[0x12CU-4U+n].object_type_id==
+               rloft::Level22Story::assassin_death_drops()[n].object_id);
+
+    // Lethal damage spawns all four story items; failed placement probes make
+    // each fall back to the corpse coordinates.
+    damage =
+        rloft::Level22EncounterModel::damage_assassin(
+            world,
+            level,
+            0,
+            3,
+            1,
+            0,
+            npc_catalog(),
+            tables,
+            [](std::uint32_t,
+               std::uint32_t,
+               std::uint32_t radius) {
+                assert(radius == 0x190U);
+                return false;
+            });
+    assert(damage.died);
+    assert(world.npcs[0].action_state_countdown == 1U);
+    assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
+    assert(damage.sound_kind ==
+           rloft::NpcSoundKind::Death);
+    assert(damage.sound_id == 22);
+    assert(damage.experience_award == 200);
+    assert(damage.spawned_loose_items == 4);
+    assert((world.npcs[0].runtime_flags & 0x02000000U) != 0U);
+    assert(world.npcs[0].runtime_flags == 0xD2000001U);
+    assert(world.loose_items.size() == 4);
+    assert(world.loose_items[0].object_type_id == 0x88);
+    assert(world.loose_items[1].object_type_id == 0x87);
+    assert(world.loose_items[2].object_type_id == 0xE9);
+    assert(world.loose_items[3].object_type_id == 0x74);
+    // Repeated interaction with a corpse must neither award experience
+    // again nor create another set of unique Level22 quest artifacts.
+    const auto dead_hp=world.npcs[0].current_hp;
+    const auto dead_flags=world.npcs[0].runtime_flags;
+    bool corpse_rejected=false;
+    try{
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            world,level,0U,1U,0U,0U,npc_catalog(),tables,{});
+    }catch(const std::logic_error&){corpse_rejected=true;}
+    assert(corpse_rejected);
+    assert(world.npcs[0].current_hp==dead_hp);
+    assert(world.npcs[0].runtime_flags==dead_flags);
+    assert(world.loose_items.size()==4U);
+    for (const auto& item : world.loose_items) {
+        assert(item.x_position_16_16 == 0x000D8000U);
+        assert(item.y_position_16_16 == 0x00078000U);
+        assert(item.packed_runtime_state == 0);
+    }
+
+    auto objects = object_catalog();
+    rloft::InventoryRuntimeState inventory{};
+    rloft::PartyImage party{};
+    party.bytes.fill(0xFF);
+    party.bytes[0x10] = 0;
+    party.bytes[0x11] = 0;
+
+    // Put three quest objects in inventory. Picking up the fourth to the
+    // cursor completes the exact CODE.2 possession predicate.
+    set_item(party, 0, 0x87);
+    set_item(party, 1, 0x88);
+    set_item(party, 2, 0x74);
+
+    std::size_t parchment = 0;
+    while (world.loose_items[parchment].object_type_id != 0xE9) {
+        ++parchment;
+    }
+
+    const auto pickup =
+        rloft::Level22EncounterModel::pickup_loose_item(
+            world,
+            parchment,
+            inventory,
+            party,
+            objects);
+    assert(pickup.object_id == 0xE9);
+    assert(pickup.known == 0);
+    assert(pickup.level22_mist_sequence);
+    assert(inventory.held.object_id == 0xE9);
+
+    // New end-to-end native interaction slice: 21704 takes one of
+    // the Assassin's four dropped objects into the held cursor, and
+    // 117A0 places it in the first free ordinary inventory slot.
+    // The fourth pickup must still trigger 223F4's exact set
+    // predicate with the first three already owned by the party.
+    auto fresh_world = rloft::LevelWorldState{};
+    // Re-create all four exact source object types in a separate
+    // staged world; the earlier test already consumed the parchment.
+    for (const auto drop : rloft::Level22Story::assassin_death_drops()) {
+        rloft::LiveObjectRecord item{};
+        item.object_type_id = drop.object_id;
+        fresh_world.loose_items.push_back(item);
+    }
+    rloft::InventoryRuntimeState staged_inventory{};
+    rloft::PartyImage staged_party{};
+    staged_party.bytes.fill(0xFFU);
+    staged_party.bytes[0x10U]=0U;
+    staged_party.bytes[0x11U]=0U;
+    for (std::size_t i=0U;i<4U;++i) {
+        assert(staged_inventory.held.object_id==-1);
+        const auto result =
+            rloft::Level22EncounterModel::pickup_loose_item(
+                fresh_world,0U,staged_inventory,staged_party,objects);
+        assert(result.object_id ==
+            static_cast<std::int16_t>(
+                rloft::Level22Story::assassin_death_drops()[i].object_id));
+        assert(result.level22_mist_sequence==(i==3U));
+        if(i<3U) {
+            assert(staged_inventory.swap_ordinary_slot(
+                       staged_party,objects,0U,i)==
+                   rloft::InventoryOrdinarySwapStatus::Swapped);
+            assert(staged_inventory.held.object_id==-1);
+        }
+    }
+    assert(fresh_world.loose_items.empty());
+    assert(staged_inventory.held.object_id==0x74);
+    for(const auto relic : rloft::Level22Story::quest_objects()) {
+        assert(staged_inventory.has_object(
+            staged_party,objects,
+            static_cast<std::int16_t>(relic)));
+    }
+
+    // CODE.2 211D8 alternate real interaction: after each world
+    // pickup the actor-panel flag08 path quick-stashes the held item
+    // into the first free ordinary slot, without opening the modal.
+    auto quick_world = rloft::LevelWorldState{};
+    for(const auto drop:rloft::Level22Story::assassin_death_drops()) {
+        rloft::LiveObjectRecord item{};
+        item.object_type_id=drop.object_id;
+        quick_world.loose_items.push_back(item);
+    }
+    rloft::InventoryRuntimeState quick_inventory{};
+    rloft::PartyImage quick_party{};
+    quick_party.bytes.fill(0xFFU);
+    quick_party.bytes[0x10U]=0U;
+    quick_party.bytes[0x11U]=0U;
+    // This synthetic fresh actor has no initially identified items.
+    // 211D8 itself must leave these four bytes unchanged on stash.
+    for(std::size_t b=0U;b<4U;++b)
+        quick_party.bytes[0x12BU+b]=0U;
+    for(std::size_t i=0U;i<4U;++i) {
+        assert(quick_inventory.held.object_id==-1);
+        const auto got=rloft::Level22EncounterModel::pickup_loose_item(
+            quick_world,0U,quick_inventory,quick_party,objects);
+        assert(got.level22_mist_sequence==(i==3U));
+        if(i<3U) {
+            assert(quick_inventory.quick_stash_held(
+                       quick_party,objects,0U)==
+                   rloft::InventoryQuickStashStatus::Stashed);
+            assert(quick_inventory.held.object_id==-1);
+            assert(quick_party.bytes[0x12BU]==0U);
+        }
+    }
+    // CODE.2 21704 source conditional BF44 write is recovered
+    // separately from display. Lord Dhelt's Holy Symbol only selects
+    // original message 2Fh when persistent quest bit 51h is set.
+    {
+        rloft::LevelWorldState msg_world{};
+        rloft::LiveObjectRecord holy{};
+        holy.object_type_id=0x74U;
+        msg_world.loose_items.push_back(holy);
+        rloft::InventoryRuntimeState msg_inventory{};
+        rloft::PartyImage msg_party{};
+        msg_party.bytes.fill(0xFFU);
+        msg_party.bytes[0x10U]=0U;
+        msg_party.bytes[0x11U]=0U;
+        const auto before_event=
+            rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,false);
+        assert(before_event.object_id==0x74);
+        assert(!before_event.message_assignment_bf44);
+        msg_world.loose_items.push_back(holy);
+        // Another pickup while already holding an object must refuse
+        // rather than silently lose the first Holy Symbol.
+        bool held_rejected=false;
+        try {
+            (void)rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,true);
+        }catch(const std::logic_error&){held_rejected=true;}
+        assert(held_rejected);
+        assert(msg_world.loose_items.size()==1U);
+        assert(msg_inventory.held.object_id==0x74);
+        // In the actual game the player first stashes/swaps the cursor.
+        msg_inventory.held.object_id=-1;
+        msg_inventory.held.known=0U;
+        const auto after_event=
+            rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,true);
+        assert(after_event.message_assignment_bf44==0x2FU);
+        assert(msg_inventory.held.object_id==0x74);
+    }
+
+    // A damaged/malformed save or mod may contain an unrecognized item
+    // ID. Do not erase that placed item or clobber a held cursor before
+    // the original OBJECTS catalogue validation rejects it.
+    rloft::LevelWorldState malformed_world{};
+    rloft::LiveObjectRecord corrupt{};
+    corrupt.object_type_id=0xFFFFU;
+    malformed_world.loose_items.push_back(corrupt);
+    rloft::InventoryRuntimeState malformed_inv{};
+    malformed_inv.held.object_id=-1;
+    malformed_inv.held.known=0U;
+    bool bad_item_rejected=false;
+    try {
+        (void)rloft::Level22EncounterModel::pickup_loose_item(
+            malformed_world,0U,malformed_inv,quick_party,objects);
+    }catch(const std::out_of_range&) {bad_item_rejected=true;}
+    assert(bad_item_rejected);
+    assert(malformed_world.loose_items.size()==1U);
+    assert(malformed_world.loose_items[0].object_type_id==0xFFFFU);
+    assert(malformed_inv.held.object_id==-1);
+    assert(malformed_inv.held.known==0U);
+
+    assert(quick_world.loose_items.empty());
+    assert(quick_inventory.held.object_id==0x74);
+    for(const auto relic:rloft::Level22Story::quest_objects()) {
+        assert(quick_inventory.has_object(
+            quick_party,objects,
+            static_cast<std::int16_t>(relic)));
+    }
+}

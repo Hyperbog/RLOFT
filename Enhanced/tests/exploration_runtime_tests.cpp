@@ -1,0 +1,153 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include "rloft/exploration_runtime.hpp"
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+
+rloft::ExplorationSessionState session() {
+    rloft::ExplorationSessionState s{};
+    s.level_id = 22;
+    s.coordinate_a = 0x00018000U;
+    s.coordinate_b = 0x00018000U;
+    s.facing = 0;
+    s.time_of_day_16_16_hours = 0x000E0000U;
+    s.level.width = 4;
+    s.level.height = 4;
+    s.level.environment_profile = 0xFFU;
+    s.level.cell_words.assign(16, 0);
+    s.level.automap_cache.assign(16, 0xFFU);
+    return s;
+}
+
+rloft::RendererTables renderer() {
+    rloft::RendererTables t{};
+    t.constants[0] = 1;       // one test ray
+    t.constants[5] = 0;       // camera origin unchanged
+    t.constants[7] = 0x1600;  // valid depth numerator
+    t.view_angle_tenths.fill(0);
+    t.tangent_q16.fill(0);
+    t.sine_q16_signmag.fill(0);
+    t.runtime_lookup_max = 0;
+    return t;
+}
+
+}  // namespace
+
+int main() {
+    rloft::ExplorationRuntime runtime(
+        session(),
+        renderer(),
+        {});
+
+    // The public bridge is intentionally not a general SAVE/LOAD:
+    // importing a byte image before the original world/catalogue
+    // has been initialized, or exporting without a compatible
+    // imported image, must refuse without mutating any state.
+    assert(!runtime.has_inventory_save_backing());
+    // Actual supplied CODE.2 object-2 initial BF44 is zero.
+    assert(runtime.original_story_message_bf44()==0U);
+    // Original 1C21C pickup ribbon is initially absent; only an
+    // actual queued Level22 item action with observed IRQ creates it.
+    assert(!runtime.original_pickup_ribbon().has_value());
+    bool premature_import=false;
+    try {
+        runtime.import_matching_save_inventory({});
+    } catch(const std::logic_error&) {
+        premature_import=true;
+    }
+    assert(premature_import);
+    bool premature_export=false;
+    try {
+        (void)runtime.export_matching_save_inventory();
+    } catch(const std::logic_error&) {
+        premature_export=true;
+    }
+    assert(premature_export);
+    assert(!runtime.has_inventory_save_backing());
+
+    // A premature Level16 cinematic callback must NEVER run
+    // without the original initialized world and object tables.
+    // This is a native guard, not a synthetic quest acceptance.
+    int uninitialized_events=0;
+    bool premature_ritual=false;
+    try {
+        (void)runtime.complete_pending_seed_ritual(
+            [&]() {
+                ++uninitialized_events;
+                return rloft::Level16RitualPlayback::Completed;
+            });
+    } catch(const std::logic_error&) {
+        premature_ritual=true;
+    }
+    assert(premature_ritual);
+    assert(uninitialized_events==0);
+    assert(runtime.session().level_id==22U);
+
+    // The CODE.2 VGA page and dispatcher mode are mutable runtime
+    // values; the live input path will eventually toggle these fields.
+    assert(runtime.scene_video_page() == 0U);
+    runtime.set_scene_video_page(1U);
+    assert(runtime.scene_video_page() == 1U);
+    runtime.set_scene_individual_columns_mode(true);
+    assert(runtime.scene_individual_columns_mode());
+    bool bad_page = false;
+    try {
+        runtime.set_scene_video_page(2U);
+    } catch (const std::out_of_range&) {
+        bad_page = true;
+    }
+    assert(bad_page);
+    assert(runtime.scene_video_page() == 1U);
+
+    {
+        const auto frame = runtime.build_frame();
+
+        assert(!frame.scene_vga_trace.has_value());
+        assert(frame.world_scene_revision == 0U);
+        assert(frame.source_level_id == runtime.session().level_id);
+        assert(frame.source_coordinate_a == runtime.session().coordinate_a);
+        assert(frame.source_coordinate_b == runtime.session().coordinate_b);
+        assert(frame.source_facing == 0U);
+        assert(frame.scene.frame.level_id == 22);
+        const rloft::CellPosition expected_party_cell{1, 1};
+        assert(frame.scene.frame.party_cell ==
+               expected_party_cell);
+        assert(frame.scene.palette_index == 4);
+        assert(frame.scene.environment_mode == 0);
+        assert(frame.sweep_records.size() == 1);
+        assert(!frame.sweep_runs.empty());
+        assert(frame.prepass_plans.empty());
+
+        // The automap was rebuilt from the same post-sweep level state.
+        assert(runtime.session().level.automap_cache.size() == 16);
+        const auto party_index =
+            rloft::ExplorationWorldModel::cell_index(
+                runtime.session().level,
+                {1, 1});
+        assert(runtime.session().level.automap_cache[party_index] == 0x2FU);
+    }
+
+    {
+        rloft::ExplorationMotionInputs input{};
+        input.angular_input = -20;
+        input.grid_mode = true;
+
+        const auto motion = runtime.tick_motion(input);
+        assert(runtime.session().facing == 90);
+        assert(motion.applied.acceptance ==
+               rloft::LocomotionAcceptance::NoTranslation);
+
+        const auto frame = runtime.build_frame();
+        assert(frame.source_facing == 90U);
+        assert(frame.source_coordinate_a == runtime.session().coordinate_a);
+        assert(frame.source_coordinate_b == runtime.session().coordinate_b);
+        assert(frame.scene.frame.facing_degrees == 90);
+    }
+}

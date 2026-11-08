@@ -1,0 +1,295 @@
+"""Source-bounded CODE.2 upper callback callgraph and FF50 literal footprint.
+
+Validates original code, but DOES NOT establish transitive pointer alias
+safety, callback side effects, or original DOS runtime parity.
+"""
+from __future__ import annotations
+import argparse,hashlib,struct
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[2]
+ORIGINAL_SHA="853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
+BASE=0x3AF24
+BOUNDS={
+    "29B40 rectangle overlay":(0x29B40,0x29C9E,0),
+    "314B0 animated overlay":(0x314B0,0x318B1,0),
+    "33E28 default upper fill":(0x33E28,0x33E6B,0),
+    "34A74 source raster":(0x34A74,0x34BAD,2),
+    "2AB38 destination helper":(0x2AB38,0x2AB6C,0),
+}
+CALLS={
+    0x29B68:0x2AB38,
+    0x314EF:0x296C0,0x314FD:0x30CC4,
+    0x31532:0x30CA2,0x31553:0x29838,
+    0x3158D:0x30CA2,0x315B3:0x29838,
+    0x315EA:0x30CA2,0x31610:0x29838,
+    0x3161A:0x30700,0x31620:0x30CC4,
+    0x31766:0x2986C,0x3180B:0x2986C,
+    0x31889:0x2986C,0x318A4:0x296C0,
+    0x34B1C:0x342E4,0x34B84:0x34954,
+}
+
+def audit_original(path:Path)->None:
+    b=path.read_bytes()
+    assert len(b)==558689 and hashlib.sha256(b).hexdigest()==ORIGINAL_SHA,"wrong CODE.2"
+    obj=b[BASE:0x75F24]
+    ff50=bytes.fromhex("50ff0000")
+    for name,(start,end,refs) in BOUNDS.items():
+        body=obj[start:end]
+        assert len(body)==end-start,(name,"truncated")
+        assert body.count(ff50)==refs,(name,"direct FF50 footprint")
+        assert obj[end-1]==0xC3,(name,"RET")
+    for call,dest in CALLS.items():
+        assert obj[call]==0xE8,hex(call)
+        actual=call+5+struct.unpack_from("<i",obj,call+1)[0]
+        assert actual==dest,(hex(call),hex(actual),hex(dest))
+    assert obj[0x3161A:0x3161F]==bytes.fromhex("e8e1f0ffff")
+    assert obj[0x1F377:0x1F37D]==bytes.fromhex("031d50ff0000")
+    for at,target in ((0x34A7E,0x34AF9),(0x34A83,0x34B69),
+                      (0x34A8D,0x34AF6),(0x34A92,0x34B66)):
+        assert obj[at]==0xA2
+        assert struct.unpack_from("<I",obj,at+1)[0]==target
+    # Animated overlay 314B0 seeds an actual shared original LCG.
+    # 30700 is a READ of F58C (the interrupt entry 30708 is
+    # responsible for incrementing it); 30C9C returns fixed F6F4.
+    # 30CA2 and 30CC4 indirect [EAX] writes therefore have a
+    # statically resolved F6F4 destination, NOT a FF50 alias.
+    windows={
+        0x30700:"a18cf50000c3",
+        0x3071C:"ff058cf50000",
+        0x30C9C:"b8f4f60000c3",
+        0x30CA2:"e8f5ffffff",
+        0x30CAB:"69106d4ec641",
+        0x30CB1:"81c239300000",
+        0x30CB7:"8910",
+        0x30CC4:"e8d3ffffff",
+        0x30CCD:"8b5424048910",
+        0x314F7:"ff3558c60000",
+        0x3161A:"e8e1f0ffff",
+        0x31620:"e89ff6ffff",
+    }
+    for at,sig in windows.items():
+        want=bytes.fromhex(sig)
+        assert obj[at:at+len(want)]==want,hex(at)
+    # Reaffirm reseed/advance order using actual E8 destinations.
+    for call,dest in ((0x314FD,0x30CC4),
+                      (0x31532,0x30CA2),
+                      (0x3158D,0x30CA2),
+                      (0x315EA,0x30CA2),
+                      (0x3161A,0x30700),
+                      (0x31620,0x30CC4)):
+        assert obj[call]==0xE8
+        assert call+5+struct.unpack_from("<i",obj,call+1)[0]==dest
+    # CODE.2 296C0 is the 314B0 geometry helper. Its fully
+    # disassembled 117 bytes write ONLY these four EFxx setup
+    # globals (plus a caller-owned stack-slot clamp), not FF50.
+    # 2AB38 is the 29B40 geometry helper: reads EFED/EFF1/F001
+    # to calculate EBX destination and ECX plane, with NO memory
+    # write in its 52-byte body. The *caller* may still write to
+    # an aliased framebuffer: this audit does NOT close ES aliases.
+    leafs=(
+        (0x296C0,0x29735,
+         "dc43d298f510365164f0b68c82bb954b83d8be8882a4c6fb0b659aaeffb0b9f7",0),
+        (0x2AB38,0x2AB6C,
+         "51b0f554019e0dcca8236ff9894358b7cea837c0f21defb69f5eeef067e623dd",0),
+    )
+    for begin,end,expected_sha,direct_ff50_count in leafs:
+        body=obj[begin:end]
+        assert hashlib.sha256(body).hexdigest()==expected_sha,hex(begin)
+        assert body.count(ff50)==direct_ff50_count,hex(begin)
+        assert body[-1]==0xC3,hex(end)
+    stores={
+        0x29715:"890d59ef0000",
+        0x2971E:"891d5def0000",
+        0x29728:"891561ef0000",
+        0x2972E:"a355ef0000",
+    }
+    for address,hexbytes in stores.items():
+        wanted=bytes.fromhex(hexbytes)
+        assert obj[address:address+len(wanted)]==wanted,hex(address)
+    address_reads={
+        0x2AB43:"8b0dedef0000",
+        0x2AB4D:"8b0df1ef0000",
+        0x2AB63:"031d01f00000",
+    }
+    for address,hexbytes in address_reads.items():
+        wanted=bytes.fromhex(hexbytes)
+        assert obj[address:address+len(wanted)]==wanted,hex(address)
+    # Original graphics callback slot F0C8 is mutable DGROUP
+    # data, shipped as NULL. 2E74C stores a caller-provided pointer;
+    # 2E758 invokes it when nonnull. 2F868 performs the same check
+    # in the frame tail. The callback target's FF50 write footprint
+    # CANNOT be inferred from the initial null value.
+    f0c8=bytes.fromhex("c8f00000")
+    locations=[]
+    scan_at=0
+    while True:
+        scan_at=obj.find(f0c8,scan_at)
+        if scan_at<0:break
+        locations.append(scan_at)
+        scan_at+=1
+    assert locations==[0x2E751,0x2E75A,0x2E763,0x2F86F,0x2F878]
+    assert b[0x75F24+0xF0C8:0x75F24+0xF0CC]==bytes(4)
+    windows={
+        0x2E74C:"8b442404a3c8f00000c3",  # user pointer setter
+        0x2E758:"833dc8f00000007406ff15c8f00000c3",
+        0x2F86D:"833dc8f00000007406ff15c8f00000",
+        0x29867:"e9ec4e0000",  # 29838 wrapper jumps to 2E758
+        0x29573:"e8e0510000",  # 29564 enters 2E758
+    }
+    for address,expected_hex in windows.items():
+        expected=bytes.fromhex(expected_hex)
+        assert obj[address:address+len(expected)]==expected,hex(address)
+    # Part 12: bounded transitive paths from the original 314B0 overlay.
+    # Whole-body hashes cover two wrappers, their drawing adapter, and
+    # 2A478 raster, including their alternate RET exits.
+    transitive_bodies = {
+        (0x29838,0x2986C):"28afddf6df2439075906a63c88554f77909e30abc871aa9a40f9bdf407000f75",
+        (0x2986C,0x298B4):"a0d9cb0f247ad1f392f636c8dd28bb640cf51a22111f849c2ee1d6304592c7f7",
+        (0x29564,0x296BF):"d0427ed7069e0923d9d26fe873b7e6f58cd9d71e07b619b4559e853ce2ab15c4",
+        (0x2A478,0x2A584):"9744be2fcf7fe99842fc505850a31e49ad0b18f0b41110bf1b4f6e7ab3f441d9",
+    }
+    for (start,end),sha in transitive_bodies.items():
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+    for at in (0x296B8,0x296BE,0x2A51C,0x2A583):
+        assert obj[at]==0xC3,hex(at)
+    transitive_calls={
+        0x29840:0x2F29C,0x2985F:0x2A478,
+        0x29890:0x2F29C,0x298A5:0x29564,
+        0x29573:0x2E758,0x2A4A0:0x2AB38,
+    }
+    for call,dest in transitive_calls.items():
+        assert obj[call]==0xE8,hex(call)
+        actual=call+5+struct.unpack_from("<i",obj,call+1)[0]
+        assert actual==dest,(hex(call),hex(actual))
+    # 29838 performs a nonnull-resource blit before tail-JMP 2E758;
+    # 29564 invokes 2E758 before its source test at 29578.
+    assert obj[0x29848:0x2984C]==bytes.fromhex("85c074eb")
+    assert obj[0x29867:0x2986C]==bytes.fromhex("e9ec4e0000")
+    assert obj[0x29578:0x29580]==bytes.fromhex("85f60f8439010000")
+    for at,sig in {
+        0x2986C:"a1d4ef00006bd01840a3d4ef0000",
+        0x298AA:"ff0dd4ef0000",
+        0x2A484:"a2f6a40200",
+        0x2A489:"a24fa50200",
+        0x2A536:"890d09f00000",
+        0x2A55F:"8b0d09f00000",
+    }.items():
+        wanted=bytes.fromhex(sig)
+        assert obj[at:at+len(wanted)]==wanted,hex(at)
+    # 2A478 writes via STOS BYTE ES:[EDI] at two source branches;
+    # these are NOT proven unable to alias FF50/DGROUP at runtime.
+    assert obj[0x2A4F7]==0xAA and obj[0x2A550]==0xAA
+    # A full linear byte search finds no E8-rel32 immediate resolving
+    # to F0C8 setter 2E74C. Indirect CALL/JMP remains fully open.
+    setter_rel32=[at for at in range(len(obj)-4)
+                  if obj[at]==0xE8 and
+                  at+5+struct.unpack_from("<i",obj,at+1)[0]==0x2E74C]
+    assert not setter_rel32
+    # Source-only VGA page / optional callback installation bounds.
+    # Authentication of the original file occurs at audit_original entry.
+    page_bodies={
+        (0x29930,0x29A84):"3d58e999aa3b0da42047b0e4c0de387a76e8795635aa3141b781887605110377",
+        (0x2AB6C,0x2AB95):"6a6c952b6f3947ce90eb89b3dbce89c5872f1dfd9b14dec1f532c090b3bb241a",
+        (0x2AB98,0x2ABC4):"adae5fd75cfc31c9975ede4f32fc2c04c2c20009f6d5cf8eb1da9df08c64c8d3",
+        (0x29FEC,0x29FFA):"f7af1478c3c6ae62753eef671c68e27d38831ec5e60d413f7b04e0a38003ff6e",
+    }
+    for (start,end),sha in page_bodies.items():
+        assert obj[end-1]==0xC3,hex(end)
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+    page_windows={
+        0x2995D:"c705f9ef000050000000",
+        0x29967:"c70501f0000000000a00",
+        0x29971:"c705e9ef000000000000",
+        0x29982:"c70505f0000000040000",
+        0x2998C:"c705edef000004000000",
+        0x29996:"c705f1ef000002000000",
+        0x299AE:"c70505f0000000080000",
+        0x29FF3:"e8740b0000",
+        0x2A04E:"66bac403",
+        0x2A052:"66b8020f",
+        0x2A062:"f3a4",
+        0x2A09A:"e8cd0a0000",
+        0x2A0B4:"e8b30a0000",
+        0x2AB43:"8b0dedef0000",
+        0x2AB4D:"8b0df1ef0000",
+        0x2AB59:"c1e802",
+        0x2AB63:"031d01f00000",
+        0x2AB6E:"25ff000000",
+        0x2AB73:"a3e9ef0000",
+        0x2AB78:"a1e9ef0000",
+        0x2AB7D:"8b1505f00000",
+        0x2AB83:"f7e2",
+        0x2AB85:"0500a00000",
+        0x2AB8A:"c1e004",
+        0x2AB8D:"a301f00000",
+        0x2ABAE:"bf00000a00",
+        0x2ABB8:"b900400000",
+        0x2ABBE:"f3ab",
+        0x2E740:"8b442404a3ccf00000c3",
+        0x2E74C:"8b442404a3c8f00000c3",
+    }
+    for at,signature in page_windows.items():
+        want=bytes.fromhex(signature)
+        assert obj[at:at+len(want)]==want,hex(at)
+    # Exactly three E8-rel32 candidates target this paging routine.
+    page_calls=[at for at in range(len(obj)-4)
+                if obj[at]==0xE8 and
+                at+5+struct.unpack_from("<i",obj,at+1)[0]==0x2AB6C]
+    assert page_calls==[0x29FF3,0x2A09A,0x2A0B4]
+    # Separate input/event F0CC hook is not the F0C8 graphics hook.
+    assert b[0x75F24+0xF0CC:0x75F24+0xF0D0]==bytes(4)
+    assert [at for at in range(len(obj)-3)
+            if obj[at:at+4]==bytes.fromhex("ccf00000")]==[
+                0x2E745,0x2EDA7,0x2EDB5]
+    assert obj[0x2EDB3:0x2EDB9]==bytes.fromhex("ff15ccf00000")
+    # Excludes only direct E8/E9 encodings and literal DWORDs in
+    # original object-1; dynamic callbacks and segment aliases remain.
+    for setter in (0x2E740,0x2E74C):
+        assert not [at for at in range(len(obj)-4)
+                    if obj[at] in (0xE8,0xE9) and
+                    at+5+struct.unpack_from("<i",obj,at+1)[0]==setter]
+        assert obj.find(struct.pack("<I",setter))==-1
+    print("PASS: 4 VGA/page bodies, 30 source windows, 3 page calls")
+    print("PASS: distinct F0CC event slot, direct setter forms absent")
+    print("OPEN: external/indirect callback installation and ES/DS aliasing")
+
+    print("PASS: original 29838/2986C/29564/2A478 bounded transitive paths")
+    print("BOUND: zero E8-rel32 candidates for 2E74C, NOT indirect reachability")
+    print("OPEN: original F0C8 target, ES aliasing, FF50 effects and DOS parity")
+    print("PASS: F0C8 default NULL, setter, two indirect callsites (5 source references)")
+    print("OPEN: runtime-installed pointer and callback FF50/VGA effects")
+    print("PASS: complete 296C0 geometry and 2AB38 destination helper bodies")
+    print("BOUND: 296C0 direct globals EF55/EF59/EF5D/EF61; 2AB38 reads F001")
+    print("PASS: overlay facing/RNG/IRQ reseed and fixed F6F4 alias (12 windows)")
+    print("PASS: 17 original callback E8 edges; 5 function boundaries")
+    print("PASS: direct FF50 occurrences 0/0/0/2/0; 1F377 reload")
+    print("UNRESOLVED: indirect aliases, transitive helpers and IRQ effects")
+
+def audit_repository()->None:
+    cm=(ROOT/"DemoV1/CMakeLists.txt").read_text()
+    doc=(ROOT/"DemoV1/LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md").read_text()
+    assert "NAME original_ground_upper_callback_boundary_tests" in cm
+    for term in ("29B40","314B0","33E28","34A74","30700","1F377","indirect"):
+        assert term in doc,term
+    native_rng=(ROOT/"DemoV1/src/original_random.cpp").read_text()
+    assert "0x41C64E6DU" in native_rng
+    assert "0x00003039U" in native_rng
+    assert "state_ *" in native_rng
+    for term in ("296C0","2AB38","EF55","F001","indirect"):
+        assert term in doc,term
+    for term in ("F0C8","2E74C","2E758","2F868","indirect"):
+        assert term in doc,term
+    for term in ("29930","2AB6C","2AB98","F0CC","EFED","F005","ES"):
+        assert term in doc,term
+    print("PASS: source callback evidence and CTest registration")
+
+if __name__=="__main__":
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--original-code2",type=Path)
+    p.add_argument("--binary-only",action="store_true")
+    args=p.parse_args()
+    if args.binary_only and args.original_code2 is None:
+        p.error("--binary-only requires --original-code2")
+    if not args.binary_only:audit_repository()
+    if args.original_code2 is not None:audit_original(args.original_code2)

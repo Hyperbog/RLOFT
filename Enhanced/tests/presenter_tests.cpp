@@ -1,0 +1,285 @@
+#include "rloft/character_creation_presenter.hpp"
+#include "rloft/resource_assets.hpp"
+#include "rloft/startup_presenter.hpp"
+
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
+namespace {
+
+void put32(std::vector<std::uint8_t>& bytes,
+           std::size_t offset,
+           std::uint32_t value) {
+    for (int i = 0; i < 4; ++i) {
+        bytes[offset + i] =
+            static_cast<std::uint8_t>(value >> (8 * i));
+    }
+}
+
+void put16(std::vector<std::uint8_t>& bytes,
+           std::size_t offset,
+           std::uint16_t value) {
+    bytes[offset] = static_cast<std::uint8_t>(value);
+    bytes[offset + 1] = static_cast<std::uint8_t>(value >> 8U);
+}
+
+}  // namespace
+
+int main() {
+    // Synthetic one-entry RES: 1 frame, 8x1, method 0, key index 0.
+    std::vector<std::uint8_t> bytes(8 + 13 + 8);
+    put32(bytes, 0, 1);
+    put32(bytes, 4, 8);
+
+    std::size_t p = 8;
+    bytes[p++] = 'E';
+    bytes[p++] = 'H';
+    bytes[p++] = 1;
+    put16(bytes, p, 8);
+    p += 2;
+    put16(bytes, p, 1);
+    p += 2;
+    put16(bytes, p, 1);
+    p += 2;
+    bytes[p++] = 1;
+    bytes[p++] = 0;
+    bytes[p++] = 0;
+    bytes[p++] = 0;
+    for (int i = 0; i < 8; ++i) {
+        bytes[p++] = static_cast<std::uint8_t>(i);
+    }
+
+    rloft::ResArchive archive(std::move(bytes));
+    auto raster = archive.decode_type1(0);
+    assert(raster.count == 1);
+    assert(raster.width == 8);
+    assert(raster.height == 1);
+    assert(raster.transparent_index == 0);
+
+
+    // RES3 type-7 uses the shared CODE.2 LZSS wrapper. This synthetic
+    // all-literal stream encodes the certified Assassin base-shape geometry:
+    // 64w; x 15..51; y 27..128.
+    {
+        std::vector<std::uint8_t> type7_bytes(27U, 0);
+        put32(type7_bytes, 0, 1);
+        put32(type7_bytes, 4, 8);
+
+        const std::array<std::uint8_t, 10> body{{
+            64, 0,
+            15, 0,
+            51, 0,
+            27, 0,
+            128, 0,
+        }};
+
+        std::size_t q = 8;
+        type7_bytes[q++] = 'E';
+        type7_bytes[q++] = 'H';
+        type7_bytes[q++] = 7;
+        put16(type7_bytes, q, 0);
+        q += 2;
+        put16(type7_bytes, q, 10);
+        q += 2;
+
+        type7_bytes[q++] = 0xFF;
+        for (std::size_t i = 0; i < 8U; ++i) {
+            type7_bytes[q++] = body[i];
+        }
+        type7_bytes[q++] = 0x03;
+        type7_bytes[q++] = body[8];
+        type7_bytes[q++] = body[9];
+
+        rloft::ResArchive type7_archive(
+            std::move(type7_bytes));
+        const auto geometry =
+            type7_archive.decode_type7_geometry(0);
+        assert(geometry.source_width == 64U);
+        assert(geometry.x_min == 15);
+        assert(geometry.x_max == 51);
+        assert(geometry.y_min == 27);
+        assert(geometry.y_max == 128);
+    }
+
+    // CODE.1 767C -> DC90: a nonzero descriptor byte +7 converts an
+    // N-element, one-row type-1 image into one N-row runtime image.
+    {
+        std::vector<std::uint8_t> transformed_bytes(8 + 13 + 24);
+        put32(transformed_bytes, 0, 1);
+        put32(transformed_bytes, 4, 8);
+
+        std::size_t q = 8;
+        transformed_bytes[q++] = 'E';
+        transformed_bytes[q++] = 'H';
+        transformed_bytes[q++] = 1;
+        put16(transformed_bytes, q, 8);
+        q += 2;
+        put16(transformed_bytes, q, 3);
+        q += 2;
+        put16(transformed_bytes, q, 1);
+        q += 2;
+        transformed_bytes[q++] = 1;
+        transformed_bytes[q++] = 0xFF;
+        transformed_bytes[q++] = 0;
+        transformed_bytes[q++] = 1;
+        for (int i = 0; i < 24; ++i) {
+            transformed_bytes[q++] =
+                static_cast<std::uint8_t>(i + 1);
+        }
+
+        rloft::ResArchive transformed_archive(
+            std::move(transformed_bytes));
+        const auto transformed =
+            transformed_archive.decode_type1(0);
+        assert(transformed.count == 1);
+        assert(transformed.width == 8);
+        assert(transformed.height == 3);
+        assert(transformed.transparent_index == 0xFF);
+        assert(transformed.pixels.size() == 24);
+        assert(transformed.pixels.front() == 1);
+        assert(transformed.pixels.back() == 24);
+    }
+
+    rloft::IndexedFramebuffer framebuffer;
+    framebuffer.clear(9);
+    framebuffer.draw(raster, 10, 5);
+    assert(framebuffer.pixels()[10 * 320 + 5] == 9);
+    assert(framebuffer.pixels()[10 * 320 + 6] == 1);
+
+    std::array<std::uint8_t, 256> remap{};
+    for (int i = 0; i < 256; ++i) {
+        remap[static_cast<std::size_t>(i)] =
+            static_cast<std::uint8_t>(255 - i);
+    }
+    framebuffer.clear(9);
+    framebuffer.draw_frame_mapped(raster, 0, 12, 7, remap);
+    // Transparent source index 0 remains untouched; source index 1 maps to FE.
+    assert(framebuffer.pixels()[12 * 320 + 7] == 9);
+    assert(framebuffer.pixels()[12 * 320 + 8] == 0xFE);
+
+    // CODE.1 A5C8 reverses scanline order (vertical), not columns.
+    // The character-opening indicator and 10A4 flying-card sequence both
+    // use this primitive.
+    rloft::Type1Raster flip_test{
+        1,
+        2,
+        2,
+        0xFF,
+        {1, 2,
+         3, 4}
+    };
+    framebuffer.clear(0);
+    framebuffer.draw_frame_mirrored(
+        flip_test,
+        0,
+        20,
+        10);
+    assert(framebuffer.pixels()[20 * 320 + 10] == 3);
+    assert(framebuffer.pixels()[20 * 320 + 11] == 4);
+    assert(framebuffer.pixels()[21 * 320 + 10] == 1);
+    assert(framebuffer.pixels()[21 * 320 + 11] == 2);
+
+    rloft::Palette6 palette;
+    for (auto& value : palette.rgb) value = 56;
+    const auto half = rloft::StartupPresenter::fade_factor(palette, 4);
+    assert(half.rgb[0] == 28);
+
+    assert(rloft::StartupPresenter::menu_selection_from_y(285) == 0);
+    assert(rloft::StartupPresenter::menu_selection_from_y(286) == 1);
+    assert(rloft::StartupPresenter::menu_selection_from_y(300) == 1);
+    assert(rloft::StartupPresenter::menu_selection_from_y(301) == 2);
+    assert(rloft::StartupPresenter::menu_selection_from_y(318) == 3);
+    assert(rloft::StartupPresenter::menu_selection_from_y(400) == -1);
+
+    // CODE.2 19378 clears a 256-byte translation table, patches nineteen
+    // entries, and applies 2AA9C to cursor record 0 before the title menu.
+    // Transparent pixels are not translated and the raw source is untouched.
+    {
+        rloft::Type1Raster cursor{
+            1,
+            8,
+            1,
+            0,
+            {0x00, 0x08, 0x1B, 0x16, 0x5C, 0x58, 0x53, 0x7E}
+        };
+        const auto menu_cursor =
+            rloft::StartupPresenter::code2_menu_cursor(cursor);
+        assert(menu_cursor.pixels[0] == 0x00);
+        assert(menu_cursor.pixels[1] == 0xEB);
+        assert(menu_cursor.pixels[2] == 0xFF);
+        assert(menu_cursor.pixels[3] == 0xF9);
+        assert(menu_cursor.pixels[4] == 0xAC);
+        assert(menu_cursor.pixels[5] == 0x53);
+        assert(menu_cursor.pixels[6] == 0x0A);
+        assert(menu_cursor.pixels[7] == 0x00);
+        assert(cursor.pixels[1] == 0x08);
+    }
+
+    // CODE.1 10A4 preserves its encoded first/second coordinate order.
+    // Slot 0 starts with the first coordinate offscreen negative; after the
+    // low-level graphics wrappers this is the VGA row, so the card enters
+    // from the same screen edge as the original DOS executable.
+    {
+        const int target_first = 13 + 0x3D;
+        const int target_second = 3 + 0x18;
+        const int anchor_first =
+            -0x38 + ((target_first - (-0x38)) * 1 + 6) / 12;
+        const int anchor_second =
+            0xA0 + ((target_second - 0xA0) * 1 + 6) / 12;
+        assert(anchor_first == -45);
+        assert(anchor_second == 150);
+
+        constexpr int raster_height = 48;
+        constexpr int raster_width = 32;
+        const int row = anchor_first - raster_height / 2;
+        const int column = anchor_second - raster_width / 4;
+        assert(row < 0);
+        assert(column == 142);
+    }
+
+    // 07E4 executes N+10 phases. In phases 0/1, 55DC copies only the lower
+    // UI rectangle (row 0xEC for height 0xA4), so the upper card area first
+    // changes visibly at phase 2.
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            0, 6) == 15);
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            2, 4) == 11);
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            6, 9) == 12);
+
+    // Raw CODE.1 0C45..0E29 keeps the face-card position offset and scale
+    // numerator separate. For k=7..11:
+    //   offset = 12-k -> 5,4,3,2,1
+    //   scale  = 6-offset = k-6 -> 1,2,3,4,5
+    // C9D4 therefore expands a 48-pixel card as 8,16,24,32,40 pixels before
+    // the final unscaled 48-pixel frame. Using offset as the numerator would
+    // reverse this sequence and visibly jitter.
+    {
+        rloft::Type1Raster card{
+            1,
+            48,
+            1,
+            0xFF,
+            std::vector<std::uint8_t>(48, 1)
+        };
+        for (int k = 7; k < 12; ++k) {
+            const int offset = 12 - k;
+            const int scale = k - 6;
+            framebuffer.clear(0);
+            framebuffer.draw_frame_scaled_horizontal(
+                card, 0, 30, 20 + 4 * offset, scale, 6);
+            int drawn = 0;
+            for (int x = 0; x < 320; ++x) {
+                if (framebuffer.pixels()[30 * 320 + x] == 1) ++drawn;
+            }
+            assert(drawn == 8 * scale);
+        }
+    }
+
+    std::cout << "presenter_tests: PASS\n";
+}
