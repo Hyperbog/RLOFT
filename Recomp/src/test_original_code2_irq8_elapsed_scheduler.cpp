@@ -2,7 +2,7 @@
 // An injected steady_clock timestamp is ONLY a deterministic test clock;
 // no DOS timer frequency or production hardware scheduling is certified.
 #include "../../Code2/Code2.cpp"
-#include "original_code2_irq8_elapsed_scheduler.hpp"
+#include "game/timing/Timing.hpp"
 #include <chrono>
 #include <cstdint>
 #include <iostream>
