@@ -574,7 +574,7 @@ add_library(rloft_boot_flow
     src/type7_vga_trace_validation.cpp
     src/type7_vga_frame_trace.cpp
     src/vga_planar_memory.cpp
-    src/renderer_tables.cpp
+    src/SINTAB.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
     src/environment_projection.cpp

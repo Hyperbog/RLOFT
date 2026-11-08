@@ -1,4 +1,4 @@
-#include "rloft/renderer_tables.hpp"
+#include "rloft/SINTAB.hpp"
 
 #include <algorithm>
 #include <cstddef>
