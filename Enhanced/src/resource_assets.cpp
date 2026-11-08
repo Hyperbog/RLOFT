@@ -888,6 +888,10 @@ std::vector<EnvironmentProfile> RavenloftBootAssets::environment_profiles() cons
     return decode_environment_profiles(init_);
 }
 
+Code1ClassRules RavenloftBootAssets::code1_class_rules() const {
+    return Code1ClassRules::from_code1(code1_);
+}
+
 std::uint8_t RavenloftBootAssets::code1_u8(
     std::size_t dgroup_offset) const {
     constexpr std::size_t kObject2FileStart = 0x3E724U;

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+#include "rloft/CODE1.hpp"
+
 namespace rloft {
 
 enum class CharacterCreationState : std::uint8_t {
@@ -28,6 +30,8 @@ struct CharacterDraft {
 
 class CharacterCreationFlow final {
 public:
+    CharacterCreationFlow();
+    explicit CharacterCreationFlow(Code1ClassRules rules);
     [[nodiscard]] CharacterCreationState state() const noexcept { return state_; }
     [[nodiscard]] const CharacterDraft& draft() const noexcept { return draft_; }
     [[nodiscard]] bool aborted() const noexcept { return aborted_; }
@@ -63,6 +67,7 @@ public:
     void resolve_existing_actor(int actor, bool keep);
 
 private:
+    Code1ClassRules class_rules_{Code1ClassRules::vanilla()};
     CharacterCreationState state_{CharacterCreationState::ActorChoice};
     CharacterDraft draft_{};
     std::array<CharacterDraft, 2> actors_{};

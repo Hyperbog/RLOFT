@@ -4106,7 +4106,7 @@ int run(HINSTANCE instance) {
                     }
                 }
 
-                rloft::CharacterCreationFlow character_flow;
+                rloft::CharacterCreationFlow character_flow(assets.code1_class_rules());
                 rloft::CharacterStatsModel character_stats(assets);
                 const auto transfer_tables =
                     rloft::CharacterTransferTables::from_assets(assets);

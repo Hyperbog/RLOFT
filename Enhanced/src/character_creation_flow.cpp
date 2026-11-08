@@ -15,45 +15,6 @@ constexpr std::array<int, 9> kColumn{
     3, 56, 109, 162, 215, 268, 83, 136, 189
 };
 
-// CODE.1 DGROUP 06D8: first class availability by race.
-constexpr bool kFirstClass[6][6] = {
-    {1,1,1,1,1,1},
-    {1,0,1,1,1,1},
-    {1,0,0,1,0,1},
-    {1,0,0,1,0,1},
-    {1,0,0,1,0,1},
-    {1,0,1,1,1,1},
-};
-
-// CODE.1 DGROUP 06FC: second class availability by race, then
-// already-selected first class, then candidate class.
-constexpr bool kSecondClass[6][6][6] = {
-    {
-        {0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},
-        {0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},
-    },
-    {
-        {0,0,0,1,1,1},{0,0,0,0,0,0},{0,0,0,1,0,0},
-        {1,0,1,0,1,0},{1,0,0,1,0,1},{1,0,0,0,1,0},
-    },
-    {
-        {0,0,0,0,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
-        {0,0,0,0,0,0},{0,0,0,0,0,0},{1,0,0,0,0,0},
-    },
-    {
-        {0,0,0,1,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
-        {1,0,0,0,0,1},{0,0,0,0,0,0},{1,0,0,1,0,0},
-    },
-    {
-        {0,0,0,1,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
-        {1,0,0,0,0,0},{0,0,0,0,0,0},{1,0,0,0,0,0},
-    },
-    {
-        {0,0,0,0,1,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
-        {0,0,0,0,0,0},{1,0,0,0,0,1},{1,0,0,0,1,0},
-    },
-};
-
 std::array<bool, 6> third_class(
     int race, int first, int second) noexcept {
     std::array<bool, 6> out{};
@@ -194,6 +155,11 @@ std::array<bool, 6> option_availability(
 
 }  // namespace
 
+CharacterCreationFlow::CharacterCreationFlow() = default;
+
+CharacterCreationFlow::CharacterCreationFlow(Code1ClassRules rules)
+    : class_rules_(std::move(rules)) {}
+
 int CharacterCreationFlow::hit_test(
     CharacterCreationState state, int row, int column) noexcept {
     int result = -1;
@@ -246,7 +212,7 @@ std::array<bool, 6> CharacterCreationFlow::available_choices() const noexcept {
             if (draft_.race < 0 || draft_.race >= 6) return out;
             if (class_stage_ == 0) {
                 for (int i = 0; i < 6; ++i) {
-                    out[i] = kFirstClass[draft_.race][i];
+                    out[i] = class_rules_.allows_first(draft_.race, i);
                 }
                 return out;
             }
@@ -255,7 +221,7 @@ std::array<bool, 6> CharacterCreationFlow::available_choices() const noexcept {
                 draft_.classes[0] < 6) {
                 for (int i = 0; i < 6; ++i) {
                     out[i] =
-                        kSecondClass[draft_.race][draft_.classes[0]][i];
+                        class_rules_.allows_second(draft_.race, draft_.classes[0], i);
                 }
                 return out;
             }

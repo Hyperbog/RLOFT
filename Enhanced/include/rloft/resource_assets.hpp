@@ -9,6 +9,7 @@
 
 #include "rloft/game_source.hpp"
 #include "rloft/COLORS.hpp"
+#include "rloft/CODE1.hpp"
 #include "rloft/T.hpp"
 #include "rloft/RES8.hpp"
 #include "rloft/SAMPLE.hpp"
@@ -117,6 +118,7 @@ public:
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
     [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
+    [[nodiscard]] Code1ClassRules code1_class_rules() const;
     [[nodiscard]] std::uint8_t code1_u8(std::size_t dgroup_offset) const;
     [[nodiscard]] std::uint16_t code1_u16(std::size_t dgroup_offset) const;
     [[nodiscard]] std::int32_t code1_s32(std::size_t dgroup_offset) const;
