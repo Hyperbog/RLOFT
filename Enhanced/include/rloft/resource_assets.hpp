@@ -74,6 +74,8 @@ public:
 
     [[nodiscard]] int entry_count() const noexcept;
     [[nodiscard]] std::vector<std::uint8_t> entry(int index) const;
+    [[nodiscard]] std::vector<std::uint8_t> encode() const;
+    void replace_entry(int index, const std::vector<std::uint8_t>& replacement);
     [[nodiscard]] Type1Raster decode_type1(int index) const;
     // Original CODE.2 2ECB4 EH type-6 -> 37590 -> 2FB04/37700:
     // u16 decoded length followed by source LZSS. Original 2EF38

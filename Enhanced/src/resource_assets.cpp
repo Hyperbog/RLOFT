@@ -1,9 +1,11 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/INIT.hpp"
+#include "rloft/RES2.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -132,6 +134,45 @@ std::vector<std::uint8_t> ResArchive::entry(int index) const {
                          ? offsets_[static_cast<std::size_t>(index + 1)]
                          : static_cast<std::uint32_t>(bytes_.size());
     return {bytes_.begin() + start, bytes_.begin() + end};
+}
+
+std::vector<std::uint8_t> ResArchive::encode() const {
+    return bytes_;
+}
+
+void ResArchive::replace_entry(
+    int index, const std::vector<std::uint8_t>& replacement) {
+    if (index < 0 || index >= entry_count()) {
+        throw std::out_of_range("RES entry index");
+    }
+    const auto count = offsets_.size();
+    const auto limit = static_cast<std::uint64_t>(
+        std::numeric_limits<std::uint32_t>::max());
+    std::uint64_t total = 4ULL + 4ULL * count;
+    if (total > limit) throw std::overflow_error("RES entry table exceeds 32 bits");
+
+    // Build the entire replacement first. A failed allocation/overflow must
+    // never partially corrupt the live archive or its existing offsets.
+    std::vector<std::uint8_t> rebuilt(static_cast<std::size_t>(total), 0);
+    const auto put32 = [&rebuilt](std::size_t at, std::uint32_t value) {
+        for (unsigned i = 0U; i < 4U; ++i) {
+            rebuilt[at + i] = static_cast<std::uint8_t>(value >> (8U * i));
+        }
+    };
+    put32(0U, static_cast<std::uint32_t>(count));
+    for (std::size_t i = 0; i < count; ++i) {
+        const auto data = static_cast<int>(i) == index
+            ? replacement : entry(static_cast<int>(i));
+        if (static_cast<std::uint64_t>(data.size()) > limit - total) {
+            throw std::overflow_error("RES archive exceeds 32-bit offsets");
+        }
+        put32(4U + 4U * i, static_cast<std::uint32_t>(total));
+        rebuilt.insert(rebuilt.end(), data.begin(), data.end());
+        total += static_cast<std::uint64_t>(data.size());
+    }
+    ResArchive validated(std::move(rebuilt));
+    bytes_ = std::move(validated.bytes_);
+    offsets_ = std::move(validated.offsets_);
 }
 
 Type2Font ResArchive::decode_type2(int index) const {
@@ -754,7 +795,7 @@ Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
             if (!res2_.has_value()) {
                 res2_.emplace(source_.read("RES2"));
             }
-            return res2_->decode_type1(index);
+            return decode_res2_image(*res2_, index);
         case 7: return res7_.decode_type1(index);
         case 8: return res8_.decode_type1(index);
         default:

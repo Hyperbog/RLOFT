@@ -603,6 +603,7 @@ add_library(rloft_boot_flow
     src/game_source.cpp
     src/persistent_media_cache.cpp
     src/COLORS.cpp
+    src/RES2.cpp
     src/RES8.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -1239,6 +1240,10 @@ add_executable(RES8_tests tests/RES8_tests.cpp)
 target_link_libraries(RES8_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES8_tests COMMAND RES8_tests)
 
+add_executable(RES2_tests tests/RES2_tests.cpp)
+target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES2_tests COMMAND RES2_tests)
+
 add_executable(automap_presentation_tests tests/automap_presentation_tests.cpp)
 target_link_libraries(automap_presentation_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_presentation_tests COMMAND automap_presentation_tests)
@@ -1730,6 +1735,7 @@ set(RLOFT_TEST_TARGETS
     environment_projection_tests
     environment_presenter_tests
     RES8_tests
+    RES2_tests
     automap_presentation_tests
     automap_annotations_tests
     automap_annotation_presenter_tests
