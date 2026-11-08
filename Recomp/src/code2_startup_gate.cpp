@@ -156,6 +156,8 @@ struct Session {
     u32 original_intro_bios_chain_calls=0u;
     u32 original_title_presentations=0u;
     u32 original_title_mouse_polls=0u;
+    rloft::ui::title_interaction::CallbackDispatch original_title_dispatch{};
+    u32 original_title_source_27894_events=0u;
     void* original_intro_frame_context=nullptr;
     rloft::canonical_code2_runtime::OriginalIntroFrameObserver
         original_intro_frame_observer=nullptr;
