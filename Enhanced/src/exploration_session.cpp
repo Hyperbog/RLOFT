@@ -1,6 +1,7 @@
 #include "rloft/exploration_session.hpp"
 #include "rloft/LEV001.hpp"
 #include "rloft/LEV005.hpp"
+#include "rloft/LEV010.hpp"
 #include "rloft/CHARS.hpp"
 
 #include <iomanip>
@@ -57,6 +58,7 @@ LevelState ExplorationSessionLoader::load_level(
         // Level 5 uses the same canonical LEVnnn grammar; its own
         // source-backed event-script editing API is available to mods.
         if (level_id == 5) return Lev005File(*direct).decode();
+        if (level_id == 10) return Lev010File(*direct).decode();
         return Lev001File(*direct).decode();
     }
 

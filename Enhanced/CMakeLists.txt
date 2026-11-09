@@ -433,6 +433,7 @@ add_library(rloft_boot_flow
     src/LEVELS.cpp
     src/LEV001.cpp
     src/LEV005.cpp
+    src/LEV010.cpp
     src/exploration_state.cpp
     src/exploration_session.cpp
     src/exploration_frame.cpp
@@ -679,6 +680,10 @@ add_test(NAME LEV001_tests COMMAND LEV001_tests)
 add_executable(LEV005_tests tests/LEV005_tests.cpp)
 target_link_libraries(LEV005_tests PRIVATE rloft_boot_flow)
 add_test(NAME LEV005_tests COMMAND LEV005_tests)
+
+add_executable(LEV010_tests tests/LEV010_tests.cpp)
+target_link_libraries(LEV010_tests PRIVATE rloft_boot_flow)
+add_test(NAME LEV010_tests COMMAND LEV010_tests)
 
 add_executable(exploration_session_tests tests/exploration_session_tests.cpp)
 target_link_libraries(exploration_session_tests PRIVATE rloft_boot_flow)
@@ -1680,6 +1685,7 @@ set(RLOFT_TEST_TARGETS
     LEVELS_tests
     LEV001_tests
     LEV005_tests
+    LEV010_tests
     exploration_session_tests
     exploration_frame_tests
     exploration_scene_tests
