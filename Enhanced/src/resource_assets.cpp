@@ -895,6 +895,10 @@ Gm1Bank RavenloftBootAssets::gm1_aria_bank() const {
     return Gm1Bank(source_.read("GM1.BNK"));
 }
 
+Gm2Bank RavenloftBootAssets::gm2_aria_bank() const {
+    return Gm2Bank(source_.read("GM2.BNK"));
+}
+
 std::vector<EnvironmentProfile> RavenloftBootAssets::environment_profiles() const {
     return decode_environment_profiles(init_);
 }

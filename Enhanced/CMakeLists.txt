@@ -620,6 +620,7 @@ add_library(rloft_boot_flow
     src/sound_config.cpp
     src/SAMPLE.cpp
     src/GM1.cpp
+    src/GM2.cpp
     src/voc_decoder.cpp
     src/xmidi.cpp
 )
@@ -1650,6 +1651,10 @@ add_executable(GM1_tests tests/GM1_tests.cpp)
 target_link_libraries(GM1_tests PRIVATE rloft_boot_flow)
 add_test(NAME GM1_tests COMMAND GM1_tests)
 
+add_executable(GM2_tests tests/GM2_tests.cpp)
+target_link_libraries(GM2_tests PRIVATE rloft_boot_flow)
+add_test(NAME GM2_tests COMMAND GM2_tests)
+
 add_executable(options_menu_tests tests/options_menu_tests.cpp)
 target_link_libraries(options_menu_tests PRIVATE rloft_boot_flow)
 add_test(NAME options_menu_tests COMMAND options_menu_tests)
@@ -1835,6 +1840,7 @@ set(RLOFT_TEST_TARGETS
     COLORS_tests
     sound_config_tests
     GM1_tests
+    GM2_tests
     options_menu_tests
 )
 if(MSVC)

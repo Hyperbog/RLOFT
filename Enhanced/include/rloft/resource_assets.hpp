@@ -15,6 +15,7 @@
 #include "rloft/RES3.hpp"
 #include "rloft/RES8.hpp"
 #include "rloft/GM1.hpp"
+#include "rloft/GM2.hpp"
 #include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
 
@@ -115,6 +116,8 @@ public:
     [[nodiscard]] SampleAdLibrary sample_ad_library() const;
     // Original Miles ARIA 512-KiB ROM support bank, accessed only on demand.
     [[nodiscard]] Gm1Bank gm1_aria_bank() const;
+    // Original Miles ARIA 1-MiB-ROM support bank, loaded on demand.
+    [[nodiscard]] Gm2Bank gm2_aria_bank() const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
