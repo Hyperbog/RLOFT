@@ -610,6 +610,7 @@ add_library(rloft_boot_flow
     src/RES0.cpp
     src/RES1.cpp
     src/RES2.cpp
+    src/RES3.cpp
     src/RES7.cpp
     src/RES8.cpp
     src/resource_assets.cpp
@@ -1255,6 +1256,10 @@ add_executable(RES2_tests tests/RES2_tests.cpp)
 target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES2_tests COMMAND RES2_tests)
 
+add_executable(RES3_tests tests/RES3_tests.cpp)
+target_link_libraries(RES3_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES3_tests COMMAND RES3_tests)
+
 add_executable(RES1_tests tests/RES1_tests.cpp)
 target_link_libraries(RES1_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES1_tests COMMAND RES1_tests)
@@ -1778,6 +1783,7 @@ set(RLOFT_TEST_TARGETS
     RES0_tests
     RES1_tests
     RES2_tests
+    RES3_tests
     RES7_tests
     T_tests
     automap_presentation_tests

@@ -829,7 +829,7 @@ Type7Geometry RavenloftBootAssets::res3_type7_geometry(
         res3_.emplace(
             source_.read("RES3"));
     }
-    return res3_->decode_type7_geometry(index);
+    return res3_->decode_geometry(index);
 }
 
 std::vector<std::uint8_t> RavenloftBootAssets::res3_type7_body(
@@ -837,7 +837,7 @@ std::vector<std::uint8_t> RavenloftBootAssets::res3_type7_body(
     if (!res3_.has_value()) {
         res3_.emplace(source_.read("RES3"));
     }
-    return res3_->decode_type7_body(index);
+    return res3_->decode_body(index);
 }
 
 Type7SceneShape RavenloftBootAssets::res3_type7(
@@ -846,7 +846,7 @@ Type7SceneShape RavenloftBootAssets::res3_type7(
         res3_.emplace(
             source_.read("RES3"));
     }
-    return res3_->decode_type7(index);
+    return res3_->decode_shape(index);
 }
 
 Type7NativeRaster RavenloftBootAssets::res3_type7_native_raster(
@@ -855,7 +855,7 @@ Type7NativeRaster RavenloftBootAssets::res3_type7_native_raster(
         res3_.emplace(
             source_.read("RES3"));
     }
-    return res3_->decode_type7_native_raster(
+    return res3_->decode_native_raster(
         index);
 }
 

@@ -12,6 +12,7 @@
 #include "rloft/CODE1.hpp"
 #include "rloft/CODE2.hpp"
 #include "rloft/T.hpp"
+#include "rloft/RES3.hpp"
 #include "rloft/RES8.hpp"
 #include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
@@ -139,7 +140,7 @@ private:
     // Original CODE.2 12988 / 10A70/110B4 draw from RES2.
     // Load on first inventory/encumbrance/container use, not startup.
     mutable std::optional<ResArchive> res2_;
-    mutable std::optional<ResArchive> res3_;
+    mutable std::optional<Res3Archive> res3_;
     ResArchive res5_;
     ResArchive res6_;
     ResArchive res7_;
