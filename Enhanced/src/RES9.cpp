@@ -72,7 +72,10 @@ void require_target(const std::vector<bool>& starts, std::uint16_t target) {
 } // namespace
 
 std::vector<Res9Instruction> disassemble_res9_wordcode(
-    const std::vector<std::uint16_t>& words) {
+    const std::vector<std::uint16_t>& words,
+    std::size_t opcode05_operand_words) {
+    if (opcode05_operand_words != 1U && opcode05_operand_words != 141U)
+        throw std::invalid_argument("RES9/RES12 unsupported opcode-05 dialect");
     std::vector<Res9Instruction> result;
     std::vector<bool> starts(words.size(), false);
     for (std::size_t ip = 0U; ip < words.size();) {
@@ -98,7 +101,8 @@ std::vector<Res9Instruction> disassemble_res9_wordcode(
                 if (condition == 0x21U) break;
             }
         } else {
-            const auto arity = static_cast<std::size_t>(kArity[op]);
+            const auto arity = op == 5U ? opcode05_operand_words
+                                        : static_cast<std::size_t>(kArity[op]);
             if (arity > words.size() - ip)
                 throw std::runtime_error("RES9 wordcode operands truncated");
             ip += arity;

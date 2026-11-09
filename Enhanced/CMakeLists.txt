@@ -635,6 +635,7 @@ add_library(rloft_boot_flow
     src/RES9.cpp
     src/RES10.cpp
     src/RES11.cpp
+    src/RES12.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
     src/indexed_font_presenter.cpp
@@ -1360,6 +1361,10 @@ add_executable(RES11_tests tests/RES11_tests.cpp)
 target_link_libraries(RES11_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES11_tests COMMAND RES11_tests)
 
+add_executable(RES12_tests tests/RES12_tests.cpp)
+target_link_libraries(RES12_tests PRIVATE rloft_boot_flow)
+add_test(NAME RES12_tests COMMAND RES12_tests)
+
 add_executable(RES2_tests tests/RES2_tests.cpp)
 target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES2_tests COMMAND RES2_tests)
@@ -1920,6 +1925,7 @@ set(RLOFT_TEST_TARGETS
     RES9_tests
     RES10_tests
     RES11_tests
+    RES12_tests
     RES0_tests
     RES1_tests
     RES2_tests

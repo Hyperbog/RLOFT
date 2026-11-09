@@ -74,8 +74,11 @@ struct Res9Edits final {
 
 // Decodes the original active 42-opcode wordcode grammar and checks that
 // every direct branch/call/timer/choice target lands on an instruction start.
+// Legacy RES12 opcode 0x05 serializes a 141-word template; active RES9 uses
+// a one-word template ID. Other opcode rules remain shared.
 [[nodiscard]] std::vector<Res9Instruction> disassemble_res9_wordcode(
-    const std::vector<std::uint16_t>& words);
+    const std::vector<std::uint16_t>& words,
+    std::size_t opcode05_operand_words = 1U);
 
 class Res9Archive final {
 public:
