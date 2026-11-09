@@ -1,4 +1,5 @@
 #include "rloft/exploration_session.hpp"
+#include "rloft/LEV001.hpp"
 #include "rloft/CHARS.hpp"
 
 #include <iomanip>
@@ -52,7 +53,7 @@ LevelState ExplorationSessionLoader::load_level(
         if (used_direct_save != nullptr) {
             *used_direct_save = true;
         }
-        return ExplorationStateCodec::parse_direct_level(*direct);
+        return Lev001File(*direct).decode();
     }
 
     if (used_direct_save != nullptr) {
