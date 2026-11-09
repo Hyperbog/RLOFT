@@ -14,6 +14,7 @@
 #include "rloft/T.hpp"
 #include "rloft/RES3.hpp"
 #include "rloft/RES8.hpp"
+#include "rloft/GM1.hpp"
 #include "rloft/SAMPLE.hpp"
 #include "rloft/INIT.hpp"
 
@@ -112,6 +113,8 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
     // Original AIL FM timbres, loaded only when a caller requests OPL2 data.
     [[nodiscard]] SampleAdLibrary sample_ad_library() const;
+    // Original Miles ARIA 512-KiB ROM support bank, accessed only on demand.
+    [[nodiscard]] Gm1Bank gm1_aria_bank() const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
