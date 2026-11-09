@@ -1,4 +1,5 @@
 #include "rloft/inventory_save_codec.hpp"
+#include "rloft/SAVE.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -44,31 +45,22 @@ struct Layout final {
     std::size_t context_offset{};
 };
 
+// Share the original SAVE file's authoritative variable-section layout.
+// The inventory projection retains its existing source-world guard and all
+// CODE.2 container-template checks; this does NOT imply full LOAD support.
+static_assert(InventorySaveCodec::kTransientCountAt == SaveDat::kEffectCountAt,
+              "SAVE inventory/whole-image effect-count offset diverged");
+static_assert(InventorySaveCodec::kTransientRecordBytes == SaveDat::kEffectBytes,
+              "SAVE inventory/whole-image effect stride diverged");
+static_assert(InventorySaveCodec::kZeroTransientSaveBytes == SaveDat::kZeroEffectFileBytes,
+              "SAVE inventory/whole-image fixed extent diverged");
+static_assert(InventorySaveCodec::kPersistentContainerBytes == SaveDat::kContainerBytes,
+              "SAVE inventory/whole-image container extent diverged");
+
 Layout validate_layout(const std::vector<std::uint8_t>& bytes) {
-    using Codec=InventorySaveCodec;
-    constexpr std::size_t kCountAt=Codec::kTransientCountAt;
-    if(bytes.size()<Codec::kZeroTransientSaveBytes)
-        throw std::runtime_error("SAVE.DAT shorter than original fixed state");
-    const auto effects=read32(bytes,kCountAt);
-    if(effects>Codec::kMaxTransientCount)
-        throw std::runtime_error("SAVE.DAT transient count exceeds 0x96");
-
-    // CODE.2 serializes 4x0x248 party bytes, the counted
-    // 0x16 records, then spell UI dwords[2] and A7E4,
-    // immediately followed by 62 variable-width containers.
-    const auto delta=static_cast<std::size_t>(effects)*
-        Codec::kTransientRecordBytes;
-    if(bytes.size()!=Codec::kZeroTransientSaveBytes+delta)
-        throw std::runtime_error("SAVE.DAT count-derived size mismatch");
-
-    const auto container_at=kCountAt+4U+delta+8U+4U;
-    constexpr std::size_t kAfterContainers=
-        8U+15U+10U*PartyImage::kActorSize+4U*4U;
-    if(container_at+Codec::kPersistentContainerBytes+
-           kAfterContainers!=bytes.size())
-        throw std::runtime_error("SAVE.DAT container tail misaligned");
-
-    return Layout{effects,container_at,bytes.size()-16U};
+    const SaveDat save(bytes);
+    const auto& layout=save.layout();
+    return Layout{layout.transient_count,layout.container_at,layout.container_ui_at};
 }
 
 void validate_descriptors(
