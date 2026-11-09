@@ -39,13 +39,13 @@ jobs:
       - name: Build Ravenloft.exe engine and primary gameplay regressions
         shell: pwsh
         run: |
-          cmake --build build/enhanced --config Release --parallel 2 --target ravenloft_demo_v1 boot_flow_tests character_flow_tests title_keyboard_tests exploration_session_tests inventory_runtime_tests enhanced_game_save_tests level22_story_tests level22_encounter_tests LEV020_tests LEV021_tests LEV022_tests LEV023_tests LEV024_tests LEV025_tests LEV026_tests LEV027_tests LEV030_tests
+          cmake --build build/enhanced --config Release --parallel 2 --target ravenloft_demo_v1 boot_flow_tests character_flow_tests title_keyboard_tests exploration_session_tests inventory_runtime_tests enhanced_game_save_tests level22_story_tests level22_encounter_tests LEV020_tests LEV021_tests LEV022_tests LEV023_tests LEV024_tests LEV025_tests LEV026_tests LEV027_tests LEV030_tests LEV031_tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run end-user critical-path source tests
         shell: pwsh
         run: |
-          ctest --test-dir build/enhanced -C Release --output-on-failure -R "^(boot_flow_tests|character_flow_tests|title_keyboard_tests|exploration_session_tests|inventory_runtime_tests|enhanced_game_save_tests|level22_story_tests|level22_encounter_tests|LEV020_tests|LEV021_tests|LEV022_tests|LEV023_tests|LEV024_tests|LEV025_tests|LEV026_tests|LEV027_tests|LEV030_tests)$"
+          ctest --test-dir build/enhanced -C Release --output-on-failure -R "^(boot_flow_tests|character_flow_tests|title_keyboard_tests|exploration_session_tests|inventory_runtime_tests|enhanced_game_save_tests|level22_story_tests|level22_encounter_tests|LEV020_tests|LEV021_tests|LEV022_tests|LEV023_tests|LEV024_tests|LEV025_tests|LEV026_tests|LEV027_tests|LEV030_tests|LEV031_tests)$"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Stage source-only Windows executable
