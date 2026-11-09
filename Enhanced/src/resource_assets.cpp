@@ -3,6 +3,7 @@
 #include "rloft/RES0.hpp"
 #include "rloft/RES1.hpp"
 #include "rloft/RES2.hpp"
+#include "rloft/RES6.hpp"
 #include "rloft/RES7.hpp"
 
 #include <algorithm>
@@ -862,7 +863,7 @@ Type7NativeRaster RavenloftBootAssets::res3_type7_native_raster(
 std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
     int archive, int index) const {
     switch (archive) {
-        case 6: return res6_.decode_type4(index);
+        case 6: return decode_res6_voc(res6_, index);
         case 10: return res10_.decode_type4(index);
         default:
             throw std::out_of_range(
