@@ -416,6 +416,7 @@ endif()
 
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
+    src/CINE00.cpp
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
     src/level22_quest_playback.cpp
@@ -1365,6 +1366,10 @@ add_executable(RES12_tests tests/RES12_tests.cpp)
 target_link_libraries(RES12_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES12_tests COMMAND RES12_tests)
 
+add_executable(CINE00_tests tests/CINE00_tests.cpp)
+target_link_libraries(CINE00_tests PRIVATE rloft_boot_flow)
+add_test(NAME CINE00_tests COMMAND CINE00_tests)
+
 add_executable(RES2_tests tests/RES2_tests.cpp)
 target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES2_tests COMMAND RES2_tests)
@@ -1926,6 +1931,7 @@ set(RLOFT_TEST_TARGETS
     RES10_tests
     RES11_tests
     RES12_tests
+    CINE00_tests
     RES0_tests
     RES1_tests
     RES2_tests
