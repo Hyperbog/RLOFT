@@ -423,6 +423,7 @@ add_library(rloft_boot_flow
     src/CINE04.cpp
     src/CINE05.cpp
     src/CINE06.cpp
+    src/CINE07.cpp
     src/assassin_relic_transition.cpp
     src/level22_mist_timeline.cpp
     src/level22_quest_playback.cpp
@@ -1400,6 +1401,10 @@ add_executable(CINE06_tests tests/CINE06_tests.cpp)
 target_link_libraries(CINE06_tests PRIVATE rloft_boot_flow)
 add_test(NAME CINE06_tests COMMAND CINE06_tests)
 
+add_executable(CINE07_tests tests/CINE07_tests.cpp)
+target_link_libraries(CINE07_tests PRIVATE rloft_boot_flow)
+add_test(NAME CINE07_tests COMMAND CINE07_tests)
+
 add_executable(RES2_tests tests/RES2_tests.cpp)
 target_link_libraries(RES2_tests PRIVATE rloft_boot_flow)
 add_test(NAME RES2_tests COMMAND RES2_tests)
@@ -1968,6 +1973,7 @@ set(RLOFT_TEST_TARGETS
     CINE04_tests
     CINE05_tests
     CINE06_tests
+    CINE07_tests
     RES0_tests
     RES1_tests
     RES2_tests
