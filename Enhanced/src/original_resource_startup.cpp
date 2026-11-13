@@ -98,8 +98,9 @@ OriginalStartupCheckpoint execute_code2_resource_prefix(
         const bool need_init=port.read_pointer_field8(state,0x72)==0;
         if (need_init) (void)port.call(0x2D310,{});
         (void)port.call(0x414EC,{0x12D4,1,254});
-        const bool chars=port.call(0x43338,{0x12E8,0})!=0;
-        return {chars?0x2D4E6U:0x2D4B5U,true,chars,need_init};
+        const auto chars_handle=port.call(0x43338,{0x12E8,0});
+        const bool chars=chars_handle!=0;
+        return {chars?0x2D4E6U:0x2D4B5U,true,chars,need_init,chars_handle};
     }
     throw std::invalid_argument("CODE.2 resource prefix not reconstructed for game");
 }
