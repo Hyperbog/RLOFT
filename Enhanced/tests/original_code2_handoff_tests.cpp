@@ -59,7 +59,8 @@ static void test_stone() {
         const auto prefix=execute_code2_resource_prefix(GameId::StoneProphet,h);
         assert(prefix.chars_handle==handle && prefix.chars_present==(handle!=0));
         const auto end=execute_code2_media_handoff(GameId::StoneProphet,prefix,h);
-        assert(end.source_next==0x2D54D && end.upcoming_call==0x46600);
+        assert(end.source_next==0x2D54D &&
+               end.upcoming_call==(handle?0x4191CU:0x46600U));
         assert(end.has_chars==(handle!=0));
         assert(end.secondary_initializer_ran==(handle==0 && second!=0));
         assert(h.words.at(0x24E54)==1 && h.words.at(0x44764)==0x12345678);
