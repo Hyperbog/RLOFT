@@ -75,7 +75,7 @@ Code2MediaHandoff execute_code2_media_handoff(
             (void)p.call(0x2D2B4,{});
             (void)p.call(0x25F54,{});
         }
-        return {0x2D54D,handle,handle!=0,result!=0,0x46600};
+        return {0x2D54D,handle,handle!=0,result!=0,handle?0x4191CU:0x46600U};
     }
     throw std::invalid_argument("no original CODE.2 resource handoff for title");
 }
