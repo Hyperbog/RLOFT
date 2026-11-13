@@ -115,6 +115,29 @@ See [Phase 4 evidence and limitations](docs/CROSS_GAME_RESOURCE_STARTUP_PHASE4.m
 The Menzo/Stone native gameplay profiles remain disabled until original
 resource lifecycle and game rules are implemented and tested.
 
+### Phase 5: shared CODE.2 state and RES archive loading
+
+`include/rloft/original_code2_global_state.hpp` and
+`src/original_code2_global_state.cpp` reconstruct the source-proven
+post-environment initialization at Menzo CODE.2 `23B7D..23CD7` and
+Stone CODE.2 `2DD95..2DEEF`. Each resets 23 dword globals and
+initializes title-specific sentinel fields and passes the correct
+environment-register argument into its original resource initializer.
+Call targets not yet reconstructed remain explicit host callbacks.
+The independent original-code audit passed 65 source-byte witnesses,
+and the translation's unit tests compile and run in GCC/Clang C++17.
+
+The same source provides `load_shared_original_res`, which loads the
+original `RES0..RES12` bytes through an injected read-only media reader.
+For `RES0` it enforces the original archive's `EH` header, offsets and
+title-specific original entry count. The **live Strahd native player**
+now loads `RES0` and `RES1` through this shared API; the existing
+`ResArchive` implementation still performs all indexed decoding.
+This introduces no new game executable, asset codec, or DOS emulator.
+The Menzo/Stone game-specific runtime remains unimplemented.
+See `docs/CROSS_GAME_CODE2_GLOBAL_STATE_PHASE5.md` for exact addresses
+and verification limits.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
