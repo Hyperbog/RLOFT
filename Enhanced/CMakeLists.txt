@@ -1751,6 +1751,18 @@ else()
 endif()
 add_test(NAME original_executable_tests COMMAND original_executable_tests)
 
+# Original DOS/4GW CODE object materialization and per-game DOS launcher loop.
+# Does not link or redistribute any original executable bytes.
+add_executable(original_cross_game_runtime_tests
+    tests/original_cross_game_runtime_tests.cpp)
+target_include_directories(original_cross_game_runtime_tests PRIVATE include)
+if(MSVC)
+    target_compile_options(original_cross_game_runtime_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(original_cross_game_runtime_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME original_cross_game_runtime_tests COMMAND original_cross_game_runtime_tests)
+
 add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME presenter_tests COMMAND presenter_tests)
