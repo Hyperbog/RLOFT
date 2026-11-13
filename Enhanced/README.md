@@ -138,6 +138,20 @@ The Menzo/Stone game-specific runtime remains unimplemented.
 See `docs/CROSS_GAME_CODE2_GLOBAL_STATE_PHASE5.md` for exact addresses
 and verification limits.
 
+### Cross-title CODE.2 CHARS and resource handoff (Phase 6)
+
+The unified source library now contains `original_code2_handoff.cpp/.hpp`.
+It reconstructs the source-backed Menzo `23977..23A20` and Stone
+`2D4B5/2D4E6..2D54D` resource and transient-CHARS decisions, preserving
+original handle values and branch-dependent next UI calls. The accompanying
+`OriginalNativeMediaSession` shares the existing RES media loader across
+the three game IDs; it does **not** assume Menzo/Stone CHARS record layouts
+match Strahd. See
+[phase-6 evidence and test limitations](docs/CROSS_GAME_CODE2_CHARS_HANDOFF_PHASE6.md).
+Executable byte witnesses passed 39/39 against original files. The corrected
+new C++ test source has not yet passed a complete local/Windows build, and
+Menzo/Stone do not have playable native entry paths.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
