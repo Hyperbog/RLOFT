@@ -431,6 +431,7 @@ add_library(rloft_boot_flow
     src/level22_mist_timeline.cpp
     src/level22_quest_playback.cpp
     src/boot_flow.cpp
+    src/original_application_main.cpp
     src/CODE1.cpp
     src/CODE2.cpp
     src/character_creation_flow.cpp
@@ -1762,6 +1763,18 @@ else()
     target_compile_options(original_cross_game_runtime_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME original_cross_game_runtime_tests COMMAND original_cross_game_runtime_tests)
+
+# Bounded original CODE application function lifts, incorporated into the
+# existing single native engine; no DOS guest or retail binary dependency.
+add_executable(original_application_main_tests
+    tests/original_application_main_tests.cpp)
+target_link_libraries(original_application_main_tests PRIVATE rloft_boot_flow)
+if(MSVC)
+    target_compile_options(original_application_main_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(original_application_main_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME original_application_main_tests COMMAND original_application_main_tests)
 
 add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
