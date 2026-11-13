@@ -17,7 +17,7 @@ struct Code2MediaHandoff {
     std::uint32_t chars_handle{}; // original file-handle return, not file bytes
     bool has_chars{};
     bool secondary_initializer_ran{};
-    std::uint32_t upcoming_call{}; // unconverted next UI/game subsystem
+    std::uint32_t upcoming_call{}; // next possible title-specific call, branch dependent
 };
 
 // Continue from execute_code2_resource_prefix() without skipping any
