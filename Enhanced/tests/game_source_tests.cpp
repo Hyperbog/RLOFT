@@ -15,6 +15,7 @@
 namespace fs = std::filesystem;
 using rloft::GameSource;
 using rloft::GameSourceKind;
+using rloft::GameId;
 
 namespace {
 
@@ -171,6 +172,22 @@ void test_loose_and_env_discovery() {
     {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::LooseDirectory);
+        assert(source.game_id() == GameId::StrahdsPossession);
+        assert(GameSource::open(base, GameId::StrahdsPossession).game_id() ==
+               GameId::StrahdsPossession);
+        for (const auto unsupported : {
+                 GameId::Menzoberranzan, GameId::StoneProphet}) {
+            bool rejected = false;
+            try {
+                (void)GameSource::open(base, unsupported);
+            } catch (const std::invalid_argument&) {
+                rejected = true;
+            }
+            if (!rejected) {
+                throw std::runtime_error(
+                    "Unverified alternate game was routed into Strahd runtime");
+            }
+        }
         assert(source.contains("res0"));
         assert(!source.has_full_game_media());
         {
