@@ -74,6 +74,30 @@ Title-specific functions, ABI differences, asset formats, gameplay and campaign
 logic still require original-byte analysis and native integration. Do not
 relabel this static evidence as functioning Menzo/Stone gameplay.
 
+### Original launcher and CODE module reconstruction
+
+The shared C++17 component `include/rloft/original_launcher.hpp` is a
+source-backed translation of the observed DOS child-process supervisor loops
+of `R.EXE`, `M.EXE` and `SP.EXE`. All begin with CODE.2, treat status 10
+as a CODE.1/2 handoff and status 12 as CHARS cleanup/restart; Menzo and Stone
+also restart on status 13, while Stone additionally deletes CHARS after each
+CODE.2 return. The native Strahd `BootFlow` now dispatches through this
+common policy, without replacing its existing title-specific UI/game state.
+
+`include/rloft/original_bound_image.hpp` extracts each DOS/4G LE code/data
+object from the authenticated original CODE.1/CODE.2. The nested MZ origin
+is `0x25D24` in all six originals. The LE headers are at `0x27BDC` in
+Strahd/Menzo and `0x28774` in Stone; all six use sequential uncompressed
+4 KiB page mappings. The C++ loader reproduces virtual object zero-fill.
+The new `original_cross_game_runtime_tests` CTest runs without original
+media; it can optionally test a local original CODE pair. A GCC and Clang
+local source test passed for the original Strahd pair.
+
+This is an executable-container and **bounded launcher-main reconstruction**,
+not a completed machine-instruction decompilation of Menzo/Stone application
+code. LE fixups, original OS service interfaces, game-specific rules, assets,
+and campaigns remain unimplemented. Only Strahd has a pre-alpha player.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
