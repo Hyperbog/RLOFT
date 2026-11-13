@@ -1,4 +1,5 @@
 #include "rloft/resource_assets.hpp"
+#include "rloft/original_code2_global_state.hpp"
 #include "rloft/INIT.hpp"
 #include "rloft/RES0.hpp"
 #include "rloft/RES1.hpp"
@@ -766,8 +767,10 @@ Type1Raster ResArchive::decode_type1(int index) const {
 
 RavenloftBootAssets::RavenloftBootAssets(GameSource source)
     : source_(std::move(source)),
-      res0_(source_.read("RES0")),
-      res1_(source_.read("RES1")),
+      res0_(load_shared_original_res(source_.game_id(), 0,
+          [this](std::string_view file) { return source_.read(file); })),
+      res1_(load_shared_original_res(source_.game_id(), 1,
+          [this](std::string_view file) { return source_.read(file); })),
       res5_(source_.read("RES5")),
       res6_(source_.read("RES6")),
       res7_(source_.read("RES7")),
