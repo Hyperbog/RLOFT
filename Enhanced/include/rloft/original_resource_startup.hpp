@@ -28,6 +28,7 @@ struct OriginalStartupCheckpoint {
     bool chars_examined{};
     bool chars_present{};
     bool optional_initialization_called{};
+    std::uint32_t chars_handle{}; // preserve Stone CODE.2 fopen return
 };
 
 // CODE.1 first callee, through the original byte-table initialization.
