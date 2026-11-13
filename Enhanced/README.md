@@ -98,6 +98,23 @@ not a completed machine-instruction decompilation of Menzo/Stone application
 code. LE fixups, original OS service interfaces, game-specific rules, assets,
 and campaigns remain unimplemented. Only Strahd has a pre-alpha player.
 
+### Cross-game resource startup (Phase 4)
+
+The shared native C++ source `original_resource_startup.cpp/.hpp` now
+translates the **first actual application callees** in Menzo CODE.1
+(`0x1044`) and Stone CODE.1 (`0x680C`, `0x6134`), plus the initial
+`RES`/title/`CHARS` startup paths in both CODE.2 applications.
+Untranslated DOS/game functions are explicit host callbacks, not guessed.
+`original_resource_startup_tests` is registered in the existing CTest.
+
+Strahd, Menzo and Stone `RES0` archives were independently verified to use
+the same offset-table/EH container grammar, with 141, 175 and 174 entries.
+The existing `ResArchive` remains the payload reader; the new read-only
+`inspect_original_res0` validates original index and record structure.
+See [Phase 4 evidence and limitations](docs/CROSS_GAME_RESOURCE_STARTUP_PHASE4.md).
+The Menzo/Stone native gameplay profiles remain disabled until original
+resource lifecycle and game rules are implemented and tested.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
