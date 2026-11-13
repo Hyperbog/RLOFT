@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rloft/game_profile.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -45,6 +47,9 @@ private:
 class GameSource final {
 public:
     static GameSource open(const std::filesystem::path& path);
+    // Explicit title routing; unverified engine variants fail closed.
+    static GameSource open(const std::filesystem::path& path, GameId game);
+    [[nodiscard]] GameId game_id() const noexcept { return game_id_; }
     // 'full_game' skips partial DOS installations missing movies,
     // original game logic, scenery or world archive. Leave the default
     // metadata-only discovery available for standalone research tools.
@@ -69,6 +74,7 @@ public:
         std::string_view filename) const;
 
 private:
+    GameId game_id_{GameId::StrahdsPossession};
     LocatedGame located_{};
     std::unique_ptr<Iso9660Image> iso_{};
     std::optional<std::filesystem::path> runtime_overlay_;
