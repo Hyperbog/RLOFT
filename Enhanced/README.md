@@ -53,6 +53,27 @@ The
 [reconstructed-source runtime tests](../Recomp/README.md) are supporting
 reference work, **not** additional independent player applications.
 
+## Shared DreamForge executable foundation
+
+The long-term engine targets **Strahd's Possession**, **Menzoberranzan**, and
+**Stone Prophet**, with one native player and per-title data/rules adapters.
+Strahd remains the only pre-alpha playable target; the other two are not yet
+implemented as gameplay profiles.
+
+`include/rloft/original_executable.hpp` provides a reusable, read-only
+DOS MZ / DOS/4G Linear Executable **structural inspector** and a verified
+nine-executable source identity table. Its C++17 regression target is
+`original_executable_tests`. The Menzo and Stone launchers, CODE.1 and
+CODE.2 were independently checked byte-for-byte by SHA-256 against their
+`DnD-Classics` source inventories on November 12, 2026. Original game bytes
+are not embedded into this source.
+
+**Important:** inspection of an original binary's container, image objects,
+entrypoint and source hash is **not machine-code-to-C++ decompilation**.
+Title-specific functions, ABI differences, asset formats, gameplay and campaign
+logic still require original-byte analysis and native integration. Do not
+relabel this static evidence as functioning Menzo/Stone gameplay.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
