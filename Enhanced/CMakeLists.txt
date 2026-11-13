@@ -432,6 +432,7 @@ add_library(rloft_boot_flow
     src/level22_quest_playback.cpp
     src/boot_flow.cpp
     src/original_application_main.cpp
+    src/original_resource_startup.cpp
     src/CODE1.cpp
     src/CODE2.cpp
     src/character_creation_flow.cpp
@@ -1775,6 +1776,17 @@ else()
     target_compile_options(original_application_main_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME original_application_main_tests COMMAND original_application_main_tests)
+
+# Shared CODE.1 media prefix and CODE.2 resource/CHARS startup, source-only.
+add_executable(original_resource_startup_tests
+    tests/original_resource_startup_tests.cpp)
+target_link_libraries(original_resource_startup_tests PRIVATE rloft_boot_flow)
+if(MSVC)
+    target_compile_options(original_resource_startup_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(original_resource_startup_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME original_resource_startup_tests COMMAND original_resource_startup_tests)
 
 add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
