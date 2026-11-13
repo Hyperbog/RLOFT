@@ -433,6 +433,7 @@ add_library(rloft_boot_flow
     src/boot_flow.cpp
     src/original_application_main.cpp
     src/original_code2_global_state.cpp
+    src/original_code2_handoff.cpp
     src/original_resource_startup.cpp
     src/CODE1.cpp
     src/CODE2.cpp
@@ -1788,6 +1789,16 @@ else()
     target_compile_options(original_code2_global_state_tests PRIVATE -UNDEBUG)
 endif()
 add_test(NAME original_code2_global_state_tests COMMAND original_code2_global_state_tests)
+
+# DOS/4GW CODE.2 original CHARS routing and title-safe native media session.
+add_executable(original_code2_handoff_tests tests/original_code2_handoff_tests.cpp)
+target_link_libraries(original_code2_handoff_tests PRIVATE rloft_boot_flow)
+if(MSVC)
+    target_compile_options(original_code2_handoff_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(original_code2_handoff_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME original_code2_handoff_tests COMMAND original_code2_handoff_tests)
 
 # Shared CODE.1 media prefix and CODE.2 resource/CHARS startup, source-only.
 add_executable(original_resource_startup_tests
