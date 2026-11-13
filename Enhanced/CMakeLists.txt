@@ -1744,6 +1744,11 @@ add_test(NAME game_source_tests COMMAND game_source_tests)
 # Shared across the three DreamForge titles. Does not embed retail code/data.
 add_executable(original_executable_tests tests/original_executable_tests.cpp)
 target_include_directories(original_executable_tests PRIVATE include)
+if(MSVC)
+    target_compile_options(original_executable_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(original_executable_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME original_executable_tests COMMAND original_executable_tests)
 
 add_executable(presenter_tests tests/presenter_tests.cpp)
