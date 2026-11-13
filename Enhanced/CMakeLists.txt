@@ -1741,6 +1741,11 @@ add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
 add_test(NAME game_source_tests COMMAND game_source_tests)
 
+# Shared across the three DreamForge titles. Does not embed retail code/data.
+add_executable(original_executable_tests tests/original_executable_tests.cpp)
+target_include_directories(original_executable_tests PRIVATE include)
+add_test(NAME original_executable_tests COMMAND original_executable_tests)
+
 add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME presenter_tests COMMAND presenter_tests)
