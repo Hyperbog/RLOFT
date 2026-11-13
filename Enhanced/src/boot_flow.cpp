@@ -1,4 +1,5 @@
 #include "rloft/boot_flow.hpp"
+#include "rloft/original_launcher.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -109,29 +110,32 @@ void BootFlow::supervisor_dispatch() {
 
     const auto result = *state_.pending_result;
     state_.pending_result.reset();
+    // Use the same source-backed supervisor policy that Menzo and Stone
+    // share, but retain the Strahd game-specific presentation/party workflow.
+    // The action list describes original DOS side effects; the native game
+    // owns actual safe runtime persistence and cleanup.
+    const auto dispatch = original_launcher_transition(
+        GameId::StrahdsPossession,
+        exit_stage == BootStage::Code2ExitToSupervisor
+            ? LauncherModule::Code2 : LauncherModule::Code1,
+        static_cast<int>(result));
 
-    if (result == LegacyResult::ContinueModuleCycle) {
-        if (exit_stage == BootStage::Code2ExitToSupervisor) {
-            // R.EXE: CODE.2 status 10 -> launch CODE.1.
-            state_.module = LegacyModule::Code1;
-            state_.stage = BootStage::CharacterCreation;
-        } else {
-            // R.EXE: CODE.1 status 10 -> launch CODE.2. The normal completed
-            // character path has serialized CHARS immediately before exit.
-            state_.module = LegacyModule::Code2;
-            state_.stage = BootStage::Code2Startup;
-            state_.chars_present = true;
-        }
+    if (dispatch.next == LauncherModule::Code1) {
+        state_.module = LegacyModule::Code1;
+        state_.stage = BootStage::CharacterCreation;
         return;
     }
-
-    if (result == LegacyResult::OrdinaryTermination) {
-        state_.module = LegacyModule::Supervisor;
-        state_.stage = BootStage::Terminated;
+    if (dispatch.next == LauncherModule::Code2) {
+        state_.module = LegacyModule::Code2;
+        state_.stage = BootStage::Code2Startup;
+        // CODE.1 status 10 produces CHARS; CODE.2 status 12 deletes it.
+        state_.chars_present =
+            exit_stage == BootStage::Code1ExitToSupervisor &&
+            result == LegacyResult::ContinueModuleCycle;
         return;
     }
-
-    throw std::logic_error("unexpected supervisor result in demo boot slice");
+    state_.module = LegacyModule::Supervisor;
+    state_.stage = BootStage::Terminated;
 }
 
 void BootFlow::invalid_transition(std::string_view operation, BootStage stage) {
