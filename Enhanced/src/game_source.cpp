@@ -368,6 +368,18 @@ GameSource GameSource::open(const fs::path& input) {
         path.string());
 }
 
+GameSource GameSource::open(const fs::path& path, GameId game) {
+    // Never let another DreamForge title silently enter Strahd's
+    // original-file decoder, world state, or native save namespace.
+    if (!has_native_player(game)) {
+        const auto* profile = game_profile(game);
+        throw std::invalid_argument(
+            "No verified media/parser/runtime profile for " +
+            (profile ? std::string(profile->title) : std::string("unknown title")));
+    }
+    return open(path);
+}
+
 bool GameSource::has_full_game_media() const {
     // The GUI must never start using a partial RES0/INIT/T directory
     // then fail halfway through the original logos or into Level22.
