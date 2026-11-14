@@ -120,7 +120,7 @@ Code2GameplayBoundary execute_code2_gameplay_boundary(
     if(game==GameId::Menzoberranzan) {
         if(prior.source_next!=0x23A20 || prior.upcoming_call!=0x204DC)
             throw std::invalid_argument("Menzo CODE.2 source boundary mismatch");
-        // 23A20..23A93, including the original ESI test. At 239E9,
+        // 23A20..23A93, including the original ESI test. At 239F0/239F2,
         // the executable copied the CHARS handle into both EBX and ESI.
         (void)p.call(0x204DC,{1});
         (void)p.call(0x35950,{});
