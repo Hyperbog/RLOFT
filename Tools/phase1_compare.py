@@ -92,6 +92,20 @@ def fixed(path: Path, filename: str) -> dict:
     row["exact_stride_if_le32_is_count"] = (
         (len(data) - 4) // n if n and (len(data) - 4) % n == 0 else None
     )
+    stride = row.get("exact_stride_if_le32_is_count")
+    if stride and 0 < stride <= 256:
+        terminators = printable = 0
+        name_span = 20 if filename == "NPCS.DAT" else 40
+        for i in range(n):
+            name = data[4 + i * stride:4 + i * stride + name_span]
+            end = name.find(b"\\0")
+            if end >= 0:
+                terminators += 1
+                if all(32 <= byte < 127 for byte in name[:end]):
+                    printable += 1
+        row["first_name_span"] = name_span
+        row["name_terminated_count"] = terminators
+        row["name_printable_count"] = printable
     return row
 
 
@@ -114,6 +128,7 @@ def levels(path: Path) -> dict:
     row.update(directory_valid=True, records=n)
     preamble = grids = scripts = plausible = 0
     dimensions = collections.Counter()
+    header_span_hypotheses = collections.Counter()
     for a, b in zip(offsets, (*offsets[1:], len(data))):
         rec = data[a:b]
         if len(rec) < 29:
@@ -128,13 +143,15 @@ def levels(path: Path) -> dict:
             if 0 < width <= 256 and 0 < height <= 256:
                 plausible += 1
                 dimensions[f"{width}x{height}"] += 1
+                header_span_hypotheses[bounds[1] - 29 - width * height * 2] += 1
                 if bounds[1] == 29 + 0x2A4 + width * height * 2:
                     grids += 1
         if bounds[6] - bounds[5] == 0x514:
             scripts += 1
     row.update(strahd_preamble_records=preamble, strahd_grid_span_matches=grids,
                strahd_script_span_matches=scripts, plausible_dimensions=plausible,
-               dimensions=dict(sorted(dimensions.items())))
+               dimensions=dict(sorted(dimensions.items())),
+               fixed_header_candidate_bytes=dict(sorted(header_span_hypotheses.items())))
     return row
 
 
@@ -225,11 +242,14 @@ def markdown(audit: dict) -> str:
                 probe = (f"index={row['directory_valid']} records={row.get('records','?')} "
                          f"preamble={row.get('strahd_preamble_records','?')} "
                          f"grid={row.get('strahd_grid_span_matches','?')} "
-                         f"scripts={row.get('strahd_script_span_matches','?')}")
+                         f"scripts={row.get('strahd_script_span_matches','?')} "
+                         f"header-candidates={row.get('fixed_header_candidate_bytes',{})}")
             elif filename in STOCK_STRIDE:
                 probe = (f"word0={row.get('le32_at_0','?')} "
                          f"Strahd-stride-fits={row.get('strahd_count_stride_fits')} "
-                         f"exact-stride={row.get('exact_stride_if_le32_is_count')}")
+                         f"exact-stride={row.get('exact_stride_if_le32_is_count')} "
+                         f"ASCII-NUL-names={row.get('name_printable_count','?')}/"
+                         f"{row.get('le32_at_0','?')}")
             elif filename == "INFO.DAT":
                 probe = f"Strahd-selector-layout-fits={row['strahd_selector_layout_fits']}"
             else:
