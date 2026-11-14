@@ -1,5 +1,7 @@
 # Phase 1 — Cross-title original binary format survey (foundation)
 
+**Phase 1 continuation:** [Executable-backed cross-title diff](CROSS_TITLE_DIFF.md) now verifies Menzo/Stone CODE.2 consumers; see the [Menzo format note](DatFiles/Menzoberranzan/FORMAT.md) and [Stone format note](DatFiles/StoneProphet/FORMAT.md). Type-5 decoding, event VM semantics and field-level saves remain unresolved.
+
 **Status: first structural component complete.** The original media were inspected read-only from GitHub branch `DnD-Classics`, preservation SHA `30b5a3025f4eea711380c416667bc350fd5c5902`. The [successful survey workflow](https://github.com/Hyperbog/RLOFT/actions/runs/43619854357) used source SHA `940e8ef5c6c31e434a78596b6808b466ee6a22b5`. Its [metadata-only artifact](https://github.com/Hyperbog/RLOFT/actions/runs/43619854357/artifacts/14123463336) contains a per-archive JSON report and complete machine-generated matrix, without copyrighted asset contents.
 
 The existing [Strahd-format documentation](Resources/RES/FORMAT.md), [LEVELS.DAT source audit](DatFiles/LEVELS.DAT/FORMAT.md), and [Phase 0 provenance audit](PHASE0_INVENTORY.md) remain authoritative for their verified Strahd scopes. New cross-game hypotheses are never silently promoted to proved gameplay semantics.
