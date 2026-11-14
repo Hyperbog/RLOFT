@@ -1,0 +1,54 @@
+name: Phase 1 - three-title format compatibility survey
+
+on:
+  push:
+    branches: [Ravenloft-Enhanced]
+    paths:
+      - 'Tools/phase1_compare.py'
+      - '.github/workflows/phase1-format-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  survey-original-formats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout research driver
+        uses: actions/checkout@v4
+
+      - name: Read-only checkout of preserved original files
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: preservation
+          sparse-checkout: |
+            MASTER/Menzoberranzan
+            MASTER/Ravenloft - Stone Prophet
+            MASTER/Ravenloft - Strahd's Possession
+          sparse-checkout-cone-mode: true
+          persist-credentials: false
+
+      - name: Analyze RES and core-file structural compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit
+          python Tools/phase1_compare.py \
+            --root preservation/MASTER \
+            --json audit/phase1-formats.json \
+            --markdown audit/PHASE1_FORMATS.md
+          printf '\nSurvey revision: %s\n' "$(git rev-parse HEAD)" >> audit/PHASE1_FORMATS.md
+          printf 'Preservation revision: %s\n' "$(git -C preservation rev-parse HEAD)" >> audit/PHASE1_FORMATS.md
+          cat audit/PHASE1_FORMATS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-original-format-survey
+          path: audit/
+          retention-days: 30
+          if-no-files-found: error
