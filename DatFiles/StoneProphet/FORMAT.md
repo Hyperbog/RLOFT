@@ -11,7 +11,7 @@
 | CD_Extracted/NPCS.DAT | `+0 u32 LE` count | 110 | CODE.2 `0x20EDD` filename; count global `0x480FC` | VERIFIED |
 | CD_Extracted/NPCS.DAT | `+4`, 110 × 0x58-byte records | 9,680 body bytes | CODE.2 `0x20F0A` count × 0x58 | VERIFIED |
 | CD_Extracted/NPCS.DAT | record `+0 char[20]` | 110/110 printable NUL-terminated names | full-corpus name probe | VERIFIED physical field |
-| CD_Extracted/NPCS.DAT | record `+0x45..+0x57`, 19 bytes | nonzero in 12/19 byte-columns across file | aggregate byte-position probe | VERIFIED physical extension |
+| CD_Extracted/NPCS.DAT | record `+0x45..+0x57`, 19 bytes | nonzero in 8/19 byte-columns across file | aggregate byte-position probe | VERIFIED physical extension |
 | CD_Extracted/OBJECTS.DAT | file `+0 u32 LE` count | 516 | CODE.2 `0x20FD9` filename and counted read | VERIFIED |
 | CD_Extracted/OBJECTS.DAT | record stride 0x41 (65 bytes) | 516 entries | `0x21012` shift 6 + `0x21015` addition | VERIFIED |
 | CD_Extracted/LEVELS.DAT | file `+0 u32 LE` count, `+4 u32[] LE` offsets | 43 levels, first at 0xB0 | 43/43 index checks | VERIFIED |
