@@ -238,7 +238,8 @@ static void test_gameplay_boundary() {
             GameId::Menzoberranzan,prior,h,0xCAFE);
         assert(b.resource_initializer_returned && b.source_boundary==0x23A93);
         assert(!b.pending_original_call && h.words.at(0xF570)==0x150000);
-        assert(h.words.at(0x12EAC)==1 && h.seen(0x204DC));
+        assert(h.words.at(0x12EAC)==1 && !h.seen(0x204DC));
+        assert(h.seen(0x3854C) && h.seen(0x31580));
         assert(h.seen(0x1E474)==(handle!=0));
         assert(h.seen(0x1D6EC)==(handle!=0));
         if(handle) {
