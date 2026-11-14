@@ -6,6 +6,7 @@ All original-source and asset-format research is retained to improve the
 - [CODE.1 reconstructed source](../Code1/Code1.cpp) and
   [CODE.2 reconstructed source](../Code2/Code2.cpp): verified reference
   routines and human-readable original control flow.
+- [Phase 1 cross-title format survey](../PHASE1_FORMATS.md): documented RES, LEVELS, NPCS, OBJECTS compatibility and unresolved semantics.
 - [SharedDecomp/](../SharedDecomp/) and [ResearchInfra/](../ResearchInfra/):
   source tests, original-byte analysis and source parity checks.
 - [DatFiles/](../DatFiles/), [Resources/](../Resources/) and
