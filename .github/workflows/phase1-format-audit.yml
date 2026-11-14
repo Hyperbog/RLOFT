@@ -5,6 +5,7 @@ on:
     branches: [Ravenloft-Enhanced]
     paths:
       - 'Tools/phase1_compare.py'
+      - 'Tools/phase1_code2_consumers.py'
       - '.github/workflows/phase1-format-audit.yml'
   workflow_dispatch:
 
@@ -43,6 +44,15 @@ jobs:
           printf '\nSurvey revision: %s\n' "$(git rev-parse HEAD)" >> audit/PHASE1_FORMATS.md
           printf 'Preservation revision: %s\n' "$(git -C preservation rev-parse HEAD)" >> audit/PHASE1_FORMATS.md
           cat audit/PHASE1_FORMATS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Trace original CODE.2 format consumers (metadata only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_code2_consumers.py \
+            --root preservation/MASTER \
+            --json audit/phase1-code2-consumers.json
+          python -m py_compile Tools/phase1_compare.py Tools/phase1_code2_consumers.py
 
       - name: Publish metadata only
         if: always()
