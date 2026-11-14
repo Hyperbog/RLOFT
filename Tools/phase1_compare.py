@@ -98,7 +98,7 @@ def fixed(path: Path, filename: str) -> dict:
         name_span = 20 if filename == "NPCS.DAT" else 40
         for i in range(n):
             name = data[4 + i * stride:4 + i * stride + name_span]
-            end = name.find(b"\\0")
+            end = name.find(bytes((0,)))
             if end >= 0:
                 terminators += 1
                 if all(32 <= byte < 127 for byte in name[:end]):
