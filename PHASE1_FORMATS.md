@@ -71,8 +71,10 @@ The active RES archive *index number* must **never** be treated as a game-indepe
 
 ## Phase 1 boundary and next investigation
 
-**Established:** shared RES outer grammar, common EH envelope fields, indexed level directory/preamble/event-span boundaries, title-specific fixed-header sizes, two NPC striding families, and a common 65-byte object-record geometry. **Not established:** shared level event semantics, field-level NPC compatibility, Type-5/Type-6 decoding across titles, title-specific archive routing, or playability.
+**Established:** shared RES outer grammar and EH envelope, common indexed level directory/preamble/event-script slot geometry, title-specific fixed-level-header sizes, two NPC striding families, and a common 65-byte object-record geometry. The [original CODE.2 diff](CROSS_TITLE_DIFF.md) verifies the 14-case Menzo/Stone level-event dispatcher (13 Strahd), per-title Type-5/6 decoder entrypoints, and the reusable LZSS stream grammar for all 6,621 Type-6 and 1,522 Type-5 records **with explicit producer anomalies** (148 Type-5 length discrepancies and one four-byte Type-6 tail). Strahd RES9 wordcode cannot decode the Menzo/Stone programs as-is.
 
-**Next Phase 1 component:** trace Menzo/Stone CODE.2 consumers for the extra `0x824` level-header region, the 88-byte NPC record fields, and Type-5/6 resource envelopes; investigate Stone RES9 record 574. Validate these against the original code before defining common C++ runtime structs.
+**Still not established:** per-opcode event gameplay semantics and script triggers, field-level NPC/expanded-level-header compatibility, the producer reason for Type-5's two-byte declared-length discrepancy, full RES9 interaction VM grammars, CHARS/SAVE codecs, title-specific archive search order, or playability.
+
+**Next Phase 1 component:** decode Menzo/Stone RES9 opcode arities and VM consumers, followed by field-level 88-byte NPC / 0x824 level-header schema comparisons. Do not define cross-title gameplay structs before those executable-backed checks.
 
 **No executable gameplay implementation, commercial asset modification, or user playtest occurred in this survey.**
