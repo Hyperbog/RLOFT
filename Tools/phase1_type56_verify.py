@@ -26,6 +26,7 @@ def inspect(path: Path, parser: dict):
                  "decoded_target_histogram": collections.Counter(),
                  "lzss_exact": 0, "trailing_payload": 0,
                  "decode_failures": 0, "anomaly_examples": [],
+                 "alternative_model_matches": collections.Counter(),
                  "decoded_hash_examples": []})
     for idx, entry in enumerate(entries):
         if len(entry) < 5 or entry[:2] != b"EH" or entry[2] not in (5, 6):
@@ -69,13 +70,37 @@ def inspect(path: Path, parser: dict):
                     "decoded_sha256": hashlib.sha256(decoded).hexdigest()})
         except (ValueError, IndexError) as ex:
             row["decode_failures"] += 1
+            diagnostics = {}
+            if kind == 5 and target == 4098:
+                # Hypothesis tests, NOT a substitute for executable semantics.
+                # Try whether an internal prefix or an off-by-two decoded
+                # size can explain all members of the same observed subgroup.
+                candidates = {
+                    "minus2": (payload, target-2),
+                    "minus4": (payload, target-4),
+                    "minus16": (payload, target-16),
+                    "skip2": (payload[2:], target),
+                    "skip4": (payload[4:], target),
+                    "skip2_minus2": (payload[2:], target-2),
+                    "skip4_minus2": (payload[4:], target-2),
+                }
+                for label,(encoded,decoded_size) in candidates.items():
+                    try:
+                        _,n = parser["lzss"](encoded, decoded_size)
+                        if n == len(encoded):
+                            row["alternative_model_matches"][label] += 1
+                            diagnostics[label] = "full input consumption"
+                    except (ValueError, IndexError):
+                        pass
             if len(row["anomaly_examples"]) < 15:
                 row["anomaly_examples"].append({
                     "index": idx, "target": target, "payload_bytes": len(payload),
-                    "reason": str(ex)})
+                    "reason": str(ex), "alternatives": diagnostics})
     out = {}
     for k, row in summaries.items():
         row["compression_methods"] = dict(sorted(row["compression_methods"].items()))
+        row["alternative_model_matches"] = dict(
+            sorted(row["alternative_model_matches"].items()))
         row["decoded_target_histogram"] = {
             str(v): n for v,n in sorted(row["decoded_target_histogram"].items())
         }
@@ -108,6 +133,7 @@ def main():
                       "trailing", row["trailing_payload"],
                       "failed", row["decode_failures"],
                       "methods", row["compression_methods"],
+                      "alternatives", row["alternative_model_matches"],
                       "example", row["decoded_hash_examples"][:1])
     # First-pass diagnostic; reproducibility/coverage reported explicitly.
     # If a codec is incompatible, do not discard its evidence on an exit failure.
