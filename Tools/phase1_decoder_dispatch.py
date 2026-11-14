@@ -12,6 +12,42 @@ import json
 import re
 import runpy
 from pathlib import Path
+from struct import unpack_from
+
+WINDOWS = {
+    "menzo": {
+        "level_event_vm": (0x200, 0x720),
+        "EH_resource_open": (0x34B80, 0x34F20),
+    },
+    "stone": {
+        "level_event_vm": (0x298, 0x7B0),
+        "EH_resource_open": (0x40B40, 0x40ED0),
+    },
+}
+
+
+def bounded_instructions(rows, code: bytes, start: int, end: int):
+    if start < 0 or end > len(code) or start >= end:
+        raise ValueError("bounded disassembly range outside authenticated code")
+    observed = []
+    tables = []
+    for pc, op, args in rows:
+        if not (start <= pc < end):
+            continue
+        observed.append({"offset": pc, "op": op, "args": args})
+        if op == "jmp" and "DWORD PTR" in args and "*4" in args:
+            m = re.search(r"\\+0x([0-9a-f]+)\\]", args)
+            if m:
+                table = int(m.group(1), 16)
+                if 0 <= table < len(code) and table + 4*16 <= len(code):
+                    pointers = list(unpack_from("<16I", code, table))
+                    offsets = [v for v in pointers if v < len(code)]
+                    tables.append({"jump_at": pc, "table_offset": table,
+                                   "entry_values": pointers[:16],
+                                   "entries_within_object": len(offsets)})
+    return {"range": [start,end], "instructions": observed,
+            "jump_table_candidates": tables}
+
 
 
 def around(rows, index: int, before: int = 12, after: int = 17):
@@ -123,7 +159,8 @@ def ordinal_events(root: Path):
             "entry574_length": len(entry),
             "entry574_archive_offset": start,
             "word_count": wc,
-            "wordcode_size_equation": len(entry) == 2+4*wc,
+            "two_bank_wordcode_shape": len(entry) == 2+4*wc,
+            "one_bank_wordcode_shape": len(entry) == 2+2*wc,
         }
     return outcome
 
@@ -151,6 +188,10 @@ def main():
             "type5_byte_comparisons": find_value_reads(rows, 5),
             "type6_byte_comparisons": find_value_reads(rows, 6),
             "opcode12_comparisons": find_value_reads(rows, 12),
+            "bounded_dispatch_windows": {
+                name: bounded_instructions(rows, code, *region)
+                for name,region in WINDOWS[title].items()
+            },
         }
         print(f"{title}: EH cmp={result[title]['EH_signature_comparisons']['count']}, "
               f"jmp tables={result[title]['indirect_dispatch_tables']['count']}, "
