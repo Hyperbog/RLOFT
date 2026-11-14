@@ -32,7 +32,7 @@ The [Phase 1 workflow](.github/workflows/phase1-format-audit.yml) checks out the
 | INFO.DAT selector/path shape | Fits | Fits | File absent from checked roots | File-byte check only |
 | INIT file bytes | 1,879 | 2,830 | 2,970 | Opaque pending interpretation |
 
-All **1,666 object records** have NUL-terminated printable ASCII in their first 40 bytes; all **291 NPC records** have NUL-terminated printable ASCII in their first 20 bytes. These prefix observations support a common field location, **not** identical later fields or rule meaning.
+All **1,375 object records** have NUL-terminated printable ASCII in their first 40 bytes; all **291 NPC records** have NUL-terminated printable ASCII in their first 20 bytes. These prefix observations support a common field location, **not** identical later fields or rule meaning.
 
 All three LEVELS archives have a valid 4-byte count, an offset directory beginning at +4, and record-local seven-dword boundaries beginning at +1. Each record contains plausible signed 16-bit width/height at `boundary_0 + 1` and `boundary_0 + 3`, with the observed equation:
 
