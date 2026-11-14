@@ -1,0 +1,141 @@
+name: Phase 0 - original-media SHA-256 audit
+
+on:
+  push:
+    branches: [Ravenloft-Enhanced]
+    paths:
+      - 'Tools/phase0_inventory.py'
+      - '.github/workflows/phase0-media-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-media-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout audit driver
+        uses: actions/checkout@v4
+
+      - name: Checkout DnD Classics original media (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: preservation
+          sparse-checkout: |
+            MASTER/Menzoberranzan
+            MASTER/Ravenloft - Stone Prophet
+            MASTER/Ravenloft - Strahd's Possession
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Inventory and hash all current media files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit
+          python Tools/phase0_inventory.py --title menzo \
+            --media "preservation/MASTER/Menzoberranzan" \
+            --expected-csv "preservation/MASTER/Menzoberranzan/SOURCE_INVENTORY.csv" \
+            --output audit/menzo.json
+          python Tools/phase0_inventory.py --title stone \
+            --media "preservation/MASTER/Ravenloft - Stone Prophet" \
+            --expected-csv "preservation/MASTER/Ravenloft - Stone Prophet/SOURCE_INVENTORY.csv" \
+            --output audit/stone.json
+          python Tools/phase0_inventory.py --title strahd \
+            --media "preservation/MASTER/Ravenloft - Strahd's Possession" \
+            --output audit/strahd.json
+
+      - name: Re-run unchanged Strahd analyzers against checked-out installed files
+        shell: bash
+        run: |
+          set +e
+          python Tools/phase0_inventory.py --title strahd \
+            --media "preservation/MASTER/Ravenloft - Strahd's Possession/RLOFT" \
+            --baseline --output audit/strahd-baseline.json
+          echo "Analyzer exit status: $?" | tee audit/baseline-exit-status.txt
+          exit 0
+
+      - name: Produce reproducible comparison and audit summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from Tools.phase0_inventory import comparison
+
+          root = Path("audit")
+          records = {k: json.loads((root / (k + ".json")).read_text())
+                     for k in ("strahd", "menzo", "stone")}
+          cross = comparison(list(records.values()))
+          (root / "comparison.json").write_text(json.dumps(cross, indent=2) + "\n")
+          summary = [
+              "# Phase 0 preservation checkout: actual file SHA-256 audit",
+              "",
+              "Hashes below were computed on Git checkout file bytes by hashlib.sha256, NOT"
+              " inferred from source CSVs or Git blob SHA-1 IDs.",
+              "",
+              "| Game | Git files hashed | Total size (bytes) | CD_Extracted files | CD manifest SHA-256 | Source-CSV PASS | Source-CSV MISMATCH | Source-CSV MISSING |",
+              "| --- | ---: | ---: | ---: | --- | ---: | ---: | ---: |",
+          ]
+          for title, manifest in records.items():
+              extracted = [f for f in manifest["files"]
+                           if f["filename"].startswith("CD_Extracted/")]
+              digest = hashlib.sha256()
+              for f in sorted(extracted, key=lambda r: r["filename"]):
+                  digest.update((f["filename"] + "\0" + f["sha256"] + "\n").encode())
+              source = manifest.get("source_inventory_audit", {}).get("counts", {})
+              summary.append(
+                  f"| {title} | {manifest['file_count']} | {manifest['total_size']} | "
+                  f"{len(extracted)} | \`{digest.hexdigest()}\` | "
+                  f"{source.get('PASS', 'n/a')} | "
+                  f"{source.get('MISMATCH', 'n/a')} | "
+                  f"{source.get('MISSING', 'n/a')} |"
+              )
+              audit = manifest.get("source_inventory_audit", {})
+              bad = [x for x in audit.get("results", []) if x["status"] != "PASS"]
+              if bad:
+                  summary.extend(["", f"### {title}: original archive-source manifest discrepancies",
+                                  "", "| Filename | Status | Actual bytes | Expected bytes | SHA-256 equal? |",
+                                  "| --- | --- | ---: | ---: | --- |"])
+                  for x in bad:
+                      match = (x.get("actual_sha256") == x["expected_sha256"])
+                      summary.append(
+                          f"| \`{x['filename']}\` | {x['status']} | "
+                          f"{x.get('actual_size', 'missing')} | {x['source_size']} | "
+                          f"{match if 'actual_sha256' in x else 'unavailable'} |"
+                      )
+          summary.extend(["", "## Filename-presence comparison",
+                          "", f"All three: {cross['counts']['all_three']}; "
+                          f"exactly two: {cross['counts']['exactly_two']}; "
+                          f"exactly one: {cross['counts']['exactly_one']}.",
+                          "", "## Unchanged Strahd analyzer baseline", ""])
+          base_path = root / "strahd-baseline.json"
+          if base_path.exists():
+              baseline = json.loads(base_path.read_text())
+              for row in baseline.get("unchanged_strahd_baselines", []):
+                  summary.append(f"- \`{row['script']}\`: {row['status']}."
+                                 f" {row.get('reason','')}")
+          else:
+              summary.append("Baseline output absent; see job log.")
+          summary.extend(["", "All complete per-file checkout SHA-256 values are in the"
+                          " metadata-only JSON artifact (no commercial media is included)."])
+          result = "\n".join(summary) + "\n"
+          (root / "SUMMARY.md").write_text(result)
+          print(result)
+          with Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).open("a") as out:
+              out.write(result)
+          PY
+
+      - name: Publish metadata-only SHA-256 audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0-three-title-sha256-audit
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 30
