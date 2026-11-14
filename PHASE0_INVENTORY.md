@@ -59,6 +59,65 @@ python Tools/phase0_inventory.py --title stone --media 'preservation/MASTER/Rave
 
 The workflow hashes original media read-only and uploads JSON results. It never commits the original game files into `Ravenloft-Enhanced`.
 
+## RES archive availability, execution selection, and legacy data (pre-Phase-1)
+
+**Status:** VERIFIED for preserved filenames, SHA-256 identity, all three original CODE.2 startup group-count instruction sequences, Strahd archive record composition, and Stone RES9's changed record. **Legacy historical interpretation:** HIGH CONFIDENCE, not a recovered older-runtime trace. Evidence: [read-only media audit run #43618044077](https://github.com/Hyperbog/RLOFT/actions/runs/43618044077), commit `a3ed5a88b437d873dd98046403068f4f26bd0dad`; [metadata-only run artifact](https://github.com/Hyperbog/RLOFT/actions/runs/43618044077/artifacts/14123385247).
+
+### Original CODE.2 resource group-count witnesses
+
+The CI job read the actual, SHA-256-hashed CODE.2 files from the `DnD-Classics` checkout, recovered their LE code pages (nested MZ origin `0x25D24`, little-endian uint32 page offset at `LE+0x80`), and matched the x86 instructions plus the known CALL target. The group count is encoded as `PUSH imm8 0x0B`, a **1-byte immediate, value 11**; group indices are **0 through 10**, not 0 through 12.
+
+| Title | CODE.2 source | Logical group-count instruction | Resource initializer callee | Verified count |
+| --- | --- | --- | --- | ---: |
+| Strahd | `RLOFT/CODE.2` | `0x20444` | `0x2F2EC` | 11 |
+| Menzo | `CODE.2` | `0x23943` | `0x3532C` | 11 |
+| Stone | `PROPHET/CODE.2` | `0x2D46B` | `0x412D0` | 11 |
+
+CODE.1 startup reconstructions independently pass the same group count **11** for Menzo and Stone (`Enhanced/src/original_resource_startup.cpp`) and Strahd (`DatFiles/INFO.DAT/FORMAT.md`, `Resources/RES/RES11_RES12_LINEAGE.md`). Those CODE.1 facts are prior executable-backed research and were **not** re-traced from executable bytes in this CI job. An initialized resource *group* is not proof that each individual asset within it is visited in gameplay.
+
+### Actually present RES files
+
+| Game | Installed-directory RES files | CD_Extracted RES files | CD-only RES files | Runtime group-count range | Legacy-only RES in known runtime |
+| --- | --- | --- | --- | --- | --- |
+| Strahd | RES0..RES8 (9) | RES0..RES12 (13) | RES9, RES10, RES11, RES12 | RES0..RES10 | RES11, RES12 |
+| Menzo | RES0..RES8 (9) | RES3, RES6, RES9, RES10 (4) | RES9, RES10 | RES0..RES10 | none demonstrated |
+| Stone | RES0..RES9 (10) | RES0..RES10 (11) | RES10 | RES0..RES10 | none demonstrated |
+
+For Strahd, the earlier estimate of twelve CD RES and eight installed RES was off by one each. The **two genuine Strahd historical holdovers** are RES11 and RES12; RES9 and RES10 are active group indices routed to the CD. All Menzo/Stone RES names observed fall inside the eleven-group original resource bootstrap. Missing a local copy does **not** indicate an unused asset.
+
+The nested archive format uses a **4-byte little-endian entry count at offset 0**, followed by **4-byte little-endian absolute offsets beginning at offset 4**. For example, Strahd `RES11` reports **5,114** records and `RES12` reports **667**. EH records begin with a two-byte `EH` marker and a 1-byte type tag at record-relative +2. Those archive counts and record groups were re-parsed independently from the owner's supplied `RES+OTHER.zip`.
+
+Strahd RES11 has 4,128 type-7 scene-shape, 652 type-6 texture, 74 type-3 XMIDI, and 260 type-4 sound records. RES12 has 370 type-1 graphics, 37 raw wordcode, and 260 type-4 sounds. Record-level SHA-256 checks found **2,402/4,128** RES11 scene-shapes identical to active RES3, **609/652** textures identical to RES4, **255/370** RES12 images identical to RES9, and **260/260** sounds identical between RES11's and RES12's legacy sound banks. This favors an older composite format replaced by later split archives, rather than unrelated random files.
+
+The unchanged repository analyzer also passed against the read-only CI originals:
+
+```sh
+python Resources/RES/analyze_legacy_archives.py \
+  "preservation/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT" \
+  --code2 "preservation/MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2"
+```
+
+It confirmed **37/37** legacy RES12 wordcode programs decode to EOF, **1,079** instructions, **zero** bad control targets, and **16** occurrences of an older 141-word inline character-template encoding for opcode 05. Detailed historical lineage is retained in `Resources/RES/RES11_RES12_LINEAGE.md`. The exact old producer/consumer executable is **UNKNOWN**; neither the current CODE.1 nor CODE.2 uses those two archives through its proved indexed RES initialization.
+
+### Stone Prophet RES9: one changed record, not an extra archive
+
+Both `CD_Extracted/RES9` and `PROPHET/RES9` are **3,070,563 bytes**, **626** entries, with identical content for **625** entries. The single differing record is **zero-based index 574**, whose 4-byte little-endian offset-table slot is at physical file offset `0x8FC`. Each version of entry 574 is **634 bytes** and non-EH/raw. **Five bytes differ**; the first changed byte is at record-relative offset `+494` (physical offset `uint32_le(file[0x8FC:0x900]) + 494`). The remaining byte differences and record semantics are not guessed.
+
+Hashes:
+- CD `RES9`: `b7555fbd071eca3adfe3d349c343fc0bb4b44518281fc163bf624c6bc81440c1`.
+- Installed `RES9`: `e17f2a1a4868fe580f346c2f273312f6c72bb2eec33b3af1118eac5134efff76`.
+
+This is a **same-index resource revision**, not proof the entire CD archive is obsolete. Which copy the original game resolves in each installation mode, why record 574 changed, and whether that specific record executes remain **UNKNOWN**. Preserve both and determine loader precedence and semantic meaning during Phase 1. Do not silently substitute one file for the other.
+
+### Pre-Phase-1 guidance
+
+- The unified engine should treat the **proved initialized group set RES0..RES10** as its default original source range for all three supplied CODE.2 binaries. Do not add RES11/12 to Strahd's active runtime merely because the CD includes them.
+- Keep Strahd RES11 and RES12 as **read-only optional historical research inputs**; do not delete, modify or redistribute them.
+- Do not assume CD-only Menzo/Stone `DFA`, `ACT`, audio, cinematics, or installer files are leftovers. Confirm each consumer and semantic role before omitting gameplay media.
+- The exact **unused status** of individual entries within an initialized RES0..RES10 archive cannot be certified from the archive startup call alone. That requires runtime references/call-graph analysis in Phase 1.
+
+**Reproducer:** `.github/workflows/phase0-media-audit.yml` runs the actual CODE.2 startup instruction checks, file-name comparisons, archive-entry diff, and unchanged legacy analyzer, then publishes `res-usage.json`, `strahd-legacy-lineage.txt`, and `SUMMARY.md` in the metadata-only audit artifact. **User-performed tests:** none; **automated tests:** all passed.
+
 ## File counts and provenance status
 
 | Title | Git-tree files | Tree bytes | Unique basenames | Repeated basenames | Expected source-inventory paths | Source SHA-256 PASS | Source SHA-256 MISMATCH | Missing outer source containers |
