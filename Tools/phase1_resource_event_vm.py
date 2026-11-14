@@ -85,12 +85,12 @@ def level_events(path: Path):
         "opcode_samples": {str(k): v for k, v in sorted(samples.items())},
         "compatible_with_strahd_slot_layout":
             not invalid_span and not invalid_count,
-        "stradh_known_max_opcode12":
+        "strahd_known_max_opcode12":
             all(op <= 12 for op in opcodes),
     }
 
 
-def wordcode(path: Path, funcs: dict):
+def wordcode(path: Path, funcs: dict, title: str):
     content = path.read_bytes()
     entries = indexed(content, path.name)
     raw = [(i, rec) for i, rec in enumerate(entries)
@@ -98,7 +98,8 @@ def wordcode(path: Path, funcs: dict):
     summary = {
         "file": path.name, "sha256": digest(content),
         "archive_entries": len(entries), "nonempty_raw_entries": len(raw),
-        "shape_ok": 0, "companion_zero": 0, "stradh_vm_parse_ok": 0,
+        "shape_ok": 0, "two_bank_shape": 0, "one_bank_shape": 0,
+        "companion_zero": 0, "stradh_vm_parse_ok": 0,
         "parse_failures": [], "word_count_histogram": {},
         "opcode_distribution": {}, "opcode_samples": {},
         "control_targets_outside_instr_boundaries": 0,
@@ -112,17 +113,26 @@ def wordcode(path: Path, funcs: dict):
             summary["parse_failures"].append([i, "short"])
             continue
         words = struct.unpack_from("<H", rec)[0]
-        if len(rec) != 2 + words * 4:
-            summary["parse_failures"].append([i, "2+4*words mismatch"])
+        two_bank = len(rec) == 2 + words * 4
+        one_bank = len(rec) == 2 + words * 2
+        if two_bank:
+            summary["two_bank_shape"] += 1
+        if one_bank:
+            summary["one_bank_shape"] += 1
+        if title == "stone" and one_bank:
+            program = list(struct.unpack_from(f"<{words}H", rec, 2))
+        elif two_bank:
+            try:
+                program = funcs["decode_container"](rec)
+                summary["companion_zero"] += 1
+            except ValueError as ex:
+                summary["parse_failures"].append([i, str(ex)])
+                continue
+        else:
+            summary["parse_failures"].append([i, "neither wordcode shape"])
             continue
         summary["shape_ok"] += 1
         word_counts[words] += 1
-        try:
-            program = funcs["decode_container"](rec)
-        except ValueError as ex:
-            summary["parse_failures"].append([i, str(ex)])
-            continue
-        summary["companion_zero"] += 1
         try:
             instructions = funcs["decode_program"](program, funcs["ACTIVE_ARITY"])
         except (ValueError, KeyError, IndexError) as ex:
@@ -164,19 +174,20 @@ def compare_stone(root: Path, funcs: dict):
         shape = len(left) == len(right) and len(left) >= 2
         if shape:
             wc = struct.unpack_from("<H", left)[0]
-            shape = len(left) == 2 + 4 * wc
+            shape = len(left) == 2 + 2 * wc
         else:
             wc = None
         item = {"index": idx, "installed_bytes": len(left),
                 "cd_bytes": len(right), "byte_changes": len(positions),
                 "first_difference": positions[0] if positions else None,
-                "two_bank_wordcode_shape": shape}
+                "two_bank_wordcode_shape": shape,
+                "one_bank_wordcode_shape": len(left) == 2 + 2 * wc if wc is not None else False}
         if shape:
             try:
                 lhs = funcs["decode_program"](
-                    funcs["decode_container"](left), funcs["ACTIVE_ARITY"])
+                    list(struct.unpack_from(f"<{wc}H", left, 2)), funcs["ACTIVE_ARITY"])
                 rhs = funcs["decode_program"](
-                    funcs["decode_container"](right), funcs["ACTIVE_ARITY"])
+                    list(struct.unpack_from(f"<{wc}H", right, 2)), funcs["ACTIVE_ARITY"])
                 instr_a = {i["ip"]: i for i in lhs}
                 instr_b = {i["ip"]: i for i in rhs}
                 different_instructions = [
@@ -213,7 +224,7 @@ def main():
         base = root / dirname
         report[name] = {
             "level_event_slots": level_events(base / lev),
-            "res9_wordcode": wordcode(base / res, funcs)
+            "res9_wordcode": wordcode(base / res, funcs, name)
         }
     report["stone_res9_installed_cd"] = compare_stone(root, funcs)
     args.json.parent.mkdir(parents=True, exist_ok=True)
