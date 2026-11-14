@@ -6,6 +6,7 @@ on:
     paths:
       - 'Tools/phase1_compare.py'
       - 'Tools/phase1_code2_consumers.py'
+      - 'Tools/phase1_resource_event_vm.py'
       - '.github/workflows/phase1-format-audit.yml'
   workflow_dispatch:
 
@@ -53,6 +54,15 @@ jobs:
             --root preservation/MASTER \
             --json audit/phase1-code2-consumers.json
           python -m py_compile Tools/phase1_compare.py Tools/phase1_code2_consumers.py
+
+      - name: Compare level event slots and RES9 interaction wordcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_resource_event_vm.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-resource-event-vm.json
+          python -m py_compile Tools/phase1_resource_event_vm.py
 
       - name: Publish metadata only
         if: always()
