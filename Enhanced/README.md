@@ -167,6 +167,26 @@ validated using `verify_code2_gameplay_boundary_witness` against the owned
 original CODE.2 images. **This is still only a bounded source translation:**
 no Menzo/Stone gameplay loop is running in the native player yet.
 
+
+### Phase 8: original gameplay callees and CHARS geometry
+
+The shared CODE.2 handoff now executes the complete Menzo 0x204DC actor-status
+resource-selection routine using native callbacks, and translates Stone
+0x25468 first UI/session setup with its source-dependent early return.
+Stone's CHARS-present caller can resume to exactly 0x2D5CA. Further
+unconverted callees remain explicit, and this does not activate a
+Menzo/Stone native game session.
+
+The two retail CODE.1 CHARS writers and CODE.2 readers independently prove
+four records of 0x41C bytes each (total 0x1070) for **both** Menzo and Stone;
+Strahd remains four 0x248-byte records (0x920). Their first status word is
+at record +0x10. OriginalCharsImage preserves every byte opaquely and
+rejects incorrect lengths. Only independently verified fields are exposed;
+shared record width is not a claim of identical character semantics.
+Existing OriginalNativeMediaSession validates transient CHARS on demand.
+Executable opcode witnesses are checked separately from whole-file SHA-256.
+The original Windows player CI now builds/runs the focused handoff target.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
