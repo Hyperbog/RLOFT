@@ -51,10 +51,14 @@ WINDOWS = {
     "menzo": {
         "level_event_vm": (0x200, 0x720),
         "EH_resource_open": (0x34B80, 0x34F20),
+        "type5_handler": (0x3E6E0, 0x3E778),
+        "type6_handler_prefix": (0x3E778, 0x3E9A0),
     },
     "stone": {
         "level_event_vm": (0x298, 0x7B0),
         "EH_resource_open": (0x40B40, 0x40ED0),
+        "type5_handler": (0x4C2C0, 0x4C358),
+        "type6_handler_prefix": (0x4C358, 0x4C580),
     },
 }
 
