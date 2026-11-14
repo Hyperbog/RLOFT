@@ -29,9 +29,27 @@ All 410 Type-6 entries in `PROPHET/RES4` have five-byte headers. Header byte 0 i
 
 The installed `PROPHET/RES9` and `CD_Extracted/RES9` are both 626-record archives. **625 records are byte-identical; record 574 differs by five bytes**. Keep both copies; it is unproved which is chosen by the original file-search policy.
 
+## Executable resource decoder and level-event VM (Phase 1 continuation)
+
+**VERIFIED:** The CODE.2 six-type EH resource dispatcher at `0x40DF1` uses the little-endian jump table at `0x40C88`. Its Type-5 handler is `0x4C2C0` and Type-6 handler `0x4C358`. Both use record-relative `+5 u8 compression_method` followed by `+6 u32LE declared_decoded_size`; method 3 is used by all supplied Type-5/6 entries, and the executable has branches for methods 0 and 1.
+
+The unchanged Strahd LZSS implementation decodes **2,542/2,542** Type-6 RES3 and **409/410** Type-6 RES4 records with exact input consumption. RES4 index **1309** yields 14 decoded bytes after consuming 11 of 15 encoded bytes; the four-byte tail is preserved and remains unexplained. Type-5 RES4: **900/963** records declaring **12,290** bytes decode fully; the **63** declaring **4,098** decode with complete input consumption only when asked for **4,096**. This is a **verified stream-level observation**, not a reason to alter the serialized length.
+
+The level-event dispatcher at CODE.2 `0x313` uses fourteen entries at table `0x264` (opcodes 0..13). All **43** levels have a valid 50 × 26-byte event table: **396** active slots and **469** active five-byte commands. Opcode 13 is implemented in the executable but absent in the supplied level archive.
+
+`RES9` has **48/49** nonempty raw entries with a single-bank program record: `u16LE count + count u16LE words`. The remaining raw entry, **625**, is four bytes and begins with `u16LE=244`; its meaning is UNKNOWN. Unlike Strahd, none of the 48 programs parses under its known wordcode grammar. Record **574** is a 316-word single-bank program, and its installed vs CD copies differ at exactly five word indices: **246 (30→10), 261 (31→11), 268 (30→10), 273 (31→11), 313 (31→11)**, installed to CD. Semantic meaning and loader precedence remain UNKNOWN.
+
+**Reproduce:**
+
+```sh
+python Tools/phase1_resource_event_vm.py --root preservation/MASTER --json audit/stone-vm.json
+python Tools/phase1_decoder_dispatch.py --root preservation/MASTER --json audit/stone-dispatch.json
+python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/stone-lzss.json
+```
+
 ### Unresolved
 
-The extra `0x580` bytes in the 0x824-byte level header contain nonzero bytes at **597 distinct byte positions** across 43 levels. Their layout, including widths and semantics, remains UNKNOWN. Same for the 88-byte NPC stat/action fields, CHARS and SAVE codecs, rules, event-script VM, cinematic ACT/DFA data, Type-5/6 decoding and original RES9 loader precedence. No playable Stone Prophet native session was run.
+The extra `0x580` bytes in the 0x824-byte level header contain nonzero bytes at **597 distinct byte positions** across 43 levels. Their layout, including widths and semantics, remains UNKNOWN. Same for the 88-byte NPC stat/action fields, CHARS and SAVE codecs, rules, event-script opcode semantics, cinematic ACT/DFA data, the Type-5 two-byte discrepancy and original RES9 loader precedence. No playable Stone Prophet native session was run.
 
 **Reproduce:**
 
