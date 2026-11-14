@@ -27,11 +27,29 @@ At `RES4` entry 0: `+0..1` two-byte EH marker, `+2 u8` type=5, `+3 i16 LE` heade
 
 Type-6 in the same file likewise uses a five-byte header; first header byte is 3 and the last two are zero across all 502 entries, while middle bytes vary. Strahd's resource Type-5 loader assumes a different header size and cannot be adopted as-is.
 
+## Executable resource decoder and level-event VM (Phase 1 continuation)
+
+**VERIFIED:** The original CODE.2 `0x34E4D` six-way typed dispatcher indexes a table at `0x34CD8` after subtracting one from the EH type byte. Its Type-5 handler is `0x3E6E0` and Type-6 handler `0x3E778`. Both consume a record-relative `+5 u8 compression_method` and `+6 u32 little-endian decoded_size` (EH header length 5), selecting methods 0, 1 and 3; supplied data use only method 3. Type-5 declared decoded lengths are **12,290 (474 records)** and **4,098 (85 records)**.
+
+The unchanged Strahd LZSS oracle consumes every encoded byte and returns the declared output length for all **3,167 Type-6 RES3**, **502 Type-6 RES4** and **474 larger Type-5 RES4** entries. For all **85 smaller Type-5** records it consumes the full stream when asked for **4,096** bytes, not the declared **4,098**. Preserve original headers. The two-byte producer/runtime discrepancy is **UNKNOWN**, not an asset repair instruction.
+
+The level-event interpreter at CODE.2 `0x200` dispatches opcode bytes `0..13` using the original little-endian jump table `0x1C8` and jump `0x272`. All **56** levels have 50 physical 26-byte event slots; **352** are active, containing **393** five-byte commands. Opcode 13 occurs **eight times**. This is a verified serialized VM shape and dispatcher, not complete opcode semantics.
+
+`RES9` has **31** raw programs of `u16LE count + count u16LE program words + count u16LE zero words`. All 31 match the structural container; **0/31** parse under Strahd's unchanged 42-opcode grammar. Its title-specific instruction grammar is **UNKNOWN**.
+
+**Reproduce:**
+
+```sh
+python Tools/phase1_resource_event_vm.py --root preservation/MASTER --json audit/menzo-vm.json
+python Tools/phase1_decoder_dispatch.py --root preservation/MASTER --json audit/menzo-dispatch.json
+python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/menzo-lzss.json
+```
+
 ### Unresolved
 
 The `0x824` level header includes an extra 0x580 bytes compared with Strahd; **706 distinct positions** in this extension contain a nonzero byte in at least one of the 56 archived levels. The byte count and positions are known; the meanings and field widths are not.
 
-All 88-byte NPC record values past their common ASCII name prefix remain uninterpreted; the 0x41C CHARS record fields, event VM opcode semantics, save serialization, rules, and Type-5/6 decoders require additional CODE.2 consumers. No Menzo native gameplay is implemented or tested.
+All 88-byte NPC record values past their common ASCII name prefix remain uninterpreted; the 0x41C CHARS record fields, event VM opcode semantics, save serialization, rules, and the Type-5 two-byte length discrepancy still require additional CODE.2 consumer analysis. No Menzo native gameplay is implemented or tested.
 
 **Reproduce:**
 
