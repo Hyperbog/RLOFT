@@ -7,6 +7,7 @@ on:
       - 'Tools/phase1_compare.py'
       - 'Tools/phase1_code2_consumers.py'
       - 'Tools/phase1_resource_event_vm.py'
+      - 'Tools/phase1_decoder_dispatch.py'
       - '.github/workflows/phase1-format-audit.yml'
   workflow_dispatch:
 
@@ -63,6 +64,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-resource-event-vm.json
           python -m py_compile Tools/phase1_resource_event_vm.py
+
+      - name: Locate CODE.2 decoder and event-VM dispatch candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_decoder_dispatch.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-decoder-dispatch.json
+          python -m py_compile Tools/phase1_decoder_dispatch.py
 
       - name: Publish metadata only
         if: always()
