@@ -48,6 +48,77 @@ The Menzo and Stone Type-5 RES4 records **all** have a *five-byte* type header (
 
 Strahd's [recovered Type-5 CODE.2 handler](Resources/RES/EXECUTABLE_ONLY_FORMATS.md) at `0x374E0` assumes **at least 28 header bytes** and was reconstructed from executable code without shipped Type-5 examples. Reusing it for these five-byte headers is unjustified. The original Menzo/Stone Type-5 handlers remain to be located and reconstructed. **This is a confirmed inter-title incompatibility risk, not a proven decoder equivalence.**
 
+## Phase 1 continuation — resource decoder and event VM (2026-11-14)
+
+**Reproducible checks:**
+
+```sh
+python Tools/phase1_resource_event_vm.py --root preservation/MASTER --repo-root . --json audit/phase1-resource-event-vm.json
+python Tools/phase1_decoder_dispatch.py --root preservation/MASTER --repo-root . --json audit/phase1-decoder-dispatch.json
+python Tools/phase1_type56_verify.py --root preservation/MASTER --repo-root . --json audit/phase1-type56-lzss.json
+```
+
+All executed on the read-only original media; the last command reuses the **unchanged** `Resources/RES/analyze_res.py` Strahd LZSS routine. [Successful machine-code dispatcher audit](https://github.com/Hyperbog/RLOFT/actions/runs/43632586957); Type-5/6 corpus verification results and explicit anomalies are included in the workflow artifact. CODE.2 whole-file identities remain the pinned hashes above.
+
+### Level-event script VM
+
+Every level record in Strahd (32), Menzo (56), Stone (43) has `0x514 = 50 × 0x1A` bytes between boundaries 5 and 6. Interpreting each 26-byte slot as `u8 command_count` followed by five `[u8 opcode,u8 arg1,u8 arg2,u8 arg3,u8 arg4]` commands produces **zero invalid counts (greater than 5) in all 6,550 slots**. Active commands: Strahd **555**, Menzo **393**, Stone **469**. This is a **VERIFIED shared physical grammar**; inactive command bytes must be retained losslessly.
+
+Executable inspection independently confirmed `slot_index × 0x1A`, `command_index × 5` and a type-indexed jump table. Strahd has **13 cases (0..12)** at CODE.2 `0x274` with table `0x274` (see Strahd EVENT_SCRIPTS.md: actual table `0x274`); Menzo **14 cases (0..13)** at `0x272` / table `0x1C8`; Stone **14 cases** at `0x313` / table `0x264`. **Correction:** the original Strahd table is `0x274` and its executor begins `0x2A8`; the two new address pairs are direct CODE.2 witnesses. Menzo's corpus executes opcode **13 eight times**, while Stone's shipped levels execute only up to **12** even though its binary supports 13.
+
+| Opcode | Strahd handler | Menzo handler | Stone handler | Evidence status |
+| --- | ---: | ---: | ---: | --- |
+| 0 | `0x306` | `0x27A` | `0x31B` | VERIFIED dispatch offsets |
+| 1 | `0x378` | `0x2E3` | `0x39B` | VERIFIED |
+| 2 | `0x3D2` | `0x35D` | `0x406` | VERIFIED |
+| 3 | `0x48D` | `0x409` | `0x4B5` | VERIFIED |
+| 4 | `0x454` | `0x3D4` | `0x480` | VERIFIED |
+| 5 | `0x540` | `0x4EF` | `0x594` | VERIFIED |
+| 6 | `0x559` | `0x508` | `0x5AD` | VERIFIED |
+| 7 | `0x5B3` | `0x572` | `0x617` | VERIFIED |
+| 8 | `0x57D` | `0x53C` | `0x5E1` | VERIFIED |
+| 9 | `0x58F` | `0x54E` | `0x5F3` | VERIFIED |
+| 10 | `0x5A1` | `0x560` | `0x605` | VERIFIED |
+| 11 | `0x4E6` | `0x4C4` | `0x574` | VERIFIED |
+| 12 | `0x68F` | `0x64E` | `0x6F3` | VERIFIED |
+| 13 | absent | `0x659` | `0x6FE` | VERIFIED, semantics UNKNOWN |
+
+These original disassembly destinations are **code-object-relative 32-bit little-endian jump-table entries**, not raw bytes copied into the source. A shared event-slot **decoder** is justified; a shared **opcode executor** is not yet certified. Both Menzo/Stone case-13 paths load three command bytes and invoke the original call target `0x10`; its effect remains UNKNOWN.
+
+### Type-5 and Type-6 archive record decoders
+
+Both Menzo/Stone CODE.2 EH dispatchers subtract one from the original `u8` type and dispatch **Types 1..6**. Menzo dispatcher `0x34E4D` with table `0x34CD8`; Stone `0x40DF1` with table `0x40C88`. Type-5 and Type-6 executable handlers:
+
+| Type | Menzo CODE.2 | Stone CODE.2 | Shared physical header |
+| --- | --- | --- | --- |
+| 5 | `0x3E6E0` | `0x4C2C0` | `EH + u8 type=5 + i16LE header_len=5 + u8 compression + u32LE decoded_len` |
+| 6 | `0x3E778` | `0x4C358` | `EH + u8 type=6 + i16LE header_len=5 + u8 compression + u32LE decoded_len` |
+
+Both functions select compression **0, 1 or 3**, with method 3 entering their LZSS path; all observed Type-5/6 entries use compression **3**. Methods 0/1 are executable-supported but lack the current cross-title resource samples. This **differs** from Strahd's shipped Type-6/7 zero-extra-header variant and Strahd's uninstantiated Type-5 28-byte loader contract.
+
+**Actual Strahd LZSS oracle across original Menzo/Stone assets:**
+
+| Archive | Records | Method-3 exact output + full input consumption | Exceptions |
+| --- | ---: | ---: | --- |
+| Menzo RES3 Type-6 | 3,167 | 3,167 | 0 |
+| Menzo RES4 Type-6 | 502 | 502 | 0 |
+| Stone RES3 Type-6 | 2,542 | 2,542 | 0 |
+| Stone RES4 Type-6 | 410 | 409 | Record **1309**: 14 decoded bytes, 11/15 encoded bytes consumed; 4-byte tail |
+| Menzo RES4 Type-5 | 559 | 474 | **85** of declared output size 4,098 |
+| Stone RES4 Type-5 | 963 | 900 | **63** of declared output size 4,098 |
+
+Every **1,374** Type-5 record whose declared decoded length is **12,290** succeeds exactly. All **148** records declaring **4,098** bytes fail the Strahd oracle at that length but **succeed and consume the complete compressed payload at 4,096 bytes**. **VERIFIED** decoded-prefix and full-consumption observation, **UNKNOWN** producer reason for the two extra declared bytes or whether the original CODE.2 runtime deliberately initializes/preserves them separately. Keep the header `0x1002` **byte-exact** and the unaccounted two-byte semantic status **UNKNOWN**; do not silently rewrite it.
+
+### RES9 interaction-program variants and Stone revision
+
+Strahd **38/38** and Menzo **31/31** non-EH script records match `u16LE word_count; u16LE program_words[count]; u16LE zero_bank[count]`. The unchanged Strahd `0x00..0x29` wordcode parser decodes **38/38 Strahd**, **0/31 Menzo**: Menzo clearly requires opcode/arity verification and is not yet compatible semantically.
+
+Stone has **48/49** nonempty non-EH records matching `u16LE word_count; u16LE program_words[count]` with **no zero bank**. Record **625** is a distinct four-byte raw marker (`u16LE at +0 = 244`); its purpose is **UNKNOWN**. Strahd's instruction grammar parses **0/48** Stone scripts, initially encountering opcode-domain/operand disagreement at word 6 in the common prefix. This does **not** mean those programs are invalid.
+
+Stone RES9 record **574**, 634 bytes, begins `u16LE word_count=316`. Between `PROPHET/RES9` and `CD_Extracted/RES9`, exactly five 16-bit program words differ: zero-based word indices **246, 261, 268, 273, 313**, in that order `30→10, 31→11, 30→10, 31→11, 31→11` (installed → CD). **VERIFIED byte-level revision, UNKNOWN opcode/operand meaning**. The original asset-selection precedence is still not proven.
+
+**Blocking unknowns:** original executable meaning of Type-5's two extra declared decoded bytes; full Menzo/Stone RES9 instruction grammar and wordcode dispatcher; cross-title event opcode semantics and triggers; remaining NPC/level/character/rules codecs. None was inferred from absent or leftover media. Phase 1 remains **IN PROGRESS**; no native player code changed.
+
 ## Interim Phase 1 questions
 
 - **Q1:** In the surveyed level-header, NPC, Type-5/6, and CHARS geometries, Menzo and Stone are the closer pair. Overall engine similarity remains **LIKELY, not a completed ranking**, until executable codecs and VM semantics are compared.
