@@ -6,6 +6,7 @@ Run from the RLOFT repository root. No original bytes are written to outputs.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import re
@@ -104,6 +105,42 @@ def comparison(manifests: list[dict]) -> dict:
             "groups": by_count, "duplicate_basenames": duplicates}
 
 
+def verify_source_inventory(expected_csv: Path, files: list[dict]) -> dict:
+    """Compare computed hashes to the original archive inventory, not Git hashes.
+
+    CD_Extracted is expected to contain additional extracted files not listed
+    in the source archive's outer-file inventory. They remain fully hashed.
+    """
+    current = {f["filename"]: f for f in files}
+    checked = []
+    with expected_csv.open("r", encoding="utf-8-sig", newline="") as stream:
+        for source in csv.DictReader(stream):
+            filename = source["relative_path"]
+            existing = current.get(filename)
+            item = {"filename": filename, "source_size": int(source["size_bytes"]),
+                    "expected_sha256": source["sha256"].lower()}
+            if existing is None:
+                item["status"] = "MISSING"
+            else:
+                item["actual_size"] = existing["size"]
+                item["actual_sha256"] = existing["sha256"]
+                item["status"] = (
+                    "PASS" if item["actual_size"] == item["source_size"]
+                    and item["actual_sha256"] == item["expected_sha256"] else "MISMATCH"
+                )
+            checked.append(item)
+    counts = {status: sum(x["status"] == status for x in checked)
+              for status in ("PASS", "MISMATCH", "MISSING")}
+    return {
+        "source_inventory": expected_csv.name,
+        "note": "External source-archive paths only; extracted CD members may be extra",
+        "counts": counts,
+        "unlisted_file_count": sum(f["filename"] not in {x["filename"] for x in checked}
+                                   for f in files),
+        "results": checked,
+    }
+
+
 def baselines(media: Path, files: list[dict], root: Path) -> list[dict]:
     results = []
     for basename, relative_script, expected in STRAHD_BASELINES:
@@ -136,6 +173,7 @@ def main() -> int:
     parser.add_argument("--media", type=Path, required=True)
     parser.add_argument("--output", type=Path, help="Optional JSON output file (default stdout)")
     parser.add_argument("--baseline", action="store_true", help="Run unchanged Strahd analyzers")
+    parser.add_argument("--expected-csv", type=Path, help="Compare actual SHA-256 to original source-manifest rows")
     parser.add_argument("--compare-other", type=Path, action="append", default=[],
                         help="Two other per-title JSON manifests for basename comparison")
     args = parser.parse_args()
@@ -148,6 +186,10 @@ def main() -> int:
     result = {"schema_version": 1, "title": args.title, "media_root": str(media),
               "complete_for_provided_path_only": True, "file_count": len(files),
               "total_size": sum(row["size"] for row in files), "files": files}
+    if args.expected_csv:
+        result["source_inventory_audit"] = verify_source_inventory(
+            args.expected_csv.expanduser().resolve(strict=True), files
+        )
     if args.baseline:
         result["unchanged_strahd_baselines"] = baselines(media, files, Path(__file__).resolve().parents[1])
     if args.compare_other:
