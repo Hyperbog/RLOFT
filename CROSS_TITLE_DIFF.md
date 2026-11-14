@@ -117,6 +117,12 @@ Stone has **48/49** nonempty non-EH records matching `u16LE word_count; u16LE pr
 
 Stone RES9 record **574**, 634 bytes, begins `u16LE word_count=316`. Between `PROPHET/RES9` and `CD_Extracted/RES9`, exactly five 16-bit program words differ: zero-based word indices **246, 261, 268, 273, 313**, in that order `30→10, 31→11, 30→10, 31→11, 31→11` (installed → CD). **VERIFIED byte-level revision, UNKNOWN opcode/operand meaning**. The original asset-selection precedence is still not proven.
 
+### Explicit hypotheses for unresolved producer/VM differences
+
+- **Type-5 0x1002 length discrepancy — HYPOTHESIS A:** a two-byte logical header is represented by the declared allocation length but is not emitted by the LZSS stream; the stream itself supplies 4,096 bytes. **HYPOTHESIS B:** the producer declared an allocation/expected output length that exceeds what the compressed stream yields, and the original reader tolerates a short stream or otherwise initializes the last two bytes. Both are consistent with 148/148 full-consumption 4,096-byte prefix decodes; neither is certified without tracing the original low-level resource reader and its end-of-stream behavior.
+- **Menzo/Stone interaction VM — HYPOTHESIS A:** both extend Strahd's `0..0x29` opcode set (e.g. Menzo program RES9 index 419 reaches apparent `0x2A`, Stone index 567 apparent `0x37`). **HYPOTHESIS B:** one or more inherited opcode operand counts changed, so existing data operands appear as invalid Strahd opcodes (as happened historically in Strahd RES12). Reconstruct the original Menzo/Stone wordcode dispatch/operand fetchers before deciding.
+- **Concrete Menzo event-VM sample:** `LEVELS.DAT` zero-based level 8, script slot 1, command 0 contains opcode **13**, and level 8 slot 2 contains opcode 13 in commands 0 and 1. The source-byte interpreter at `0x267` accepts opcodes 0..13 and dispatches 13 to `0x659`. *Meaning of case 13 remains UNKNOWN.* **Confidence: VERIFIED for opcode value/selection.**
+
 **Blocking unknowns:** original executable meaning of Type-5's two extra declared decoded bytes; full Menzo/Stone RES9 instruction grammar and wordcode dispatcher; cross-title event opcode semantics and triggers; remaining NPC/level/character/rules codecs. None was inferred from absent or leftover media. Phase 1 remains **IN PROGRESS**; no native player code changed.
 
 ## Interim Phase 1 questions
