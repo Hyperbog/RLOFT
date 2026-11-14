@@ -8,6 +8,7 @@ on:
       - 'Tools/phase1_code2_consumers.py'
       - 'Tools/phase1_resource_event_vm.py'
       - 'Tools/phase1_decoder_dispatch.py'
+      - 'Tools/phase1_type56_verify.py'
       - '.github/workflows/phase1-format-audit.yml'
   workflow_dispatch:
 
@@ -73,6 +74,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-decoder-dispatch.json
           python -m py_compile Tools/phase1_decoder_dispatch.py
+
+      - name: Decode RES type 5 and 6 via unchanged Strahd LZSS reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_type56_verify.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-type56-lzss.json
+          python -m py_compile Tools/phase1_type56_verify.py
 
       - name: Publish metadata only
         if: always()
