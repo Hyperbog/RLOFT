@@ -11,7 +11,7 @@
 | NPCS.DAT | file `+0 u32 LE` count | 98 | read into global `0x3A600` | VERIFIED |
 | NPCS.DAT | file `+4`, 98 × 0x58-byte records | 8,624 data bytes | CODE.2 `0x1AF55` filename, `0x1AF82` count × 0x58 | VERIFIED |
 | NPCS.DAT | record `+0 char[20]` | 98/98 printable NUL-terminated names | full-record corpus probe | VERIFIED physical field |
-| NPCS.DAT | record `+0x45..+0x57`, 19 bytes | nonzero in 12/19 byte-columns across file | per-column tally, not semantic decoding | VERIFIED physical extension |
+| NPCS.DAT | record `+0x45..+0x57`, 19 bytes | nonzero in 9/19 byte-columns across file | per-column tally, not semantic decoding | VERIFIED physical extension |
 | OBJECTS.DAT | file `+0 u32 LE` count | 523 | original CODE.2 `0x1B051` filename and counted allocation | VERIFIED |
 | OBJECTS.DAT | record stride 0x41 (65 bytes) | 523 serialized entries | `0x1B087` shift 6 + `0x1B08A` addition | VERIFIED |
 | LEVELS.DAT | file `+0 u32 LE` count, `+4 u32[] LE` offsets | 56 levels, first record at 0xE4 | 56/56 valid indexed offsets | VERIFIED |
