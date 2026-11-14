@@ -19,7 +19,7 @@ GAMES = {
     },
     "stone": {
         "dir": "Ravenloft - Stone Prophet", "exe": "PROPHET/CODE.2",
-        "npc": "PROPHET/NPCS.DAT", "level": "CD_Extracted/LEVELS.DAT",
+        "npc": "CD_Extracted/NPCS.DAT", "level": "CD_Extracted/LEVELS.DAT",
         "res": "PROPHET/RES4", "expected":
         "00e225ec8f141a8fdb72ff0547fe93b2ea3aabdb4ec3b59d9261a5268de9203e",
     },
