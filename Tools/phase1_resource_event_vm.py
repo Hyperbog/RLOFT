@@ -99,8 +99,8 @@ def wordcode(path: Path, funcs: dict, title: str):
         "file": path.name, "sha256": digest(content),
         "archive_entries": len(entries), "nonempty_raw_entries": len(raw),
         "shape_ok": 0, "two_bank_shape": 0, "one_bank_shape": 0,
-        "companion_zero": 0, "stradh_vm_parse_ok": 0,
-        "parse_failures": [], "word_count_histogram": {},
+        "companion_zero": 0, "strahd_vm_parse_ok": 0,
+        "parse_failures": [], "other_raw_shapes": [], "word_count_histogram": {},
         "opcode_distribution": {}, "opcode_samples": {},
         "control_targets_outside_instr_boundaries": 0,
         "invalid_control_target_examples": []
@@ -130,6 +130,8 @@ def wordcode(path: Path, funcs: dict, title: str):
                 continue
         else:
             summary["parse_failures"].append([i, "neither wordcode shape"])
+            summary["other_raw_shapes"].append({"index":i,"bytes":len(rec),
+                "leading_u16":words})
             continue
         summary["shape_ok"] += 1
         word_counts[words] += 1
@@ -138,7 +140,7 @@ def wordcode(path: Path, funcs: dict, title: str):
         except (ValueError, KeyError, IndexError) as ex:
             summary["parse_failures"].append([i, f"Strahd VM: {ex}"])
             continue
-        summary["stradh_vm_parse_ok"] += 1
+        summary["strahd_vm_parse_ok"] += 1
         valid = {ins["ip"] for ins in instructions}
         for ins in instructions:
             op = ins["opcode"]
@@ -180,9 +182,16 @@ def compare_stone(root: Path, funcs: dict):
         item = {"index": idx, "installed_bytes": len(left),
                 "cd_bytes": len(right), "byte_changes": len(positions),
                 "first_difference": positions[0] if positions else None,
-                "two_bank_wordcode_shape": shape,
-                "one_bank_wordcode_shape": len(left) == 2 + 2 * wc if wc is not None else False}
+                "two_bank_wordcode_shape": len(left) == 2 + 4 * wc if wc is not None else False,
+                "one_bank_wordcode_shape": shape}
         if shape:
+            changed_words = sorted({(p-2)//2 for p in positions if p>=2})
+            item["changed_words"] = [
+                {"word_index":word_i,
+                 "installed_value":struct.unpack_from("<H",left,2+2*word_i)[0],
+                 "cd_value":struct.unpack_from("<H",right,2+2*word_i)[0]}
+                for word_i in changed_words
+            ]
             try:
                 lhs = funcs["decode_program"](
                     list(struct.unpack_from(f"<{wc}H", left, 2)), funcs["ACTIVE_ARITY"])
@@ -197,14 +206,14 @@ def compare_stone(root: Path, funcs: dict):
                     for p in sorted(set(instr_a) & set(instr_b))
                     if instr_a[p] != instr_b[p]
                 ]
-                item["stradh_vm_parse_both"] = True
+                item["strahd_vm_parse_both"] = True
                 item["changed_instruction_descriptors"] = different_instructions[:25]
                 item["code_bank_byte_changes"] = sum(
                     2 <= p < 2 + 2 * wc for p in positions)
-                item["companion_bank_byte_changes"] = sum(
-                    2 + 2 * wc <= p for p in positions)
+                item["trailing_nonprogram_byte_changes"] = sum(
+                    p >= 2 + 2 * wc for p in positions)
             except (ValueError, KeyError, IndexError) as ex:
-                item["stradh_vm_parse_both"] = False
+                item["strahd_vm_parse_both"] = False
                 item["reason"] = str(ex)
         out["record_diffs"].append(item)
     return out
@@ -238,7 +247,7 @@ def main():
               f"opcodes={a['opcode_distribution']}")
         print(f"{title}: RES9 raw {w['nonempty_raw_entries']} shape {w['shape_ok']} "
               f"companion zero {w['companion_zero']} "
-              f"Strahd VM parse {w['stradh_vm_parse_ok']} "
+              f"Strahd VM parse {w['strahd_vm_parse_ok']} "
               f"bad targets {w['control_targets_outside_instr_boundaries']}")
     print("stone installed/CD RES9:", report["stone_res9_installed_cd"])
 
