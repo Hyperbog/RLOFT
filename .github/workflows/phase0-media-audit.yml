@@ -131,6 +131,116 @@ jobs:
               out.write(result)
           PY
 
+      - name: Verify original RES group counts and cross-copy differences
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import struct
+          from pathlib import Path
+          root = Path("preservation/MASTER")
+          settings = {
+              "strahd": ("Ravenloft - Strahd's Possession", "RLOFT", "CD_Extracted/RLOFT",
+                         "RLOFT/CODE.2", 0x27BDC, 0x20444,
+                         bytes.fromhex("6a 0b 68 30 11 00 00"), 0x2044B, 0x2F2EC),
+              "menzo": ("Menzoberranzan", "", "CD_Extracted",
+                        "CODE.2", 0x27BDC, 0x23939,
+                        bytes.fromhex("68 a0 86 01 00 68 60 ea 00 00 6a 0b 68 54 10 00 00"),
+                        0x2394A, 0x3532C),
+              "stone": ("Ravenloft - Stone Prophet", "PROPHET", "CD_Extracted",
+                        "PROPHET/CODE.2", 0x28774, 0x2D461,
+                        bytes.fromhex("68 a0 86 01 00 68 30 f2 00 00 6a 0b 68 d0 12 00 00"),
+                        0x2D472, 0x412D0),
+          }
+          def u32(b, i):
+              return struct.unpack_from("<I", b, i)[0]
+          def res_map(folder):
+              return {f.name: f for f in folder.glob("RES*")
+                      if f.is_file() and f.name[3:].isdecimal()}
+          def sha(f):
+              h = hashlib.sha256()
+              with f.open("rb") as stream:
+                  for block in iter(lambda: stream.read(1024 * 1024), b""):
+                      h.update(block)
+              return h.hexdigest()
+          def entries(path):
+              b = path.read_bytes()
+              n = u32(b, 0)
+              if n == 0 or n > 200000 or 4 + 4*n > len(b):
+                  raise ValueError(f"invalid RES index {path}")
+              offsets = struct.unpack_from(f"<{n}I", b, 4)
+              if offsets[0] != 4 + 4*n or any(x > y for x,y in zip(offsets, offsets[1:])):
+                  raise ValueError(f"invalid RES offsets {path}")
+              if offsets[-1] > len(b):
+                  raise ValueError(f"final RES index outside file {path}")
+              return [b[offsets[i]:(offsets[i+1] if i+1 < n else len(b))]
+                      for i in range(n)]
+          audit = {}
+          for key, (title, installed, extracted, module, le, logical, witness, call, target) in settings.items():
+              game = root / title
+              exe = (game / module).read_bytes()
+              origin = 0x25D24
+              assert exe[origin:origin+2] == b"MZ"
+              assert exe[le:le+2] == b"LE"
+              code_offset = origin + u32(exe, le+0x80)
+              assert exe[code_offset+logical:code_offset+logical+len(witness)] == witness, key
+              call_bytes = exe[code_offset+call:code_offset+call+5]
+              assert call_bytes[:1] == b"\xE8", key
+              assert (call + 5 + struct.unpack_from("<i", call_bytes, 1)[0]) == target, key
+              cd = res_map(game / extracted)
+              local = res_map(game / installed)
+              compare = {name: {"same": sha(f) == sha(local[name]), "bytes": f.stat().st_size}
+                         for name, f in cd.items() if name in local}
+              audit[key] = {
+                  "original_code2": module,
+                  "le_code_page_file_offset": code_offset,
+                  "res_setup_instruction_offset": logical,
+                  "group_count": 11, "first_index": 0, "last_index": 10,
+                  "installed_res": sorted(local, key=lambda n: int(n[3:])),
+                  "extracted_cd_res": sorted(cd, key=lambda n: int(n[3:])),
+                  "paired_sha256_match": compare,
+                  "cd_only_res": sorted(set(cd)-set(local), key=lambda n: int(n[3:])),
+              }
+          stone = root / "Ravenloft - Stone Prophet"
+          a = entries(stone / "CD_Extracted/RES9")
+          b = entries(stone / "PROPHET/RES9")
+          overlap = min(len(a), len(b))
+          different = [i for i in range(overlap) if a[i] != b[i]]
+          audit["stone"]["res9_comparison"] = {
+              "cd_entries": len(a), "installed_entries": len(b),
+              "equal_entry_count": overlap - len(different),
+              "different_entry_count": len(different),
+              "different_indices": different,
+              "cd_sha256": sha(stone / "CD_Extracted/RES9"),
+              "installed_sha256": sha(stone / "PROPHET/RES9"),
+              "both_sizes": [(stone / p).stat().st_size for p in ("CD_Extracted/RES9", "PROPHET/RES9")],
+          }
+          Path("audit/res-usage.json").write_text(json.dumps(audit, indent=2) + "\n")
+          lines = ["", "## Original executable RES group count (verified against actual CODE.2 bytes)", "",
+                   "| Title | CODE.2 instruction | Indexed groups | Installed | Extracted CD | CD-only RES |",
+                   "| --- | --- | --- | --- | --- | --- |"]
+          for key, row in audit.items():
+              lines.append(f"| {key} | \`0x{row['res_setup_instruction_offset']:X}\` | "
+                           f"RES0–RES10 (11) | {', '.join(row['installed_res'])} | "
+                           f"{', '.join(row['extracted_cd_res'])} | "
+                           f"{', '.join(row['cd_only_res']) or '(none)'} |")
+          r9 = audit["stone"]["res9_comparison"]
+          lines.extend(["", f"Stone RES9: {r9['cd_entries']} CD entries vs "
+                        f"{r9['installed_entries']} installed entries; "
+                        f"{r9['equal_entry_count']} exact; "
+                        f"{r9['different_entry_count']} different.",
+                        f"Stone RES9 divergent indices: {r9['different_indices']}.",
+                        "The source proves the initialized RES index range, not that "
+                        "every record is necessarily visited during a playthrough.",
+                        "CD-exclusive cinematics/installer files must not be presumed unused."])
+          report = "\n".join(lines) + "\n"
+          with Path("audit/SUMMARY.md").open("a") as f: f.write(report)
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as f: f.write(report)
+          print(report)
+          PY
+
       - name: Publish metadata-only SHA-256 audit
         if: always()
         uses: actions/upload-artifact@v4
