@@ -91,11 +91,17 @@ def named_references(code: bytes, data: bytes, rows):
             for i, (pc, instruction, operands) in enumerate(rows):
                 if instruction not in ("push", "mov", "lea"):
                     continue
+                # Only a direct immediate is a candidate string address.
+                # Offsets inside [register + displacement] may numerically
+                # equal a data-string address but are unrelated references.
+                immediate = re.search(r"(?:^push 0x|^mov [a-z][a-z0-9]*,0x)", instruction + " " + operands)
+                if not immediate:
+                    continue
                 vals = re.findall(r"0x([a-f0-9]+)", operands)
-                if any(int(v, 16) == offset for v in vals):
+                if len(vals) == 1 and int(vals[0], 16) == offset:
                     contexts = [
                         {"offset": rows[j][0], "asm": rows[j][1] + " " + rows[j][2]}
-                        for j in range(max(0, i-3), min(len(rows), i+9))
+                        for j in range(max(0, i-3), min(len(rows), i+30))
                     ]
                     refs.append({"data_offset": offset, "code_offset": pc,
                                  "instruction": instruction, "nearby": contexts})
@@ -106,7 +112,8 @@ def named_references(code: bytes, data: bytes, rows):
 
 
 def operand_witnesses(rows):
-    values = (0x58, 0x824, 0x2A4, 0x514, 0x45, 0x41)
+    values = (0x58, 0x824, 0x2A4, 0x514, 0x45, 0x41,
+              0x1070, 0x41C, 0x248, 0x920)
     out = {}
     for value in values:
         hits = []
