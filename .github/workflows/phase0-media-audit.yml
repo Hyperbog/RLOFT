@@ -208,7 +208,20 @@ jobs:
           b = entries(stone / "PROPHET/RES9")
           overlap = min(len(a), len(b))
           different = [i for i in range(overlap) if a[i] != b[i]]
+          changes = []
+          for index in different:
+              old, updated = a[index], b[index]
+              changes.append({
+                  "entry_index": index,
+                  "cd_size": len(old), "installed_size": len(updated),
+                  "cd_type": old[2] if len(old) >= 5 and old[:2] == b"EH" else "raw/empty",
+                  "installed_type": updated[2] if len(updated) >= 5 and updated[:2] == b"EH" else "raw/empty",
+                  "different_byte_count": sum(x != y for x, y in zip(old, updated))
+                  + abs(len(old) - len(updated)),
+                  "first_difference": next((k for k, (x,y) in enumerate(zip(old,updated)) if x != y), min(len(old),len(updated))),
+              })
           audit["stone"]["res9_comparison"] = {
+              "changed_records": changes,
               "cd_entries": len(a), "installed_entries": len(b),
               "equal_entry_count": overlap - len(different),
               "different_entry_count": len(different),
@@ -232,6 +245,7 @@ jobs:
                         f"{r9['equal_entry_count']} exact; "
                         f"{r9['different_entry_count']} different.",
                         f"Stone RES9 divergent indices: {r9['different_indices']}.",
+                        f"Stone RES9 changed-record metadata: {r9['changed_records']}.",
                         "The source proves the initialized RES index range, not that "
                         "every record is necessarily visited during a playthrough.",
                         "CD-exclusive cinematics/installer files must not be presumed unused."])
@@ -240,6 +254,17 @@ jobs:
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as f: f.write(report)
           print(report)
           PY
+
+      - name: Re-run unchanged Strahd legacy RES11 and RES12 lineage analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Resources/RES/analyze_legacy_archives.py \
+            "preservation/MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT" \
+            --code2 "preservation/MASTER/Ravenloft - Strahd's Possession/RLOFT/CODE.2" \
+            > audit/strahd-legacy-lineage.txt
+          tail -45 audit/strahd-legacy-lineage.txt
+          printf '\nUnchanged archive-lineage analyzer: PASS\n' >> audit/SUMMARY.md
 
       - name: Publish metadata-only SHA-256 audit
         if: always()
