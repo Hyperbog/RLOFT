@@ -109,6 +109,48 @@ def inspect(path: Path, parser: dict):
             "original_entries": len(entries), "decoded_types": out}
 
 
+# These digests are from the independent Phase 0 checkout audit, not this
+# script's expected results. Reconstructed code/resource bytes are never bundled.
+EXPECTED = {
+    "menzo": {
+        "RES3": ("7b31032e76bb8c7635736b168f9eb2052bb859576c125d1b7de20a932b57a7e6",
+                 {"EH_type6": (3167, 3167, 0, 0, 0)}),
+        "RES4": ("62b09c60881322c035567b58bc09c755e9f905ee0b620e5f3a3f49580ea4eafd",
+                 {"EH_type5": (559, 474, 0, 85, 85),
+                  "EH_type6": (502, 502, 0, 0, 0)}),
+    },
+    "stone": {
+        "PROPHET/RES3": (
+            "09440cb00e4ca741a3abc99bae810a6c600d10a474378efa8a8362fedf6b0534",
+            {"EH_type6": (2542, 2542, 0, 0, 0)}),
+        "PROPHET/RES4": (
+            "17a2b3569806af98a030f3d653b79736e623b4b703531306b457d0c5d0a1c7e4",
+            {"EH_type5": (963, 900, 0, 63, 63),
+             "EH_type6": (410, 409, 1, 0, 0)}),
+    },
+}
+
+
+def verify_expected(output):
+    for title, archives in EXPECTED.items():
+        if title not in output:
+            raise ValueError(f"missing title: {title}")
+        for name, (hash_expected, expected_types) in archives.items():
+            row = output[title][name]
+            if row["sha256"] != hash_expected:
+                raise ValueError(f"source asset SHA-256 changed: {title}/{name}")
+            if set(row["decoded_types"]) != set(expected_types):
+                raise ValueError(f"unexpected typed records in {title}/{name}")
+            for kind, expected in expected_types.items():
+                detail = row["decoded_types"][kind]
+                actual = (detail["records"], detail["lzss_exact"],
+                          detail["trailing_payload"], detail["decode_failures"],
+                          detail["alternative_model_matches"].get("minus2", 0))
+                if actual != expected:
+                    raise ValueError(f"{title}/{name}/{kind}: {actual} != {expected}")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", type=Path, required=True)
@@ -123,6 +165,8 @@ def main():
         output[title] = {
             name: inspect(base / name, parser) for name in archives
         }
+    verify_expected(output)
+    print("Pinned Type-5/6 corpus regression: PASS")
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.json.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
     for title, archives in output.items():
