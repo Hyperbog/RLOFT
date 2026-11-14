@@ -135,4 +135,44 @@ static void test_failure() {
     assert(!verify_code2_media_handoff_witness(GameId::Menzoberranzan,{}));
     assert(!verify_code2_media_handoff_witness(GameId::StoneProphet,{}));
 }
-int main() {test_menzo();test_stone();test_media();test_failure();}
+
+static void test_gameplay_boundary() {
+    for(const std::uint32_t handle : std::array<std::uint32_t,2>{{0U,0x12345678U}}) {
+        Host h; h.bytes[0xBEE4]=6;
+        const Code2MediaHandoff prior{0x23A20,handle,handle!=0,false,0x204DC};
+        const auto b=execute_code2_gameplay_boundary(
+            GameId::Menzoberranzan,prior,h,0xCAFE);
+        assert(b.resource_initializer_returned && b.source_boundary==0x23A93);
+        assert(!b.pending_original_call && h.words.at(0xF570)==0x150000);
+        assert(h.words.at(0x12EAC)==1 && h.seen(0x204DC));
+        assert(h.seen(0x1E474)==(handle!=0));
+        assert(h.seen(0x1D6EC)==(handle!=0));
+        if(handle) {
+            assert(h.bytes.at(0x124E5)==7);
+            assert(h.calls[h.calls.size()-1].first==0x1D6EC);
+            assert(h.calls.back().second==Host::Args({0xCAFE,0xD4}));
+        }
+    }
+    for(const std::uint32_t handle : std::array<std::uint32_t,2>{{0U,99U}}) {
+        Host h; h.words[0x24E54]=1;h.words[0x15C20]=0xBEEF;
+        h.bytes[0x44FDD]=2;h.bytes[0x1A5A8]=4;
+        const Code2MediaHandoff prior{
+            0x2D54D,handle,handle!=0,false,handle?0x4191CU:0x46600U};
+        const auto b=execute_code2_gameplay_boundary(
+            GameId::StoneProphet,prior,h,0);
+        assert(b.opening_ui_drawn==(handle==0));
+        assert(b.source_boundary==(handle?0x2D5C5U:0x2D6CCU));
+        assert(b.pending_original_call==(handle?0x25468U:0U));
+        assert(h.seen(0x46600)==(handle==0));
+        assert(h.seen(0x4191C) && h.seen(0x3C9D4) && h.seen(0x3C9EC));
+        assert(h.words.at(0x1DC34)==0x70000);
+        if(!handle) {
+            for(const auto& c:h.calls)if(c.first==0x46600)
+                assert(c.second==Host::Args({0x1A5AC,0,6,0xBEEF,0x100}));
+        }
+    }
+    assert(!verify_code2_gameplay_boundary_witness(GameId::Menzoberranzan,{}));
+    assert(!verify_code2_gameplay_boundary_witness(GameId::StoneProphet,{}));
+}
+
+int main() {test_menzo();test_stone();test_media();test_failure();test_gameplay_boundary();}

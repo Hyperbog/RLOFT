@@ -111,6 +111,94 @@ bool verify_code2_media_handoff_witness(
     return false;
 }
 
+
+Code2GameplayBoundary execute_code2_gameplay_boundary(
+    GameId game,const Code2MediaHandoff& prior,
+    OriginalResourceStartupPort& p,u32 original_stack_argument) {
+    if(prior.has_chars!=(prior.chars_handle!=0))
+        throw std::invalid_argument("inconsistent original CHARS handle");
+    if(game==GameId::Menzoberranzan) {
+        if(prior.source_next!=0x23A20 || prior.upcoming_call!=0x204DC)
+            throw std::invalid_argument("Menzo CODE.2 source boundary mismatch");
+        // 23A20..23A93, including the original ESI test. At 239E9,
+        // the executable copied the CHARS handle into both EBX and ESI.
+        (void)p.call(0x204DC,{1});
+        (void)p.call(0x35950,{});
+        const auto mode=static_cast<u32>(p.read8(0xBEE4));
+        (void)p.call(0x314FC,{mode});
+        const auto inverse=static_cast<u32>(p.read8(0xBEE4)^1U);
+        (void)p.call(0x31514,{inverse});
+        p.write32(0xF570,0x00150000);
+        if(prior.chars_handle!=0) {
+            (void)p.call(0x1E474,{});
+            p.write8(0x124E5,static_cast<std::uint8_t>(p.read8(0xBEE4)^1U));
+            (void)p.call(0x1EF40,{});
+            // Original PUSH 0xD4; PUSH [EBP+0x10] (cdecl source order).
+            (void)p.call(0x1D6EC,{original_stack_argument,0xD4});
+        }
+        p.write32(0x12EAC,1);
+        // 23A93 is RET. 23A94 is NOT a fallthrough execution target.
+        return {0x23A93,0,true,false};
+    }
+    if(game==GameId::StoneProphet) {
+        if(prior.source_next!=0x2D54D ||
+           prior.upcoming_call!=(prior.chars_handle?0x4191CU:0x46600U))
+            throw std::invalid_argument("Stone CODE.2 source boundary mismatch");
+        // 2D54D..2D5C4: absent-CHARS UI setup, common callback tail,
+        // then the original EBX-dependent jump/call decision.
+        bool drawn=false;
+        if(prior.chars_handle==0 && p.read32(0x24E54)!=0) {
+            const auto screen=static_cast<u32>(p.read8(0x44FDD))+4U;
+            const auto work=p.read32(0x15C20);
+            (void)p.call(0x46600,{0x1A5AC,0,screen,work,0x100});
+            (void)p.call(0x3CA58,{0x1A5AC});
+            drawn=true;
+        }
+        (void)p.call(0x4191C,{});
+        const auto flag=static_cast<u32>(p.read8(0x1A5A8));
+        (void)p.call(0x3C9D4,{flag});
+        const auto flipped=static_cast<u32>(p.read8(0x1A5A8)^1U);
+        (void)p.call(0x3C9EC,{flipped});
+        p.write32(0x1DC34,0x00070000);
+        // Present CHARS: 2D5C5 calls 25468; absent: JE -> 2D6CC.
+        return prior.chars_handle!=0
+            ? Code2GameplayBoundary{0x2D5C5,0x25468,false,drawn}
+            : Code2GameplayBoundary{0x2D6CC,0,false,drawn};
+    }
+    throw std::invalid_argument("no cross-game CODE.2 gameplay handoff for title");
+}
+
+bool verify_code2_gameplay_boundary_witness(
+    GameId game,const std::vector<std::uint8_t>& c) {
+    try {
+        if(game==GameId::Menzoberranzan)
+            return call(c,0x23A22,0x204DC) &&
+                call(c,0x23A2A,0x35950) &&
+                call(c,0x23A37,0x314FC) &&
+                call(c,0x23A4A,0x31514) &&
+                bytes(c,0x23A4F,{0xC7,0x05,0x70,0xF5,0,0,0,0,0x15,0}) &&
+                bytes(c,0x23A5C,{0x85,0xF6,0x74,0x26}) &&
+                call(c,0x23A60,0x1E474) &&
+                bytes(c,0x23A6C,{0xA2,0xE5,0x24,0x01,0}) &&
+                call(c,0x23A71,0x1EF40) &&
+                call(c,0x23A7E,0x1D6EC) &&
+                bytes(c,0x23A86,{0xC7,0x05,0xAC,0x2E,1,0,1,0,0,0}) &&
+                bytes(c,0x23A90,{0x5D,0x5E,0x5B,0xC3});
+        if(game==GameId::StoneProphet)
+            return bytes(c,0x2D54D,{0x85,0xDB,0x75,0x3A}) &&
+                bytes(c,0x2D551,{0x83,0x3D,0x54,0x4E,2,0,0,0x74,0x31}) &&
+                call(c,0x2D576,0x46600) &&
+                call(c,0x2D583,0x3CA58) &&
+                call(c,0x2D58B,0x4191C) &&
+                call(c,0x2D598,0x3C9D4) &&
+                call(c,0x2D5AB,0x3C9EC) &&
+                bytes(c,0x2D5B0,{0xC7,0x05,0x34,0xDC,1,0,0,0,7,0}) &&
+                bytes(c,0x2D5BD,{0x85,0xDB,0x0F,0x84,7,1,0,0}) &&
+                call(c,0x2D5C5,0x25468);
+    }catch(const std::out_of_range&) {return false;}
+    return false;
+}
+
 OriginalNativeMediaSession::OriginalNativeMediaSession(
     GameId game,OriginalResourceFileReader resource,OriginalCharsReader chars)
   :game_(game),resource_(std::move(resource)),chars_(std::move(chars)) {

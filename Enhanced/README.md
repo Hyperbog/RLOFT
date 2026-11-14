@@ -152,6 +152,21 @@ Executable byte witnesses passed 39/39 against original files. The corrected
 new C++ test source has not yet passed a complete local/Windows build, and
 Menzo/Stone do not have playable native entry paths.
 
+
+### Phase 7: first CODE.2 game/UI initialization boundary
+
+The shared existing `original_code2_handoff.cpp/.hpp` continues the retail
+Menzo `23A20..23A93` resource initializer through its actual return, including
+its CHARS-handle-dependent original callbacks. Stone continues `2D54D..2D5C4`
+through conditional UI setup and reports its still-untranslated next branch.
+Original 32-bit handles and the original Menzo caller stack argument remain
+explicit; neither title uses Strahd's CHARS record codec. The existing
+`original_code2_handoff_tests` exercises both branch directions and the
+preserved original callback arguments. Binary opcode witnesses can be
+validated using `verify_code2_gameplay_boundary_witness` against the owned
+original CODE.2 images. **This is still only a bounded source translation:**
+no Menzo/Stone gameplay loop is running in the native player yet.
+
 ## Engineering rules
 
 - Only `Enhanced/` owns the user-facing session, character party, world state,
