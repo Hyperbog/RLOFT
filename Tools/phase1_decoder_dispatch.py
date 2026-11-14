@@ -14,6 +14,39 @@ import runpy
 from pathlib import Path
 from struct import unpack_from
 
+# These dispatch sites are located via original instruction motifs below.
+# Table entries are decoded as 32-bit little-endian code-object offsets.
+DISPATCH_TABLES = {
+    "menzo": {"level_event_vm": (0x1C8, 14, 0x272),
+              "EH_types_1_to_6": (0x34CD8, 6, 0x34E4D)},
+    "stone": {"level_event_vm": (0x264, 14, 0x313),
+              "EH_types_1_to_6": (0x40C88, 6, 0x40DF1)},
+}
+
+
+def read_dispatch_table(code: bytes, rows, at: int, count: int,
+                        branch_at: int):
+    import struct
+    if at < 0 or at + 4 * count > len(code):
+        raise ValueError("dispatch table outside original code object")
+    by_addr = {pc: (op,arg) for pc,op,arg in rows}
+    branch = by_addr.get(branch_at)
+    if not branch or branch[0] != "jmp" or (
+        f"+0x{at:x}]" not in branch[1]
+    ):
+        raise ValueError(f"source branch @{branch_at:#x} mismatched table")
+    targets = list(struct.unpack_from(f"<{count}I", code, at))
+    if any(t >= len(code) or t not in by_addr for t in targets):
+        raise ValueError(f"jump table @{at:#x} has invalid case targets")
+    return {"table_offset": at, "branch_at": branch_at,
+            "count": count, "targets": targets,
+            "case_first_instructions": [
+                {"case": i, "target": t, "first_instruction": by_addr[t][0]
+                 + " " + by_addr[t][1]}
+                for i,t in enumerate(targets)
+            ]}
+
+
 WINDOWS = {
     "menzo": {
         "level_event_vm": (0x200, 0x720),
@@ -182,6 +215,10 @@ def main():
         result[title] = {
             "code2_sha256": meta["sha256"],
             "machine_instructions": len(rows),
+            "verified_branch_tables": {
+                name: read_dispatch_table(code, rows, *params)
+                for name,params in DISPATCH_TABLES[title].items()
+            },
             "EH_signature_comparisons": find_magic(rows),
             "indirect_dispatch_tables": find_table_switches(rows),
             "candidate_26byte_level_script_slots": find_event_scales(rows),
