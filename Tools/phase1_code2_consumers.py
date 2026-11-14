@@ -26,6 +26,42 @@ GAMES = {
 }
 LEXEMES = ("NPCS.DAT", "LEVELS.DAT", "OBJECTS.DAT", "RES", "INIT", "CHARS")
 
+# Exact disassembled instruction witnesses: matched against authenticated CODE.2.
+# No opaque byte patterns, guessed call targets, or source-code string grep.
+CONSUMERS = {
+    "menzo": {
+        0x1AF55: "push 0xff0", 0x1AF63: "push 0x4",
+        0x1AF82: "imul ebx,DWORD PTR ds:0x3a600,0x58",
+        0x1B051: "push 0xffc", 0x1B087: "shl eax,0x6",
+        0x1B08A: "add ebx,eax", 0x1BE41: "push 0x824",
+        0x1BE53: "cmp eax,0x824", 0x1C210: "push 0x514",
+        0x1C21E: "cmp eax,0x514", 0x1B69E: "push 0x1070",
+        0x041C0: "imul ecx,esi,0x41c",
+    },
+    "stone": {
+        0x20EDD: "push 0x124c", 0x20EEB: "push 0x4",
+        0x20F0A: "imul ebx,DWORD PTR ds:0x480fc,0x58",
+        0x20FD9: "push 0x1258", 0x21012: "shl ebx,0x6",
+        0x21015: "add ebx,edx", 0x21E71: "push 0x824",
+        0x21E83: "cmp eax,0x824", 0x2222D: "push 0x514",
+        0x2223B: "cmp eax,0x514", 0x216B9: "push 0x1070",
+        0x0473C: "imul ecx,esi,0x41c",
+    },
+}
+
+
+def authenticated_consumer_witnesses(rows, title: str):
+    by_addr = {addr: f"{opcode} {args}".strip() for addr,opcode,args in rows}
+    for addr,expected in CONSUMERS[title].items():
+        actual = by_addr.get(addr)
+        if actual != expected:
+            raise ValueError(f"{title} CODE.2 {addr:#x}: "
+                             f"{actual!r} != expected instruction {expected!r}")
+    return {"passed": len(CONSUMERS[title]),
+            "instructions": [{"code_object_offset": pc, "decoded": ins}
+                             for pc,ins in CONSUMERS[title].items()]}
+
+
 
 def word(b: bytes, i: int) -> int:
     return struct.unpack_from("<I", b, i)[0]
@@ -236,6 +272,7 @@ def audit(root: Path):
         meta["decoded_instruction_starts"]=len(rows)
         output[title]={
             "original_executable":meta,
+            "verified_consumers": authenticated_consumer_witnesses(rows,title),
             "strings_and_candidate_readsites": named_references(code,data,rows),
             "instruction_immediate_candidates": operand_witnesses(rows),
             "type5_type6": type_headers(folder/cfg["res"]),
@@ -256,6 +293,8 @@ def main():
     for title,item in result.items():
         print(f"{title}: CODE2 sha256={item['original_executable']['sha256']}"
               f" asm-instructions={item['original_executable']['decoded_instruction_starts']}")
+        print(f"  authenticated code witnesses: "
+              f"{item['verified_consumers']['passed']}/{len(CONSUMERS[title])}")
         for k,v in item["strings_and_candidate_readsites"].items():
             print(f"  {k}: data={v['data_offsets']}"
                   f" candidates={v['total_reference_candidates']}")
