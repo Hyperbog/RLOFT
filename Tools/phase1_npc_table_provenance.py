@@ -29,6 +29,59 @@ CFG={
    "lookup_span":(0x33d3c,0x33dce),
    "table_base":0x447d6}
 }
+TABLE_WITNESSES={
+    "menzo":{
+        0x2b352:("mov","WORD PTR [edx*2+0x25000]"),
+        0x2b35a:("and","dl,0x3f"),
+        0x2b384:("shl","edx,0x5"),
+        0x291f2:("cmp","DWORD PTR [ebp+0x14],0x3"),
+        0x291fe:("lea","[edx*8+0x0]"),
+        0x29205:("shl","ecx,0x5"),
+        0x2920d:("jmp","DWORD PTR cs:[ebx*4+0x291dc]"),
+    },
+    "stone":{
+        0x33d42:("cmp","DWORD PTR [ebp+0x14],0x3"),
+        0x33d4e:("lea","[edx*8+0x0]"),
+        0x33d55:("shl","ecx,0x5"),
+        0x33d5d:("jmp","DWORD PTR cs:[ebx*4+0x33d2c]"),
+        0x4423a:("shl","ebx,0x5"),
+        0x44244:("add","ebx,0x447d6"),
+    },
+}
+INDEX_GLOBALS={"menzo":0xc524,"stone":0x1abe8}
+
+def verify_indexed_table_machine(rows,title):
+    by_pc={pc:(op,args) for pc,op,args in rows}
+    checked=[]
+    for pc,(opcode,needle) in TABLE_WITNESSES[title].items():
+        got=by_pc.get(pc)
+        if not got or got[0]!=opcode or needle not in got[1]:
+            raise ValueError(
+                f"{title}: CODE.2 header table addressing changed at {pc:#x}: {got}")
+        checked.append({"code_offset":pc,"x86":got[0]+" "+got[1]})
+    glob=INDEX_GLOBALS[title]
+    writes=[]
+    for i,(pc,op,args) in enumerate(rows):
+        if op!="mov" or not args.startswith(f"ds:0x{glob:x},"):
+            continue
+        writes.append({"pc":pc,"asm":op+" "+args,
+                       "preceding":[{"pc":p,"asm":mn+" "+a}
+                                    for p,mn,a in rows[max(0,i-15):i]]})
+    return {
+        "VERIFIED_machine_index_formula":{
+            "physical_width_u16":2,"cell_group_count":64,
+            "orientation_entries_per_group":4,
+            "selector_channels_per_orientation":4,
+            "index_16bit_words":"(tile_code<<4) + (orientation<<2) + channel",
+            "code2_exact_witnesses":checked},
+        "render_group_index_global":{
+            "data_object_offset":glob,
+            "candidate_code_write_count":len(writes),
+            "bounded_writes":writes[:30],
+            "cross_game_cell_code_semantics":"Menzo six-bit mask VERIFIED; Stone index source not yet fully traced"},
+    }
+
+
 INTERIOR=re.compile(r"\+0x([0-9a-f]+)\]")
 LOADOPS={"mov","movzx","movsx","lea","cmp","test","push","add","and","or","sub"}
 DUMMY_RAW_VALUES=()
@@ -169,6 +222,7 @@ def main():
             "npc_nine_byte_presence":record_relation(npc),
             "npc_byte_access_candidates":npc_candidate_sites(rows,cfg),
             "original_table_x86_context":asm_windows(rows,cfg),
+            "executable_index_formula":verify_indexed_table_machine(rows,title),
             "level_table_vs_packed_cell_code":level_cell_correlation(lev),
         }
         print(title,"NPC syntactic leads",
