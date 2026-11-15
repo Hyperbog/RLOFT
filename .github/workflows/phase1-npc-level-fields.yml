@@ -28,6 +28,7 @@ jobs:
           sparse-checkout: |
             MASTER/Menzoberranzan
             MASTER/Ravenloft - Stone Prophet
+            MASTER/Ravenloft - Strahd's Possession
           sparse-checkout-cone-mode: true
           persist-credentials: false
       - name: Audit original CODE.2 NPC and level field references
