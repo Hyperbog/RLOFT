@@ -26,6 +26,11 @@ ARITY = {
  ),
 }
 
+# Current corpus coverage is pinned as an audit regression, not a
+# completeness threshold. Update deliberately when case widths are proved.
+EXPECTED_DIAGNOSTIC = {"menzo": (31, 7), "stone": (48, 21)}
+
+
 def read_programs(path, parser):
     entries=parser["parse_res"](path)
     for i,record in enumerate(entries):
@@ -106,6 +111,11 @@ def audit(root, repo):
                         examples[opcode].append([record,ip])
             except ValueError as ex:
                 failed.append({"record":record,"reason":str(ex)})
+        if (len(programs),len(successful)) != EXPECTED_DIAGNOSTIC[title]:
+            raise ValueError(
+                f"{title}: wordcode parser regression "
+                f"{(len(programs),len(successful))} != {EXPECTED_DIAGNOSTIC[title]}"
+            )
         out[title]={
             "candidate_not_executable_certified":True,
             "declared_opcodes":len(widths),
