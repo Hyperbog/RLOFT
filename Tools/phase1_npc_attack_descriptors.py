@@ -16,7 +16,9 @@ ATTACKS={
  "menzo":{
    "npc":"NPCS.DAT","count_reads":{
        0x1ff3b:("cmp","BYTE PTR [edi+0x1d],0x2"),
-       0x20077:("cmp","BYTE PTR [edi+0x1d],0x2")},
+       0x20077:("cmp","BYTE PTR [edi+0x1d],0x2"),
+       0x1ff30:("test","BYTE PTR [edi+0x21],0xc"),
+       0x1ff41:("test","BYTE PTR [edi+0x2a],0xc")},
    "roll":{
        0xfb0c:("movsx","WORD PTR [esi+0x24]"),
        0xfb13:("lea","[edx*8+0x0]"),
@@ -37,7 +39,10 @@ ATTACKS={
  "stone":{
    "npc":"CD_Extracted/NPCS.DAT","count_reads":{
        0x275f0:("movzx","BYTE PTR [edi+0x1d]"),
-       0x277a5:("movzx","BYTE PTR [edi+0x1d]")},
+       0x277a5:("movzx","BYTE PTR [edi+0x1d]"),
+       0x275f4:("cmp","eax,0x2"),
+       0x275f9:("mov","WORD PTR [edi+0x2a]"),
+       0x275ff:("and","al,0x8d")},
    "roll":{
        0x12b67:("movsx","WORD PTR [esi+0x28]"),
        0x12b6c:("lea","[edx*8+0x0]"),
@@ -49,7 +54,8 @@ ATTACKS={
        0x12b8d:("call","0x29ed0")},
    "cycle":{
        0x27c9e:("movzx","BYTE PTR [esi+eax*1+0x23]"),
-       0x27cbe:("movzx","BYTE PTR [esi+eax*1+0x26]")},
+       0x27cbe:("movzx","BYTE PTR [esi+eax*1+0x26]"),
+       0x27ca8:("idiv","ecx")},
    "contexts":{"count_A":(0x275b0,0x27680),
                "count_B":(0x27770,0x27830),
                "attack":(0x12af0,0x12bd0),
@@ -108,7 +114,15 @@ def records(path):
             "active_and_residual_slot_histogram":{
                 "slot%d_active%d_has_bytes%d"%k:v
                 for k,v in sorted(descriptors.items())},
-            "nonzero_active_fields":nonzero_by_field}
+            "nonzero_active_fields":nonzero_by_field,
+            "descriptor_auxiliary_fields":{
+                "byte_3":"VERIFIED attack-control bit tests in CODE.2; exact bit semantics partly unknown",
+                "byte_4":"raw; zero in all sampled definitions",
+                "byte_5":"VERIFIED divisor in modulo of attack/action phase counter",
+                "byte_6":"raw; zero in all sampled definitions",
+                "byte_7":"raw; preservation required",
+                "byte_8":"VERIFIED compared to modulo attack/action phase counter",
+            }}
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
