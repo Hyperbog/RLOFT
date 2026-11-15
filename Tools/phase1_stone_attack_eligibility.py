@@ -110,7 +110,7 @@ MODE_LIFECYCLE_WITNESSES = {
     0x0D941: ("movzx", "BYTE PTR ds:0x16e86"),
     0x0D948: ("mov", "BYTE PTR ds:0x16e86,0x1"),
     0x0D94F: ("mov", "DWORD PTR [ebp-0x4],eax"),
-    0x0DA32: ("mov", "al,BYTE PTR [ebp-0x4]"),
+    0x0DA2E: ("mov", "al,BYTE PTR [ebp-0x4]"),
     0x0DA37: ("mov", "ds:0x16e86,al"),
     0x2E180: ("xor", "BYTE PTR ds:0x16e86,0x1"),
     0x2764C: ("movzx", "BYTE PTR ds:0x16e86"),
