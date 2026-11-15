@@ -348,9 +348,48 @@ def work_level_producer_and_indirect_dispatch(rows):
         if op!="call" or arg.startswith("0x"):continue
         indirect.append({"pc":pc,"asm":op+" "+arg,
            "before":[{"pc":p,"asm":m+" "+a} for p,m,a in rows[max(0,i-6):i]]})
+
+    if indirect and min(x["pc"] for x in indirect)<0x40000:
+        raise ValueError("Stone gameplay-region indirect call census changed")
+    # Indirect jumps are distinct from indirect calls: switch/case dispatch
+    # can still transfer to an unknown destination, and no CODE.1 or save
+    # path has been ruled out.
+    indirect_jumps=[
+       {"pc":pc,"asm":op+" "+arg}
+       for pc,op,arg in rows
+       if op=="jmp" and not arg.startswith("0x") and pc<0x40000
+    ]
+    # Pin original source-backed stream accesses before using the names
+    # open/read/write/seek/close in the format report.
+    LEVEL_WRITER_WITNESSES={
+       0x313A:("call","0x433c0"),0x317E:("call","0x4343c"),
+       0x318D:("call","0x4340c"),0x31AB:("call","0x4340c"),
+       0x31F5:("call","0x4340c"),0x3291:("call","0x433fc"),
+       0x33C1:("call","0x433c0"),0x33D9:("call","0x4343c"),
+       0x33EC:("call","0x4340c"),0x3450:("call","0x4340c"),
+       0x2445E:("call","0x21db0"),0x244CE:("call","0x433c0"),
+       0x244E9:("call","0x40584"),0x24558:("call","0x4340c"),
+       0x2462E:("call","0x4340c"),
+    }
+    pinned=[]
+    for pc,(want_op,want_arg) in LEVEL_WRITER_WITNESSES.items():
+       got=bypc.get(pc)
+       if got!=(want_op,want_arg):
+           raise ValueError(f"Stone numbered work-file stream witness drift @{pc:#x}: {got}")
+       pinned.append({"pc":pc,"asm":got[0]+" "+got[1]})
     # Code object disassembly is whole-object, so accidental instruction
     # decodes are leads until original CFG/call ownership is established.
     return {
+       "original_file_io_helper_excerpts":{
+          "numbered_file_handle_open":bounded(rows,0x43390,0x43400,limit=85),
+          "stream_io_and_offset_helpers":bounded(rows,0x43400,0x43495,limit=100),
+          "missing_work_file_fallback":bounded(rows,0x40550,0x40650,limit=110),
+       },
+       "verified_writer_machine_witnesses":pinned,
+       "indirect_gameplay_call_count_below_0x40000":len([
+          rec for rec in indirect if rec["pc"]<0x40000]),
+       "indirect_gameplay_jumps":indirect_jumps[:65],
+       "indirect_gameplay_jumps_total":len(indirect_jumps),
        "verified_leads":[{"pc":pc,"asm":bypc[pc][0]+" "+bypc[pc][1]}
          for pc in (0x2445E,0x24477,0x2448B)],
        "producer_candidate_machine_windows":{
