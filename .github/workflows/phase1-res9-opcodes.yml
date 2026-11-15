@@ -5,6 +5,7 @@ on:
     branches: [Ravenloft-Enhanced]
     paths:
       - 'Tools/phase1_res9_handler_map.py'
+      - 'Tools/phase1_res9_arity_correlate.py'
       - 'Tools/phase1_res9_opcode_probe.py'
       - '.github/workflows/phase1-res9-opcodes.yml'
   workflow_dispatch:
@@ -39,6 +40,15 @@ jobs:
             --json audit/phase1-res9-handlers.json
           python -m py_compile Tools/phase1_res9_handler_map.py
           printf '%s\n' 'Original-code dispatcher and full-corpus opcode/arity diagnostic passed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Correlate opcode operand counts against full RES9 corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_res9_arity_correlate.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-res9-arity-correlation.json
+          python -m py_compile Tools/phase1_res9_arity_correlate.py
+
       - name: Publish derived evidence only
         if: always()
         uses: actions/upload-artifact@v4
