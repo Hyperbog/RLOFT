@@ -79,6 +79,43 @@ PINNED_MEDIA={
     "strahd_levels":"50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91",
 }
 
+EXPECTED_CORPUS={
+    "menzo":{"npc_count":98,"level_count":56,
+             "table_nonzero":21336,"table_max":134,
+             "hit_dice_sample_record":0,"hit_dice_sample":6,
+             "state_sample_hex":"0x20000000",
+             "counts_first_level":[26,27,133]},
+    "stone":{"npc_count":110,"level_count":43,
+             "table_nonzero":10491,"table_max":193,
+             "hit_dice_sample_record":1,"hit_dice_sample":13,
+             "state_sample_hex":"0x20000000",
+             "counts_first_level":[58,64,172]},
+}
+EXPECTED_STRAHD={"levels":32,"table_nonzero":4942,
+                 "table_max":46513,"table_entries":320}
+
+
+def assert_corpus(title, npc, levels):
+    exp=EXPECTED_CORPUS[title]
+    got={
+        "npc_count":npc["count"],
+        "level_count":levels["records"],
+        "table_nonzero":levels["u16_table_value_statistics"]["nonzero_entries_all_levels"],
+        "table_max":levels["u16_table_value_statistics"]["range"][1],
+        "hit_dice_sample_record":npc["candidate_definition_hit_dice_byte_0x30"]["sample_record"],
+        "hit_dice_sample":npc["candidate_definition_hit_dice_byte_0x30"]["sample_value"],
+        "state_sample_hex":npc["copied_u32_0x48"]["sample_value_hex"],
+        "counts_first_level":levels["minimal_samples"][0]["fixed_header_counts_ACB"],
+    }
+    if got!=exp:
+        raise ValueError(f"{title} original NPC/header regression: {got} != {exp}")
+    if levels["count_assertions_passed"]!=exp["level_count"]:
+        raise ValueError(f"{title} level count-section mismatch")
+    if levels["u16_table_value_statistics"]["above_255_entries"]!=0:
+        raise ValueError(f"{title} unexpected nonzero high byte")
+    return True
+
+
 def assert_media_file(key,path):
     digest=hashlib.sha256(path.read_bytes()).hexdigest()
     if digest!=PINNED_MEDIA[key]:
@@ -250,6 +287,7 @@ def main():
                        "npcs":npc_sample(folder/profile["npc"]),
                        "levels":level_sample(folder/profile["level"]),
                        "original_machine":machine(rows,title)}
+        assert_corpus(title,result[title]["npcs"],result[title]["levels"])
         print(title,"verified code",len(WITNESSES[title]),
               "candidate u16 table hits",result[title]["original_machine"][
               "level_header_u16_table_base_pointer"]["instruction_reference_count"],
@@ -264,6 +302,13 @@ def main():
     }
     if result["strahd_reference"]["levels"]["count_assertions_passed"]!=32:
         raise ValueError("Strahd 32-level reference geometry changed")
+    ref=result["strahd_reference"]["levels"]
+    base=ref["u16_table_value_statistics"]
+    if (ref["records"]!=EXPECTED_STRAHD["levels"]
+        or base["nonzero_entries_all_levels"]!=EXPECTED_STRAHD["table_nonzero"]
+        or base["range"][1]!=EXPECTED_STRAHD["table_max"]
+        or ref["verified_level_header_field_widths"]["table_prefix_entry_count"]!=EXPECTED_STRAHD["table_entries"]):
+        raise ValueError("Original Strahd header indexing reference regressed")
     print("strahd-reference:",result["strahd_reference"]["levels"]["records"],
           "levels, 320-word header table, all count equations checked")
     a.json.parent.mkdir(parents=True,exist_ok=True)
