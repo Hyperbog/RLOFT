@@ -217,11 +217,11 @@ def source_and_live_loader_provenance(rows):
     candidate_region=[x for x in count_read_sites["examples"]
                       if x["pc"]<0x21D80]
     return {
-       "verified_live_stream_instruction_witnesses":fixed,
+       "verified_live_stream_serialization_witnesses":fixed,
        "runtime_table_and_count_xref_census":table_addresses,
        "level_count_reads_before_stream_reader":candidate_region,
        "eleven_stride_machine_context_0x16930":bounded(rows,0x16930,0x16990,limit=75),
-       "verified_runtime_read_geometry":{
+       "verified_runtime_serialization_geometry":{
            "position_struct_stride_bytes":16,
            "live_actor_struct_stride_bytes":50,
            "npc_definition_catalog_stride_bytes":88,
