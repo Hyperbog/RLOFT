@@ -62,7 +62,24 @@ def decode(words, widths, title):
         ip+=1
         if logical < 0 or logical >=len(widths):
             raise ValueError(f"bad encoded opcode {encoded:#x} at IP {pc}; previous decoded instruction starts and arities={[(p, op, len(a)) for p,op,a in decoded[-5:]]}")
-        if title=="stone" and logical==53:
+        if logical in (17,24):
+            # Menzo CODE.2 0x19610 and Stone 0x1D118: both read
+            # two header words, then consume at most four condition/value
+            # pairs. The stop-condition value is game-specific (0x21/0x26).
+            if ip+2>len(words):
+                raise ValueError(f"choice helper initial pair overrun at IP {pc}")
+            start=ip
+            ip+=2
+            sentinel=0x21 if title=="menzo" else 0x26
+            for pair in range(4):
+                if ip+2>len(words):
+                    raise ValueError(f"choice helper pair {pair} overrun at IP {pc}")
+                condition=words[ip]
+                ip+=2
+                if condition==sentinel:
+                    break
+            args=words[start:ip]
+        elif title=="stone" and logical==53:
             # Stone CODE.2 0x1D77C: count word; count argument words.
             if ip>=len(words):
                 raise ValueError(f"Stone 0x37 count absent at IP {pc}")
