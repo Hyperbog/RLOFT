@@ -234,11 +234,13 @@ def assert_corpus(title, observed):
         raise ValueError(f"{title} original tile filter dispatch count changed")
     h=observed["npc_auxiliary_data"]["active_aux_byte_histograms"]
     for field,values in EXPECTED_AUXILIARY[title].items():
-        if h[field]!=values:
-            raise ValueError(f"{title} attack auxiliary +{field} values changed")
+        actual={str(k):n for k,n in h[field].items()}
+        if actual!=values:
+            raise ValueError(f"{title} attack auxiliary +{field} values changed: {actual}")
     for pos in ("4","6"):
-        if h[pos]!={"0":sum(h["5"].values())}:
-            raise ValueError(f"{title} attack auxiliary +{pos} not zero in corpus")
+        actual={str(k):n for k,n in h[pos].items()}
+        if actual!={"0":sum(h["5"].values())}:
+            raise ValueError(f"{title} attack auxiliary +{pos} not zero: {actual}")
 
 
 def main():
