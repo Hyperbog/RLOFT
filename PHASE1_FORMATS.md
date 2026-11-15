@@ -42,7 +42,7 @@ All three LEVELS archives have a valid 4-byte count, an offset directory beginni
 boundary_1 = 0x1D + per_title_fixed_header_bytes + 2 * width * height
 ```
 
-The exact fixed-header byte counts were **676 for every Strahd level**, **2,084 for every Menzo level**, and **2,084 for every Stone level**. Strahd's header fields and gameplay meaning have prior executable evidence. Menzo/Stone's expanded `0x824` header fields have **not yet** been assigned semantic names or CODE.2 read-site proofs. The shared `0x514` event-script *span* does not certify identical opcodes.
+The exact fixed-header byte counts were **676 for every Strahd level**, **2,084 for every Menzo level**, and **2,084 for every Stone level**. Strahd's header fields and gameplay meaning have prior executable evidence. Menzo/Stone's `0x824` headers now have a CODE.2-read `u16LE[1024]` indexed table at `+0x00A`, plus three structurally authenticated family counts at `+0x80A/+0x80C/+0x80E`. Indexed-table element semantics and the last 20-byte tail remain unresolved. The shared `0x514` event-script *span* does not certify identical opcodes.
 
 ## RES archive and envelope interoperability
 
@@ -69,14 +69,28 @@ The active RES archive *index number* must **never** be treated as a game-indepe
 - **Cinematics:** Strahd has ANM files, while Menzo/Stone have DFA and some ACT files. These files were inventoried but **not decoded** in this component.
 - **INIT and resource lookup:** Different INIT sizes, Stone's absence of INFO.DAT in the inspected roots, and the title-specific RES5/RES9 raw records remain unresolved.
 
+## NPC and expanded fixed-level-header field checkpoint
+
+The [read-only three-title field audit](Tools/phase1_npc_level_semantics.py) and [original readsite mapping](Tools/phase1_npc_level_consumers.py) verify 98 Menzo and 110 Stone `0x58`-byte NPC definitions, alongside 32 Strahd, 56 Menzo and 43 Stone indexed level records. All five input media SHA-256 digests are pinned in the regression. The enlarged 0x824-byte header is not an anonymous 0x580-byte appendix; it contains a **1024-entry little-endian 16-bit table** at header `+0x00A..+0x809` where Strahd stores **320 entries** at `+0x00A..+0x289`. Three `u16LE` counts A/C/B follow, shifted from Strahd offsets `+0x28A/28C/28E` to `+0x80A/80C/80E`, and match their `11-byte` serialized family spans in all 131 levels.
+
+The 1024-word table contains **21,336** nonzero Menzo entries (values 0..134) and **10,491** nonzero Stone entries (values 0..193). Original CODE.2 indexes these tables at Menzo `0x21837` and Stone `0x2B100`. Exact lookup semantics remain UNKNOWN. The 20 bytes after the counts, `+0x810..+0x823`, are retained verbatim; some have original direct CODE.2 readers, not automatically padding.
+
+For the 88-byte NPC definitions, original CODE.2 proves that `+0x30 u8` feeds HP hit-dice/roll generation and `+0x48 u32LE` is copied to a live `+0x0E` initialization-state field. Menzo builds **46-byte live NPC records** and uses eight-sided dice; Stone builds **50-byte live NPC records** and has four HP modes—d8 dice or hit-dice count multiplied by 6, 7 or 8 under runtime selector `0x1A4BC`. The selector's gameplay meaning remains UNKNOWN. The source flag bytes `+0x4C/+0x4D` have observed bit consumers. An interposed **19-byte NPC-definition region `+0x1D..+0x2F`** is present and populated, but its meanings remain UNKNOWN. Preserve audio/resource IDs without assuming Strahd's aliases apply to every title.
+
+```sh
+python Tools/phase1_npc_level_fields.py --root preservation/MASTER --repo-root . --json audit/npc-level-fields.json
+python Tools/phase1_npc_level_consumers.py --root preservation/MASTER --repo-root . --json audit/npc-level-consumers.json
+python Tools/phase1_npc_level_semantics.py --root preservation/MASTER --repo-root . --json audit/npc-level-semantic-witnesses.json
+```
+
 ## Phase 1 boundary and next investigation
 
 **Established:** shared RES outer grammar and EH envelope, common indexed level directory/preamble/event-script slot geometry, title-specific fixed-level-header sizes, two NPC striding families, and a common 65-byte object-record geometry. The [original CODE.2 diff](CROSS_TITLE_DIFF.md) verifies the 14-case Menzo/Stone level-event dispatcher (13 Strahd), per-title Type-5/6 decoder entrypoints, and the reusable LZSS stream grammar for all 6,621 Type-6 and 1,522 Type-5 records **with explicit producer anomalies** (148 Type-5 length discrepancies and one four-byte Type-6 tail). Strahd RES9 wordcode cannot decode the Menzo/Stone programs as-is.
 
-**Still not established:** per-opcode event gameplay semantics and script triggers, field-level NPC/expanded-level-header compatibility, the producer reason for Type-5's two-byte declared-length discrepancy, full RES9 **behavioral** VM execution (despite complete structural decode for all 79 title-specific programs), `0xFFFF` timer behavior, CHARS/SAVE codecs, title-specific archive search order, or playability.
+**Still not established:** semantic meanings of the 19 interposed NPC bytes, several NPC status/attack and sound aliases, the enlarged level-header indexed table and 20-byte tail, per-opcode level-event gameplay effects/triggers, Type-5's two-byte declared-length discrepancy, full RES9 **behavioral** VM execution (despite complete structural decode for all 79 title-specific programs), `0xFFFF` timer behavior, CHARS/SAVE codecs, title-specific archive search order, or playability.
 
 **Completed Phase 1 structural checkpoint:** The title-specific RES9 decoders consume **31/31 Menzo** and **48/48 Stone Prophet** interaction scripts. Original CODE.2-backed checks establish **876 + 1,473 = 2,349** valid direct-target boundaries with zero mismatches. Stone opcode `0x08` is a two-word conditional, and helper `0x1D594` proves `999` is an empty-value sentinel for opcode `0x2E`, not a branch target. [Full executable evidence](Resources/RES/CROSS_TITLE_WORDCODE_VM_PHASE1.md).
 
-**Next Phase 1 component:** recover field-level 88-byte NPC and extended 0x824-byte LEVELS header semantics; retain RES9 behavioral effects and timer semantics as separate outstanding Phase 1 work. Do not define cross-title gameplay structs before those executable-backed checks.
+**Next Phase 1 component:** trace the still-unknown **19-byte NPC-definition region** and the **1024-entry header-table indexing semantics** through complete original CODE.2 call paths. Do not define game-neutral combat or map fields from unverified cross-title analogies, and do not advance to Phase 2 before authorization.
 
 **No executable gameplay implementation, commercial asset modification, or user playtest occurred in this survey.**
