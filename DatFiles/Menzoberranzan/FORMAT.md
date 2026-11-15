@@ -23,6 +23,8 @@
 
 ### NPC definition and expanded level-header field evidence
 
+**Attack descriptor auxiliary reads.** Each nine-byte record's relative `+3` has CODE.2 control-bit tests (e.g., `0x1FF30/0x1FF41`, mask `0x0C`). Relative `+5` is used as a modulo divisor for the live attack-phase counter (`0x203C5..0x203CF`); relative `+8` is compared with the resulting phase (`0x203E3`). Other bytes retain raw values because their purpose is not completely proved. Inactive descriptor bytes are **not guaranteed zero**: six records with attack count zero retain nonzero attack data, as does the second slot of one one-attack record. Preserve them byte-for-byte. [Exact readsite and full-corpus test](../../Tools/phase1_npc_attack_descriptors.py).
+
 The original NPCS.DAT SHA-256 is `ad365e5da571e95306cf20f226399088563a7cc5d371d53db971e8c1e8449e39` (98 definitions, each `0x58` bytes). Data positions are **definition-record-relative**, not runtime offsets.
 
 | Original field | Width | Executable-backed operation | Confidence |
@@ -31,7 +33,7 @@ The original NPCS.DAT SHA-256 is `ad365e5da571e95306cf20f226399088563a7cc5d371d5
 | `+0x48` | `u32LE` | `0x104D5/0x104EA` copies original definition value unchanged to live-record `+0x0E` | VERIFIED initialization state copy; bit meanings incomplete |
 | `+0x4C/+0x4D` | 2 × `u8` | Original flag tests include `0xFBC7` and `0xFC46` | VERIFIED bit tests; overall gameplay semantics UNKNOWN |
 | `+0x50/52/54/56` | 4 × `u16LE` | Read as separate audio/resource index fields; callsites `0x20103`, `0xFD7F`, `0x10676`, `0x1061B` use resource base `0x3A63C` and dispatcher `0x302B8` | VERIFIED widths/readsites, individual aliases LIKELY |
-| `+0x1D..+0x2F` | 19 raw bytes | Nonzero in 15 of 19 byte-columns across the corpus; later proved fields are displaced by 19 bytes relative to Strahd | VERIFIED byte geometry, field meanings UNKNOWN |
+| `+0x1D` / `+0x1E..+0x26` / `+0x27..+0x2F` | `u8 attack_count; attack[2]` (9 bytes each) | 98 definitions: counts 0/1/2 = 67/15/16. Each attack starts `u8 dice_count, u8 die_sides, u8 damage_bonus`. | CODE.2 `0x1FF3B/0x20077` checks two attacks; `0xFB13..0xFB30` indexes `(live_attack_index−1)*9` and calls damage dice helper `0x20818`. | VERIFIED physical attack grammar and damage operands |
 
 Example: NPC index **0** has hit-dice count **6** at `+0x30` and initial-state dword `0x20000000` at `+0x48`. The original NPC *definition* stride `0x58` is distinct from the constructed *live* NPC stride **`0x2E`** (46 bytes), shown by CODE.2 `0x1047C/0x1048D`.
 
@@ -39,11 +41,13 @@ The LEVELS.DAT SHA-256 is `d3509c9288cc5b1e14b6a9e6c4e2d496e336b3dcaca05555a65e5
 
 | Header offset | Physical field and evidence | Confidence |
 | --- | --- | --- |
-| `+0x00A..+0x809` | `u16LE[1024]` indexed table; CODE.2 uses DGROUP `0x39DA6`, including indexed read at `0x21837` | VERIFIED storage and indexing; table value semantics UNKNOWN |
+| `+0x00A..+0x809` | `u16LE[64][4][4]`: cell-code group × orientation × four channels | CODE.2 `0x2B352/0x2B35A` reads grid cell and masks low six bits, `0x2B384` selects a 32-byte group; `0x291FE..0x29244` indexes orientation×8 bytes and channel. Individual channel semantics UNKNOWN. | VERIFIED index arithmetic and table grouping |
 | `+0x80A` | `u16LE` family A count, equals `(boundary_3−boundary_2)/11` in 56/56 levels | VERIFIED |
 | `+0x80C` | `u16LE` family C count, equals `(boundary_5−boundary_4)/11` in 56/56 levels | VERIFIED |
 | `+0x80E` | `u16LE` family B count, equals `(boundary_4−boundary_3)/11` in 56/56 levels | VERIFIED |
 | `+0x810..+0x823` | 20-byte tail with populated fields and original direct readers; individual meanings not yet decoded | VERIFIED raw span; semantics UNKNOWN |
+
+The header table is grouped by **64 cell codes × 4 orientations × 4 u16 channels**, unlike Strahd's five independent 64-word resource/automap banks. Indexed entry zero is empty across all archived levels; rendering uses 32-byte code groups and eight-byte orientation subgroups. The precise asset/channel meaning is not assigned merely from these dimensions. [Executable index proof](../../Tools/phase1_npc_table_provenance.py).
 
 The widened table has **21,336 nonzero entries** across 56 levels, encoded values **0..134**, and no value above 255. For example, level index **0** has **70×70** cells and A/C/B counts **26/27/133**. The table is **704 additional u16 entries** relative to Strahd's 320-entry layout, explaining the entire `0x580`-byte difference in header length; identical field meanings are not presumed.
 
@@ -85,7 +89,7 @@ python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/men
 
 The additional `0x580` bytes expand the header's 16-bit indexed table from 320 to 1024 entries, with all three record-family counts following the widened table. **706 distinct byte positions** within the former extension region contain nonzero values. Their original CODE.2 readsites are documented above; the meaning of the table values and the final 20-byte header tail is still unresolved.
 
-The 19 newly observed NPC-definition bytes at `+0x1D..+0x2F`, many behavior/status bits, sound-event aliases, the 0x41C CHARS fields, event VM opcode effects, saves, rules, and Type-5's two-byte length discrepancy remain open. HP-count and initial-state-copy semantics are executable-backed, but **full NPC field semantics are not complete**. No Menzo native gameplay is implemented or tested.
+The attack-count and 9-byte attack-record grammar is proved, but descriptor-relative `+3` control-flag aliases, `+4/+6/+7` raw fields and broader NPC status/sound meanings remain incomplete. CHARS, level-event effects, saves, rules and Type-5's declared-length discrepancy remain open. No Menzo gameplay was implemented or tested.
 
 **Reproduce:**
 
