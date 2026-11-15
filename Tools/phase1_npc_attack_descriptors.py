@@ -63,6 +63,14 @@ ATTACKS={
 }
 
 EXPECTED_ATTACK_COUNTS={"menzo":{0:67,1:15,2:16},"stone":{0:80,1:15,2:15}}
+EXPECTED_ATTACK_FIELD_RANGES={
+    "menzo":{"range_u16":{32768:47},"cycle_period_u8":{3:47},
+             "trigger_u8":{1:47}},
+    "stone":{"range_u16":{0:5,32768:40},
+             "cycle_period_u8":{0:5,3:37,4:2,6:1},
+             "trigger_u8":{0:5,1:16,2:23,3:1}},
+}
+
 
 
 def verify_machine(rows,profile):
@@ -89,6 +97,10 @@ def records(path):
     tally=collections.Counter()
     descriptors=collections.Counter()
     nonzero_by_field=[0]*9
+    range_u16=collections.Counter()
+    control_u16=collections.Counter()
+    phase_period=collections.Counter()
+    phase_trigger=collections.Counter()
     for i in range(count):
         rec=buf[4+0x58*i:4+0x58*(i+1)]
         attack_count=rec[0x1d]
@@ -102,6 +114,12 @@ def records(path):
             dice,sides,bonus=desc[:3]
             descriptors[(slot,int(active),int(any(desc)))]+=1
             if active:
+                flag_u16=struct.unpack_from("<H",desc,3)[0]
+                reach_u16=struct.unpack_from("<H",desc,6)[0]
+                control_u16[flag_u16]+=1
+                phase_period[desc[5]]+=1
+                range_u16[reach_u16]+=1
+                phase_trigger[desc[8]]+=1
                 for x in range(9):
                     nonzero_by_field[x]+=bool(desc[x])
     return {"npc_count":count,"attack_count_field_offset":0x1d,
@@ -112,19 +130,25 @@ def records(path):
             "attack_damage_dice_count_offset_in_descriptor":0,
             "attack_damage_die_sides_offset_in_descriptor":1,
             "attack_damage_bonus_offset_in_descriptor":2,
-            "candidate_animation_modulus_byte_offset_in_descriptor":5,
-            "candidate_animation_limit_byte_offset_in_descriptor":8,
+            "attack_flags_u16le_offset_in_descriptor":3,
+            "attack_cycle_period_u8_offset_in_descriptor":5,
+            "twice_scaled_range_u16le_offset_in_descriptor":6,
+            "attack_phase_trigger_u8_offset_in_descriptor":8,
+            "authenticated_full_active_descriptor_fields":{
+                "flags_u16":dict(sorted(control_u16.items())),
+                "cycle_period_u8":dict(sorted(phase_period.items())),
+                "range_u16":dict(sorted(range_u16.items())),
+                "trigger_u8":dict(sorted(phase_trigger.items())),
+            },
             "active_and_residual_slot_histogram":{
                 "slot%d_active%d_has_bytes%d"%k:v
                 for k,v in sorted(descriptors.items())},
             "nonzero_active_fields":nonzero_by_field,
             "descriptor_auxiliary_fields":{
-                "byte_3":"VERIFIED attack-control bit tests in CODE.2; exact bit semantics partly unknown",
-                "byte_4":"raw; zero in all sampled definitions",
-                "byte_5":"VERIFIED divisor in modulo of attack/action phase counter",
-                "byte_6":"raw; zero in all sampled definitions",
-                "byte_7":"raw; preservation required",
-                "byte_8":"VERIFIED compared to modulo attack/action phase counter",
+                "byte_3_and_4":"u16LE attack control flags, bits partly unassigned",
+                "byte_5":"u8 divisor of attack/action phase counter",
+                "byte_6_and_7":"u16LE twice-scaled distance/range input; never two independent flags",
+                "byte_8":"u8 attack phase trigger matching the period remainder",
             }}
 
 def main():
@@ -149,6 +173,11 @@ def main():
         histogram=output[game]["record_corpus"]["attack_count_histogram"]
         if histogram!=EXPECTED_ATTACK_COUNTS[game]:
             raise ValueError(f"{game} original NPC attack count regression: {histogram}")
+        fields=output[game]["record_corpus"]["authenticated_full_active_descriptor_fields"]
+        for key,expected in EXPECTED_ATTACK_FIELD_RANGES[game].items():
+            if fields[key]!=expected:
+                raise ValueError(f"{game}: reconstructed attack {key} changed: {fields[key]}")
+
         print(game,"verified attack-count and dice-rolling machine accesses",
               "NPC record count",output[game]["record_corpus"]["npc_count"])
     a.json.parent.mkdir(parents=True,exist_ok=True)
