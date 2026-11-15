@@ -11,6 +11,7 @@ on:
       - 'Tools/phase1_npc_table_provenance.py'
       - 'Tools/phase1_npc_descriptor_calls.py'
       - 'Tools/phase1_npc_attack_descriptors.py'
+      - 'Tools/phase1_tile_channel_consumers.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -97,6 +98,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-npc-attack-descriptors.json
           python -m py_compile Tools/phase1_npc_attack_descriptors.py
+
+      - name: Trace rendering callers of four-channel tile lookups
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_tile_channel_consumers.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-tile-channel-consumers.json
+          python -m py_compile Tools/phase1_tile_channel_consumers.py
 
       - name: Publish derived metadata only
         if: always()
