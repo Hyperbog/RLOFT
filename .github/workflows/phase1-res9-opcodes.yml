@@ -6,6 +6,7 @@ on:
     paths:
       - 'Tools/phase1_res9_handler_map.py'
       - 'Tools/phase1_res9_arity_correlate.py'
+      - 'Tools/phase1_res9_control_flow.py'
       - 'Tools/phase1_res9_opcode_probe.py'
       - '.github/workflows/phase1-res9-opcodes.yml'
   workflow_dispatch:
@@ -48,6 +49,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-res9-arity-correlation.json
           python -m py_compile Tools/phase1_res9_arity_correlate.py
+
+      - name: Validate candidate decoded wordcode branch targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_res9_control_flow.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-res9-control-flow.json
+          python -m py_compile Tools/phase1_res9_control_flow.py
 
       - name: Publish derived evidence only
         if: always()
