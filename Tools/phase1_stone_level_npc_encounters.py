@@ -268,8 +268,10 @@ def work_level_source_proof(rows, data):
     prefix=b"work\\lev???.dat\x00"
     if data[WORK_LEVEL_NAME_AT:WORK_LEVEL_NAME_AT+len(prefix)]!=prefix:
         raise ValueError("original CODE.2 work-level filename template changed")
-    if b"LEVELS.DAT" in data.upper():
-        raise ValueError("original CODE.2 data object now contains unexpected LEVELS.DAT string")
+    # The data object also contains an error message mentioning levels.dat.
+    # That is NOT, by itself, evidence of a file-open argument or converter.
+    if b"Cannot find file levels.dat" not in data:
+        raise ValueError("original CODE.2 missing level-archive diagnostic string")
     at={pc:(op,arg) for pc,op,arg in rows}
     ins=[]
     for pc,(op,fragment) in WORK_LEVEL_WITNESSES.items():
@@ -291,7 +293,8 @@ def work_level_source_proof(rows, data):
       "per_level_file_read_region":[0x21DB0,0x22439],
       "exact_original_instruction_witnesses":ins,
       "direct_callers_of_numbered_level_reader":calls,
-      "CODE2_data_contains_literal_LEVELS_DOT_DAT":False,
+      "CODE2_data_contains_levels_dat_diagnostic_text":True,
+      "diagnostic_is_file_open_proof":False,
       "conclusion":"VERIFIED distinct numbered work-level path; 0x824 header and live 16/50-byte reads are from this opened stream, not shown to be raw CD_Extracted/LEVELS.DAT",
       "raw_archive_to_work_file_producer":"UNKNOWN; could be installer, CODE.1, another routine, or saved state",
     }
