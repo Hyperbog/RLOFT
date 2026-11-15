@@ -117,6 +117,10 @@ Stone has **48/49** nonempty non-EH records matching `u16LE word_count; u16LE pr
 
 Stone RES9 record **574**, 634 bytes, begins `u16LE word_count=316`. Between `PROPHET/RES9` and `CD_Extracted/RES9`, exactly five 16-bit program words differ: zero-based word indices **246, 261, 268, 273, 313**, in that order `30→10, 31→11, 30→10, 31→11, 31→11` (installed → CD). **VERIFIED byte-level revision, UNKNOWN opcode/operand meaning**. The original asset-selection precedence is still not proven.
 
+### RES9 original executable opcode/operand handoff (latest Phase 1)
+
+The new [Menzo/Stone RES9 opcode reconstruction](Resources/RES/CROSS_TITLE_WORDCODE_VM_PHASE1.md) identifies authenticated CODE.2 dispatch tables of **43** and **54** entries, both selecting the target as `u16le_encoded_opcode - 2`. The corresponding source-checked handlers have materially different operand footprints from Strahd for early instructions, including encoded opcode `0x03` (two fixed words in both newer games). [Verified readsite extractor](Tools/phase1_res9_handler_map.py), [source-driven width hypothesis](Tools/phase1_res9_arity_correlate.py) and [original-media CI](.github/workflows/phase1-res9-opcodes.yml) preserve full tables and negative controls. Preliminary fixed-arity coverage is **5/31 Menzo**, **20/48 Stone**; this is **PARTIAL**, not a finished VM parser or gameplay implementation.
+
 ### Explicit hypotheses for unresolved producer/VM differences
 
 - **Type-5 0x1002 length discrepancy — HYPOTHESIS A:** a two-byte logical header is represented by the declared allocation length but is not emitted by the LZSS stream; the stream itself supplies 4,096 bytes. **HYPOTHESIS B:** the producer declared an allocation/expected output length that exceeds what the compressed stream yields, and the original reader tolerates a short stream or otherwise initializes the last two bytes. Both are consistent with 148/148 full-consumption 4,096-byte prefix decodes; neither is certified without tracing the original low-level resource reader and its end-of-stream behavior.
