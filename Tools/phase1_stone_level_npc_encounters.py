@@ -143,6 +143,12 @@ LIVE_STREAM_WITNESSES = {
     0x13779: ("imul","edx,DWORD PTR [ebp+0x18],0x58"),
     0x1378A: ("imul","ebx,DWORD PTR [ebp+0x14],0x32"),
     0x137CE: ("mov","WORD PTR [ebx+0x4],ax"),
+    # Restoring saved live actors re-links type (+0x04) to 88-byte catalog.
+    0x23AE7: ("imul","edi,ebx,0x32"),
+    0x23AF1: ("movsx","WORD PTR [edi+0x44ff4]"),
+    0x23AF8: ("imul","edi,edi,0x58"),
+    0x23B00: ("mov","DWORD PTR [esi+0x35ad8],eax"),
+    0x23B06: ("mov","eax,ds:0x44790"),
 }
 def source_and_live_loader_provenance(rows):
     """Census source-vs-runtime layout and possible other spawn entry points.
@@ -194,7 +200,7 @@ def source_and_live_loader_provenance(rows):
     for label,pat in {
         "position_16byte_runtime_struct":"0x35ad[0-9a-f]*",
         "live_50byte_actor_struct":"0x44ff[0-9a-f]*",
-        "authoring_level_header_count":"0x44fd6",
+        "authoring_level_header_count":"0x44fd6(?![0-9a-f])",
     }.items():
         table_addresses[label]=hits(
            lambda pc,op,arg,rx=re.compile(pat):rx.search(arg) is not None,
@@ -215,6 +221,10 @@ def source_and_live_loader_provenance(rows):
            "runtime_actor_base_code2_data":0x44FF0,
            "live_actor_type_word_offset":4,
            "read_window_code2":[0x220A9,0x220F5],
+           "live_type_field_u16LE_offset":4,
+           "relink_live_type_to_NPCS_definition":
+               "CODE.2 0x23AE7/0x23AF1/0x23AF8/0x23B06 uses live +4 signed word, multiplies by 88, reuses catalog base",
+           "authored_11byte_type_source_proven":False,
        },
        "authored_level_family_A_stride_bytes":11,
        "authored_to_live_converter":"UNKNOWN: no provenance proven by 16/50-byte read",
