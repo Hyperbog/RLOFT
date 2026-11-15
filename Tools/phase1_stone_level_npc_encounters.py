@@ -280,6 +280,18 @@ def work_level_source_proof(rows, data):
             raise ValueError(f"Stone numbered work-level loader witness drift {pc:#x}: {observed}")
         ins.append({"pc":pc,"asm":observed[0]+" "+observed[1]})
     calls=[pc for pc,op,arg in rows if op=="call" and arg=="0x21db0"]
+    # Caller context supports source-identity classification, but a branch
+    # near the call alone never proves a real new-game or restore sequence.
+    call_windows=[]
+    for i,(pc,op,arg) in enumerate(rows):
+        if op=="call" and arg=="0x21db0":
+            call_windows.append({"call_pc":pc,
+                "preceding":[{"pc":p,"asm":m+" "+v}
+                             for p,m,v in rows[max(0,i-22):i]],
+                "following":[{"pc":p,"asm":m+" "+v}
+                             for p,m,v in rows[i+1:i+17]]})
+    if calls!=[0x8C30,0x9AD5,0x2445E]:
+        raise ValueError(f"Stone work-level reader caller census drift: {calls}")
     # Archive-level source requires an independent importer or launch/runtime
     # generation: the numbered file reader does not identify an authored
     # family-A 11-byte input conversion.
@@ -293,6 +305,7 @@ def work_level_source_proof(rows, data):
       "per_level_file_read_region":[0x21DB0,0x22439],
       "exact_original_instruction_witnesses":ins,
       "direct_callers_of_numbered_level_reader":calls,
+      "work_level_reader_caller_instruction_windows":call_windows,
       "CODE2_data_contains_levels_dat_diagnostic_text":True,
       "diagnostic_is_file_open_proof":False,
       "conclusion":"VERIFIED distinct numbered work-level path; 0x824 header and live 16/50-byte reads are from this opened stream, not shown to be raw CD_Extracted/LEVELS.DAT",
