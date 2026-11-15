@@ -42,6 +42,8 @@ RANGES = {
     "timing_handler": (0x27C89, 0x27CD0),
     "runtime_mode_initializer": (0x0D8EC, 0x0D975),
     "runtime_mode_toggle": (0x2E115, 0x2E1B0),
+    "render_view_global_value_producer": (0x43822, 0x438D8),
+    "actor_position_bound_enforcer": (0x26FB0, 0x27065),
 }
 CALLS = (HELPER, 0x26CF0, 0x342F8, 0x431C6)
 GLOBALS = (0x2757C, 0x16E86, 0x16ECC, 0x16EC8)
@@ -74,6 +76,12 @@ GEOMETRY_WITNESSES = {
     0x276CF: ("test","eax,eax"),
     0x276D3: ("mov","ecx,0x1"),
     0x276D8: ("test","ecx,ecx"),
+    0x27023: ("sub","WORD PTR [ebx+0x12],0xa"),
+    0x27031: ("mov","WORD PTR [ebx+0x12],0x1"),
+    0x27039: ("add","WORD PTR [ebx+0x12],0xa"),
+    0x27042: ("cmp","eax,0xd4"),
+    0x27049: ("mov","WORD PTR [ebx+0x12],0xd4"),
+    0x438AE: ("mov","ds:0x2757c,eax"),
 }
 def geometric_machine_witnesses(rows):
     bypc={pc:(op,args) for pc,op,args in rows}
@@ -128,6 +136,12 @@ def zero_width_equivalence(rows):
         "example_machine_args":{"view":211,"span":172,
                                 "actor_word_0x12":256,"npc_dimension_0x16":0,
                                 "helper_return":0},
+        "alternative_if_view_0x134_and_actor_word_0xD4":{
+            "view":0x134,"actor_word":0xD4,"helper_return":
+            executable_interval_helper(0x134,0xAC,0xD4,0),
+            "certainty":"local mathematical witness only, not observed runtime globals"},
+        "actor_local_field_update":"CODE.2 0x27023..0x27049 bounds live +0x12 to 1..0xD4 along one state-update path",
+        "view_dynamic_assignment":"CODE.2 0x438AE assigns view global from eax; achievable range not established",
         "test_total":6*(1025+512),
         "reality_check":"The live +0x12 value 256 is a SAT witness, NOT an observed live actor position",
         "conditional_attack_gates":"Mode 1 and actor within cardinal tile difference 1 can enable the helper caller",
