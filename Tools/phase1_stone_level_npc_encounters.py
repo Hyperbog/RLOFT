@@ -126,6 +126,86 @@ def loader_witnesses(rows):
         "record_schema_status":"UNKNOWN: code address/field provenance must be traced",
     }
 
+
+# The original CODE.2 stream reader below consumes **live** 16-byte
+# position records and 50-byte actors. That is distinct from LEVELS.DAT's
+# authored 11-byte family A and MUST NOT be used as a source-type proof.
+LIVE_STREAM_WITNESSES = {
+    0x220A9: ("movsx","WORD PTR ds:0x44fd6"),
+    0x220B6: ("shl","edi,0x4"),
+    0x220BB: ("push","0x35ad0"),
+    0x220E1: ("imul","edi,edi,0x32"),
+    0x220E6: ("push","0x44ff0"),
+    0x220F3: ("cmp","eax,edi"),
+    0x00059: ("imul","edi,DWORD PTR [ebp+0x14],0x58"),
+    0x00063: ("mov","eax,ds:0x44790"),
+    0x000F2: ("mov","WORD PTR [ebx+0x4],ax"),
+    0x13779: ("imul","edx,DWORD PTR [ebp+0x18],0x58"),
+    0x1378A: ("imul","ebx,DWORD PTR [ebp+0x14],0x32"),
+    0x137CE: ("mov","WORD PTR [ebx+0x4],ax"),
+}
+def source_and_live_loader_provenance(rows):
+    """Census source-vs-runtime layout and possible other spawn entry points.
+
+    Instruction evidence, *not* an assumption that any particular caller
+    receives an authored level record. Export only bounded machine metadata.
+    """
+    at={pc:(i,op,arg) for i,(pc,op,arg) in enumerate(rows)}
+    fixed=[]
+    for pc,(expected,operand) in LIVE_STREAM_WITNESSES.items():
+        got=at.get(pc)
+        if not got or got[1]!=expected or operand not in got[2]:
+            raise ValueError(f"Stone live stream CODE.2 proof drift at {pc:#x}: {got}")
+        fixed.append({"pc":pc,"asm":got[1]+" "+got[2]})
+    def hits(predicate, limit=65, before=6, after=8):
+        matches=[]
+        for i,(pc,op,arg) in enumerate(rows):
+            if not predicate(pc,op,arg):continue
+            matches.append({"pc":pc,"asm":op+" "+arg,
+              "before":[{"pc":p,"asm":m+" "+v} for p,m,v in rows[max(i-before,0):i]],
+              "after":[{"pc":p,"asm":m+" "+v} for p,m,v in rows[i+1:i+1+after]]})
+        return {"total_matches":len(matches),"examples":matches[:limit]}
+    used_globals={
+      "u16_live_actor_count_0x44FD6":"0x44fd6",
+      "runtime_position_table_0x35AD0":"0x35ad",
+      "runtime_actor_table_0x44FF0":"0x44ff",
+      "catalog_pointer_global_0x44790":"0x44790",
+    }
+    # Only direct absolute references are automatically attributed to the
+    # storage address. Displacements can be embedded in other arithmetic.
+    glob_refs={}
+    for label,needle in used_globals.items():
+        glob_refs[label]=hits(lambda pc,op,arg,needle=needle:
+          needle in arg and (("ds:"+needle) in arg or
+                             ("+%s]"%needle) in arg or
+                             ("push "+needle)==(op+" "+arg)),
+          limit=28,before=3,after=4)
+    stride11=hits(lambda pc,op,arg:op=="imul" and
+                  arg.endswith(",0xb"),limit=70)
+    spawner=hits(lambda pc,op,arg:op in ("call","jmp","push","mov","lea")
+                 and "0x1364c" in arg,limit=55)
+    direct_spawner=[pc for pc,op,arg in rows
+                    if op=="call" and arg=="0x1364c"]
+    return {
+       "verified_live_stream_instruction_witnesses":fixed,
+       "verified_runtime_read_geometry":{
+           "position_struct_stride_bytes":16,
+           "live_actor_struct_stride_bytes":50,
+           "npc_definition_catalog_stride_bytes":88,
+           "runtime_position_base_code2_data":0x35AD0,
+           "runtime_actor_base_code2_data":0x44FF0,
+           "live_actor_type_word_offset":4,
+           "read_window_code2":[0x220A9,0x220F5],
+       },
+       "authored_level_family_A_stride_bytes":11,
+       "authored_to_live_converter":"UNKNOWN: no provenance proven by 16/50-byte read",
+       "direct_call_to_0x1364C_count":len(direct_spawner),
+       "direct_or_immediate_mentions_of_0x1364C":spawner,
+       "machine_11_byte_imul_leads":stride11,
+       "exact_storage_reference_windows":glob_refs,
+       "accuracy_note":"Executable-wide instruction xrefs include false-positive data offsets. A bounded lead is not a verified loader or spawn.",
+    }
+
 CONSTRUCTOR_XREFS={
     0x0070D:None,  # LEVELS.DAT event opcode 0x0D: byte operands
     0x1AB03:77,
@@ -229,6 +309,7 @@ def main():
        "code2_sha256":meta["sha256"],
        "original_11byte_family_A":level_family(root/game["level"]),
        "original_CODE2_readsite_probes":loader_witnesses(rows),
+       "original_source_and_live_loader_provenance":source_and_live_loader_provenance(rows),
        "original_direct_constructor_callsite_audit":direct_constructor_proof(rows),
        "original_level_event_opcode_13_spawn_audit":archived_event_spawn_opcode13(root/game["level"]),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
