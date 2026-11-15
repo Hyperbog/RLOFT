@@ -1,6 +1,6 @@
 # Phase 1: Menzo / Stone Prophet RES9 wordcode VM
 
-**Status: PARTIAL; NOT A CERTIFIED FULL OPCODE/OPERAND CODEC.** The authenticated original `CODE.2` binaries and preserved `RES9` files control these findings. See [cross-title diff](../../CROSS_TITLE_DIFF.md), [Strahd VM](WORDCODE_VM.md), [opcode probe](../../Tools/phase1_res9_opcode_probe.py), [handler map](../../Tools/phase1_res9_handler_map.py) and [arity test](../../Tools/phase1_res9_arity_correlate.py).
+**Status: the candidate serialized wordcode grammar now decodes all 31/31 Menzo and 48/48 Stone programs with exhaustive direct-branch boundary validation. Original opcode/gameplay effects and runtime-conditional execution are only partially reconstructed; this is NOT a finished behavioral VM.** The authenticated original `CODE.2` binaries and preserved `RES9` files control these findings. See [cross-title diff](../../CROSS_TITLE_DIFF.md), [Strahd VM](WORDCODE_VM.md), [opcode probe](../../Tools/phase1_res9_opcode_probe.py), [handler map](../../Tools/phase1_res9_handler_map.py) and [arity test](../../Tools/phase1_res9_arity_correlate.py).
 
 ## Authenticated dispatcher witnesses
 
@@ -27,9 +27,11 @@
 | `0x02` | `0x19BB2` | `0x1E2B1` | Calls distinct interaction helpers `0x18850` / `0x1C4E4`; helper-level IP updates differ and the full effective footprint is unresolved |
 | `0x03` | `0x19BBD` | `0x1E2BC` | Reads two 16-bit words; advances IP two |
 | `0x04` | `0x1A3B9` | `0x1EC3B` | Default/no-op return; no direct operand |
-| `0x05` | `0x19BF4` | `0x1E2F8` | Calls title-specific helper; caller does not advance wordcode IP |
+| `0x05` | `0x19BF4` | `0x1E2F8` | Caller delegates to party-slot helper, which consumes **one** word (0x18AC0 / 0x1C6A4) |
 | `0x06` | `0x19BFF` | `0x1E303` | Reads one 16-bit word; advances IP one |
 | `0x07` | `0x19BA9` | `0x1E2A8` | Returns code 1 without a direct operand |
+| `0x08` | `0x19D48` | `0x1E3CB` | **Two words**: condition and target; Stone case branches to IP from second word or skips past it |
+| `0x2E` | Not dispatched | `0x1EA59` | **Three words**: condition value, slot selector, conditional branch target. Helper `0x1D594` explicitly recognizes `999` as an empty-value test |
 | `0x0E` | `0x19D3F` | `0x1E3C2` | Returns code 2 without a direct operand |
 | `0x0F` | `0x19F19` | `0x1E67A` | Reads three words; advances IP three |
 | `0x1B` | `0x1A32A` | `0x1E97C` | Returns code 3 without a direct operand |
@@ -40,7 +42,7 @@ A shared **archive/parser envelope** is justified, but a common opcode numbering
 
 ## Reproducibility and negative controls
 
-The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. The revised title-specific decoder now consumes **31/31 Menzo** and **44/48 Stone** programs linearly; the remaining four Stone record indices are **568, 575, 585, 595**. The other failures and their program IPs are retained in JSON. Those partial successes are *correlation*, not certified field-level disassembly: branch targets and semantics remain to be proved.
+The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. Reconstructed title-specific operand rules now consume **31/31 Menzo** and **48/48 Stone** programs linearly, with **no failures**. This establishes a complete candidate serialized grammar for the preserved corpora, corroborated by original CODE.2 instruction-pointer readsites; it does **not** prove unobserved instruction variants or complete gameplay semantics.
 
 Original Stone `RES9:574` differs between installed and extracted CD sources by five 16-bit words at program-word indices **246, 261, 268, 273, 313**. Neither the affected opcodes nor the active media version is established.
 
@@ -48,37 +50,75 @@ Original Stone `RES9:574` differs between installed and extracted CD sources by 
 
 Menzo encoded opcode `0x2A` dispatches to `0x1A351`, which calls helper `0x19534`. The original helper consumes one 16-bit selector and up to four condition/value pairs; condition word `0x21` terminates the pair loop. Stone encoded opcode `0x37` dispatches to `0x1EA4E`, calling helper `0x1D77C`. The Stone helper consumes one 16-bit count followed by exactly that many 16-bit values. These are original-machine-code-backed physical rules; their game semantics remain unidentified.
 
-These two cases supplied the first variable operand rules. Later CODE.2 tracing additionally established opcode `0x13`/`0x1A` choice tables, opcode `0x05` template-index consumption and Stone's one-word opcode `0x08`. These checks now produce 31/31 Menzo and 44/48 Stone candidate linear parses. The candidate grammar is **not** shipped as a unified runtime VM.
+These two cases supplied the first variable operand rules. Later CODE.2 tracing additionally established opcode `0x13`/`0x1A` choice tables, opcode `0x05` template-index consumption and Stone's one-word opcode `0x08`. These checks, together with the corrected two-word Stone opcode `0x08`, now produce 31/31 Menzo and 48/48 Stone candidate linear parses. The candidate grammar is **not** shipped as a unified runtime VM.
 
 ## Reconstructed conditional choice table (current audit)
 
 **VERIFIED physical reads from authenticated CODE.2:** Both encoded opcode `0x13` and `0x1A` invoke the same title-specific choice helper, Menzo `0x19610` / Stone `0x1D118`. Each initially reads two `u16 LE` program words, followed on the choice-table path by zero to four two-word condition/value pairs. A condition value **`0x21` for Menzo** or **`0x26` for Stone** ends the loop. The paths' read-count can depend on runtime choice state; the static candidate parser models the complete serialized table, not a guaranteed execution trace.
 
-The encoded opcode `0x05` call at Menzo `0x19BF4` / Stone `0x1E2F8` reaches a party-slot helper at `0x18AC0` / `0x1C6A4`. That callee reads a **single u16 LE program word** from the runtime word stream, advances the IP by one, and uses the word to select a 0x41C-byte character template. The old zero-operand assumption was wrong. Stone `0x08` at CODE.2 `0x1E3CB` consumes exactly **one** word, and its callee `0x15200` does not advance the RES9 IP; treating it as a two-word branch produced false target mismatches.
+The encoded opcode `0x05` call at Menzo `0x19BF4` / Stone `0x1E2F8` reaches a party-slot helper at `0x18AC0` / `0x1C6A4`. That callee reads a **single u16 LE program word** from the runtime word stream, advances the IP by one, and uses the word to select a 0x41C-byte character template. The old zero-operand assumption was wrong. Stone `0x08` at CODE.2 `0x1E3CB` reads the condition first, then **either** fetches the second word as the absolute target at `0x1E3F4..0x1E401` **or** skips that word via the shared `0x1EB7A` increment. Therefore the **serialized footprint is two words** regardless of the conditional path; the callee `0x15200` does not itself advance the RES9 IP.
 
-## Corpus-wide branch-target audit (current evidence)
+## Stone last four: CODE.2-backed two-word conditional opcode `0x08`
+
+The initial parser incorrectly assigned a **single** word to Stone opcode `0x08` because only the condition word is fetched before the callee. This misclassified the **second word (the target)** as a new opcode and caused all four remaining failures. Both executor routes are now traced:
+
+- `0x1E3CB..0x1E3EE` reads condition, calls `0x15200` and selects a branch.
+- If the condition succeeds, `0x1E3F4..0x1E401` loads the next 16-bit word into the program IP (absolute **word** index).
+- If the condition fails, `0x1EB7A` increments IP to skip that target word.
+
+The four formerly failing records are now decoded, and both their branch destinations and fallthrough indexes are aligned to instruction starts.
+
+| Original Stone RES9 record | Opcode word index | Condition word | Absolute target word | Fallthrough word |
+| --- | ---: | ---: | ---: | ---: |
+| `568` | 138 | 183 | 143 | 141 |
+| `575` | 59 | 159 | 483 | 62 |
+| `585` | 32 | 199 | 146 | 35 |
+| `595` | 135 | 214 | 141 | 138 |
+
+**VERIFIED:** Four repaired records, both control-flow routes at CODE.2, and 48/48 complete serialized programs. The original UI/gameplay behavior invoked by those branches remains outside this proof.
+
+## Stone's `999` is not a target: original empty-value matcher
+
+The prior parser had treated the destination word of opcode `0x08` as another opcode. That shifted the parsing of `RES9:615..624` and produced **ten spurious out-of-range targets 999**. Correct parsing, verified in all ten original records, is:
+
+| Word index | Parsed purpose | Value |
+| --- | --- | ---: |
+| 14 | encoded opcode | `0x08` |
+| 15 | condition operand | 187 |
+| 16 | branch target | 33 |
+| 17 | encoded opcode | `0x2E` |
+| 18 | *condition value* operand | **999** |
+| 19 | indexed-slot selector | **21** |
+| 20 | actual conditional branch target | **27** |
+
+At CODE.2 `0x1EA59..0x1EAA0`, Stone opcode `0x2E` reads three operands. The first two are passed to helper `0x1D594`. If the helper reports true, the **third** operand is assigned to the program IP; otherwise the handler increments IP by three.
+
+The original helper itself proves the sentinel:
+
+- `0x1D59B` checks whether the slot selector is `0x15` (**21**).
+- `0x1D5A1` compares the first operand to `0x3E7` (**999**).
+- For `(999,21)`, `0x1D5A9..0x1D5B0` checks whether a signed 16-bit field at data `0x1F714` equals **−1**.
+- For other slot selectors, `0x1D5D4..0x1D62C` scans up to four `0x41C`-byte party-character records, comparing a selected 16-bit field with **−1** when the first operand equals **999**, or with the supplied literal otherwise.
+
+**VERIFIED:** `999` is a deliberately implemented **empty-value matching sentinel**, not a jump address and not an archive defect. Target **27** is a valid instruction boundary in all ten records. Higher-level inventory/character UI meaning is not asserted without further caller analysis.
+
+## Corpus-wide validation (current verified checkpoint)
 
 ```sh
 python Tools/phase1_res9_handler_map.py --root preservation/MASTER --repo-root . --json audit/res9-handlers.json
 python Tools/phase1_res9_arity_correlate.py --root preservation/MASTER --repo-root . --json audit/res9-arity.json
 python Tools/phase1_res9_control_flow.py --root preservation/MASTER --repo-root . --json audit/res9-targets.json
+python Tools/phase1_res9_stone_four.py --root preservation/MASTER --repo-root . --json audit/stone-four-and-999.json
 ```
 
-| Measure | Menzo | Stone |
+| Measure | Menzo | Stone Prophet |
 | --- | ---: | ---: |
-| Original raw programs | 31 | 48 |
-| Linear candidate parses | **31** | **44** |
-| Direct target operands matching decoded instruction boundaries | **876** | **1,195** |
-| Direct targets not matching those boundaries | **0** | **10** |
-| Timer operands at `0xFFFF` with unproved sentinel semantics | **45** | **22** |
+| Original RES9 programs | 31 | 48 |
+| Completely linearly decoded | **31** | **48** |
+| Checked direct targets landing on instruction starts | **876** | **1,473** |
+| Checked direct-target boundary failures | **0** | **0** |
+| Timer operands encoded as `0xFFFF` (semantics not certified) | **45** | **24** |
 
-**VERIFIED:** The Menzo candidate parser consumes every preserved script; for example, `RES9:419` encoded opcode `0x09` at 16-bit word index **6** has a target index **73**, which is a decoded instruction boundary. All 876 checked direct targets are on candidate boundaries. **LIKELY:** This is close to the original grammar; behavior and every opcode/helper branch remain unproved.
+This is **2,349 / 2,349 inspected direct program-word branch targets** landing on decoded starts. The additional **69** `0xFFFF` timer fields are intentionally classified separately because their runtime sentinel semantics have not been demonstrated. Exact CODE.2 opcode, archive record and target-count witnesses are pinned by the CI regression scripts; only derived metadata are published.
 
-**VERIFIED:** All ten Stone non-boundary targets are the same value **999**, at encoded opcode **`0x21`**, word index **16**, in `RES9:615..624`. Each original record has **51** program words, so 999 is not an in-record instruction boundary. Its original case *can* write that value into the IP, but whether the conditional path executes or uses a producer sentinel is **UNKNOWN**. Do not reclassify these as valid edges.
-
-**UNKNOWN Stone block:** `RES9:568,575,585,595` still fails the static linear decoder. The original code supports two competing explanations: (1) a runtime-dependent choice-helper branch consumes a different number of operands; (2) part of the serialized program is reachable only by an explicit control transfer or is producer data skipped at runtime. Neither is established. These four records have not been executed or behaviorally certified.
-
-No native executable, original assets or saves were modified. The above tests use derived instruction/record metadata only and preserve negative cases.
-
-**Next:** trace full IP updates through interaction helper callees, test the remaining program corpus and validate all control-flow targets. No gameplay code or commercial original bytes were changed.
-
+**Still UNKNOWN:** complete per-opcode effects in the 43/54-case interaction interpreters, actual conditional runtime paths (not executed), `0xFFFF` timer behavior in Menzo/Stone, and Stone `RES9:574` installed-vs-CD media precedence and the meaning of its five changed words. These are separate Phase 1 tasks. No original media, saves or native gameplay implementation were changed.
