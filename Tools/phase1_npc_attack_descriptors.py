@@ -62,6 +62,9 @@ ATTACKS={
                "cycle":(0x27c50,0x27d60)}},
 }
 
+EXPECTED_ATTACK_COUNTS={"menzo":{0:67,1:15,2:16},"stone":{0:80,1:15,2:15}}
+
+
 def verify_machine(rows,profile):
     bypc={pc:(op,args) for pc,op,args in rows}
     out={}
@@ -143,6 +146,9 @@ def main():
         output[game]={"source_sha256":meta["sha256"],
                       "original_executable_witnesses":verify_machine(rows,conf),
                       "record_corpus":records(npc)}
+        histogram=output[game]["record_corpus"]["attack_count_histogram"]
+        if histogram!=EXPECTED_ATTACK_COUNTS[game]:
+            raise ValueError(f"{game} original NPC attack count regression: {histogram}")
         print(game,"verified attack-count and dice-rolling machine accesses",
               "NPC record count",output[game]["record_corpus"]["npc_count"])
     a.json.parent.mkdir(parents=True,exist_ok=True)
