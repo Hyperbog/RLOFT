@@ -102,13 +102,17 @@ def semantic_witnesses(rows,title):
         lines.append({"pc":pc,"asm":observed[0]+" "+observed[1]})
     return {
         "instructions":lines,
-        "structured_conclusions":{
-           "stone_character_word_match":"two signed 16-bit character fields compared to caller's expected value; returns boolean",
-           "stone_d20_threshold":"rolls 1d20 plus derived bonuses and checks >= indexed character threshold",
-           "stone_identity":"CODE.2 0x343D8 returns its first argument unchanged, is NOT itself a status applicator",
-           "stone_bounded_dispatch":"0x32F70 bounds a 150-entry 44-byte table; individual effects remain UNKNOWN",
-           "menzo_dice_side_effect":"0xF850 calls verified dice helper and an unidentified downstream helper, then clears live flag bit 0x02",
-        },
+        "structured_conclusions":(
+            {
+                "character_word_match":"two signed u16LE character fields compared to expected value; returns boolean",
+                "d20_threshold":"rolls 1d20 plus derived bonuses, checks >= character threshold",
+                "identity_helper":"CODE.2 0x343D8 returns its first argument unchanged; not an effect applicator",
+                "bounded_effect_dispatch":"0x32F70 bounds a 150-entry, 44-byte-per-entry table; effects unnamed",
+            } if title=="stone" else {
+                "dice_and_flag_effect":"0xF850 calls the dice roller and an untraced downstream helper, then clears live flag 0x02",
+                "bounded_effect_dispatch":"0x285EC indexes a 150-entry record catalog; exact effects unnamed",
+            }
+        ),
         "certainty":"Original machine instructions VERIFIED; higher-level effect names UNKNOWN",
     }
 
@@ -167,6 +171,8 @@ def inspect_executable(rows, title):
     }
 
 STONE_OVERRIDE_WITNESSES = {
+    0x0D948: ("mov","BYTE PTR ds:0x16e86,0x1"),
+    0x2E180: ("xor","BYTE PTR ds:0x16e86,0x1"),
     0x2770C: ("movzx","WORD PTR [edi+0x24]"),
     0x27710: ("movzx","WORD PTR [edi+0x2d]"),
     0x27714: ("add","ecx,ecx"),
