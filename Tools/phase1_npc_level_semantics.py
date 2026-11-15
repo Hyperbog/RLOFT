@@ -87,8 +87,29 @@ def machine(rows,game):
         indexes.append({"pc":pc,"asm":op+" "+args,
                         "context":[{"pc":p,"asm":mn+" "+params}
                                    for p,mn,params in rows[max(0,i-4):i+7]]})
+    helper_ranges={
+        "menzo":{
+            "npc_hd_die_roll_helper":(0x20818,0x20960),
+            "npc_flags_test":(0xFBA0,0xFD05),
+            "npc_sound0_reader":(0x200A0,0x20195),
+            "npc_sound1_reader":(0xFD50,0xFE20),
+            "npc_sound2_reader":(0x10640,0x106AC),
+        },
+        "stone":{
+            "npc_hd_or_hp_helper":(0x29F08,0x2A090),
+            "npc_flags_test":(0x12620,0x1276A),
+            "npc_sound0_reader":(0x10D18,0x10DB0),
+            "npc_sound1_reader":(0x12A05,0x12B58),
+            "npc_flag_init":(0x23930,0x23A00),
+        },
+    }
+    helper_windows={
+        k:[{"pc":pc,"asm":op+" "+args}
+           for pc,op,args in rows if lo<=pc<hi][:150]
+        for k,(lo,hi) in helper_ranges[game].items()}
     # Enforce known original code reads at the original object offsets.
     return {"verified_original_machine_witnesses":found,
+            "original_helper_instruction_windows":helper_windows,
             "candidate_register_field_reads":npc_offset_code_leads(rows),
             "npc_definition_runtime_copy":{
                 "source_u32_offset":0x48,
