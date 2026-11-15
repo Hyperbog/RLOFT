@@ -265,7 +265,7 @@ WORK_LEVEL_WITNESSES = {
     0x220EB: ("call","0x43424"),
 }
 def work_level_source_proof(rows, data):
-    prefix=b"work\\lev???.dat\\0"
+    prefix=b"work\\lev???.dat\x00"
     if data[WORK_LEVEL_NAME_AT:WORK_LEVEL_NAME_AT+len(prefix)]!=prefix:
         raise ValueError("original CODE.2 work-level filename template changed")
     if b"LEVELS.DAT" in data.upper():
