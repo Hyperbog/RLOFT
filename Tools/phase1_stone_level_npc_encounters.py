@@ -380,6 +380,23 @@ def work_level_producer_and_indirect_dispatch(rows):
     # Code object disassembly is whole-object, so accidental instruction
     # decodes are leads until original CFG/call ownership is established.
     return {
+
+       "authored_archive_import_and_runtime_codec_windows":{
+          "level_load_or_transition_function_prefix":bounded(rows,0x24120,0x2445D,limit=460),
+          "load_source_decision_and_section_dispatch":bounded(rows,0x2445D,0x2470E,limit=450),
+          "level_section_A_0x22BA8":bounded(rows,0x22BA8,0x22F10,limit=450),
+          "level_section_B_0x23208":bounded(rows,0x23208,0x234E0,limit=365),
+          "level_section_C_0x23640":bounded(rows,0x23640,0x238D4,limit=350),
+          "level_section_D_0x238D4":bounded(rows,0x238D4,0x23BA4,limit=350),
+          "live_NPC_restore_relink_0x23BA4":bounded(rows,0x23BA4,0x23C80,limit=125),
+          "original_media_fallback_0x40584":bounded(rows,0x40584,0x4061D,limit=90),
+       },
+       "all_CODE2_direct_calls_to_section_loaders":{
+          hex(target):[pc for pc,op,arg in rows
+                        if op=="call" and arg==hex(target)]
+          for target in (0x21DB0,0x22BA8,0x23208,0x23640,0x238D4,
+                         0x23BA4,0x40584,0x4340C,0x43424)
+       },
        "original_file_io_helper_excerpts":{
           "numbered_file_handle_open":bounded(rows,0x43390,0x43400,limit=85),
           "stream_io_and_offset_helpers":bounded(rows,0x43400,0x43495,limit=100),
