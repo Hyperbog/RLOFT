@@ -33,17 +33,18 @@ ARITY = {
 # Opcode 0x05 calls an input reader (Menzo 0x18AC0, Stone 0x1C6A4),
 # which advances one program-word IP on every active party-slot route.
 # Menzo 0x21 branches with a flag word and target word (2 total).
-# Stone 0x08 handler at CODE.2 0x1E3CB reads one word and increments IP once.
+# Stone 0x08 handler 0x1E3CB reads condition, then EITHER writes the\n# second word as branch target (0x1E3F4), OR skips it (0x1EB7A).
+# It is ALWAYS a two-word SERIALIZED instruction.
 # Stone opcode 0x02 helper 0x1C4E4 advances IP twice: the second
 # fetch is at [edx*2+0x2EC2E], where edx=initial IP+2.
 CORRECTIONS = {
     "menzo": {3: 1, 17: 2, 18: 1, 20: 1, 24: 2, 31: 2},
-    "stone": {0: 2, 3: 1, 6: 1, 17: 2, 18: 1, 20: 1, 24: 2},
+    "stone": {0: 2, 3: 1, 6: 2, 17: 2, 18: 1, 20: 1, 24: 2},
 }
 ARITY = {title: tuple(CORRECTIONS[title].get(i, n)
                       for i,n in enumerate(widths))
          for title,widths in ARITY.items()}
-EXPECTED_MINIMUM = {"menzo": (31, 31), "stone": (48, 44)}
+EXPECTED_MINIMUM = {"menzo": (31, 31), "stone": (48, 48)}
 
 
 def read_programs(path, parser):
