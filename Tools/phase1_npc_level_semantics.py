@@ -7,6 +7,7 @@ field meaning. Original media are immutable; metadata output only.
 from __future__ import annotations
 import argparse
 import collections
+import hashlib
 import json
 import runpy
 import struct
@@ -68,6 +69,21 @@ def npc_offset_code_leads(rows):
                           "candidate_instances":hits[:12],
                           "register_provenance_verified":False}
     return out
+
+
+PINNED_MEDIA={
+    "menzo_npc":"ad365e5da571e95306cf20f226399088563a7cc5d371d53db971e8c1e8449e39",
+    "menzo_levels":"d3509c9288cc5b1e14b6a9e6c4e2d496e336b3dcaca05555a65e5ed4e564d8aa",
+    "stone_npc":"646e6936e496a66bfa2768cb2288d9b5a959cd0042ab8530f1ecc0b3f24c3a02",
+    "stone_levels":"212b56deb635af954a257744a15c26bc48d801b6e09b0ef7fc2b614a425513b2",
+    "strahd_levels":"50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91",
+}
+
+def assert_media_file(key,path):
+    digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest!=PINNED_MEDIA[key]:
+        raise ValueError(f"Phase 1 preserved original changed {key}: {digest}")
+    return digest
 
 
 def machine(rows,game):
@@ -213,7 +229,11 @@ def main():
         folder=a.root/cfg["dir"]
         code,data,meta=previous["le_image"](folder/cfg["exe"],cfg["expected"])
         rows=previous["disassembly"](code)
+        npc_sha=assert_media_file(title+"_npc",folder/profile["npc"])
+        level_sha=assert_media_file(title+"_levels",folder/profile["level"])
         result[title]={"original_code2_sha256":meta["sha256"],
+                       "original_npc_sha256":npc_sha,
+                       "original_level_sha256":level_sha,
                        "npcs":npc_sample(folder/profile["npc"]),
                        "levels":level_sample(folder/profile["level"]),
                        "original_machine":machine(rows,title)}
@@ -224,6 +244,7 @@ def main():
               "candidate_definition_hit_dice_byte_0x30"]["sample_value"],
               "header count proofs",result[title]["levels"]["count_assertions_passed"])
     strahd_path=a.root/"Ravenloft - Strahd's Possession"/"RLOFT"/"LEVELS.DAT"
+    assert_media_file("strahd_levels",strahd_path)
     result["strahd_reference"]={
         "levels":level_sample(strahd_path,table_count=320),
         "evidence":"Original Strahd LEVELS.DAT read-only source; fixed header 0x2A4",
