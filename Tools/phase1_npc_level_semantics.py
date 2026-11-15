@@ -178,6 +178,7 @@ def level_sample(path, table_count=1024):
     offs=struct.unpack_from(f"<{count}I",buf,4)
     arrays=[]
     samples=[]
+    tail_records=[]
     for i,(start,end) in enumerate(zip(offs,(*offs[1:],len(buf)))):
         rec=buf[start:end]
         header_bytes=0x0A+table_count*2+0x1A
@@ -194,6 +195,7 @@ def level_sample(path, table_count=1024):
         if any((bounds[e+1]-bounds[e])%11!=0 for e in (2,3,4)) or arr_counts!=calculated:
             raise ValueError(f"record {i}: fixed header family counts differ")
         arrays.append(table)
+        tail_records.append(h[tail+6:tail+0x1A])
         if i<3:
             samples.append({"index":i,"size":len(rec),
                             "fixed_header_counts_ACB":list(arr_counts),
@@ -201,6 +203,16 @@ def level_sample(path, table_count=1024):
                             "table_nonzero_u16_entries":sum(x!=0 for x in table)})
     odd_high=sum(v>0xff for arr in arrays for v in arr)
     observed={v for arr in arrays for v in arr}
+    suffix_profile={
+        str(0x0A+2*table_count+6+index):{
+            "width_bytes":1,
+            "nonzero_records":sum(t[index]!=0 for t in tail_records),
+            "distinct_values":len({t[index] for t in tail_records}),
+            "observed_min":min(t[index] for t in tail_records),
+            "observed_max":max(t[index] for t in tail_records),
+        }
+        for index in range(0x1A-6)
+    }
     return {"records":count,
             "verified_level_header_field_widths":{
                 "table_prefix_offset":0x0A,"table_prefix_entry_count":table_count,
@@ -214,6 +226,7 @@ def level_sample(path, table_count=1024):
                 "distinct_values":len(observed),
                 "range":[min(observed),max(observed)]},
             "minimal_samples":samples,
+            "tail_after_three_counts_byte_profiles":suffix_profile,
             "count_assertions_passed":count}
 
 def main():
