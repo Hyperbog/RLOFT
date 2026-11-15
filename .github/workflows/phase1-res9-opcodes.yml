@@ -7,6 +7,7 @@ on:
       - 'Tools/phase1_res9_handler_map.py'
       - 'Tools/phase1_res9_arity_correlate.py'
       - 'Tools/phase1_res9_control_flow.py'
+      - 'Tools/phase1_res9_stone_four.py'
       - 'Tools/phase1_res9_opcode_probe.py'
       - '.github/workflows/phase1-res9-opcodes.yml'
   workflow_dispatch:
@@ -58,6 +59,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-res9-control-flow.json
           python -m py_compile Tools/phase1_res9_control_flow.py
+
+      - name: Verify four remaining Stone programs and target-999 state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_res9_stone_four.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-stone-res9-last-four.json
+          python -m py_compile Tools/phase1_res9_stone_four.py
 
       - name: Publish derived evidence only
         if: always()
