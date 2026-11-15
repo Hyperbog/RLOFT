@@ -9,6 +9,7 @@ on:
       - 'Tools/phase1_npc_level_semantics.py'
       - 'Tools/phase1_npc_region_level_groups.py'
       - 'Tools/phase1_npc_table_provenance.py'
+      - 'Tools/phase1_npc_descriptor_calls.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -77,6 +78,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-npc-table-provenance.json
           python -m py_compile Tools/phase1_npc_table_provenance.py
+
+      - name: Trace nested NPC descriptor consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_npc_descriptor_calls.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-npc-descriptor-calls.json
+          python -m py_compile Tools/phase1_npc_descriptor_calls.py
 
       - name: Publish derived metadata only
         if: always()
