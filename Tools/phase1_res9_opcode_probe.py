@@ -15,7 +15,7 @@ import runpy
 import struct
 from pathlib import Path
 
-SELECTOR = re.compile(r"\\[([^]]+\\*4[^]]*)\\]")
+SELECTOR = re.compile(r"\[([^]]+\*4[^]]*)\]")
 HEX = re.compile(r"0x([0-9a-f]+)")
 TITLE_TARGETS = {"menzo": (0x29, 0x30), "stone": (0x29, 0x30)}
 
