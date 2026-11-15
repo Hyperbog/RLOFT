@@ -200,6 +200,29 @@ def state_writes(rows,title):
                                 if not x["within_known_attack_runtime"]][:35],
             "confidence":"register-base def-use not globally certified"}
 
+def special_attack_flag_effects(rows,title):
+    # Within the active special-attack function, identify flag-mask tests
+    # and the nearby follow-up calls, with their exact code offsets.
+    lo,hi=((0xF911,0xFA03) if title=="menzo" else (0x12310,0x12874))
+    matches=[]
+    for i,(pc,op,args) in enumerate(rows):
+        if not lo<=pc<hi: continue
+        if op not in ("test","and","cmp"):continue
+        window=rows[max(0,i-5):i+1]
+        isflag=(any("ebp-0x4" in a for _,_,a in window)
+                and ("0x" in args or "BYTE PTR [ebp-0x4]" in args))
+        if not isflag:continue
+        nexts=rows[i+1:min(len(rows),i+26)]
+        calls=[{"pc":p,"target":a}
+               for p,mn,a in nexts if mn=="call" and a.startswith("0x")]
+        matches.append({"at":pc,"asm":op+" "+args,
+                        "nearby_calls":calls[:8],
+                        "window":insns(rows,max(0,pc-12),pc+68,34)})
+    return {"active_attack_flag_storage":"u16LE [ebp-0x4]",
+            "bounded_effect_sites":matches,
+            "semantic_safety":"call targets and branches verified, effect names unassigned"}
+
+
 def flag_behavior_windows(rows,title):
     ranges=([(0xF900,0xFA20),(0x1FF20,0x200A0)] if title=="menzo"
             else [(0x12300,0x12590),(0x27590,0x27665)])
@@ -245,6 +268,7 @@ def main():
            "attack_range_and_control_u16_fields":attack_range_field_reads(rows,cfg),
            "attack_dynamic_flags":candidate_flags(rows,cfg),
            "attack_flag_behavior_windows":flag_behavior_windows(rows,game),
+           "original_special_attack_flag_effects":special_attack_flag_effects(rows,game),
            "live_attack_state_writer_leads":state_writes(rows,game),
            "control_flow":original_trace(rows,cfg),
            "table_handler_inbound_edges":
