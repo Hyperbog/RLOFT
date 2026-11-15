@@ -45,7 +45,7 @@ RANGES = {
     "render_view_global_value_producer": (0x43822, 0x438D8),
     "actor_position_bound_enforcer": (0x26FB0, 0x27065),
 }
-CALLS = (HELPER, 0x26CF0, 0x342F8, 0x431C6)
+CALLS = (HELPER, 0x26CF0, 0x431C6, 0x10, 0x1364C, 0x43888)
 GLOBALS = (0x2757C, 0x16E86, 0x16ECC, 0x16EC8)
 
 GEOMETRY_WITNESSES = {
@@ -82,6 +82,12 @@ GEOMETRY_WITNESSES = {
     0x27042: ("cmp","eax,0xd4"),
     0x27049: ("mov","WORD PTR [ebx+0x12],0xd4"),
     0x438AE: ("mov","ds:0x2757c,eax"),
+    0x4388B: ("mov","eax,DWORD PTR [ebp+0x8]"),
+    0x4388E: ("cmp","eax,0x180"),
+    0x43895: ("mov","eax,0x180"),
+    0x4389A: ("cmp","eax,0xd4"),
+    0x438A1: ("mov","eax,0xd4"),
+    0x00107: ("mov","WORD PTR [ebx+0x12],0xd4"),
 }
 def geometric_machine_witnesses(rows):
     bypc={pc:(op,args) for pc,op,args in rows}
@@ -122,6 +128,11 @@ def zero_width_equivalence(rows):
               if executable_interval_helper(0xD3,0xAC,x,0)==0]
     if accepted!=list(range(214,385)):
         raise ValueError("original helper view 0xD3 eligibility range drift")
+    accepted_from_original_constructor=[
+         view for view in range(0xD4,0x181)
+         if executable_interval_helper(view,0xAC,0xD4,0)==0]
+    if accepted_from_original_constructor!=list(range(213,384)):
+        raise ValueError("actual constructor default and clamped viewport geometry mismatch")
     if (executable_interval_helper(0xD3,0xAC,256,0)!=0
         or executable_interval_helper(0xD3,0xAC,212,0)!=1
         or executable_interval_helper(0xD3,0xAC,385,0)!=1):
@@ -141,6 +152,11 @@ def zero_width_equivalence(rows):
             executable_interval_helper(0x134,0xAC,0xD4,0),
             "certainty":"local mathematical witness only, not observed runtime globals"},
         "actor_local_field_update":"CODE.2 0x27023..0x27049 bounds live +0x12 to 1..0xD4 along one state-update path",
+        "actor_constructor_original_default_u16_at_live_plus_0x12":0xD4,
+        "view_setter_original_clamp_inclusive":[0xD4,0x180],
+        "view_values_passing_for_constructor_W_0xD4":[213,383],
+        "reason":"The constructor defaults W=212, and the original view setter accepts input values 212..384; overlap returns 0 for view values 213..383",
+        "runtime_warning":"actual input values supplied to the setter for any specific NPC encounter not established",
         "view_dynamic_assignment":"CODE.2 0x438AE assigns view global from eax; achievable range not established",
         "test_total":6*(1025+512),
         "reality_check":"The live +0x12 value 256 is a SAT witness, NOT an observed live actor position",
