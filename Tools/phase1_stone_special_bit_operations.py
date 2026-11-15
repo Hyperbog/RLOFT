@@ -40,6 +40,7 @@ EXACT_STONE={
     "bit_10_stored_status_byte":(0x12783,"or","BYTE PTR [eax+0x15e1c],0x10"),
     "bit_40_d20_threshold":(0x127DB,"call","0x11b94"),
     "bit_40_identity_call":(0x12807,"call","0x343d8"),
+    "bit_40_identity_writeback":(0x12812,"mov","WORD PTR [edx+0x15e6c],ax"),
 }
 
 def original_cases(rows,title):
@@ -81,7 +82,7 @@ def original_cases(rows,title):
             "bit_02":"tests two 16-bit character words against 55, then can OR char status +0x15E1D with 0x10",
             "bit_20":"d20 threshold + random check, then can OR char status +0x15E1D with 0x08",
             "bit_10":"d20 threshold + random check, then can OR char status +0x15E1C with 0x10",
-            "bit_40":"d20 threshold + random check, then calls identity 0x343D8; later writes/effects need tracing",
+            "bit_40":"d20 threshold + random check, then writes identity result to the SAME character u16 field (+0x15E6C), so its direct writeback preserves that value",
             "runtime_effect_names":"UNKNOWN",
             "bit_40_instructions_after_identity":[
                 {"pc":pc,"asm":op+" "+args}
@@ -105,13 +106,14 @@ def observed_attack_flags(path):
             for bit in (1,2,4,8,16,32,64,128):
                 if flag&bit:bit_counts[bit]+=1
             active+=1
-    if active!=({"menzo":47,"stone":45}["menzo" if "MENZO" in str(path).upper() else "stone"]):
-        # Strict title-inference isn't needed for correctness; expected count
-        # is also pinned by phase1_npc_attack_descriptors.py.
-        pass
     return {"active_attack_records":active,
             "u16le_flags_histogram":dict(sorted(word_counts.items())),
             "bit_counts":dict(sorted(bit_counts.items()))}
+
+EXPECTED_U16_FLAGS={
+    "menzo":{0:35,1:1,2:1,4:3,8:2,32:3,64:2},
+    "stone":{0:33,4:2,8:5,16:1,32:3,49:1},
+}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -132,6 +134,8 @@ def main():
         corpus=observed_attack_flags(npc)
         if corpus["active_attack_records"]!={"menzo":47,"stone":45}[title]:
             raise ValueError(f"{title} attack count drift")
+        if corpus["u16le_flags_histogram"]!=EXPECTED_U16_FLAGS[title]:
+            raise ValueError(f"{title} original active attack flag histogram drift")
         output[title]={"code2_sha256":meta["sha256"],
                        "original_attack_effect_case_witnesses":cases,
                        "original_npc_aggregate_flags":corpus}
