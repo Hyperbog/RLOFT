@@ -186,8 +186,27 @@ def source_and_live_loader_provenance(rows):
                  and "0x1364c" in arg,limit=55)
     direct_spawner=[pc for pc,op,arg in rows
                     if op=="call" and arg=="0x1364c"]
+    import re
+    # Earlier probes searched a literal base address and missed indexed
+    # [register+0x35ADn]/[register+0x44FFn] operands. Match the full
+    # runtime-table address range and keep the owning instruction.
+    table_addresses={}
+    for label,pat in {
+        "position_16byte_runtime_struct":"0x35ad[0-9a-f]*",
+        "live_50byte_actor_struct":"0x44ff[0-9a-f]*",
+        "authoring_level_header_count":"0x44fd6",
+    }.items():
+        table_addresses[label]=hits(
+           lambda pc,op,arg,rx=re.compile(pat):rx.search(arg) is not None,
+           limit=110,before=4,after=4)
+    count_read_sites = table_addresses["authoring_level_header_count"]
+    candidate_region=[x for x in count_read_sites["examples"]
+                      if x["pc"]<0x21D80]
     return {
        "verified_live_stream_instruction_witnesses":fixed,
+       "runtime_table_and_count_xref_census":table_addresses,
+       "level_count_reads_before_stream_reader":candidate_region,
+       "eleven_stride_machine_context_0x16930":bounded(rows,0x16930,0x16990,limit=75),
        "verified_runtime_read_geometry":{
            "position_struct_stride_bytes":16,
            "live_actor_struct_stride_bytes":50,
