@@ -37,6 +37,8 @@ The level-event interpreter at CODE.2 `0x200` dispatches opcode bytes `0..13` us
 
 `RES9` has **31** raw programs of `u16LE count + count u16LE program words + count u16LE zero words`. All 31 match the structural container; **0/31** parse under Strahd's unchanged 42-opcode grammar. Its title-specific instruction grammar is **UNKNOWN**.
 
+**Phase 1 RES9 update:** The authenticated Menzo CODE.2 dispatcher at `0x19B4D` selects 43 cases from a table at `0x19A6C` after subtracting two from a `u16LE` encoded opcode. Helper `0x19610` decodes opcode `0x13`/`0x1A` choice pairs (sentinel `0x21`); transitive helper `0x18AC0` consumes opcode `0x05`'s single character-template ID. All **31/31** preserved RES9 scripts now linearly decode under this title-specific structural grammar; **876/876** checked direct target operands land on decoded instruction starts, with **45** timer operands containing unresolved `0xFFFF`. **VERIFIED structure; runtime effects remain UNKNOWN.** See [VM evidence](../../Resources/RES/CROSS_TITLE_WORDCODE_VM_PHASE1.md).
+
 **Reproduce:**
 
 ```sh
