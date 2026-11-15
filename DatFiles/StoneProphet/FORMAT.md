@@ -23,6 +23,8 @@
 
 ### NPC definition and enlarged fixed level-header evidence
 
+**Attack descriptor auxiliary reads.** Descriptor-relative `+3` includes control bits (original CODE.2 `0x275F9..0x27606` tests the second attack's `+3` byte and masks `0x8D`). Relative `+5` is the attack-phase modulo divisor (`0x27C9E..0x27CA8`); `+8` is compared against the resulting phase (`0x27CBE`). Relative `+4/+6` are zero in every serialized attack entry, but remain raw preserved bytes, not mandatory padding. One two-attack NPC stores a completely zero second descriptor; do not fabricate damage for it. [Machine and corpus witnesses](../../Tools/phase1_npc_attack_descriptors.py).
+
 The original `CD_Extracted/NPCS.DAT` SHA-256 is `646e6936e496a66bfa2768cb2288d9b5a959cd0042ab8530f1ecc0b3f24c3a02` (110 definitions, `0x58` bytes each). The following offsets refer to the **serialized NPC definition**, not the constructed live actor:
 
 | Original field | Width | Executable-backed operation | Confidence |
@@ -32,7 +34,7 @@ The original `CD_Extracted/NPCS.DAT` SHA-256 is `646e6936e496a66bfa2768cb2288d9b
 | `+0x4C` | `u8` | `0x23995` tests bit `0x80`; on the taken path it sets live `+0x0E` bit `0x20` | VERIFIED bit behavior; effect meaning UNKNOWN |
 | `+0x4D` | `u8` | `0x2399F` tests bit `0x08`; on the taken path it sets live `+0x0F` bit `0x20` | VERIFIED bit behavior; effect meaning UNKNOWN |
 | `+0x50/52/54/56` | four `u16LE` | Independent sound/resource-ID candidate fields; `+0x52` at `0x12A33` uses base `0x48138` and dispatcher `0x3B71C`; `+0x54` is zero in all 110 definitions | VERIFIED values, some readsites; individual purposes unresolved |
-| `+0x1D..+0x2F` | 19 raw bytes | Nonzero in 14 of 19 byte-columns; later fields are displaced +19 bytes relative to documented Strahd offsets | VERIFIED physical geometry, semantics UNKNOWN |
+| `+0x1D`; `+0x1E..+0x26`; `+0x27..+0x2F` | `u8 attack_count` plus two nine-byte attack descriptors | 110 NPCs: counts 0/1/2 = 80/15/15; each descriptor starts with unsigned dice count, sides, bonus. | CODE.2 `0x275F0/0x277A5` branches on two attacks; `0x12B6C..0x12B8D` indexes `(live_attack_index−1)*9` and calls damage helper `0x29ED0`. | VERIFIED attack grammar/rolled damage |
 
 Example: NPC index **1** contains **13** at `+0x30` and `0x20000000` at `+0x48`. The original **88-byte definition** record is copied selectively into a different **50-byte (`0x32`) live NPC** record (constructor stride at CODE.2 `0x1378A`). Neither game has been executed during this analysis.
 
@@ -40,11 +42,13 @@ The original `CD_Extracted/LEVELS.DAT` SHA-256 is `212b56deb635af954a257744a15c2
 
 | Header offset | Physical field and evidence | Confidence |
 | --- | --- | --- |
-| `+0x00A..+0x809` | `u16LE[1024]` indexed table accessed by CODE.2 from data base `0x447D6`, including `0x2B100` | VERIFIED indexed table; element semantics UNKNOWN |
+| `+0x00A..+0x809` | `u16LE[64][4][4]` grouped by code, orientation and channel | Original CODE.2 accessor `0x33D42..0x33D94`: group×32 bytes, orientation×8, channel×2. Renderer `0x4423A/0x44244` uses 32-byte groups. Complete producer of the selected group index not yet certified. | VERIFIED layout/consumer; channel meanings UNKNOWN |
 | `+0x80A` | `u16LE` family A count = `(boundary_3−boundary_2)/11` for 43/43 levels | VERIFIED |
 | `+0x80C` | `u16LE` family C count = `(boundary_5−boundary_4)/11` for 43/43 levels | VERIFIED |
 | `+0x80E` | `u16LE` family B count = `(boundary_4−boundary_3)/11` for 43/43 levels | VERIFIED |
 | `+0x810..+0x823` | 20-byte residual tail with original direct consumers and populated bytes | VERIFIED raw span; field meanings UNKNOWN |
+
+The indexed table is a **64 × 4 × 4** code/orientation/channel lookup (16 words = 32 bytes per group); unlike Strahd, it is not five independent 64-word resource banks. Executable callsites verify four-channel selection and rendering use. Stone's complete group-index producer and each channel's resource meaning still require tracing. [Exact indexed arithmetic](../../Tools/phase1_npc_table_provenance.py).
 
 The indexed table stores **10,491 nonzero entries** across 43 levels; values range **0..193** and never exceed 255. Example level **0** is **36×36** cells with A/C/B counts **58/64/172**. Its table contains 704 more 16-bit entries than Strahd's, exactly accounting for the `0x580`-byte fixed-header expansion. Table-value meaning and readsite effect are still under examination.
 
@@ -86,7 +90,7 @@ python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/sto
 
 ### Unresolved
 
-The formerly unexplained `0x580` bytes are **704 additional u16LE entries** in the enlarged fixed-header indexed table. **597 byte positions** in that extension are nonzero in at least one of the 43 archived levels. The table's gameplay effect and final 20-byte tail fields remain unidentified. For NPCs, the +0x30 hit-dice/HP formula and +0x48 initial-state copy are proved, but the 19-byte interposed block, most status bits and resource aliases still require original-code tracing. CHARS/SAVE codecs, rules, event-VM effects, ACT/DFA cinematics, the Type-5 two-byte discrepancy and RES9 loader precedence remain open. No playable Stone Prophet native session was run.
+The formerly unexplained `0x580` bytes are **704 additional u16LE entries** in the enlarged fixed-header indexed table. **597 byte positions** in that extension are nonzero in at least one of the 43 archived levels. The table's gameplay effect and final 20-byte tail fields remain unidentified. For NPCs, the +0x1D attack count, both nine-byte attack records, +0x30 HP formula and +0x48 initial-state copy are proved. Individual attack-control aliases and the remaining auxiliary attack bytes, plus several status/sound meanings, still require tracing. CHARS/SAVE codecs, rules, event-VM effects, ACT/DFA cinematics, the Type-5 two-byte discrepancy and RES9 loader precedence remain open. No playable Stone Prophet native session was run.
 
 **Reproduce:**
 
