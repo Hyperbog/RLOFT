@@ -89,6 +89,94 @@ GEOMETRY_WITNESSES = {
     0x438A1: ("mov","eax,0xd4"),
     0x00107: ("mov","WORD PTR [ebx+0x12],0xd4"),
 }
+
+# Entire original CODE.2 direct-call census. Source widths distinguish the
+# common definition +0x16 consumer from a different one-byte +0x07 input.
+# The byte/word distinction is part of the helper's caller ABI, not evidence
+# that every caller is an attack or a creature-placement path.
+HELPER_DIRECT_CALLER_WITNESSES = {
+    0x122D8: (0x122C0, "WORD PTR [edi+0x16]", 0x122E2),
+    0x130F0: (0x130DB, "WORD PTR [eax+0x16]", 0x130FA),
+    0x276F5: (0x276E0, "WORD PTR [edi+0x16]", 0x276FF),
+    0x2FF14: (0x2FEFF, "WORD PTR [eax+0x16]", 0x2FF1E),
+    0x3E4EC: (0x3E4D7, "WORD PTR [esi+0x16]", 0x3E4F6),
+    0x3E87D: (0x3E865, "WORD PTR [edi+0x16]", 0x3E887),
+    0x3E9AA: (0x3E995, "BYTE PTR [eax+0x7]", 0x3E9B4),
+    0x46C4F: (0x46C3A, "WORD PTR [edx+0x16]", 0x46C59),
+}
+MODE_LIFECYCLE_WITNESSES = {
+    0x06EB2: ("mov", "BYTE PTR ds:0x16e86,0x0"),
+    0x0CDE1: ("mov", "BYTE PTR ds:0x16e86,0x0"),
+    0x0D941: ("movzx", "BYTE PTR ds:0x16e86"),
+    0x0D948: ("mov", "BYTE PTR ds:0x16e86,0x1"),
+    0x0D94F: ("mov", "DWORD PTR [ebp-0x4],eax"),
+    0x0DA32: ("mov", "al,BYTE PTR [ebp-0x4]"),
+    0x0DA37: ("mov", "ds:0x16e86,al"),
+    0x2E180: ("xor", "BYTE PTR ds:0x16e86,0x1"),
+    0x2764C: ("movzx", "BYTE PTR ds:0x16e86"),
+    0x27705: ("movzx", "BYTE PTR ds:0x16e86"),
+}
+
+def helper_all_callers_and_mode_lifecycle(rows):
+    """Verify all direct callers and preserve dynamic-mode uncertainty."""
+    at = {pc:(idx,op,arg) for idx,(pc,op,arg) in enumerate(rows)}
+    callers = [pc for pc,op,arg in rows
+               if op=="call" and arg==f"0x{HELPER:x}"]
+    if sorted(callers)!=sorted(HELPER_DIRECT_CALLER_WITNESSES):
+        raise ValueError(f"Stone helper caller set drift: {callers}")
+    checked=[]
+    for pc,(source_pc,source_field,skip_pc) in HELPER_DIRECT_CALLER_WITNESSES.items():
+        ci,op,arg=at[pc]
+        si,source_op,source_arg=at[source_pc]
+        if (op!="call" or arg!=f"0x{HELPER:x}" or source_op!="movzx"
+            or source_field not in source_arg or not 0<ci-si<12):
+            raise ValueError(f"Stone helper argument provenance drift at {pc:#x}")
+        before=rows[max(0,ci-5):ci]
+        if (before[-1][1:]!=("push","DWORD PTR ds:0x2757c")
+            or before[-2][1:]!=("push","0xac")):
+            raise ValueError(f"Stone helper view/span push drift at {pc:#x}")
+        ri,reject_op,reject_arg=at[skip_pc]
+        if (reject_op!="jne" or not ci<ri<ci+7
+            or not any(mn=="test" and args=="eax,eax"
+                       for _,mn,args in rows[ci+1:ri])):
+            raise ValueError(f"Stone helper nonzero rejection drift at {pc:#x}")
+        checked.append({
+            "call_code2_offset":pc,"source_field_instruction_offset":source_pc,
+            "dimension_source":source_arg,"dimension_width":
+              "u8" if "BYTE PTR" in source_field else "u16 LE",
+            "view_argument":"u32 CODE.2 data 0x2757C",
+            "interval_span_argument":172,
+            "return_nonzero_branch_code2_offset":skip_pc,
+            "call_role":"attack evaluation" if pc==CALLER else
+                        "other helper consumer; gameplay role not classified",
+        })
+    mode_checked=[]
+    for pc,(op,part) in MODE_LIFECYCLE_WITNESSES.items():
+        got=at.get(pc)
+        if not got or got[1]!=op or part not in got[2]:
+            raise ValueError(f"Stone dynamic attack mode witness drift {pc:#x}: {got}")
+        mode_checked.append({"code2_offset":pc,"asm":got[1]+" "+got[2]})
+    direct_mode_writers=[{"pc":pc,"asm":op+" "+arg}
+        for pc,op,arg in rows
+        if "ds:0x16e86" in arg.split(",",1)[0]
+        and op in ("mov","xor","or","and","add","sub","inc","dec")]
+    if len(direct_mode_writers)!=7:
+        raise ValueError(f"Stone attack mode direct-writer count drift: {len(direct_mode_writers)}")
+    return {
+        "direct_helper_call_count":len(checked),
+        "all_direct_callers":checked,
+        "u16_definition_relative_plus_0x16_callers":7,
+        "u8_other_relative_plus_0x07_callers":1,
+        "caller_return_convention":"every examined caller branches away on nonzero helper result",
+        "mode_byte":"u8 CODE.2 data offset 0x16E86",
+        "mode_machine_witnesses":mode_checked,
+        "mode_direct_writes":direct_mode_writers,
+        "mode_1_saved_then_restored_path":
+           "0xD941/0xD948/0xD94F save old mode, set 1; 0xDA32/0xDA37 reload and write back",
+        "scope":"VERIFIED original instructions, not dynamic path reachability or exhaustive indirect call analysis",
+        "runtime_attack_state_reachability":"UNKNOWN",
+    }
+
 def geometric_machine_witnesses(rows):
     bypc={pc:(op,args) for pc,op,args in rows}
     checked=[]
@@ -331,6 +419,7 @@ def main():
     report={
         "code2_sha256":meta["sha256"],
         "original_known_machine_witnesses":check_known(rows),
+        "all_original_helper_callers_and_mode_lifecycle":helper_all_callers_and_mode_lifecycle(rows),
         "geometric_helper_zero_dimension_equivalence":zero_width_equivalence(rows),
         "candidate_live_actor_screen_word_writes":candidate_screen_field_writes(rows),
         "helper_and_attack_windows":{
