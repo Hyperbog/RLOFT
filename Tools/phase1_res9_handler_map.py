@@ -53,10 +53,14 @@ def dispatch(rows, code, title):
 
 HELPERS = {"menzo":{"opcode_02":0x18850,"opcode_05":0x192a0,
                     "opcode_13_1A_choice":0x19610,"opcode_14":0x19788,
-                    "opcode_16":0x19820,"opcode_2A":0x19534},
+                    "opcode_16":0x19820,"opcode_2A":0x19534,
+                    "opcode_05_party_slot":0x18ac0,"opcode_05_party_template":0x18e80,
+                    "opcode_05_postprocess":0x190a8},
            "stone":{"opcode_02":0x1c4e4,"opcode_05":0x1ced0,
                     "opcode_13_1A_choice":0x1d118,"opcode_14":0x1d290,
-                    "opcode_16":0x1d328,"opcode_37":0x1d77c}}
+                    "opcode_16":0x1d328,"opcode_37":0x1d77c,
+                    "opcode_05_party_slot":0x1c6a4,"opcode_05_party_template":0x1ca70,
+                    "opcode_05_postprocess":0x1cda0}}
 
 
 def helper_windows(rows,title):
