@@ -120,28 +120,69 @@ def main():
                              "target_27_is_instruction_start":True})
     by_address={pc:(op,args) for pc,op,args in rows}
     machine_witness={
+        # CODE.2 opcode 0x2E is three 16-bit operand words; only the
+        # THIRD is the conditional branch destination.
         0x1ea5e:("movzx","WORD PTR [eax*2+0x2ec32]"),
         0x1ea67:("movzx","WORD PTR [eax*2+0x2ec30]"),
         0x1ea81:("movzx","WORD PTR [eax*2+0x2ec34]"),
         0x1ea89:("mov","ds:0x1599c,eax"),
         0x1ea94:("add","ds:0x1599c,0x3"),
+        # Helper 0x1D594 performs a real empty-value sentinel match:
+        # (first==999, second==21) -> memory slot == 0xFFFF (-1).
+        0x1d59b:("cmp","[ebp+0x10],0x15"),
+        0x1d5a1:("cmp","ecx,0x3e7"),
+        0x1d5a9:("movsx","WORD PTR ds:0x1f714"),
+        0x1d5b0:("cmp","eax,0xffffffff"),
+        0x1d5f7:("cmp","ecx,0x3e7"),
+        0x1d5ff:("movsx","WORD PTR [eax+0x15e4c]"),
+        0x1d606:("cmp","eax,0xffffffff"),
+        0x1d626:("inc","edx"),
+        0x1d627:("cmp","edx,0x4"),
     }
     for pc,(opcode,phrase) in machine_witness.items():
         ins=by_address.get(pc)
         if not ins or ins[0]!=opcode or phrase not in ins[1]:
             raise ValueError(f"Original opcode 0x2E handler changed @{pc:#x}: {ins}")
     data["target_999_resolution"]={
-        "status":"verified_operand_not_control_target",
+        "status":"verified_sentinel_matches_empty_slot_not_branch_target",
+        "special_value_decimal":999,
+        "special_value_hex":"0x3e7",
+        "matches_word_value_signed":-1,
+        "second_parameter_21_checks_global_word_at":"0x1f714",
+        "other_parameter_values_check_up_to_four_party_record_fields":True,
         "affected_records":list(TARGET_999),
         "observations":observations,
         "opcode_2e_case_at":0x1ea59,
         "opcode_2e_helper_at":0x1d594,
         "case_handler_instruction_witnesses":[hex(v) for v in machine_witness],
     }
+    # Original two-path 0x08 handler accounts for all four old failures.
+    expected_repaired={
+        568:(138,183,143), 575:(59,159,483),
+        585:(32,199,146), 595:(135,214,141),
+    }
+    repaired=[]
+    for index,(source,condition,target) in expected_repaired.items():
+        parsed=corr["decode"](originals[index],corr["ARITY"]["stone"],"stone")
+        by_ip={pc:(logical,args) for pc,logical,args in parsed}
+        case=by_ip.get(source)
+        if not case or case[0]!=6 or tuple(case[1])!=(condition,target):
+            raise ValueError(f"RES9:{index} opcode08 two-word boundary regressed")
+        if target not in by_ip:
+            raise ValueError(f"RES9:{index} branch target {target} misaligned")
+        if source+3 not in by_ip:
+            raise ValueError(f"RES9:{index} opcode08 fallthrough misaligned")
+        repaired.append({"index":index,"opcode_word":source,
+                         "encoded_opcode":8,"condition":condition,
+                         "target":target,"target_is_instruction_start":True,
+                         "fallthrough":source+3,
+                         "fallthrough_is_instruction_start":True})
+    data["four_repaired_programs"]=repaired
     arg.json.parent.mkdir(parents=True,exist_ok=True)
     arg.json.write_text(json.dumps(data,indent=2)+"\n")
     print("Stone unresolved:",
         {k:(v["failure_at"],v["error"]) for k,v in data["program_evidence"].items() if v["error"]})
-    print("Ten 999 operand witnesses: PASS; 999 is not a direct target")
+    print("Four formerly failing opcode-08 paths: PASS")
+    print("Ten 999 empty-value sentinel witnesses: PASS; 999 is not a target")
     print("BITSET referenced",data["code_evidence"]["state_word_0x158A4_references"]["count"])
 if __name__=="__main__":main()
