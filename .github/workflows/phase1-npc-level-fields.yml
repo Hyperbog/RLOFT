@@ -12,6 +12,7 @@ on:
       - 'Tools/phase1_npc_descriptor_calls.py'
       - 'Tools/phase1_npc_attack_descriptors.py'
       - 'Tools/phase1_tile_channel_consumers.py'
+      - 'Tools/phase1_attack_control_channels.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -107,6 +108,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-tile-channel-consumers.json
           python -m py_compile Tools/phase1_tile_channel_consumers.py
+
+      - name: Trace attack-control bits and tile-channel match filter callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_attack_control_channels.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-attack-control-channels.json
+          python -m py_compile Tools/phase1_attack_control_channels.py
 
       - name: Publish derived metadata only
         if: always()
