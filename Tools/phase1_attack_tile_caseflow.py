@@ -46,6 +46,19 @@ GAMES = {
  },
 }
 
+PINNED_CASE_DISPATCH={
+    "menzo":[0x2758e,0x275aa,0x2749c,0x275cc,0x2749c,0x2749c,
+             0x2749c,0x2749c,0x2749c,0x275ee],
+    "stone":[0x308d3,0x308ef,0x307e1,0x30911,0x307e1,0x307e1,
+             0x307e1,0x307e1,0x307e1,0x307e1,0x30933],
+}
+PINNED_ACTOR_STATE_DISPATCH={
+    "menzo":[0x2035b,0x203b2,0x203b2,0x2041d,0x20445],
+    "stone":[0x27c03,0x27c89,0x27c89,0x27d7f,0x27dda,
+             0x27dac,0x27dc7,0x27de2],
+}
+
+
 def insns(rows,a,b,cap=150):
     return [{"pc":pc,"asm":op+" "+arg}
             for pc,op,arg in rows if a<=pc<b][:cap]
@@ -220,10 +233,15 @@ def main():
         code,_,meta=codeutil["le_image"](folder/media["exe"],media["expected"])
         rows=codeutil["disassembly"](code)
         table=case_targets(code,rows,cfg)
+        if table["handler_addresses"] != PINNED_CASE_DISPATCH[game]:
+            raise ValueError(f"{game}: original action handler regression")
+        state=original_state_table(code,rows,cfg)
+        if [entry["handler_pc"] for entry in state["cases"]] != PINNED_ACTOR_STATE_DISPATCH[game]:
+            raise ValueError(f"{game}: actor state handler regression")
         result[game]={
            "source_code2_sha256":meta["sha256"],
            "tile_action_dispatch":table,
-           "live_npc_action_state_dispatch":original_state_table(code,rows,cfg),
+           "live_npc_action_state_dispatch":state,
            "attack_range_and_control_u16_fields":attack_range_field_reads(rows,cfg),
            "attack_dynamic_flags":candidate_flags(rows,cfg),
            "attack_flag_behavior_windows":flag_behavior_windows(rows,game),
