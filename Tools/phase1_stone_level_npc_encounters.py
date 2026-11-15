@@ -312,6 +312,63 @@ def work_level_source_proof(rows, data):
       "raw_archive_to_work_file_producer":"UNKNOWN; could be installer, CODE.1, another routine, or saved state",
     }
 
+
+# Focused one-pass search for the producer of the numbered work-level file.
+# The 0x2445E caller is immediately followed by a second formatter of the
+# same filename; probe both subroutines and the actual file-helper calls.
+# Do NOT label these as save or archive producer until evidence supports it.
+def work_level_producer_and_indirect_dispatch(rows):
+    bypc={pc:(op,arg) for pc,op,arg in rows}
+    for pc,op,arg in (
+      (0x2445E,"call","0x21db0"),
+      (0x24477,"mov","eax,DWORD PTR [ebp+0x14]"),
+      (0x2448B,"mov","ds:0x1f638,al"),
+    ):
+        got=bypc.get(pc)
+        if got is None or got[0]!=op or arg not in got[1]:
+            raise ValueError(f"Stone work-level producer lead witness drift {pc:#x}: {got}")
+    windows={
+       "level_change_post_reader":(0x2445D,0x24760),
+       "work_file_candidate_helper":(0x25084,0x25340),
+       "work_reader_open_header":(0x21DB0,0x21ED0),
+       "work_reader_tail":(0x223B0,0x22470),
+    }
+    # Bounded xrefs: include the instruction before/after for disambiguating
+    # an address constant used as a buffer vs an actual stream-argument.
+    def xref(needle,max_hits=55):
+        matches=[]
+        for i,(pc,op,arg) in enumerate(rows):
+            if needle not in arg:continue
+            matches.append({"pc":pc,"asm":op+" "+arg,
+               "before":[{"pc":p,"asm":m+" "+a} for p,m,a in rows[max(0,i-5):i]],
+               "after":[{"pc":p,"asm":m+" "+a} for p,m,a in rows[i+1:i+7]]})
+        return {"total_matches":len(matches),"examples":matches[:max_hits]}
+    indirect=[]
+    for i,(pc,op,arg) in enumerate(rows):
+        if op!="call" or arg.startswith("0x"):continue
+        indirect.append({"pc":pc,"asm":op+" "+arg,
+           "before":[{"pc":p,"asm":m+" "+a} for p,m,a in rows[max(0,i-6):i]]})
+    # Code object disassembly is whole-object, so accidental instruction
+    # decodes are leads until original CFG/call ownership is established.
+    return {
+       "verified_leads":[{"pc":pc,"asm":bypc[pc][0]+" "+bypc[pc][1]}
+         for pc in (0x2445E,0x24477,0x2448B)],
+       "producer_candidate_machine_windows":{
+           k:bounded(rows,lo,hi,limit=280) for k,(lo,hi) in windows.items()},
+       "filename_buffer_and_decimal_writes":xref("0x1f63",55),
+       "actor_live_type_field_write_leads":xref("0x44ff4",50),
+       "file_helper_write_read_leads":{
+           k:xref(f"0x{p:x}",max_hits=45) for k,p in {
+            "open_0x433D4":0x433D4,"open_0x433E8":0x433E8,
+            "stream_read_0x43424":0x43424,
+            "path_helper_0x434B0":0x434B0,
+           }.items()
+       },
+       "indirect_call_count":len(indirect),
+       "indirect_callsite_examples":indirect[:95],
+       "scope":"Executable offsets and instruction windows only. Do not assert work-file production, a spawn path, or stock encounter reachability from coincidence.",
+    }
+
 CONSTRUCTOR_XREFS={
     0x0070D:None,  # LEVELS.DAT event opcode 0x0D: byte operands
     0x1AB03:77,
@@ -415,6 +472,7 @@ def main():
     body={
        "code2_sha256":meta["sha256"],
        "numbered_work_level_loader_source_proof":source_path_proof,
+       "work_level_producer_and_indirect_dispatch_probe":work_level_producer_and_indirect_dispatch(rows),
        "original_11byte_family_A":level_family(root/game["level"]),
        "original_CODE2_readsite_probes":loader_witnesses(rows),
        "original_source_and_live_loader_provenance":source_and_live_loader_provenance(rows),
