@@ -43,7 +43,7 @@ CORRECTIONS = {
 ARITY = {title: tuple(CORRECTIONS[title].get(i, n)
                       for i,n in enumerate(widths))
          for title,widths in ARITY.items()}
-EXPECTED_MINIMUM = {"menzo": (31, 28), "stone": (48, 40)}
+EXPECTED_MINIMUM = {"menzo": (31, 31), "stone": (48, 44)}
 
 
 def read_programs(path, parser):
