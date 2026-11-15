@@ -355,6 +355,20 @@ def work_level_producer_and_indirect_dispatch(rows):
          for pc in (0x2445E,0x24477,0x2448B)],
        "producer_candidate_machine_windows":{
            k:bounded(rows,lo,hi,limit=280) for k,(lo,hi) in windows.items()},
+       "early_file_creation_candidates":{
+           "formatter_open_at_0x313A":bounded(rows,0x3010,0x3350,limit=520),
+           "formatter_open_at_0x33C1":bounded(rows,0x3350,0x3550,limit=280),
+           "early_creature_setup":bounded(rows,0x3500,0x3980,limit=350),
+       },
+       "candidate_file_io_calls":{
+           k:xref(f"0x{pc:x}",max_hits=45)
+           for k,pc in {
+               "open_read_existing_0x433C0":0x433c0,
+               "stream_write_0x4340C":0x4340c,
+               "stream_seek_0x4343C":0x4343c,
+               "stream_close_0x433FC":0x433fc,
+           }.items()
+       },
        "filename_buffer_and_decimal_writes":xref("0x1f63",55),
        "actor_live_type_field_write_leads":xref("0x44ff4",50),
        "file_helper_write_read_leads":{
