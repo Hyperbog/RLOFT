@@ -21,6 +21,41 @@
 | CHARS | block read length 0x1070; indexed stride 0x41C | 4 × 0x41C equals 0x1070 | `0x216B9` block length, `0x0473C` indexed multiply | VERIFIED operations; four-record grouping LIKELY |
 | PROPHET/RES4 | entry-relative `+3 i16 LE` header length | Type-5: 963 records header 5; Type-6: 410 records header 5 | all indexed records scanned | VERIFIED |
 
+### NPC definition and enlarged fixed level-header evidence
+
+The original `CD_Extracted/NPCS.DAT` SHA-256 is `646e6936e496a66bfa2768cb2288d9b5a959cd0042ab8530f1ecc0b3f24c3a02` (110 definitions, `0x58` bytes each). The following offsets refer to the **serialized NPC definition**, not the constructed live actor:
+
+| Original field | Width | Executable-backed operation | Confidence |
+| --- | --- | --- | --- |
+| `+0x30` | `u8` | Normal NPC constructor `0x13844` passes hit-dice count to `0x29F08`. Runtime selector `0x1A4BC` controls the HP rule: 0 = d8 rolls, 1 = count×6, 2 = count×7, 3 = count×8. Result stored in live `+0x2A` | VERIFIED computation, runtime selector purpose UNKNOWN |
+| `+0x48` | `u32LE` | `0x137D2/0x137E4` and `0x23968/0x2396B` copy definition value unchanged to live `+0x0E` | VERIFIED state initialization |
+| `+0x4C` | `u8` | `0x23995` tests bit `0x80`; on the taken path it sets live `+0x0E` bit `0x20` | VERIFIED bit behavior; effect meaning UNKNOWN |
+| `+0x4D` | `u8` | `0x2399F` tests bit `0x08`; on the taken path it sets live `+0x0F` bit `0x20` | VERIFIED bit behavior; effect meaning UNKNOWN |
+| `+0x50/52/54/56` | four `u16LE` | Independent sound/resource-ID candidate fields; `+0x52` at `0x12A33` uses base `0x48138` and dispatcher `0x3B71C`; `+0x54` is zero in all 110 definitions | VERIFIED values, some readsites; individual purposes unresolved |
+| `+0x1D..+0x2F` | 19 raw bytes | Nonzero in 14 of 19 byte-columns; later fields are displaced +19 bytes relative to documented Strahd offsets | VERIFIED physical geometry, semantics UNKNOWN |
+
+Example: NPC index **1** contains **13** at `+0x30` and `0x20000000` at `+0x48`. The original **88-byte definition** record is copied selectively into a different **50-byte (`0x32`) live NPC** record (constructor stride at CODE.2 `0x1378A`). Neither game has been executed during this analysis.
+
+The original `CD_Extracted/LEVELS.DAT` SHA-256 is `212b56deb635af954a257744a15c26bc48d801b6e09b0ef7fc2b614a425513b2`. Every one of its **43** level records has this fixed header at record-relative `+0x1D`:
+
+| Header offset | Physical field and evidence | Confidence |
+| --- | --- | --- |
+| `+0x00A..+0x809` | `u16LE[1024]` indexed table accessed by CODE.2 from data base `0x447D6`, including `0x2B100` | VERIFIED indexed table; element semantics UNKNOWN |
+| `+0x80A` | `u16LE` family A count = `(boundary_3−boundary_2)/11` for 43/43 levels | VERIFIED |
+| `+0x80C` | `u16LE` family C count = `(boundary_5−boundary_4)/11` for 43/43 levels | VERIFIED |
+| `+0x80E` | `u16LE` family B count = `(boundary_4−boundary_3)/11` for 43/43 levels | VERIFIED |
+| `+0x810..+0x823` | 20-byte residual tail with original direct consumers and populated bytes | VERIFIED raw span; field meanings UNKNOWN |
+
+The indexed table stores **10,491 nonzero entries** across 43 levels; values range **0..193** and never exceed 255. Example level **0** is **36×36** cells with A/C/B counts **58/64/172**. Its table contains 704 more 16-bit entries than Strahd's, exactly accounting for the `0x580`-byte fixed-header expansion. Table-value meaning and readsite effect are still under examination.
+
+**Reproduce from read-only preservation media:**
+
+```sh
+python Tools/phase1_npc_level_fields.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-fields.json
+python Tools/phase1_npc_level_consumers.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-consumers.json
+python Tools/phase1_npc_level_semantics.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-semantic-witnesses.json
+```
+
 ### Type-5/6 and RES9 preservation
 
 Stone `PROPHET/RES4` entry 0 is Type-5, with the common two-byte EH marker, type byte=5 at `+2`, signed little-endian header length=5 at `+3`. All 963 Type-5 entries have next-five-header-byte positions 0=3, 1=2, 3=0, 4=0; position 2 equals **16 in 63 records** or **48 in 900 records**. The Type-5 payload lengths range from 1,177 to 9,495 bytes. The meaning of each header value is UNKNOWN.
@@ -51,7 +86,7 @@ python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/sto
 
 ### Unresolved
 
-The extra `0x580` bytes in the 0x824-byte level header contain nonzero bytes at **597 distinct byte positions** across 43 levels. Their layout, including widths and semantics, remains UNKNOWN. Same for the 88-byte NPC stat/action fields, CHARS and SAVE codecs, rules, event-script opcode semantics, cinematic ACT/DFA data, the Type-5 two-byte discrepancy and original RES9 loader precedence. No playable Stone Prophet native session was run.
+The formerly unexplained `0x580` bytes are **704 additional u16LE entries** in the enlarged fixed-header indexed table. **597 byte positions** in that extension are nonzero in at least one of the 43 archived levels. The table's gameplay effect and final 20-byte tail fields remain unidentified. For NPCs, the +0x30 hit-dice/HP formula and +0x48 initial-state copy are proved, but the 19-byte interposed block, most status bits and resource aliases still require original-code tracing. CHARS/SAVE codecs, rules, event-VM effects, ACT/DFA cinematics, the Type-5 two-byte discrepancy and RES9 loader precedence remain open. No playable Stone Prophet native session was run.
 
 **Reproduce:**
 
