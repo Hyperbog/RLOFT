@@ -21,6 +21,40 @@
 | CHARS | full read size 0x1070; indexed access stride 0x41C | 0x1070 = 4 × 0x41C | CODE.2 `0x1B69E` push 0x1070; `0x041C0` indexed multiply 0x41C | VERIFIED operations; four-record interpretation LIKELY |
 | RES4 | indexed entry-relative `+3 i16 LE` type header length | Type-5: 559 entries of header length 5; Type-6: 502 of length 5 | full typed-record corpus scan | VERIFIED |
 
+### NPC definition and expanded level-header field evidence
+
+The original NPCS.DAT SHA-256 is `ad365e5da571e95306cf20f226399088563a7cc5d371d53db971e8c1e8449e39` (98 definitions, each `0x58` bytes). Data positions are **definition-record-relative**, not runtime offsets.
+
+| Original field | Width | Executable-backed operation | Confidence |
+| --- | --- | --- | --- |
+| `+0x30` | `u8` | Normal NPC constructor `0x104F8` passes this hit-dice count to `0x20818` with 8-sided dice; the helper rolls and sums, minimum 1 | VERIFIED HP calculation |
+| `+0x48` | `u32LE` | `0x104D5/0x104EA` copies original definition value unchanged to live-record `+0x0E` | VERIFIED initialization state copy; bit meanings incomplete |
+| `+0x4C/+0x4D` | 2 × `u8` | Original flag tests include `0xFBC7` and `0xFC46` | VERIFIED bit tests; overall gameplay semantics UNKNOWN |
+| `+0x50/52/54/56` | 4 × `u16LE` | Read as separate audio/resource index fields; callsites `0x20103`, `0xFD7F`, `0x10676`, `0x1061B` use resource base `0x3A63C` and dispatcher `0x302B8` | VERIFIED widths/readsites, individual aliases LIKELY |
+| `+0x1D..+0x2F` | 19 raw bytes | Nonzero in 15 of 19 byte-columns across the corpus; later proved fields are displaced by 19 bytes relative to Strahd | VERIFIED byte geometry, field meanings UNKNOWN |
+
+Example: NPC index **0** has hit-dice count **6** at `+0x30` and initial-state dword `0x20000000` at `+0x48`. The original NPC *definition* stride `0x58` is distinct from the constructed *live* NPC stride **`0x2E`** (46 bytes), shown by CODE.2 `0x1047C/0x1048D`.
+
+The LEVELS.DAT SHA-256 is `d3509c9288cc5b1e14b6a9e6c4e2d496e336b3dcaca05555a65e5ed4e564d8aa`. Every one of its **56** levels has the following `0x824`-byte fixed header, beginning at record-relative `+0x1D`:
+
+| Header offset | Physical field and evidence | Confidence |
+| --- | --- | --- |
+| `+0x00A..+0x809` | `u16LE[1024]` indexed table; CODE.2 uses DGROUP `0x39DA6`, including indexed read at `0x21837` | VERIFIED storage and indexing; table value semantics UNKNOWN |
+| `+0x80A` | `u16LE` family A count, equals `(boundary_3−boundary_2)/11` in 56/56 levels | VERIFIED |
+| `+0x80C` | `u16LE` family C count, equals `(boundary_5−boundary_4)/11` in 56/56 levels | VERIFIED |
+| `+0x80E` | `u16LE` family B count, equals `(boundary_4−boundary_3)/11` in 56/56 levels | VERIFIED |
+| `+0x810..+0x823` | 20-byte tail with populated fields and original direct readers; individual meanings not yet decoded | VERIFIED raw span; semantics UNKNOWN |
+
+The widened table has **21,336 nonzero entries** across 56 levels, encoded values **0..134**, and no value above 255. For example, level index **0** has **70×70** cells and A/C/B counts **26/27/133**. The table is **704 additional u16 entries** relative to Strahd's 320-entry layout, explaining the entire `0x580`-byte difference in header length; identical field meanings are not presumed.
+
+**Reproduce with immutable `DnD-Classics/MASTER` media:**
+
+```sh
+python Tools/phase1_npc_level_fields.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-fields.json
+python Tools/phase1_npc_level_consumers.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-consumers.json
+python Tools/phase1_npc_level_semantics.py --root preservation/MASTER --repo-root . --json audit/phase1-npc-level-semantic-witnesses.json
+```
+
 ### RES4 Type-5 header (physical-only)
 
 At `RES4` entry 0: `+0..1` two-byte EH marker, `+2 u8` type=5, `+3 i16 LE` header_length=5. The next five bytes at entry `+5..+9` are constant at positions 0=3, 1=2, 3=0, 4=0; position 2 equals **16 in 85 entries** or **48 in 474 entries**. Across all 559 Type-5 records, the payload length (after the five-byte header) ranges from 1,123 to 9,676 bytes. Header bytes are not labeled as dimensions, compression methods or offsets until the original CODE.2 handler is recovered.
@@ -49,9 +83,9 @@ python Tools/phase1_type56_verify.py --root preservation/MASTER --json audit/men
 
 ### Unresolved
 
-The `0x824` level header includes an extra 0x580 bytes compared with Strahd; **706 distinct positions** in this extension contain a nonzero byte in at least one of the 56 archived levels. The byte count and positions are known; the meanings and field widths are not.
+The additional `0x580` bytes expand the header's 16-bit indexed table from 320 to 1024 entries, with all three record-family counts following the widened table. **706 distinct byte positions** within the former extension region contain nonzero values. Their original CODE.2 readsites are documented above; the meaning of the table values and the final 20-byte header tail is still unresolved.
 
-All 88-byte NPC record values past their common ASCII name prefix remain uninterpreted; the 0x41C CHARS record fields, event VM opcode semantics, save serialization, rules, and the Type-5 two-byte length discrepancy still require additional CODE.2 consumer analysis. No Menzo native gameplay is implemented or tested.
+The 19 newly observed NPC-definition bytes at `+0x1D..+0x2F`, many behavior/status bits, sound-event aliases, the 0x41C CHARS fields, event VM opcode effects, saves, rules, and Type-5's two-byte length discrepancy remain open. HP-count and initial-state-copy semantics are executable-backed, but **full NPC field semantics are not complete**. No Menzo native gameplay is implemented or tested.
 
 **Reproduce:**
 
