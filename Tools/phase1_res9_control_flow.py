@@ -93,12 +93,19 @@ def audit(root,repo):
                 if len(samples[row["result"]])<18:
                     samples[row["result"]].append({
                         "record":p["index"],**row})
-        # Structural coverage regression is explicit; unresolved Stone
-        # branch targets remain visible rather than counted as successes.
+        # Require the authenticated full-corpus classification. An incidental
+        # bad branch cannot be hidden by an otherwise complete linear parse.
         if title == "menzo" and (len(checked)!=31 or counts["not_decoded_start"]):
             raise ValueError("Menzo RES9 full-corpus/branch-target regression")
         if title == "stone" and len(checked)!=48:
             raise ValueError("Stone RES9 candidate coverage regressed")
+        expected={"menzo":{"decoded_start":876,"unknown_sentinel_semantics":45},
+                  "stone":{"decoded_start":1473,"unknown_sentinel_semantics":24}}
+        if dict(counts)!=expected[title]:
+            raise ValueError(
+                f"{title}: original RES9 direct target classification changed "
+                f"{dict(counts)} != {expected[title]}"
+            )
         report[title]={
             "programs_present":len(results),
             "completely_linearly_consumed":len(checked),
