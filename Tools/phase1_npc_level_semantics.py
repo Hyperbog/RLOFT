@@ -46,6 +46,30 @@ TITLE={
          "header_table_anchor":0x447D6},
 }
 
+NPC_FIELD_OFFSETS=(0x30,0x31,0x32,0x33,0x34,0x35,
+                   0x38,0x3B,0x44,0x48,0x4C,0x4D,
+                   0x50,0x52,0x54,0x56)
+
+def npc_offset_code_leads(rows):
+    # Unproven bare register-relative addressing is explicitly a lead.
+    # Call-path-specific facts must still be tied to the 0x58 stride or
+    # pointer previously authenticated in machine().
+    out={}
+    for offset in NPC_FIELD_OFFSETS:
+        hits=[]
+        needle=f"+0x{offset:x}]"
+        for i,(pc,op,args) in enumerate(rows):
+            if needle not in args:continue
+            if "PTR [" not in args:continue
+            hits.append({"pc":pc,"asm":op+" "+args,
+                         "context":[{"pc":p,"asm":mn+" "+ar}
+                                    for p,mn,ar in rows[max(0,i-7):i+9]]})
+        out[str(offset)]={"unfiltered_count":len(hits),
+                          "candidate_instances":hits[:12],
+                          "register_provenance_verified":False}
+    return out
+
+
 def machine(rows,game):
     bypc={pc:(op,args) for pc,op,args in rows}
     found=[]
@@ -65,6 +89,7 @@ def machine(rows,game):
                                    for p,mn,params in rows[max(0,i-4):i+7]]})
     # Enforce known original code reads at the original object offsets.
     return {"verified_original_machine_witnesses":found,
+            "candidate_register_field_reads":npc_offset_code_leads(rows),
             "npc_definition_runtime_copy":{
                 "source_u32_offset":0x48,
                 "live_u32_offset":0x0E,
