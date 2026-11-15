@@ -23,6 +23,14 @@ CODE_WITNESSES={
             0x20059:("test","BYTE PTR [edi+0x2a],0xc"),
             0x2005F:("mov","DWORD PTR [ebp-0xc],0xb0000"),
         },
+        "attack_bit_effects":{
+            0xF967:("test","BYTE PTR [ebp-0x4],0x4"),
+            0xF9AF:("test","BYTE PTR [ebp-0x4],0x8"),
+            0xF98B:("call","0xf850"),
+            0xF9A5:("call","0x285ec"),
+            0xF9CF:("call","0xf850"),
+            0xF9E9:("call","0x285ec"),
+        },
         "post_filter_dispatch":{
             0x27576:("mov","BYTE PTR [eax]"),
             0x2757A:("cmp","dl,0x9"),
@@ -62,6 +70,25 @@ CODE_WITNESSES={
             0x27638:("call","0x431c6"),
             0x27643:("cmp","eax,0x46"),
         },
+        "attack_bit_effects":{
+            0x1253E:("and","al,0x4"),
+            0x12582:("and","al,0x80"),
+            0x125CF:("and","al,0x1"),
+            0x12658:("and","al,0x2"),
+            0x126FF:("and","al,0x20"),
+            0x1274D:("and","al,0x10"),
+            0x127CD:("and","al,0x40"),
+            0x12835:("and","al,0x8"),
+            0x12575:("call","0x32f70"),
+            0x125B2:("call","0x32f70"),
+            0x1260E:("call","0x32f70"),
+            0x12699:("call","0x3395c"),
+            0x12713:("call","0x11b94"),
+            0x1275F:("call","0x11b94"),
+            0x127DB:("call","0x11b94"),
+            0x12807:("call","0x343d8"),
+            0x12865:("call","0x32f70"),
+        },
         "post_filter_dispatch":{
             0x308BB:("mov","BYTE PTR [eax]"),
             0x308BF:("cmp","dl,0xa"),
@@ -93,6 +120,20 @@ def machine_check(rows,game):
                                  f"expected {op} {snippet}; got {instr}")
             proof.append({"pc":pc,"asm":instr[0]+" "+instr[1]})
         findings[label]=proof
+    if game=="stone":
+        # Both live states 1 and 2 enter 0x27C89. No instruction
+        # branches around the period-loaded IDIV at 0x27CA8.
+        near=[(pc,op,args) for pc,op,args in rows
+              if 0x27c9e<=pc<=0x27ca8]
+        if (not near or near[0][0]!=0x27c9e
+            or near[-1][0]!=0x27ca8
+            or any(op.startswith("j") for _,op,args in near)):
+            raise ValueError("Stone divisor read/IDIV straight-line path changed")
+        findings["zero_division_local_guard_check"]={
+            "period_load_pc":0x27c9e,
+            "divide_pc":0x27ca8,
+            "local_conditional_jump_between":False,
+            "runtime_reachability":"UNKNOWN; nonzero period invariant requires state producer proof"}
     return findings
 
 
@@ -120,8 +161,14 @@ def attack_gate_consistency(npc_path):
             per_slot[key]+=1
             nonzero_attacks+=not is_zero
             if period==0:
-                invalid_divisors.append({"npc_index":record,"attack_slot":slot,
-                                         "record_is_all_zero":is_zero})
+                name=body[:20].split(b"\0",1)[0].decode("latin1",errors="replace")
+                invalid_divisors.append({"npc_index":record,
+                                         "npc_name":name,
+                                         "attack_slot":slot,
+                                         "record_is_all_zero":is_zero,
+                                         "control_word":struct.unpack_from("<H",d,3)[0],
+                                         "distance_word":struct.unpack_from("<H",d,6)[0],
+                                         "trigger_phase":d[8]})
     return {
         "active_slots_in_records":sum(per_slot.values()),
         "nonzero_attack_descriptors":nonzero_attacks,
