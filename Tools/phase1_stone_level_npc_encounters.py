@@ -235,6 +235,67 @@ def source_and_live_loader_provenance(rows):
        "accuracy_note":"Executable-wide instruction xrefs include false-positive data offsets. A bounded lead is not a verified loader or spawn.",
     }
 
+
+# Prove the **filename actually used by this loader**, instead of inferring
+# the file identity from matching record sizes in an extracted CD archive.
+# Stone's DOS guest data-object string is constant except three digit slots.
+WORK_LEVEL_NAME_AT = 0x1F630
+WORK_LEVEL_WITNESSES = {
+    0x21DB9: ("mov","esi,DWORD PTR [ebp+0x14]"),
+    0x21DD2: ("mov","ebx,0x64"),
+    0x21DE0: ("mov","edi,0xa"),
+    0x21DEF: ("mov","ds:0x1f638,al"),
+    0x21DFB: ("mov","BYTE PTR ds:0x1f63a,dl"),
+    0x21E12: ("push","0x1f630"),
+    0x21E17: ("mov","ds:0x1f639,al"),
+    0x21E1C: ("call","0x434b0"),
+    0x21E24: ("push","0x1f630"),
+    0x21E29: ("call","0x433e8"),
+    0x21E3A: ("push","0x1f630"),
+    0x21E3F: ("call","0x433d4"),
+    0x21E5F: ("push","0x1d"),
+    0x21E71: ("push","0x824"),
+    0x21E76: ("push","0x447cc"),
+    0x21E7B: ("call","0x43424"),
+    0x220B6: ("shl","edi,0x4"),
+    0x220BB: ("push","0x35ad0"),
+    0x220C0: ("call","0x43424"),
+    0x220E1: ("imul","edi,edi,0x32"),
+    0x220E6: ("push","0x44ff0"),
+    0x220EB: ("call","0x43424"),
+}
+def work_level_source_proof(rows, data):
+    prefix=b"work\\lev???.dat\\0"
+    if data[WORK_LEVEL_NAME_AT:WORK_LEVEL_NAME_AT+len(prefix)]!=prefix:
+        raise ValueError("original CODE.2 work-level filename template changed")
+    if b"LEVELS.DAT" in data.upper():
+        raise ValueError("original CODE.2 data object now contains unexpected LEVELS.DAT string")
+    at={pc:(op,arg) for pc,op,arg in rows}
+    ins=[]
+    for pc,(op,fragment) in WORK_LEVEL_WITNESSES.items():
+        observed=at.get(pc)
+        if not observed or observed[0]!=op or fragment not in observed[1]:
+            raise ValueError(f"Stone numbered work-level loader witness drift {pc:#x}: {observed}")
+        ins.append({"pc":pc,"asm":observed[0]+" "+observed[1]})
+    calls=[pc for pc,op,arg in rows if op=="call" and arg=="0x21db0"]
+    # Archive-level source requires an independent importer or launch/runtime
+    # generation: the numbered file reader does not identify an authored
+    # family-A 11-byte input conversion.
+    return {
+      "file_name_template":"work\\lev???.dat",
+      "file_name_storage":"CODE.2 LE data object 0x1F630, NUL-terminated char[16]",
+      "decimal_digit_write_offsets":["0x1F638","0x1F639","0x1F63A"],
+      "level_id_examples":[{"level_index":n,"constructed_name":
+         f"work\\lev{n:03d}.dat"} for n in (0,22,123)],
+      "filename_initializer_calls":[0x21E1C,0x21E29,0x21E3F],
+      "per_level_file_read_region":[0x21DB0,0x22439],
+      "exact_original_instruction_witnesses":ins,
+      "direct_callers_of_numbered_level_reader":calls,
+      "CODE2_data_contains_literal_LEVELS_DOT_DAT":False,
+      "conclusion":"VERIFIED distinct numbered work-level path; 0x824 header and live 16/50-byte reads are from this opened stream, not shown to be raw CD_Extracted/LEVELS.DAT",
+      "raw_archive_to_work_file_producer":"UNKNOWN; could be installer, CODE.1, another routine, or saved state",
+    }
+
 CONSTRUCTOR_XREFS={
     0x0070D:None,  # LEVELS.DAT event opcode 0x0D: byte operands
     0x1AB03:77,
@@ -332,10 +393,12 @@ def main():
     game=tool["GAMES"]["stone"];root=a.root/game["dir"]
     hashutil["assert_media_file"]("stone_levels",root/game["level"])
     hashutil["assert_media_file"]("stone_npc",root/game["npc"])
-    code,_,meta=tool["le_image"](root/game["exe"],game["expected"])
+    code,data,meta=tool["le_image"](root/game["exe"],game["expected"])
     rows=tool["disassembly"](code)
+    source_path_proof=work_level_source_proof(rows,data)
     body={
        "code2_sha256":meta["sha256"],
+       "numbered_work_level_loader_source_proof":source_path_proof,
        "original_11byte_family_A":level_family(root/game["level"]),
        "original_CODE2_readsite_probes":loader_witnesses(rows),
        "original_source_and_live_loader_provenance":source_and_live_loader_provenance(rows),
