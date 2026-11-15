@@ -24,6 +24,9 @@ CODE_WITNESSES={
             0x2005F:("mov","DWORD PTR [ebp-0xc],0xb0000"),
         },
         "post_filter_dispatch":{
+            0x27576:("mov","BYTE PTR [eax]"),
+            0x2757A:("cmp","dl,0x9"),
+            0x27586:("jmp","DWORD PTR cs:[edx*4+0x27300]"),
             0x275B7:("call","0x25d34"),
             0x275BF:("test","eax,eax"),
             0x275D9:("call","0x25b5c"),
@@ -60,6 +63,9 @@ CODE_WITNESSES={
             0x27643:("cmp","eax,0x46"),
         },
         "post_filter_dispatch":{
+            0x308BB:("mov","BYTE PTR [eax]"),
+            0x308BF:("cmp","dl,0xa"),
+            0x308CB:("jmp","DWORD PTR cs:[edx*4+0x3064c]"),
             0x308FC:("call","0x2ea34"),
             0x30904:("test","eax,eax"),
             0x3091E:("call","0x2e72c"),
@@ -191,9 +197,22 @@ def main():
             "attack_control_and_dispatch_witnesses":machine_check(rows,game),
             "attack_descriptor_zero_divisor_check":attack_gate_consistency(npc),
         }
+        expected={
+            "menzo":{"active":47,"zero_divisors":0},
+            "stone":{"active":45,"zero_divisors":5},
+        }[game]
+        summary=result[game]["attack_descriptor_zero_divisor_check"]
+        if (summary["active_slots_in_records"]!=expected["active"]
+            or len(summary["zero_divisor_declared_slot_examples"])!=expected["zero_divisors"]):
+            raise ValueError(f"{game}: attack slot or divisor regression: {summary}")
         if game=="menzo":
             result[game]["original_level_table_value_mutation"] = (
                 menzo_archive_mutation_scope(level))
+            scope=result[game]["original_level_table_value_mutation"]
+            if (scope["candidate_archive_words_that_would_change_if_runtime_gate_true"]!=184
+                or scope["levels_with_potentially_changed_words"]!=6):
+                raise ValueError("Menzo original mutable resource-table scope drift")
+
         print(game,"attack active slots",result[game][
             "attack_descriptor_zero_divisor_check"]["active_slots_in_records"])
     a.json.parent.mkdir(parents=True,exist_ok=True)
