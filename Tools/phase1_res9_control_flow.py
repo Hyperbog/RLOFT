@@ -21,7 +21,7 @@ TARGET_WORDS = {
         0x12:(0,), 0x18:(0,), 0x21:(1,), 0x22:(1,),
     },
     "stone": {
-        0x09:(1,), 0x0D:(1,), 0x0F:(1,),
+        0x08:(1,), 0x09:(1,), 0x0D:(1,), 0x0F:(1,),
         0x12:(0,), 0x18:(0,), 0x21:(1,), 0x22:(1,),
         0x2F:(2,), 0x33:(0,), 0x34:(0,), 0x35:(0,),
         0x36:(1,),
@@ -97,7 +97,7 @@ def audit(root,repo):
         # branch targets remain visible rather than counted as successes.
         if title == "menzo" and (len(checked)!=31 or counts["not_decoded_start"]):
             raise ValueError("Menzo RES9 full-corpus/branch-target regression")
-        if title == "stone" and len(checked)<44:
+        if title == "stone" and len(checked)!=48:
             raise ValueError("Stone RES9 candidate coverage regressed")
         report[title]={
             "programs_present":len(results),
