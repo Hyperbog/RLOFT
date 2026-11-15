@@ -16,6 +16,44 @@ CASES={
     "menzo":{"lookup_target":(0x291e9,0x29245),"direct_data":0x39da6},
     "stone":{"lookup_target":(0x33d35,0x33d98),"direct_data":0x447d6},
 }
+ORIGINAL_CALLSITE_WITNESSES={
+ "menzo":{
+     0x25b7c:("and","al,0x3f"),
+     0x25b83:("movzx","BYTE PTR [ebx+0xf]"),
+     0x25b88:("movzx","BYTE PTR [ebx+0xe]"),
+     0x25b8e:("call","0x291ec"),
+     0x25d4d:("mov","WORD PTR [eax*2+0x25000]"),
+     0x25d56:("and","al,0x3f"),
+     0x25d63:("call","0x291ec"),
+ },
+ "stone":{
+     0x2e750:("and","al,0x3f"),
+     0x2e755:("movzx","BYTE PTR [ebx+0xf]"),
+     0x2e75a:("movzx","BYTE PTR [ebx+0xe]"),
+     0x2e760:("call","0x33d3c"),
+     0x2ea5d:("and","al,0x3f"),
+     0x2ea64:("call","0x33d3c"),
+ },
+}
+
+def certify_call_inputs(rows,game):
+    source={pc:(op,args) for pc,op,args in rows}
+    checked=[]
+    for pc,(op,part) in ORIGINAL_CALLSITE_WITNESSES[game].items():
+        actual=source.get(pc)
+        if not actual or actual[0]!=op or part not in actual[1]:
+            raise ValueError(f"{game}: original tile lookup caller drift at {pc:#x}: {actual}")
+        checked.append({"pc":pc,"asm":actual[0]+" "+actual[1]})
+    return {
+        "status":"VERIFIED original CODE.2",
+        "tile_code":"passed as the low six bits of a grid cell in both titles",
+        "orientation_like_selector":"passed as the u8 in caller object +0xE",
+        "channel_selector":"passed as the u8 in caller object +0xF; accessor guards it <=3",
+        "postlookup_action":"result compared to a caller-provided expected value; gameplay meaning not yet named",
+        "instruction_witnesses":checked,
+    }
+
+
 IMMEDIATE_CALL=re.compile(r"^0x([0-9a-f]+)$")
 
 def collect_callers(rows,lo,hi):
@@ -71,6 +109,7 @@ def main():
         rows=core["disassembly"](code)
         low,high=profile["lookup_target"]
         output[game]={"code2_sha256":meta["sha256"],
+                      "verified_original_call_inputs":certify_call_inputs(rows,game),
                       "original_four_channel_lookup_callers":collect_callers(rows,low,high),
                       "render_and_direct_table_accesses":
                       direct_access_windows(rows,profile["direct_data"])}
