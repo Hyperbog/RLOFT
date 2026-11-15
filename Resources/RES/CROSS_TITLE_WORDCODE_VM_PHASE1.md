@@ -40,9 +40,15 @@ A shared **archive/parser envelope** is justified, but a common opcode numbering
 
 ## Reproducibility and negative controls
 
-The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. A provisional width map derived from the original handler readsites completely consumes **5/31** Menzo and **20/48** Stone programs. The other failures and their program IPs are retained in JSON. Those partial successes are *correlation*, not certified field-level disassembly: branch targets and semantics remain to be proved.
+The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. A provisional width map derived from the original handler readsites completely consumes **7/31** Menzo and **21/48** Stone programs. The other failures and their program IPs are retained in JSON. Those partial successes are *correlation*, not certified field-level disassembly: branch targets and semantics remain to be proved.
 
 Original Stone `RES9:574` differs between installed and extracted CD sources by five 16-bit words at program-word indices **246, 261, 268, 273, 313**. Neither the affected opcodes nor the active media version is established.
+
+## Instruction-proven variable-width cases
+
+Menzo encoded opcode `0x2A` dispatches to `0x1A351`, which calls helper `0x19534`. The original helper consumes one 16-bit selector and up to four condition/value pairs; condition word `0x21` terminates the pair loop. Stone encoded opcode `0x37` dispatches to `0x1EA4E`, calling helper `0x1D77C`. The Stone helper consumes one 16-bit count followed by exactly that many 16-bit values. These are original-machine-code-backed physical rules; their game semantics remain unidentified.
+
+Adding these cases improved candidate complete-program parsing from **5 to 7** Menzo and **20 to 21** Stone programs. The remaining failures include previous instruction-start and wordcount evidence. The candidate arity table is intentionally not shipped as a unified runtime VM.
 
 **Next:** trace full IP updates through interaction helper callees, test the remaining program corpus and validate all control-flow targets. No gameplay code or commercial original bytes were changed.
 
