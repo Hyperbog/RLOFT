@@ -166,6 +166,61 @@ def inspect_executable(rows, title):
         "callee_callsite_xrefs":xrefs,
     }
 
+STONE_OVERRIDE_WITNESSES = {
+    0x2770C: ("movzx","WORD PTR [edi+0x24]"),
+    0x27710: ("movzx","WORD PTR [edi+0x2d]"),
+    0x27714: ("add","ecx,ecx"),
+    0x27716: ("add","eax,eax"),
+    0x27718: ("cmp","edx,0x1"),
+    0x2771D: ("mov","ecx,0x10000"),
+    0x27722: ("mov","eax,ecx"),
+    0x277A5: ("movzx","BYTE PTR [edi+0x1d]"),
+    0x277B7: ("call","0x26cf0"),
+    0x277E4: ("mov","WORD PTR [ebx+0x28],0x1"),
+    0x26D57: ("mov","WORD PTR [ebx+0x28],0x1"),
+    0x26D7A: ("mov","WORD PTR [ebx+0x28],0x2"),
+    0x26D9A: ("mov","WORD PTR [ebx+0x28],0x2"),
+}
+
+def stone_zero_period_override(rows):
+    lookup={pc:(op,arg) for pc,op,arg in rows}
+    checked=[]
+    for pc,(op,piece) in STONE_OVERRIDE_WITNESSES.items():
+        ins=lookup.get(pc)
+        if not ins or ins[0]!=op or piece not in ins[1]:
+            raise ValueError(f"Stone attack override CODE.2 witness drift {pc:#x}: {ins}")
+        checked.append({"pc":pc,"asm":ins[0]+" "+ins[1]})
+    uses=[]
+    for i,(pc,op,arg) in enumerate(rows):
+        if "ds:0x16e86" not in arg:continue
+        dest=arg.split(",",1)[0].strip()
+        kind=("write" if "ds:0x16e86" in dest
+              and op in ("mov","movzx","movsx","inc","dec","and","or","xor")
+              else "read_or_other")
+        uses.append({"pc":pc,"instruction":op+" "+arg,
+                     "access":kind,
+                     "before":[{"pc":p,"asm":mn+" "+a}
+                               for p,mn,a in rows[max(0,i-4):i]]})
+    if not any(x["pc"]==0x27705 for x in uses):
+        raise ValueError("Stone attack global override-byte read not found")
+    return {
+        "field_selector_at":"CODE.2 data offset 0x16e86, u8",
+        "machine_derived_override":"if runtime byte == 1: both attack range thresholds become 0x10000",
+        "zero_period_conditional_path_examples":[{
+            "npc_record_index":idx,
+            "required_prior_conditions":"attack eligibility true and 0x342F8 predicate returns 0",
+            "runtime_byte_0x16e86":1,
+            "example_coordinate_deltas":[0x8000,0x8000],
+            "first_second_thresholds":[0x10000,0x10000],
+            "reachable_state_codes_under_these_assumptions":
+                [1,2] if idx in (4,27) else [1],
+            "actual_game_runtime_reachability":"UNKNOWN",
+        } for idx in (4,24,27)],
+        "original_machine_witnesses":checked,
+        "runtime_override_global_accesses":uses[:50],
+    }
+
+
 def pinned_zero_periods(path):
     raw=path.read_bytes()
     total=struct.unpack_from("<I",raw)[0]
@@ -228,6 +283,8 @@ def main():
             npc=folder/cfg["npc"]
             hashes["assert_media_file"]("stone_npc",npc)
             report[title]["zero_period_original_records"]=pinned_zero_periods(npc)
+            report[title]["conditional_zero_period_code_paths"] = (
+                stone_zero_period_override(rows))
         print(title,"helper profiles",len(HELPERS[title]),
               "state windows",len(EXCERPTS[title]))
     args.json.parent.mkdir(parents=True,exist_ok=True)
