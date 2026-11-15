@@ -6,6 +6,7 @@ on:
     paths:
       - 'Tools/phase1_npc_level_fields.py'
       - 'Tools/phase1_npc_level_consumers.py'
+      - 'Tools/phase1_npc_level_semantics.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -46,6 +47,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-npc-level-consumers.json
           python -m py_compile Tools/phase1_npc_level_consumers.py
+
+      - name: Authenticate NPC runtime field copies and header counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_npc_level_semantics.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-npc-level-semantic-witnesses.json
+          python -m py_compile Tools/phase1_npc_level_semantics.py
 
       - name: Publish derived metadata only
         if: always()
