@@ -15,7 +15,9 @@ CODE_WINDOWS={"opcode_08_case":(0x1E3BF,0x1E43C),
               "ip_fetch_and_control":(0x1E1D5,0x1E258),
               "choice_helper":(0x1D118,0x1D28C),
               "opcode_02_helper":(0x1C4E4,0x1C630),
-              "opcode_05_helper":(0x1CED0,0x1D045)}
+              "opcode_05_helper":(0x1CED0,0x1D045),
+              "opcode_2E_handler":(0x1EA59,0x1EAA1),
+              "opcode_2E_helper":(0x1D594,0x1D708)}
 IP_GLOBAL="0x1599c"
 BITSET_GLOBAL="0x158a4"
 
@@ -89,11 +91,57 @@ def main():
     programs=list(corr["read_programs"](root/"PROPHET/RES9",original))
     data={"code2_sha256":info["sha256"],"program_evidence":parse_report(programs,corr),
           "code_evidence":asm_inspect(rows)}
-    if len([v for v in data["program_evidence"].values() if v["error"]])!=4:
-        raise ValueError("four known unresolved program witnesses changed")
+    if any(data["program_evidence"][str(i)]["error"] for i in FOUR):
+        raise ValueError("Stone four previously undecoded records regressed")
+    originals={i:words for i,words in programs}
+    case_by_pc={}
+    observations=[]
+    for i in TARGET_999:
+        words=originals[i]
+        decoded=corr["decode"](words,corr["ARITY"]["stone"],"stone")
+        case_by_pc={pc:(logical,args) for pc,logical,args in decoded}
+        branch=case_by_pc.get(14)
+        consumer=case_by_pc.get(17)
+        if branch!=(6,(187,33)) and not (
+            branch and branch[0]==6 and tuple(branch[1])==(187,33)
+        ):
+            raise ValueError(f"Stone record {i} 0x08 alignment changed: {branch}")
+        if not consumer or consumer[0]!=44 or tuple(consumer[1])!=(999,21,27):
+            raise ValueError(f"Stone record {i} 0x2E witness changed: {consumer}")
+        if 27 not in case_by_pc:
+            raise ValueError(f"Stone record {i} destination 27 not decoded")
+        observations.append({"record":i,
+                             "prior_opcode_at_word14":0x08,
+                             "prior_serialized_args":[187,33],
+                             "opcode_word17":0x2e,
+                             "operand_0_word18":999,
+                             "operand_1_word19":21,
+                             "control_target_word20":27,
+                             "target_27_is_instruction_start":True})
+    by_address={pc:(op,args) for pc,op,args in rows}
+    machine_witness={
+        0x1ea5e:("movzx","WORD PTR [eax*2+0x2ec32]"),
+        0x1ea67:("movzx","WORD PTR [eax*2+0x2ec30]"),
+        0x1ea81:("movzx","WORD PTR [eax*2+0x2ec34]"),
+        0x1ea89:("mov","ds:0x1599c,eax"),
+        0x1ea94:("add","ds:0x1599c,0x3"),
+    }
+    for pc,(opcode,phrase) in machine_witness.items():
+        ins=by_address.get(pc)
+        if not ins or ins[0]!=opcode or phrase not in ins[1]:
+            raise ValueError(f"Original opcode 0x2E handler changed @{pc:#x}: {ins}")
+    data["target_999_resolution"]={
+        "status":"verified_operand_not_control_target",
+        "affected_records":list(TARGET_999),
+        "observations":observations,
+        "opcode_2e_case_at":0x1ea59,
+        "opcode_2e_helper_at":0x1d594,
+        "case_handler_instruction_witnesses":[hex(v) for v in machine_witness],
+    }
     arg.json.parent.mkdir(parents=True,exist_ok=True)
     arg.json.write_text(json.dumps(data,indent=2)+"\n")
     print("Stone unresolved:",
         {k:(v["failure_at"],v["error"]) for k,v in data["program_evidence"].items() if v["error"]})
+    print("Ten 999 operand witnesses: PASS; 999 is not a direct target")
     print("BITSET referenced",data["code_evidence"]["state_word_0x158A4_references"]["count"])
 if __name__=="__main__":main()
