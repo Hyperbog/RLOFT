@@ -25,6 +25,9 @@ GAMES = {
   "attack_indexed_flags":(0xF900,0xFA40),
   "period_path":(0x20320,0x20450),
   "period_entry":0x203B2,
+  "state_table":0x202EC,"state_count":5,"state_dispatch":0x20353,
+  "range_read":0xF911,"range_double":0xF91B,
+  "flag_word_read":0xF916,
   "flags": [0x21,0x2A,0x23,0x26],
  },
  "stone": {
@@ -36,6 +39,9 @@ GAMES = {
   "attack_indexed_flags":(0x12080,0x12440),
   "period_path":(0x27BA0,0x27E20),
   "period_entry":0x27C89,
+  "state_table":0x27B90,"state_count":8,"state_dispatch":0x27BFB,
+  "range_read":0x12301,"range_double":0x12309,
+  "flag_word_read":0x1230B,
   "flags": [0x21,0x2A,0x23,0x26],
  },
 }
@@ -84,6 +90,57 @@ def case_targets(code,rows,conf):
             "distinct_case_handlers":len(alias_counts),
             "cases_with_bounded_provenance":result}
 
+def original_state_table(code,rows,conf):
+    base=conf["state_table"]
+    count=conf["state_count"]
+    handlers=struct.unpack_from(f"<{count}I",code,base)
+    starts={pc for pc,_,_ in rows}
+    if any(h not in starts for h in handlers):
+        raise ValueError("original NPC live-state dispatch target unaligned")
+    return {
+        "state_bytecode_table":base,
+        "case_count":count,
+        "dispatch":conf["state_dispatch"],
+        "cases":[{"state":i,"handler_pc":pc,
+                  "first_24_insns":insns(rows,pc,pc+0xA0,24)}
+                 for i,pc in enumerate(handlers)],
+        "period_read_branch_entry":conf["period_entry"],
+        "case_indices_directly_entering_period_loop":[i for i,pc in enumerate(handlers)
+                                                   if pc==conf["period_entry"]],
+        "unknown_runtime_state_reachability":True,
+    }
+
+def attack_range_field_reads(rows,conf):
+    pcs={
+        "u16_distance_parameter":conf["range_read"],
+        "multiply_by_two":conf["range_double"],
+        "u16_control_flags":conf["flag_word_read"],
+    }
+    by_pc={pc:(op,arg) for pc,op,arg in rows}
+    reads=[]
+    for name,pc in pcs.items():
+        instruction=by_pc.get(pc)
+        if instruction is None:
+            raise ValueError(f"missing original attack range machine read @{pc:#x}")
+        reads.append({"field":name,"pc":pc,"instruction":instruction[0]+" "+instruction[1]})
+    if "WORD PTR" not in by_pc[conf["range_read"]][1]:
+        raise ValueError("attack distance parameter must be u16")
+    if "WORD PTR" not in by_pc[conf["flag_word_read"]][1]:
+        raise ValueError("attack control field must be u16")
+    if by_pc[conf["range_double"]][0]!="add" or not (
+        by_pc[conf["range_double"]][1] in ("ecx,ecx","edx,edx")):
+        raise ValueError("attack distance twice-scale machine operation changed")
+    return {"descriptor_offset_relative":6,
+            "width_bytes":2,
+            "endian":"little",
+            "role":"VERIFIED: twice-scaled attack distance/range input",
+            "flag_word_relative_offset":3,
+            "flag_width_bytes":2,
+            "machine_witnesses":reads,
+            "known_data_range_for_active_attack":"Menzo 0x8000, Stone 0x0000/0x8000",
+            "note":"zero-valued fixed-point range in 5 Stone descriptors needs conditional path proof"}
+
+
 def candidate_flags(rows,conf):
     a,b=conf["attack_indexed_flags"]
     selected=insns(rows,a,b,200)
@@ -125,6 +182,8 @@ def main():
         result[game]={
            "source_code2_sha256":meta["sha256"],
            "tile_action_dispatch":table,
+           "live_npc_action_state_dispatch":original_state_table(code,rows,cfg),
+           "attack_range_and_control_u16_fields":attack_range_field_reads(rows,cfg),
            "attack_dynamic_flags":candidate_flags(rows,cfg),
            "control_flow":original_trace(rows,cfg),
            "table_handler_inbound_edges":
