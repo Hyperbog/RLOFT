@@ -172,7 +172,7 @@ def helper_all_callers_and_mode_lifecycle(rows):
         "mode_machine_witnesses":mode_checked,
         "mode_direct_writes":direct_mode_writers,
         "mode_1_saved_then_restored_path":
-           "0xD941/0xD948/0xD94F save old mode, set 1; 0xDA32/0xDA37 reload and write back",
+           "0xD941/0xD948/0xD94F save old mode, set 1; 0xDA2E/0xDA37 reload and write back",
         "scope":"VERIFIED original instructions, not dynamic path reachability or exhaustive indirect call analysis",
         "runtime_attack_state_reachability":"UNKNOWN",
     }
