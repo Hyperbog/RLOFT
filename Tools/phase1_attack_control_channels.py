@@ -214,6 +214,33 @@ def channel_distributions(path):
     }
 
 
+EXPECTED_CHANNEL_NONZERO={
+    "menzo":[6041,6319,4658,4318],
+    "stone":[3771,3835,1419,1466],
+}
+EXPECTED_AUXILIARY={
+    "menzo":{"5":{"3":47},"7":{"128":47},"8":{"1":47}},
+    "stone":{"5":{"0":5,"3":37,"4":2,"6":1},
+             "7":{"0":5,"128":40},"8":{"0":5,"1":16,"2":23,"3":1}},
+}
+
+def assert_corpus(title, observed):
+    channel=observed["level_channel_data"]
+    if channel["nonzero_entries_by_channel"]!=EXPECTED_CHANNEL_NONZERO[title]:
+        raise ValueError(f"{title} tile-channel distribution changed")
+    if channel["nonzero_cell_zero_groups"]!=0:
+        raise ValueError(f"{title} level table code-0 group unexpectedly populated")
+    if observed["original_tile_match_filter"]["callers"]["direct_callsite_count"]!=2:
+        raise ValueError(f"{title} original tile filter dispatch count changed")
+    h=observed["npc_auxiliary_data"]["active_aux_byte_histograms"]
+    for field,values in EXPECTED_AUXILIARY[title].items():
+        if h[field]!=values:
+            raise ValueError(f"{title} attack auxiliary +{field} values changed")
+    for pos in ("4","6"):
+        if h[pos]!={"0":sum(h["5"].values())}:
+            raise ValueError(f"{title} attack auxiliary +{pos} not zero in corpus")
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root",type=Path,required=True)
@@ -243,6 +270,7 @@ def main():
             },
             "level_channel_data":channel_distributions(levels),
         }
+        assert_corpus(title,report[title])
         print(title,"flags",
               report[title]["npc_auxiliary_data"]["active_control_bits_set"],
               "tile lookup callers",
