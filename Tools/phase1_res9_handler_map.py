@@ -51,8 +51,8 @@ def dispatch(rows, code, title):
             "table":spec["table"],"encoded_min":2,
             "encoded_max":1+spec["count"],"cases":result}
 
-HELPERS = {"menzo":{"opcode_02":0x18850,"opcode_05":0x192a0},
-           "stone":{"opcode_02":0x1c4e4,"opcode_05":0x1ced0}}
+HELPERS = {"menzo":{"opcode_02":0x18850,"opcode_05":0x192a0,"opcode_2A":0x19534},
+           "stone":{"opcode_02":0x1c4e4,"opcode_05":0x1ced0,"opcode_37":0x1d77c}}
 
 
 def helper_windows(rows,title):
