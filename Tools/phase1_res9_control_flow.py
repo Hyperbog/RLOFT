@@ -93,6 +93,12 @@ def audit(root,repo):
                 if len(samples[row["result"]])<18:
                     samples[row["result"]].append({
                         "record":p["index"],**row})
+        # Structural coverage regression is explicit; unresolved Stone
+        # branch targets remain visible rather than counted as successes.
+        if title == "menzo" and (len(checked)!=31 or counts["not_decoded_start"]):
+            raise ValueError("Menzo RES9 full-corpus/branch-target regression")
+        if title == "stone" and len(checked)<44:
+            raise ValueError("Stone RES9 candidate coverage regressed")
         report[title]={
             "programs_present":len(results),
             "completely_linearly_consumed":len(checked),
