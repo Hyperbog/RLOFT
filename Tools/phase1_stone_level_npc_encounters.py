@@ -63,6 +63,17 @@ def level_family(path):
                       "level_index":level,"row_index":nrecord})
             for off,value in enumerate(row):
                 per_byte[off][value]+=1
+    if n!=43 or total!=1535:
+        raise ValueError(f"Stone level/FAMILY-A original corpus changed: {n}, {total}")
+    if any(all_fields_valid[key]!=total for key in
+           ("type_in_NPC_definition_range",
+            "x_cell_within_level_width","y_cell_within_level_height")):
+        raise ValueError("Stone 11-byte family-A type/coordinate geometry changed")
+    if any(fraction_quantization[key]!=total for key in
+           ("x_fraction_divisible_256","y_fraction_divisible_256")):
+        raise ValueError("Stone 11-byte family-A fractional coordinate width changed")
+    if any(counts[0][target] for target in TARGET_NPCS):
+        raise ValueError("Stone affected zero-period NPC ID now appears in family-A column +0")
     return {
         "original_archive_level_count":n,"family_A_11byte_records":total,
         "provisional_Strahd_compatible_type_xy_field_equations":{
