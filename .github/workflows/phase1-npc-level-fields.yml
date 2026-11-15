@@ -14,6 +14,7 @@ on:
       - 'Tools/phase1_tile_channel_consumers.py'
       - 'Tools/phase1_attack_control_channels.py'
       - 'Tools/phase1_attack_effect_proof.py'
+      - 'Tools/phase1_attack_tile_caseflow.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -127,6 +128,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-attack-effect-proof.json
           python -m py_compile Tools/phase1_attack_effect_proof.py
+
+      - name: Authenticate attack timing state and tile action switch handlers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_attack_tile_caseflow.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-attack-tile-caseflow.json
+          python -m py_compile Tools/phase1_attack_tile_caseflow.py
 
       - name: Publish derived metadata only
         if: always()
