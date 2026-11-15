@@ -9,6 +9,7 @@ on:
       - 'Tools/phase1_resource_event_vm.py'
       - 'Tools/phase1_decoder_dispatch.py'
       - 'Tools/phase1_type56_verify.py'
+      - 'Tools/phase1_res9_opcode_probe.py'
       - '.github/workflows/phase1-format-audit.yml'
   workflow_dispatch:
 
@@ -83,6 +84,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-type56-lzss.json
           python -m py_compile Tools/phase1_type56_verify.py
+
+      - name: Find RES9 wordcode opcode dispatchers in original CODE.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_res9_opcode_probe.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-res9-opcode-leads.json
+          python -m py_compile Tools/phase1_res9_opcode_probe.py
 
       - name: Publish metadata only
         if: always()
