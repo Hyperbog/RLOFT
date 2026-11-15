@@ -16,6 +16,7 @@ on:
       - 'Tools/phase1_attack_effect_proof.py'
       - 'Tools/phase1_attack_tile_caseflow.py'
       - 'Tools/phase1_stone_attack_effect_paths.py'
+      - 'Tools/phase1_stone_special_bit_operations.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -147,6 +148,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-stone-attack-effect-paths.json
           python -m py_compile Tools/phase1_stone_attack_effect_paths.py
+
+      - name: Certify Stone special-attack numeric effects and character status bits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_stone_special_bit_operations.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-stone-special-bit-operations.json
+          python -m py_compile Tools/phase1_stone_special_bit_operations.py
 
       - name: Publish derived metadata only
         if: always()
