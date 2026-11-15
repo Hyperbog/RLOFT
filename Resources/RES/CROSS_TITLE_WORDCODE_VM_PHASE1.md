@@ -40,7 +40,7 @@ A shared **archive/parser envelope** is justified, but a common opcode numbering
 
 ## Reproducibility and negative controls
 
-The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. A provisional width map derived from the original handler readsites completely consumes **7/31** Menzo and **21/48** Stone programs. The other failures and their program IPs are retained in JSON. Those partial successes are *correlation*, not certified field-level disassembly: branch targets and semantics remain to be proved.
+The unchanged Strahd operand grammar fails to parse **31/31 Menzo** and **48/48 Stone** RES9 programs. Subtracting two from encoded opcodes while keeping the Strahd arities still fails **31/31** and **48/48**. The revised title-specific decoder now consumes **31/31 Menzo** and **44/48 Stone** programs linearly; the remaining four Stone record indices are **568, 575, 585, 595**. The other failures and their program IPs are retained in JSON. Those partial successes are *correlation*, not certified field-level disassembly: branch targets and semantics remain to be proved.
 
 Original Stone `RES9:574` differs between installed and extracted CD sources by five 16-bit words at program-word indices **246, 261, 268, 273, 313**. Neither the affected opcodes nor the active media version is established.
 
@@ -48,7 +48,37 @@ Original Stone `RES9:574` differs between installed and extracted CD sources by 
 
 Menzo encoded opcode `0x2A` dispatches to `0x1A351`, which calls helper `0x19534`. The original helper consumes one 16-bit selector and up to four condition/value pairs; condition word `0x21` terminates the pair loop. Stone encoded opcode `0x37` dispatches to `0x1EA4E`, calling helper `0x1D77C`. The Stone helper consumes one 16-bit count followed by exactly that many 16-bit values. These are original-machine-code-backed physical rules; their game semantics remain unidentified.
 
-Adding these cases improved candidate complete-program parsing from **5 to 7** Menzo and **20 to 21** Stone programs. The remaining failures include previous instruction-start and wordcount evidence. The candidate arity table is intentionally not shipped as a unified runtime VM.
+These two cases supplied the first variable operand rules. Later CODE.2 tracing additionally established opcode `0x13`/`0x1A` choice tables, opcode `0x05` template-index consumption and Stone's one-word opcode `0x08`. These checks now produce 31/31 Menzo and 44/48 Stone candidate linear parses. The candidate grammar is **not** shipped as a unified runtime VM.
+
+## Reconstructed conditional choice table (current audit)
+
+**VERIFIED physical reads from authenticated CODE.2:** Both encoded opcode `0x13` and `0x1A` invoke the same title-specific choice helper, Menzo `0x19610` / Stone `0x1D118`. Each initially reads two `u16 LE` program words, followed on the choice-table path by zero to four two-word condition/value pairs. A condition value **`0x21` for Menzo** or **`0x26` for Stone** ends the loop. The paths' read-count can depend on runtime choice state; the static candidate parser models the complete serialized table, not a guaranteed execution trace.
+
+The encoded opcode `0x05` call at Menzo `0x19BF4` / Stone `0x1E2F8` reaches a party-slot helper at `0x18AC0` / `0x1C6A4`. That callee reads a **single u16 LE program word** from the runtime word stream, advances the IP by one, and uses the word to select a 0x41C-byte character template. The old zero-operand assumption was wrong. Stone `0x08` at CODE.2 `0x1E3CB` consumes exactly **one** word, and its callee `0x15200` does not advance the RES9 IP; treating it as a two-word branch produced false target mismatches.
+
+## Corpus-wide branch-target audit (current evidence)
+
+```sh
+python Tools/phase1_res9_handler_map.py --root preservation/MASTER --repo-root . --json audit/res9-handlers.json
+python Tools/phase1_res9_arity_correlate.py --root preservation/MASTER --repo-root . --json audit/res9-arity.json
+python Tools/phase1_res9_control_flow.py --root preservation/MASTER --repo-root . --json audit/res9-targets.json
+```
+
+| Measure | Menzo | Stone |
+| --- | ---: | ---: |
+| Original raw programs | 31 | 48 |
+| Linear candidate parses | **31** | **44** |
+| Direct target operands matching decoded instruction boundaries | **876** | **1,195** |
+| Direct targets not matching those boundaries | **0** | **10** |
+| Timer operands at `0xFFFF` with unproved sentinel semantics | **45** | **22** |
+
+**VERIFIED:** The Menzo candidate parser consumes every preserved script; for example, `RES9:419` encoded opcode `0x09` at 16-bit word index **6** has a target index **73**, which is a decoded instruction boundary. All 876 checked direct targets are on candidate boundaries. **LIKELY:** This is close to the original grammar; behavior and every opcode/helper branch remain unproved.
+
+**VERIFIED:** All ten Stone non-boundary targets are the same value **999**, at encoded opcode **`0x21`**, word index **16**, in `RES9:615..624`. Each original record has **51** program words, so 999 is not an in-record instruction boundary. Its original case *can* write that value into the IP, but whether the conditional path executes or uses a producer sentinel is **UNKNOWN**. Do not reclassify these as valid edges.
+
+**UNKNOWN Stone block:** `RES9:568,575,585,595` still fails the static linear decoder. The original code supports two competing explanations: (1) a runtime-dependent choice-helper branch consumes a different number of operands; (2) part of the serialized program is reachable only by an explicit control transfer or is producer data skipped at runtime. Neither is established. These four records have not been executed or behaviorally certified.
+
+No native executable, original assets or saves were modified. The above tests use derived instruction/record metadata only and preserve negative cases.
 
 **Next:** trace full IP updates through interaction helper callees, test the remaining program corpus and validate all control-flow targets. No gameplay code or commercial original bytes were changed.
 
