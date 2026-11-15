@@ -115,6 +115,92 @@ def loader_witnesses(rows):
         "record_schema_status":"UNKNOWN: code address/field provenance must be traced",
     }
 
+CONSTRUCTOR_XREFS={
+    0x0070D:None,  # LEVELS.DAT event opcode 0x0D: byte operands
+    0x1AB03:77,
+    0x1AF13:1,
+    0x2C741:1,
+    0x3018A:17,
+    0x30286:17,
+}
+CONSTRUCTOR_WITNESSES={
+    0x00010:("push","ebx"),
+    0x00059:("imul","edi,DWORD PTR [ebp+0x14],0x58"),
+    0x00063:("mov","eax,ds:0x44790"),
+    0x000F2:("mov","WORD PTR [ebx+0x4],ax"),
+    0x0070D:("call","0x10"),
+    0x1AB03:("call","0x10"),
+    0x1AF13:("call","0x10"),
+    0x2C741:("call","0x10"),
+    0x3018A:("call","0x10"),
+    0x30286:("call","0x10"),
+}
+
+def direct_constructor_proof(rows):
+    bypc={pc:(op,args) for pc,op,args in rows}
+    checked=[]
+    for pc,(op,fragment) in CONSTRUCTOR_WITNESSES.items():
+        got=bypc.get(pc)
+        if not got or got[0]!=op or fragment not in got[1]:
+            raise ValueError(f"Stone original constructor @{pc:#x} drift: {got}")
+        checked.append({"pc":pc,"asm":got[0]+" "+got[1]})
+    all_calls=[(i,pc) for i,(pc,op,arg) in enumerate(rows)
+               if op=="call" and arg=="0x10"]
+    if sorted(pc for _,pc in all_calls)!=sorted(CONSTRUCTOR_XREFS):
+        raise ValueError("Stone CODE.2 direct NPC constructor callsites changed")
+    found=[]
+    for idx,pc in all_calls:
+        lines=rows[max(0,idx-12):idx]
+        pushes=[(p,arg) for p,op,arg in lines if op=="push"]
+        if len(pushes)<3:
+            raise ValueError("original NPC constructor has fewer than three args")
+        final=pushes[-1][1]
+        expected=CONSTRUCTOR_XREFS[pc]
+        if expected is not None and final!=f"0x{expected:x}":
+            raise ValueError(f"NPC constructor {pc:#x} type arg changed: {final}")
+        if expected is None and not final in ("eax","ebx","ecx","edx","esi","edi"):
+            raise ValueError("event opcode13 type operand no longer dynamic")
+        found.append({"call_at":pc,"template_id":expected,
+                      "type_argument":final,
+                      "preceding_type_input":[{"pc":p,"asm":op+" "+args}
+                                              for p,op,args in lines][-9:]})
+    return {
+        "original_CODE2_direct_spawn_calls":len(all_calls),
+        "immediate_template_ids":sorted({v for v in CONSTRUCTOR_XREFS.values() if v is not None}),
+        "affected_zero_period_template_ids_in_direct_calls":
+            sorted(set(CONSTRUCTOR_XREFS.values())&set(TARGET_NPCS)-{None}),
+        "runtime_dynamic_constructor_callsites":[pc for pc,id in CONSTRUCTOR_XREFS.items() if id is None],
+        "original_machine_witnesses":checked,
+        "all_direct_spawn_calls":found,
+        "boundary":"No proof that indirect CODE.2/CODE.1 calls or RES9 VM cannot construct these NPCs",
+    }
+
+def archived_event_spawn_opcode13(path):
+    blob=path.read_bytes()
+    n=struct.unpack_from("<I",blob)[0]
+    offsets=struct.unpack_from(f"<{n}I",blob,4)
+    counts=collections.Counter()
+    for i,(a,b) in enumerate(zip(offsets,(*offsets[1:],len(blob)))):
+        rec=blob[a:b]
+        bounds=struct.unpack_from("<7I",rec,1)
+        chunk=rec[bounds[5]:bounds[6]]
+        if len(chunk)!=0x514:
+            raise ValueError(f"Stone level {i} event block geometry changed")
+        for j in range(50):
+            count=chunk[j*26]
+            if count>5:raise ValueError("invalid event slot command count")
+            for k in range(count):
+                code=chunk[j*26+1+k*5]
+                counts[code]+=1
+    if counts.get(13,0)!=0 or sum(counts.values())!=469:
+        raise ValueError(f"Stone archived event opcode13 absence drift {counts}")
+    return {
+        "original_levels":n,"active_event_commands":sum(counts.values()),
+        "command_opcode_13_spawn_calls_in_original_levels":counts.get(13,0),
+        "meaning":"CODE.2 0x70D invokes dynamic NPC constructor for this event opcode",
+        "limits":"Does not inspect generated event tables, saves, other script languages",
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root",type=Path,required=True)
@@ -132,6 +218,8 @@ def main():
        "code2_sha256":meta["sha256"],
        "original_11byte_family_A":level_family(root/game["level"]),
        "original_CODE2_readsite_probes":loader_witnesses(rows),
+       "original_direct_constructor_callsite_audit":direct_constructor_proof(rows),
+       "original_level_event_opcode_13_spawn_audit":archived_event_spawn_opcode13(root/game["level"]),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
     }
     a.json.parent.mkdir(parents=True,exist_ok=True)
