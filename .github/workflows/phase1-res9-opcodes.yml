@@ -2,7 +2,7 @@ name: Phase 1 - cross-title RES9 opcode/operand reconstruction
 
 on:
   push:
-    branches: [Ravenloft-Enhanced]
+    branches: [main]
     paths:
       - 'Tools/phase1_res9_handler_map.py'
       - 'Tools/phase1_res9_arity_correlate.py'

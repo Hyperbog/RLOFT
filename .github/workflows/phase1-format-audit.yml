@@ -2,7 +2,7 @@ name: Phase 1 - three-title format compatibility survey
 
 on:
   push:
-    branches: [Ravenloft-Enhanced]
+    branches: [main]
     paths:
       - 'Tools/phase1_compare.py'
       - 'Tools/phase1_code2_consumers.py'

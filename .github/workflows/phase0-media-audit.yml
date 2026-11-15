@@ -2,7 +2,7 @@ name: Phase 0 - original-media SHA-256 audit
 
 on:
   push:
-    branches: [Ravenloft-Enhanced]
+    branches: [main]
     paths:
       - 'Tools/phase0_inventory.py'
       - '.github/workflows/phase0-media-audit.yml'

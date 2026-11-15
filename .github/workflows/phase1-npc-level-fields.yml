@@ -2,7 +2,7 @@ name: Phase 1 - NPC and expanded LEVELS field reconstruction
 
 on:
   push:
-    branches: [Ravenloft-Enhanced]
+    branches: [main]
     paths:
       - 'Tools/phase1_npc_level_fields.py'
       - 'Tools/phase1_npc_level_consumers.py'

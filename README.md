@@ -4,9 +4,10 @@
 of *Ravenloft: Strahd's Possession*, built around the original game's assets,
 characters, levels, rules, scripts, sound and story.
 
-**Development branch:** `Ravenloft-Enhanced`. This is a recovered **pre-alpha**,
-not a complete campaign or production game. The repository default branch is
-still named `Decomp` until GitHub repository settings are changed.
+**Primary development branch:** `main`. This is a recovered **pre-alpha**,
+not a complete campaign or production game. The historical decompilation and
+recompilation work is retained in this unified source history. Original
+commercial media stays separate on `DnD-Classics`.
 
 ## Start here
 
