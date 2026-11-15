@@ -68,8 +68,9 @@ def case_targets(code,rows,conf):
     starts={pc for pc,_,_ in rows}
     if any(addr not in starts for addr in cases):
         raise ValueError(f"unaligned original opcode table {base:#x}: {cases}")
-    if len(set(cases))!=len(cases):
-        raise ValueError("case handlers share a target; investigate before assuming order")
+    # Multiple selector values can share an actual code handler.
+    # Preserve those aliases in the data instead of fabricating unique cases.
+    alias_counts=collections.Counter(cases)
     result=[]
     for i,addr in enumerate(cases):
         # Labels and semantics need parent/jump predecessor tracing.
@@ -78,6 +79,9 @@ def case_targets(code,rows,conf):
                        "instructions_first_60":lines})
     return {"table_offset":base,"cases":n,"dispatch_branch":conf["dispatch"],
             "handler_addresses":list(cases),
+            "aliased_handler_targets":{hex(pc):cnt for pc,cnt in alias_counts.items()
+                                       if cnt>1},
+            "distinct_case_handlers":len(alias_counts),
             "cases_with_bounded_provenance":result}
 
 def candidate_flags(rows,conf):
