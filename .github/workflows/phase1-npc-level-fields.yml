@@ -5,6 +5,7 @@ on:
     branches: [Ravenloft-Enhanced]
     paths:
       - 'Tools/phase1_npc_level_fields.py'
+      - 'Tools/phase1_npc_level_consumers.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -37,6 +38,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-npc-level-fields.json
           python -m py_compile Tools/phase1_npc_level_fields.py
+      - name: Verify direct NPC and enlarged level-header CODE.2 consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_npc_level_consumers.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-npc-level-consumers.json
+          python -m py_compile Tools/phase1_npc_level_consumers.py
+
       - name: Publish derived metadata only
         if: always()
         uses: actions/upload-artifact@v4
