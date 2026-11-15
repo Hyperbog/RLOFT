@@ -39,6 +39,8 @@ The level-event dispatcher at CODE.2 `0x313` uses fourteen entries at table `0x2
 
 `RES9` has **48/49** nonempty raw entries with a single-bank program record: `u16LE count + count u16LE words`. The remaining raw entry, **625**, is four bytes and begins with `u16LE=244`; its meaning is UNKNOWN. Unlike Strahd, none of the 48 programs parses under its known wordcode grammar. Record **574** is a 316-word single-bank program, and its installed vs CD copies differ at exactly five word indices: **246 (30→10), 261 (31→11), 268 (30→10), 273 (31→11), 313 (31→11)**, installed to CD. Semantic meaning and loader precedence remain UNKNOWN.
 
+**Phase 1 RES9 update:** Stone CODE.2 uses 54 cases at table `0x1E10C` (dispatch `0x1E220`) on `u16LE opcode - 2`. Helper `0x1D118` handles opcode `0x13`/`0x1A` choice pairs (sentinel `0x26`); helper `0x1C6A4` consumes opcode `0x05`'s single character-template ID. Opcode `0x08` consumes one word; its callee `0x15200` does not advance the wordcode pointer. The candidate decoder linearly consumes **44/48** scripts; unresolved indices are **568, 575, 585, 595**. Of checked direct targets, **1,195** land on decoded starts while **10** in scripts `615..624` have unresolved target value `999`. **VERIFIED observed byte geometry and cursor reads; control-flow semantics not certified.** See [VM evidence](../../Resources/RES/CROSS_TITLE_WORDCODE_VM_PHASE1.md).
+
 **Reproduce:**
 
 ```sh
