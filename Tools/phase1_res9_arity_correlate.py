@@ -35,7 +35,7 @@ def read_programs(path, parser):
         if len(record) in (2+2*count,2+4*count):
             yield i,struct.unpack_from(f"<{count}H",record,2)
 
-def decode(words, widths):
+def decode(words, widths, title):
     decoded=[]
     ip=0
     while ip < len(words):
@@ -45,12 +45,38 @@ def decode(words, widths):
         ip+=1
         if logical < 0 or logical >=len(widths):
             raise ValueError(f"bad encoded opcode {encoded:#x} at IP {pc}; previous decoded instruction starts and arities={[(p, op, len(a)) for p,op,a in decoded[-5:]]}")
-        n=widths[logical]
-        if ip+n>len(words):
-            raise ValueError(f"opcode {encoded:#x} operands overrun at IP {pc}")
-        args=words[ip:ip+n]
+        if title=="stone" and logical==53:
+            # Stone CODE.2 0x1D77C: count word; count argument words.
+            if ip>=len(words):
+                raise ValueError(f"Stone 0x37 count absent at IP {pc}")
+            count=words[ip]
+            ip+=1
+            if count>len(words)-ip:
+                raise ValueError(f"Stone 0x37 count overrun at IP {pc}")
+            args=words[ip-1:ip+count]
+            ip+=count
+        elif title=="menzo" and logical==40:
+            # Menzo CODE.2 0x19534: selector then up to four
+            # condition/value pairs; condition 0x21 terminates the loop.
+            start=ip
+            if ip>=len(words):
+                raise ValueError(f"Menzo 0x2A selector absent at IP {pc}")
+            ip+=1
+            for pair in range(4):
+                if ip+1>=len(words):
+                    raise ValueError(f"Menzo 0x2A pair overrun at IP {pc}")
+                condition=words[ip]
+                ip+=2
+                if condition==0x21:
+                    break
+            args=words[start:ip]
+        else:
+            n=widths[logical]
+            if ip+n>len(words):
+                raise ValueError(f"opcode {encoded:#x} operands overrun at IP {pc}")
+            args=words[ip:ip+n]
+            ip+=n
         decoded.append((pc,logical,args))
-        ip+=n
     return decoded
 
 def audit(root, repo):
@@ -71,7 +97,7 @@ def audit(root, repo):
         examples=collections.defaultdict(list)
         for record,words in programs:
             try:
-                parsed=decode(words,widths)
+                parsed=decode(words,widths,title)
                 successful.append({"record":record,"words":len(words),
                                    "instructions":len(parsed)})
                 for ip,opcode,args in parsed:
