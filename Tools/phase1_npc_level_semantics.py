@@ -110,7 +110,7 @@ def npc_sample(path):
                 "meaning":"extension candidate, per-offset functions unresolved"},
             }
 
-def level_sample(path):
+def level_sample(path, table_count=1024):
     buf=path.read_bytes()
     count=struct.unpack_from("<I",buf)[0]
     offs=struct.unpack_from(f"<{count}I",buf,4)
@@ -118,11 +118,13 @@ def level_sample(path):
     samples=[]
     for i,(start,end) in enumerate(zip(offs,(*offs[1:],len(buf)))):
         rec=buf[start:end]
-        h=rec[0x1D:0x1D+0x824]
-        if len(h)!=0x824:
-            raise ValueError("short 0x824 fixed header")
-        table=struct.unpack_from("<1024H",h,0x0A)
-        arr_counts=struct.unpack_from("<3H",h,0x80A)
+        header_bytes=0x0A+table_count*2+0x1A
+        h=rec[0x1D:0x1D+header_bytes]
+        if len(h)!=header_bytes:
+            raise ValueError("short fixed header")
+        table=struct.unpack_from(f"<{table_count}H",h,0x0A)
+        tail=0x0A+2*table_count
+        arr_counts=struct.unpack_from("<3H",h,tail)
         bounds=struct.unpack_from("<7I",rec,1)
         calculated=((bounds[3]-bounds[2])//11,
                     (bounds[5]-bounds[4])//11,
@@ -139,10 +141,11 @@ def level_sample(path):
     observed={v for arr in arrays for v in arr}
     return {"records":count,
             "verified_level_header_field_widths":{
-                "table_prefix_offset":0x0A,"table_prefix_entry_count":1024,
-                "table_prefix_entry_width":2,"tail_A":0x80A,
-                "tail_C":0x80C,"tail_B":0x80E,
-                "stradh_table_320_entry_analogy_is_hypothesis":True},
+                "table_prefix_offset":0x0A,"table_prefix_entry_count":table_count,
+                "table_prefix_entry_width":2,"tail_A":0x0A+2*table_count,
+                "tail_C":0x0C+2*table_count,
+                "tail_B":0x0E+2*table_count,
+                "semantic_equivalence_unproved":True},
             "u16_table_value_statistics":{
                 "nonzero_entries_all_levels":sum(v!=0 for arr in arrays for v in arr),
                 "above_255_entries":odd_high,
@@ -174,6 +177,15 @@ def main():
               "NPC +0x30 sample",result[title]["npcs"][
               "candidate_definition_hit_dice_byte_0x30"]["sample_value"],
               "header count proofs",result[title]["levels"]["count_assertions_passed"])
+    strahd_path=a.root/"Ravenloft - Strahd's Possession"/"RLOFT"/"LEVELS.DAT"
+    result["strahd_reference"]={
+        "levels":level_sample(strahd_path,table_count=320),
+        "evidence":"Original Strahd LEVELS.DAT read-only source; fixed header 0x2A4",
+    }
+    if result["strahd_reference"]["levels"]["count_assertions_passed"]!=32:
+        raise ValueError("Strahd 32-level reference geometry changed")
+    print("strahd-reference:",result["strahd_reference"]["levels"]["records"],
+          "levels, 320-word header table, all count equations checked")
     a.json.parent.mkdir(parents=True,exist_ok=True)
     a.json.write_text(json.dumps(result,indent=2)+"\n")
 if __name__=="__main__":main()
