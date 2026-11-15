@@ -29,6 +29,7 @@ def level_family(path):
     per_byte=[collections.Counter() for _ in range(11)]
     candidate_locations=collections.defaultdict(list)
     total=0
+    decoded_samples=[]
     all_fields_valid=collections.Counter()
     fraction_quantization=collections.Counter()
     invalid_position_samples=[]
@@ -49,6 +50,12 @@ def level_family(path):
             all_fields_valid["type_in_NPC_definition_range"]+=type_id<110
             all_fields_valid["x_cell_within_level_width"]+=0<=x_cell<width
             all_fields_valid["y_cell_within_level_height"]+=0<=y_cell<height
+            if level in (0,22,42) and nrecord==0:
+                decoded_samples.append({"level_index":level,"record_index":nrecord,
+                    "npc_definition_id_i16":type_id,"x_cell_i16":x_cell,
+                    "x_fraction_u16":x_fraction,"y_cell_i16":y_cell,
+                    "y_fraction_u16":y_fraction,"live_type_u16_plus_4":type_id,
+                    "npc_catalog_offset":type_id*88})
             fraction_quantization["x_fraction_divisible_256"]+=x_fraction%256==0
             fraction_quantization["y_fraction_divisible_256"]+=y_fraction%256==0
             if (not 0<=x_cell<width or not 0<=y_cell<height) and len(invalid_position_samples)<12:
@@ -76,11 +83,12 @@ def level_family(path):
         raise ValueError("Stone affected zero-period NPC ID now appears in family-A column +0")
     return {
         "original_archive_level_count":n,"family_A_11byte_records":total,
+        "decoded_archive_to_live_record_samples":decoded_samples,
         "provisional_Strahd_compatible_type_xy_field_equations":{
             "checks":dict(all_fields_valid),
             "fraction_divisibility_by_256":dict(fraction_quantization),
             "bad_coordinate_examples":invalid_position_samples,
-            "meaning":"corpus consistency only; Stone CODE.2 type-index proof pending"},
+            "meaning":"VERIFIED original CODE.2 0x238D4/0x23933/0x23937/0x23964: +0 maps to NPC definition and live actor type"},
         "target_ID_absence_if_plus_0_is_NPC_type":all(counts[0][t]==0 for t in TARGET_NPCS),
         "aligned_u16_column_profiles":[{
             "byte_offset":off,
@@ -98,7 +106,7 @@ def level_family(path):
         } for off,c in enumerate(per_byte)],
         "candidate_locations":{f"u16_at_{off}_type_{id}":hits
                                for (off,id),hits in candidate_locations.items()},
-        "semantics":"UNKNOWN until original CODE.2 family A type-id load confirmed",
+        "semantics":"VERIFIED original CODE.2 authored 11-byte family-A first word is NPC definition ID",
     }
 
 def bounded(rows,start,end,limit=280):
@@ -123,7 +131,7 @@ def loader_witnesses(rows):
         "original_loader_regions":{key:bounded(rows,*v,limit=240)
                                    for key,v in REGIONS.items()},
         "candidate_original_NPC_field_consumers":refer[:65],
-        "record_schema_status":"UNKNOWN: code address/field provenance must be traced",
+        "record_schema_status":"VERIFIED authored NPC source mode at CODE.2 0x238D4; this function supplies bounded leads only",
     }
 
 
@@ -220,14 +228,14 @@ def source_and_live_loader_provenance(rows):
            "runtime_position_base_code2_data":0x35AD0,
            "runtime_actor_base_code2_data":0x44FF0,
            "live_actor_type_word_offset":4,
-           "read_window_code2":[0x220A9,0x220F5],
+           "write_window_code2":[0x220A9,0x220F5],
            "live_type_field_u16LE_offset":4,
            "relink_live_type_to_NPCS_definition":
                "CODE.2 0x23AE7/0x23AF1/0x23AF8/0x23B06 uses live +4 signed word, multiplies by 88, reuses catalog base",
-           "authored_11byte_type_source_proven":False,
+           "authored_11byte_type_source_proven":True,
        },
        "authored_level_family_A_stride_bytes":11,
-       "authored_to_live_converter":"UNKNOWN: no provenance proven by 16/50-byte read",
+       "authored_to_live_converter":"VERIFIED CODE.2 0x238D4 source flag !=0 converts original 11-byte NPC rows into 16-byte position plus 50-byte live actor",
        "direct_call_to_0x1364C_count":len(direct_spawner),
        "direct_or_immediate_mentions_of_0x1364C":spawner,
        "machine_11_byte_imul_leads":stride11,
@@ -302,14 +310,14 @@ def work_level_source_proof(rows, data):
       "level_id_examples":[{"level_index":n,"constructed_name":
          f"work\\lev{n:03d}.dat"} for n in (0,22,123)],
       "filename_initializer_calls":[0x21E1C,0x21E29,0x21E3F],
-      "per_level_file_read_region":[0x21DB0,0x22439],
+      "per_level_file_write_region":[0x21DB0,0x22439],
       "exact_original_instruction_witnesses":ins,
       "direct_callers_of_numbered_level_reader":calls,
       "work_level_reader_caller_instruction_windows":call_windows,
       "CODE2_data_contains_levels_dat_diagnostic_text":True,
       "diagnostic_is_file_open_proof":False,
-      "conclusion":"VERIFIED distinct numbered work-level path; 0x824 header and live 16/50-byte reads are from this opened stream, not shown to be raw CD_Extracted/LEVELS.DAT",
-      "raw_archive_to_work_file_producer":"UNKNOWN; could be installer, CODE.1, another routine, or saved state",
+      "conclusion":"VERIFIED 0x21DB0 serializes existing level state into work\\lev???.dat; CODE.2 0x2445D chooses a work-file read or indexed archive fallback",
+      "raw_archive_to_work_file_producer":"VERIFIED: 0x2445D->0x238D4 converts authored 11-byte NPC data to live records; 0x21DB0 serializes current live state",
     }
 
 
@@ -420,7 +428,7 @@ def work_level_producer_and_indirect_dispatch(rows):
            k:xref(f"0x{pc:x}",max_hits=45)
            for k,pc in {
                "open_read_existing_0x433C0":0x433c0,
-               "stream_write_0x4340C":0x4340c,
+               "stream_read_0x4340C":0x4340c,
                "stream_seek_0x4343C":0x4343c,
                "stream_close_0x433FC":0x433fc,
            }.items()
@@ -430,13 +438,88 @@ def work_level_producer_and_indirect_dispatch(rows):
        "file_helper_write_read_leads":{
            k:xref(f"0x{p:x}",max_hits=45) for k,p in {
             "open_0x433D4":0x433D4,"open_0x433E8":0x433E8,
-            "stream_read_0x43424":0x43424,
+            "stream_write_0x43424":0x43424,
             "path_helper_0x434B0":0x434B0,
            }.items()
        },
        "indirect_call_count":len(indirect),
        "indirect_callsite_examples":indirect[:95],
        "scope":"Executable offsets and instruction windows only. Do not assert work-file production, a spawn path, or stock encounter reachability from coincidence.",
+    }
+
+
+# Authenticated CODE.2 input-mode proof. 0x4340C reads; 0x43424 writes.
+# These are code-object-relative addresses, not absolute disk offsets.
+NPC_FAMILY_A_SOURCE_WITNESSES={
+  0x2445E:("call","0x21db0"),
+  0x244CE:("call","0x433c0"),
+  0x244DE:("xor","edi,edi"),
+  0x244E9:("call","0x40584"),
+  0x24538:("mov","edi,0x1"),
+  0x245CE:("call","0x22ba8"),
+  0x245D8:("call","0x238d4"),
+  0x245E2:("call","0x23640"),
+  0x245EC:("call","0x23208"),
+  0x238DD:("cmp","DWORD PTR [ebp+0x14],0x0"),
+  0x238E1:("je","0x23a9f"),
+  0x238FA:("push","0xb"),
+  0x23906:("call","0x4340c"),
+  0x2390E:("mov","WORD PTR [ebx+0x35ad2],ax"),
+  0x23918:("mov","WORD PTR [ebx+0x35ad0],ax"),
+  0x23922:("mov","WORD PTR [ebx+0x35ad6],ax"),
+  0x2392C:("mov","WORD PTR [ebx+0x35ad4],ax"),
+  0x23933:("movsx","WORD PTR [ebp-0x10]"),
+  0x23937:("imul","eax,eax,0x58"),
+  0x23953:("add","edi,eax"),
+  0x23964:("mov","WORD PTR [esi+0x4],ax"),
+  0x23968:("mov","DWORD PTR [edi+0x48]"),
+  0x2396B:("mov","DWORD PTR [esi+0xe],eax"),
+  0x23987:("mov","WORD PTR [esi+0x12],0xd4"),
+  0x23A9F:("movsx","WORD PTR ds:0x44fd6"),
+  0x23AB2:("call","0x4340c"),
+  0x23ACF:("call","0x4340c"),
+  0x23AE7:("imul","edi,ebx,0x32"),
+  0x23AF1:("movsx","WORD PTR [edi+0x44ff4]"),
+  0x23AF8:("imul","edi,edi,0x58"),
+  0x23B06:("mov","eax,ds:0x44790"),
+  0x21E7B:("call","0x43424"),
+  0x220C0:("call","0x43424"),
+  0x220EB:("call","0x43424"),
+  0x43418:("call","0x4cc3a"),
+  0x43430:("call","0x4cd53"),
+}
+def source_backed_npc_family_A_codec(rows):
+    at={pc:(op,operand) for pc,op,operand in rows}
+    witnesses=[]
+    for pc,(op,fragment) in NPC_FAMILY_A_SOURCE_WITNESSES.items():
+        observed=at.get(pc)
+        if not observed or observed[0]!=op or fragment not in observed[1]:
+            raise ValueError(f"Stone original family-A codec witness drift {pc:#x}: {observed}")
+        witnesses.append({"pc":pc,"asm":observed[0]+" "+observed[1]})
+    callers=[pc for pc,op,arg in rows if op=="call" and arg=="0x238d4"]
+    if callers!=[0x245D8]:
+        raise ValueError(f"Stone family-A codec direct caller drift: {callers}")
+    return {
+      "entry":0x238D4, "direct_callers":callers,
+      "source_selector":"CODE.2 0x244DE sets 0 for work-level; 0x24538 sets 1 on indexed archive fallback",
+      "source_flag_nonzero":"read count times 11-byte authored record and construct live structures",
+      "source_flag_zero":"read count times 16-byte position and 50-byte live actors, then restore catalog pointers",
+      "authoring_record_stride_bytes":11,
+      "authoring_record_fields":[
+        {"offset":0,"width":"i16 LE","operation":"NPCS.DAT type index x 88; copy to live actor +4"},
+        {"offset":2,"width":"i16 LE","operation":"copy to placement +2 (cell component)"},
+        {"offset":4,"width":"u16 LE","operation":"copy to placement +0 (fraction component)"},
+        {"offset":6,"width":"i16 LE","operation":"copy to placement +6 (cell component)"},
+        {"offset":8,"width":"u16 LE","operation":"copy to placement +4 (fraction component)"},
+        {"offset":10,"width":"u8","operation":"select live-state word via CODE.2 0x1F640 + selector*4"},
+      ],
+      "runtime_placement_stride_bytes":16, "runtime_actor_stride_bytes":50,
+      "npc_catalog_definition_stride_bytes":88,
+      "work_level_serializer":0x21DB0,
+      "io_read_wrapper":0x4340C,"io_write_wrapper":0x43424,
+      "machine_witnesses":witnesses,
+      "conclusion":"VERIFIED source-to-live NPC type identity from authored +0; stock LEVELS.DAT contains zero authored templates of types 4,24,27",
+      "unknown":"RES9 or generated event changes, modified work files and save restore may create additional actors",
     }
 
 CONSTRUCTOR_XREFS={
@@ -542,6 +625,7 @@ def main():
     body={
        "code2_sha256":meta["sha256"],
        "numbered_work_level_loader_source_proof":source_path_proof,
+       "verified_NPC_family_A_archive_to_live_codec":source_backed_npc_family_A_codec(rows),
        "work_level_producer_and_indirect_dispatch_probe":work_level_producer_and_indirect_dispatch(rows),
        "original_11byte_family_A":level_family(root/game["level"]),
        "original_CODE2_readsite_probes":loader_witnesses(rows),
