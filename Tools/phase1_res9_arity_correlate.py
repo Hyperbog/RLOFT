@@ -31,16 +31,17 @@ ARITY = {
 # 0x14 and 0x16 call related choice helpers; one-word consumption is a
 # provisional candidate requiring further callee-level confirmation.
 # Menzo 0x21 branches with a flag word and target word (2 total).
+# Stone 0x08 handler at CODE.2 0x1E3CB reads one word and increments IP once.
 # Stone opcode 0x02 helper 0x1C4E4 advances IP twice: the second
 # fetch is at [edx*2+0x2EC2E], where edx=initial IP+2.
 CORRECTIONS = {
     "menzo": {17: 2, 18: 1, 20: 1, 24: 2, 31: 2},
-    "stone": {0: 2, 17: 2, 18: 1, 20: 1, 24: 2},
+    "stone": {0: 2, 6: 1, 17: 2, 18: 1, 20: 1, 24: 2},
 }
 ARITY = {title: tuple(CORRECTIONS[title].get(i, n)
                       for i,n in enumerate(widths))
          for title,widths in ARITY.items()}
-EXPECTED_MINIMUM = {"menzo": (31, 7), "stone": (48, 21)}
+EXPECTED_MINIMUM = {"menzo": (31, 28), "stone": (48, 40)}
 
 
 def read_programs(path, parser):
