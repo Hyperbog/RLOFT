@@ -20,16 +20,16 @@ HELPERS = {
     },
     "stone": {
         "multi_effect_apply": (0x32F70, 0x33100),
-        "other_effect_02": (0x3395C, 0x33AD0),
-        "status_effect_10_20_40": (0x11B94, 0x11D30),
-        "additional_effect_40": (0x343D8, 0x34520),
+        "two_character_word_comparison": (0x3395C, 0x33990),
+        "d20_character_threshold_predicate": (0x11B94, 0x11C10),
+        "identity_passthrough_helper": (0x343D8, 0x343E0),
         "attack_perform": (0x1229C, 0x1231D),
     },
 }
 EXCERPTS = {
     "stone": {
         "attack_state_producer": (0x26CC0, 0x26DD3),
-        "alternative_state_producer": (0x27750, 0x27872),
+        "alternative_state_producer": (0x276B0, 0x27872),
         "state_zero_and_two": (0x27BC0, 0x27CCF),
         "second_attack_select": (0x275D5, 0x27680),
         "special_bit_selection": (0x12510, 0x12890),
@@ -62,6 +62,57 @@ TARGET_CALLS = {
     "stone": [0x32F70, 0x3395C, 0x11B94, 0x343D8,
               0x26D10, 0x26F74, 0x1229C],
 }
+SEMANTIC_INSTRUCTIONS = {
+ "menzo": {
+     0x0F87A: ("call","0x20818"),  # verified four-parameter dice helper
+     0x0F892: ("call","0x10534"),  # downstream damage/interaction: unidentified
+     0x0F89A: ("and","BYTE PTR [ebx+0xe],0xfd"),
+ },
+ "stone": {
+     # title-specific u16LE character record predicate: either field equals arg
+     0x3395F: ("imul","eax,DWORD PTR [ebp+0x8],0x41c"),
+     0x33966: ("movsx","WORD PTR [eax+0x15e64]"),
+     0x3396D: ("cmp","edx,DWORD PTR [ebp+0xc]"),
+     0x33979: ("movsx","WORD PTR [eax+0x15e66]"),
+     0x33980: ("cmp","eax,DWORD PTR [ebp+0xc]"),
+     0x3398C: ("xor","eax,eax"),
+     # helper 0x11B94: d20 roll, modifiers, compare against class table
+     0x11B9A: ("imul","ebx,DWORD PTR [ebp+0x14],0x41c"),
+     0x11BDA: ("call","0x29ed0"),
+     0x11BFF: ("cmp","eax,edi"),
+     0x11C01: ("setge","al"),
+     # 0x343D8 is a passthrough, not an effect applicator
+     0x343DB: ("mov","eax,DWORD PTR [ebp+0x8]"),
+     0x343DE: ("pop","ebp"),
+     0x343DF: ("ret",""),
+     # bounded 150-entry x 44-byte effect/result catalog
+     0x32FBC: ("cmp","DWORD PTR ds:0x1a578,0x96"),
+     0x32FCC: ("imul","ebx,DWORD PTR ds:0x1a578,0x2c"),
+ },
+}
+
+def semantic_witnesses(rows,title):
+    lookup={pc:(op,args) for pc,op,args in rows}
+    lines=[]
+    for pc,(op,needle) in SEMANTIC_INSTRUCTIONS[title].items():
+        observed=lookup.get(pc)
+        if not observed or observed[0]!=op or needle not in observed[1]:
+            raise ValueError(f"{title} original semantic helper witness {pc:#x}: expected "
+                             f"{op} {needle}, got {observed}")
+        lines.append({"pc":pc,"asm":observed[0]+" "+observed[1]})
+    return {
+        "instructions":lines,
+        "structured_conclusions":{
+           "stone_character_word_match":"two signed 16-bit character fields compared to caller's expected value; returns boolean",
+           "stone_d20_threshold":"rolls 1d20 plus derived bonuses and checks >= indexed character threshold",
+           "stone_identity":"CODE.2 0x343D8 returns its first argument unchanged, is NOT itself a status applicator",
+           "stone_bounded_dispatch":"0x32F70 bounds a 150-entry 44-byte table; individual effects remain UNKNOWN",
+           "menzo_dice_side_effect":"0xF850 calls verified dice helper and an unidentified downstream helper, then clears live flag bit 0x02",
+        },
+        "certainty":"Original machine instructions VERIFIED; higher-level effect names UNKNOWN",
+    }
+
+
 MEDIA_EXPECTED = {
     "stone": {4: (2, (0,0)), 24:(1,(0,)), 27:(2,(0,0))},
 }
@@ -171,6 +222,7 @@ def main():
         report[title]={
             "code2_sha256":meta["sha256"],
             "original_executable":inspect_executable(rows,title),
+            "machine_verified_helper_semantics":semantic_witnesses(rows,title),
         }
         if title=="stone":
             npc=folder/cfg["npc"]
