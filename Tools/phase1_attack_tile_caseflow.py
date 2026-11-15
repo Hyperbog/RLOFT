@@ -153,6 +153,47 @@ def candidate_flags(rows,conf):
     return {"original_attack_window":selected,
             "cross_object_readsite_matches":matched[:55]}
 
+STATE_WRITERS = {
+    "menzo":{"field_offset":0x24,"source_ranges":[(0x1FA1C,0x20120),(0x20320,0x20450)]},
+    "stone":{"field_offset":0x28,"source_ranges":[(0x26CF0,0x27040),
+                                                   (0x27570,0x27890),
+                                                   (0x27BB0,0x27E20)]},
+}
+
+def state_writes(rows,title):
+    conf=STATE_WRITERS[title]
+    suffix=f"+0x{conf['field_offset']:x}]"
+    findings=[]
+    for i,(pc,op,arg) in enumerate(rows):
+        if op not in ("mov","inc","dec","add","sub","and","or","xor"):
+            continue
+        operand=arg.split(",",1)[0].strip()
+        if not operand.endswith(suffix):
+            continue
+        if "WORD PTR" not in operand:
+            continue
+        nearby=insns(rows,max(0,pc-22),pc+45,26)
+        relevant=any(a<=pc<b for a,b in conf["source_ranges"])
+        findings.append({"pc":pc,"asm":op+" "+arg,
+                         "within_known_attack_runtime":relevant,
+                         "context":nearby})
+    return {"state_word_offset":conf["field_offset"],
+            "total_register_relative_writes":len(findings),
+            "within_known_attack_runtime":sum(x["within_known_attack_runtime"]
+                                              for x in findings),
+            "sample_writers":[x for x in findings
+                              if x["within_known_attack_runtime"]][:65],
+            "other_candidates":[x for x in findings
+                                if not x["within_known_attack_runtime"]][:35],
+            "confidence":"register-base def-use not globally certified"}
+
+def flag_behavior_windows(rows,title):
+    ranges=([(0xF900,0xFA20),(0x1FF20,0x200A0)] if title=="menzo"
+            else [(0x12300,0x12590),(0x27590,0x27665)])
+    return [dict(start=a,end=b,instructions=insns(rows,a,b,220))
+            for a,b in ranges]
+
+
 def original_trace(rows,conf):
     targets=[conf["period_entry"],conf["dispatch"]]
     for i in range(conf["case_count"]):
@@ -185,6 +226,8 @@ def main():
            "live_npc_action_state_dispatch":original_state_table(code,rows,cfg),
            "attack_range_and_control_u16_fields":attack_range_field_reads(rows,cfg),
            "attack_dynamic_flags":candidate_flags(rows,cfg),
+           "attack_flag_behavior_windows":flag_behavior_windows(rows,game),
+           "live_attack_state_writer_leads":state_writes(rows,game),
            "control_flow":original_trace(rows,cfg),
            "table_handler_inbound_edges":
                address_uses(rows,[row["handler_offset"] for row in table[
