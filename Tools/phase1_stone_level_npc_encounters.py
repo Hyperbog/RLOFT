@@ -18,6 +18,8 @@ REGIONS={
     "original_level_load_and_creature_family":(0x21D80,0x22390),
     "original_creature_definition_construct":(0x13640,0x13940),
     "original_creature_add_path":(0x00000,0x00145),
+    "original_level_family_deserialization_A":(0x220A0,0x22460),
+    "original_level_family_deserialization_B":(0x22460,0x22840),
 }
 def level_family(path):
     data=path.read_bytes()
@@ -27,13 +29,32 @@ def level_family(path):
     per_byte=[collections.Counter() for _ in range(11)]
     candidate_locations=collections.defaultdict(list)
     total=0
+    all_fields_valid=collections.Counter()
+    fraction_quantization=collections.Counter()
+    invalid_position_samples=[]
     for level,(a,b) in enumerate(zip(offsets,(*offsets[1:],len(data)))):
         rec=data[a:b];boundaries=struct.unpack_from("<7I",rec,1)
+        width,height=struct.unpack_from("<hh",rec,0x1D+1)
+        if width<=0 or height<=0:raise ValueError("invalid original level grid")
         family=rec[boundaries[2]:boundaries[3]]
         if len(family)%11:raise ValueError("corrupt original 11-byte family A")
         for nrecord in range(len(family)//11):
             row=family[nrecord*11:(nrecord+1)*11]
             total+=1
+            type_id=struct.unpack_from("<H",row,0)[0]
+            x_cell=struct.unpack_from("<h",row,2)[0]
+            y_cell=struct.unpack_from("<h",row,6)[0]
+            x_fraction=struct.unpack_from("<H",row,4)[0]
+            y_fraction=struct.unpack_from("<H",row,8)[0]
+            all_fields_valid["type_in_NPC_definition_range"]+=type_id<110
+            all_fields_valid["x_cell_within_level_width"]+=0<=x_cell<width
+            all_fields_valid["y_cell_within_level_height"]+=0<=y_cell<height
+            fraction_quantization["x_fraction_divisible_256"]+=x_fraction%256==0
+            fraction_quantization["y_fraction_divisible_256"]+=y_fraction%256==0
+            if (not 0<=x_cell<width or not 0<=y_cell<height) and len(invalid_position_samples)<12:
+                invalid_position_samples.append({"level":level,"record":nrecord,
+                                                 "xy":[x_cell,y_cell],
+                                                 "width_height":[width,height]})
             for col,off in enumerate((0,2,4,6,8)):
                 word=struct.unpack_from("<H",row,off)[0]
                 counts[col][word]+=1
@@ -44,6 +65,12 @@ def level_family(path):
                 per_byte[off][value]+=1
     return {
         "original_archive_level_count":n,"family_A_11byte_records":total,
+        "provisional_Strahd_compatible_type_xy_field_equations":{
+            "checks":dict(all_fields_valid),
+            "fraction_divisibility_by_256":dict(fraction_quantization),
+            "bad_coordinate_examples":invalid_position_samples,
+            "meaning":"corpus consistency only; Stone CODE.2 type-index proof pending"},
+        "target_ID_absence_if_plus_0_is_NPC_type":all(counts[0][t]==0 for t in TARGET_NPCS),
         "aligned_u16_column_profiles":[{
             "byte_offset":off,
             "minimum":min(counts[i]),"maximum":max(counts[i]),
