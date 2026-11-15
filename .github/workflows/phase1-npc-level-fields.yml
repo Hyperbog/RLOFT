@@ -18,6 +18,7 @@ on:
       - 'Tools/phase1_stone_attack_effect_paths.py'
       - 'Tools/phase1_stone_special_bit_operations.py'
       - 'Tools/phase1_stone_attack_eligibility.py'
+      - 'Tools/phase1_stone_level_npc_encounters.py'
       - '.github/workflows/phase1-npc-level-fields.yml'
   workflow_dispatch:
 
@@ -167,6 +168,15 @@ jobs:
             --root preservation/MASTER --repo-root . \
             --json audit/phase1-stone-attack-eligibility.json
           python -m py_compile Tools/phase1_stone_attack_eligibility.py
+
+      - name: Trace Stone original creature-level placement field evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python Tools/phase1_stone_level_npc_encounters.py \
+            --root preservation/MASTER --repo-root . \
+            --json audit/phase1-stone-level-npc-encounters.json
+          python -m py_compile Tools/phase1_stone_level_npc_encounters.py
 
       - name: Publish derived metadata only
         if: always()
