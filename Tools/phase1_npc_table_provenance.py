@@ -82,6 +82,12 @@ def verify_indexed_table_machine(rows,title):
     }
 
 
+EXPECTED_CELL_TABLE_ASSOCIATIONS={
+    "menzo":{"used_table_zero":61,"used_table_populated":803,
+             "not_used_table_populated":972,"not_used_table_zero":1748},
+    "stone":{"used_table_zero":56,"used_table_populated":712,
+             "not_used_table_populated":297,"not_used_table_zero":1687},
+}
 INTERIOR=re.compile(r"\+0x([0-9a-f]+)\]")
 LOADOPS={"mov","movzx","movsx","lea","cmp","test","push","add","and","or","sub"}
 DUMMY_RAW_VALUES=()
@@ -225,6 +231,9 @@ def main():
             "executable_index_formula":verify_indexed_table_machine(rows,title),
             "level_table_vs_packed_cell_code":level_cell_correlation(lev),
         }
+        observed=out[title]["level_table_vs_packed_cell_code"]["contingency"]
+        if observed!=EXPECTED_CELL_TABLE_ASSOCIATIONS[title]:
+            raise ValueError(f"{title} table/packed-cell correlation changed: {observed}")
         print(title,"NPC syntactic leads",
               out[title]["npc_byte_access_candidates"]["candidate_count"],
               "grid association",
