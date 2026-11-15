@@ -44,7 +44,7 @@ def decode(words, widths):
         logical=encoded-2
         ip+=1
         if logical < 0 or logical >=len(widths):
-            raise ValueError(f"bad encoded opcode {encoded:#x} at IP {pc}")
+            raise ValueError(f"bad encoded opcode {encoded:#x} at IP {pc}; previous decoded instruction starts and arities={[(p, op, len(a)) for p,op,a in decoded[-5:]]}")
         n=widths[logical]
         if ip+n>len(words):
             raise ValueError(f"opcode {encoded:#x} operands overrun at IP {pc}")
