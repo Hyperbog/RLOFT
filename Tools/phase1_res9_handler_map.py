@@ -51,6 +51,19 @@ def dispatch(rows, code, title):
             "table":spec["table"],"encoded_min":2,
             "encoded_max":1+spec["count"],"cases":result}
 
+HELPERS = {"menzo":{"opcode_02":0x18850,"opcode_05":0x192a0},
+           "stone":{"opcode_02":0x1c4e4,"opcode_05":0x1ced0}}
+
+
+def helper_windows(rows,title):
+    out={}
+    for name,start in HELPERS[title].items():
+        lines=[{"pc":pc,"asm":op+" "+args}
+               for pc,op,args in rows if start<=pc<start+0x1b0]
+        out[name]={"entry":start,"instructions":lines[:125]}
+    return out
+
+
 def programs(folder, title, original):
     items=original["parse_res"](folder/VM[title]["archive"])
     for i,rec in enumerate(items):
@@ -128,7 +141,9 @@ def analyze(root, repo):
         print(f"{title}: authenticated {handlers['case_count']} cases, "
               f"Strahd-arity-hypothesis: {len(successes)}/{len(successes)+len(failures)} "
               f"programs, first failures {failures[:5]}")
-        report[title]={"original_sha256":meta["sha256"],"dispatch":handlers,
+        report[title]={"original_sha256":meta["sha256"],
+                       "operand_helper_windows":helper_windows(asm,title),
+                       "dispatch":handlers,
                        "strahd_operand_grammar_hypothesis":{
                            "parsed":successes,"failed":failures,
                            "opcode_counts":dict(sorted(counts.items())),
