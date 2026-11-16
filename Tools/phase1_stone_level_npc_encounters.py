@@ -648,6 +648,7 @@ def res9_and_saved_work_level_reachability(rows, code, game_dir, repo_root):
     ids=(4,24,27)
     coincidences={str(n):{"occurrences":0,"examples":[]} for n in ids}
     opcode_counts=collections.Counter()
+    by_id_opcode_slot=collections.Counter()
     for record,words in programs:
         decoded=arities["decode"](words,arities["ARITY"]["stone"],"stone")
         for ip,logical,operands in decoded:
@@ -658,6 +659,7 @@ def res9_and_saved_work_level_reachability(rows, code, game_dir, repo_root):
                     continue
                 item=coincidences[str(operand)]
                 item["occurrences"]+=1
+                by_id_opcode_slot[(operand,encoded,i)]+=1
                 if len(item["examples"])<10:
                     item["examples"].append({
                         "res9_record":record,"word_ip":ip,
@@ -691,6 +693,9 @@ def res9_and_saved_work_level_reachability(rows, code, game_dir, repo_root):
           "No dispatched opcode-handler prefix directly calls the two known constructors. "
           "Indirect jumps, transitive effects, and generated event commands are not excluded.",
         "candidate_operand_numeric_coincidences":coincidences,
+        "candidate_operand_numeric_coincidences_by_opcode_slot":{
+            f"type_value_{id}_opcode_{op}_argument_{slot}":count
+            for (id,op,slot),count in sorted(by_id_opcode_slot.items())},
         "operand_warning":
           "Literal RES9 operand values equal to 4,24,27 are NOT creature spawns. "
           "Those opcodes' game-effect semantics are incompletely reconstructed.",
@@ -771,6 +776,65 @@ def action_helper_generated_spawn_probe(rows):
       "runtime_attack_execution":"NOT TESTED",
     }
 
+
+# Follow the only direct opcode-02 post-action edge to Stone's five-slot
+# RES9 timer scheduler, then inspect the level-event opcode 13 argument
+# provenance. This bounds but does not solve indirect event-table mutation.
+RES9_TIMER_AND_EVENT_WITNESSES={
+    0x1EE94:("imul","ebx,esi,0xc"),
+    0x1EE97:("cmp","DWORD PTR [ebx+0x30c40],0xffffffff"),
+    0x1EEA0:("call","0x42c20"),
+    0x1EEA5:("cmp","eax,DWORD PTR [ebx+0x30c48]"),
+    0x1EEB2:("add","eax,DWORD PTR [ebx+0x30c44]"),
+    0x1EEB8:("mov","DWORD PTR [ebx+0x30c48],eax"),
+    0x1EEC4:("mov","ebx,DWORD PTR ds:0x1599c"),
+    0x1EECA:("mov","ds:0x1599c,eax"),
+    0x1EECF:("call","0x1e1e4"),
+    0x1EED8:("mov","DWORD PTR ds:0x1599c,ebx"),
+    0x1EEE4:("cmp","esi,0x5"),
+    0x006FE:("movzx","eax,BYTE PTR [esi+0x2]"),
+    0x00703:("movzx","eax,BYTE PTR [esi+0x3]"),
+    0x00708:("movzx","eax,BYTE PTR [esi+0x4]"),
+    0x0070D:("call","0x10"),
+}
+def timed_res9_and_event_opcode13_proof(rows):
+    at={pc:(op,operand) for pc,op,operand in rows}
+    verified=[]
+    for pc,(op,frag) in RES9_TIMER_AND_EVENT_WITNESSES.items():
+        val=at.get(pc)
+        if not val or val[0]!=op or frag not in val[1]:
+            raise ValueError(f"Stone timer/event original instruction drift at {pc:#x}: {val}")
+        verified.append({"pc":pc,"asm":val[0]+" "+val[1]})
+    early_event=[{"pc":pc,"asm":op+" "+arg}
+        for pc,op,arg in rows if 0x250<=pc<0x430]
+    event_calls=[{"pc":pc,"callee":int(arg,16)}
+        for pc,op,arg in rows if 0x250<=pc<0x730
+        and op=="call" and arg.startswith("0x")]
+    return {
+        "verified_machine_witnesses":verified,
+        "timer_slots":5,
+        "timer_record_stride_bytes":12,
+        "timer_slot_array_code2_data_offset":0x30C40,
+        "timer_fields":{
+            "res9_word_ip_at_slot_plus_0":0,
+            "timer_repeat_interval_at_slot_plus_4":4,
+            "next_due_clock_at_slot_plus_8":8,
+        },
+        "timer_inactive_sentinel_u32":0xFFFFFFFF,
+        "timer_clock_helper":0x42C20,
+        "timer_runtime_dispatch":"0x1EECF calls RES9 interpreter 0x1E1E4 and restores previous global IP 0x1599C",
+        "event_opcode_13_payload_bytes":{
+            "coordinate_arg_a":"[esi+2]","coordinate_arg_b":"[esi+3]",
+            "npc_type_definition_id":"[esi+4] pushed last at 0x70C",
+        },
+        "event_opcode13_constructor_at":0x70D,
+        "event_dispatch_preceding_instructions":early_event,
+        "event_dispatch_direct_callees":event_calls,
+        "generated_opcode13_command_proven":False,
+        "res9_to_event_bytecode_mutation_proven":False,
+        "boundary":"Timer execution can run other RES9 opcodes; it does not itself establish a new event command or NPC.",
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root",type=Path,required=True)
@@ -797,6 +861,7 @@ def main():
        "original_level_event_opcode_13_spawn_audit":archived_event_spawn_opcode13(root/game["level"]),
        "res9_dynamic_creation_and_save_restore_exposure":res9_and_saved_work_level_reachability(rows,code,root,a.repo_root),
        "res9_opcode02_action_to_event_spawn_probe":action_helper_generated_spawn_probe(rows),
+       "timed_res9_execution_and_event_opcode_13_payload":timed_res9_and_event_opcode13_proof(rows),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
     }
     a.json.parent.mkdir(parents=True,exist_ok=True)
