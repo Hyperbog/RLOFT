@@ -608,6 +608,110 @@ def archived_event_spawn_opcode13(path):
         "limits":"Does not inspect generated event tables, saves, other script languages",
     }
 
+
+# RES9 can issue game-world actions without directly invoking the ordinary
+# constructor. Separate direct-machine xrefs from transitive VM side effects.
+# Preserve only derived metadata, never original program or saved-game bytes.
+SAVE_SAMPLE_BLOB = "5f512cf4f3177e20f8c85c43c32e21df7f58b0a6"
+def res9_and_saved_work_level_reachability(rows, code, game_dir, repo_root):
+    import hashlib
+    import re
+    res9_path=game_dir/"PROPHET/RES9"
+    handlers=runpy.run_path(str(repo_root/"Tools/phase1_res9_handler_map.py"))
+    arities=runpy.run_path(str(repo_root/"Tools/phase1_res9_arity_correlate.py"))
+    parser=runpy.run_path(str(repo_root/"Resources/RES/analyze_legacy_archives.py"))
+    dispatch=handlers["dispatch"](rows,code,"stone")
+    if dispatch["case_count"]!=54:
+        raise ValueError("Stone authenticated RES9 handler count changed")
+    constructors={0x10,0x1364C}
+    direct_constructor_cases=[]
+    handler_callees={}
+    for case in dispatch["cases"]:
+        calls=[]
+        for op in case["context"]:
+            asm=op["instruction"]
+            if not asm.startswith("call 0x"):
+                continue
+            target=int(asm.split(" ",1)[1],16)
+            calls.append(target)
+            if target in constructors:
+                direct_constructor_cases.append({
+                  "encoded_opcode":case["encoded_opcode"],
+                  "handler_pc":case["handler"],"call_pc":op["at"],
+                  "target":target})
+        handler_callees[str(case["encoded_opcode"])]=sorted(set(calls))
+    if direct_constructor_cases:
+        raise ValueError(f"Stone RES9 direct constructor target changed: {direct_constructor_cases}")
+    programs=list(arities["read_programs"](res9_path,parser))
+    if len(programs)!=48:
+        raise ValueError(f"Original Stone RES9 program count drift: {len(programs)}")
+    ids=(4,24,27)
+    coincidences={str(n):{"occurrences":0,"examples":[]} for n in ids}
+    opcode_counts=collections.Counter()
+    for record,words in programs:
+        decoded=arities["decode"](words,arities["ARITY"]["stone"],"stone")
+        for ip,logical,operands in decoded:
+            encoded=logical+2
+            opcode_counts[encoded]+=1
+            for i,operand in enumerate(operands):
+                if operand not in ids:
+                    continue
+                item=coincidences[str(operand)]
+                item["occurrences"]+=1
+                if len(item["examples"])<10:
+                    item["examples"].append({
+                        "res9_record":record,"word_ip":ip,
+                        "encoded_opcode":encoded,"operand_index":i})
+    if not opcode_counts:
+        raise ValueError("Stone RES9 candidate parser emitted no instructions")
+    save=game_dir/"PROPHET/SAVE01/SAVE.DAT"
+    if not save.is_file():
+        raise ValueError("preserved Stone quick-start SAVE.DAT not found")
+    save_data=save.read_bytes()
+    blob_sha=hashlib.sha1(
+        b"blob "+str(len(save_data)).encode("ascii")+b"\x00"+save_data
+    ).hexdigest()
+    if blob_sha!=SAVE_SAMPLE_BLOB or len(save_data)!=39002:
+        raise ValueError("Preserved Stone SAVE01/SAVE.DAT identity mismatch")
+    if not save_data.startswith(b"QUICK START PARTY"):
+        raise ValueError("Preserved quick-start save title differs")
+    numbered=sorted(str(p.relative_to(game_dir)) for p in
+        game_dir.rglob("*.dat") if p.is_file() and
+        re.fullmatch(r"lev\d{3}\.dat",p.name,re.IGNORECASE))
+    return {
+        "res9_original_archive_sha256":hashlib.sha256(res9_path.read_bytes()).hexdigest(),
+        "res9_original_program_count":len(programs),
+        "res9_original_dispatch_cases":dispatch["case_count"],
+        "res9_candidate_decoded_instruction_count":sum(opcode_counts.values()),
+        "handler_direct_constructor_calls":direct_constructor_cases,
+        "direct_constructors_checked":[hex(x) for x in sorted(constructors)],
+        "handler_direct_callee_counts":{
+          op:len(calls) for op,calls in handler_callees.items()},
+        "direct_constructor_boundary":
+          "No dispatched opcode-handler prefix directly calls the two known constructors. "
+          "Indirect jumps, transitive effects, and generated event commands are not excluded.",
+        "candidate_operand_numeric_coincidences":coincidences,
+        "operand_warning":
+          "Literal RES9 operand values equal to 4,24,27 are NOT creature spawns. "
+          "Those opcodes' game-effect semantics are incompletely reconstructed.",
+        "preserved_save": {
+          "path":"PROPHET/SAVE01/SAVE.DAT",
+          "git_blob_sha1":blob_sha,
+          "sha256":hashlib.sha256(save_data).hexdigest(),
+          "size_bytes":len(save_data),
+          "quick_start_party_label_present":True,
+          "live_npc_type_offsets_in_SAVE_DAT":"NOT ESTABLISHED",
+        },
+        "preserved_numbered_work_level_files":numbered[:50],
+        "preserved_numbered_work_level_file_count":len(numbered),
+        "saved_work_file_limit":
+          "The preserved SAVE.DAT is a separate party/save artifact. "
+          "No numbered work-level state can be inferred from its raw bytes. "
+          "Stock runtime could generate or restore work files.",
+        "original_runtime_division_or_encounter_executed":False,
+        "stock_zero_period_dynamic_reachability":"UNKNOWN",
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root",type=Path,required=True)
@@ -632,6 +736,7 @@ def main():
        "original_source_and_live_loader_provenance":source_and_live_loader_provenance(rows),
        "original_direct_constructor_callsite_audit":direct_constructor_proof(rows),
        "original_level_event_opcode_13_spawn_audit":archived_event_spawn_opcode13(root/game["level"]),
+       "res9_dynamic_creation_and_save_restore_exposure":res9_and_saved_work_level_reachability(rows,code,root,a.repo_root),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
     }
     a.json.parent.mkdir(parents=True,exist_ok=True)
