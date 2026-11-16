@@ -1,0 +1,32 @@
+name: Original Stone runtime hook source and compile verification
+on:
+  push:
+    paths:
+      - "Recomp/tools/dosboxx_stone_runtime_capture/**"
+      - ".github/workflows/stone-original-runtime-capture.yml"
+  workflow_dispatch:
+jobs:
+  source-and-compiled-hook:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Python source
+        run: python3 -m py_compile Recomp/tools/dosboxx_stone_runtime_capture/*.py
+      - name: Compile and run observer on synthetic guest memory
+        run: python3 Recomp/tools/dosboxx_stone_runtime_capture/test_stone_runtime_capture.py
+      - name: Authenticate and instrument pinned DOSBox-X normal core
+        run: |
+          mkdir -p /tmp/stone-original-dosbox/src/cpu
+          curl --fail --location --silent --show-error --retry 3 \
+            https://raw.githubusercontent.com/joncampbell123/dosbox-x/b6abbd5980a885f5f310a4088c59a8688d1b116c/src/cpu/core_normal.cpp \
+            -o /tmp/stone-original-dosbox/src/cpu/core_normal.cpp
+          python3 Recomp/tools/dosboxx_stone_runtime_capture/apply_stone_runtime_capture.py \
+            --dosbox-root /tmp/stone-original-dosbox \
+            --header Recomp/tools/dosboxx_stone_runtime_capture/rloft_stone_runtime_capture.hpp
+          grep -c 'rloft_stone_capture::tick' \
+            /tmp/stone-original-dosbox/src/cpu/core_normal.cpp | grep -x 1
+          test -f /tmp/stone-original-dosbox/src/cpu/rloft_stone_runtime_capture.hpp
+      - name: Execution boundary
+        run: |
+          echo "Original Stone DOS game session: NOT RUN"
+          echo "Full DOSBox-X Windows build: NOT RUN"
