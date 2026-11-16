@@ -781,6 +781,14 @@ def action_helper_generated_spawn_probe(rows):
 # RES9 timer scheduler, then inspect the level-event opcode 13 argument
 # provenance. This bounds but does not solve indirect event-table mutation.
 RES9_TIMER_AND_EVENT_WITNESSES={
+    0x0029C:("push","ebx"),
+    0x002AF:("push","DWORD PTR ds:0x1dc2c"),
+    0x002B5:("call","0x3a6dc"),
+    0x002BA:("imul","edx,DWORD PTR [ebp+0x14],0x1a"),
+    0x002EC:("add","esi,ebx"),
+    0x00302:("mov","dl,BYTE PTR [esi+0x1]"),
+    0x00307:("cmp","dl,0xd"),
+    0x00313:("jmp","DWORD PTR cs:[eax*4+0x264]"),
     0x1EE94:("imul","ebx,esi,0xc"),
     0x1EE97:("cmp","DWORD PTR [ebx+0x30c40],0xffffffff"),
     0x1EEA0:("call","0x42c20"),
@@ -823,6 +831,14 @@ def timed_res9_and_event_opcode13_proof(rows):
         "timer_inactive_sentinel_u32":0xFFFFFFFF,
         "timer_clock_helper":0x42C20,
         "timer_runtime_dispatch":"0x1EECF calls RES9 interpreter 0x1E1E4 and restores previous global IP 0x1599C",
+        "event_resource_handle_global_code2_data":0x1DC2C,
+        "event_resolver_helper":0x3A6DC,
+        "event_executor_entry":0x29C,
+        "event_slot_bytes":26,
+        "event_slot_command_count_u8_offset":0,
+        "event_command_stride_bytes":5,
+        "event_command_opcode_u8_offset":1,
+        "event_opcode13_value":13,
         "event_opcode_13_payload_bytes":{
             "coordinate_arg_a":"[esi+2]","coordinate_arg_b":"[esi+3]",
             "npc_type_definition_id":"[esi+4] pushed last at 0x70C",
@@ -832,6 +848,9 @@ def timed_res9_and_event_opcode13_proof(rows):
         "event_dispatch_direct_callees":event_calls,
         "generated_opcode13_command_proven":False,
         "res9_to_event_bytecode_mutation_proven":False,
+        "event_resource_global_code_xrefs":[
+            {"pc":pc,"asm":op+" "+arg}
+            for pc,op,arg in rows if "ds:0x1dc2c" in arg][:60],
         "boundary":"Timer execution can run other RES9 opcodes; it does not itself establish a new event command or NPC.",
     }
 
