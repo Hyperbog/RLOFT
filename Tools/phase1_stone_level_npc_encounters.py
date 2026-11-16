@@ -378,6 +378,7 @@ def work_level_producer_and_indirect_dispatch(rows):
        0x2445E:("call","0x21db0"),0x244CE:("call","0x433c0"),
        0x244E9:("call","0x40584"),0x24558:("call","0x4340c"),
        0x2462E:("call","0x4340c"),
+    0x3A70D:("mov","eax,DWORD PTR [esi]"),
     }
     pinned=[]
     for pc,(want_op,want_arg) in LEVEL_WRITER_WITNESSES.items():
@@ -868,6 +869,7 @@ EVENT_BUFFER_SOURCE_WITNESSES = {
     0x00708:("movzx","eax,BYTE PTR [esi+0x4]"),
     0x0070D:("call","0x10"),
     0x2221B:("push","DWORD PTR ds:0x1dc2c"),
+    0x22233:("call","0x43424"),
     0x23C4F:("cmp","DWORD PTR ds:0x1dc2c,0x0"),
     0x23C58:("push","0x1dc2c"),
     0x23C5D:("call","0x42bbc"),
@@ -925,6 +927,9 @@ def event_buffer_resolved_pointer_provenance(rows):
     return {
        "machine_instruction_witnesses":checked,
        "global_handle_address":0x1DC2C,
+       "resolver_returns_payload_pointer_at":0x3A70D,
+       "read_wrapper_from_source_file":0x4340C,
+       "write_wrapper_to_work_file":0x43424,
        "event_resource_size_bytes":0x514,
        "event_direct_handle_xref_count":len(direct),
        "all_direct_event_handle_references":[
