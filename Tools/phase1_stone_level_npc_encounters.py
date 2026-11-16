@@ -712,6 +712,65 @@ def res9_and_saved_work_level_reachability(rows, code, game_dir, repo_root):
         "stock_zero_period_dynamic_reachability":"UNKNOWN",
     }
 
+
+# Targeted trace of Stone RES9 opcode 0x02 and the dynamic level-event
+# opcode-13 constructor arm. Original code is the authority; "reachable"
+# here means only static direct-call edges, never gameplay observation.
+RES9_ACTION_WITNESSES = {
+    0x1E2B1: ("call","0x1c4e4"),
+    0x1C4E9: ("mov","edx,DWORD PTR ds:0x1599c"),
+    0x1C4FF: ("mov","si,WORD PTR [edx*2+0x2ec2c]"),
+    0x1C507: ("movzx","ebx,WORD PTR [edx*2+0x2ec2e]"),
+    0x1C50F: ("mov","DWORD PTR ds:0x1599c,edx"),
+    0x1C53A: ("mov","eax,ds:0x159a4"),
+    0x1C542: ("add","eax,ebx"),
+    0x1C54A: ("call","0x29f54"),
+    0x1C569: ("call","0x1bb3c"),
+    0x1C615: ("call","0x1ee80"),
+    0x0070D: ("call","0x10"),
+}
+def action_helper_generated_spawn_probe(rows):
+    at={pc:(op,args) for pc,op,args in rows}
+    pinned=[]
+    for pc,(op,frag) in RES9_ACTION_WITNESSES.items():
+        val=at.get(pc)
+        if not val or val[0]!=op or frag not in val[1]:
+            raise ValueError(f"Stone RES9 event-action opcode witness drift {pc:#x}: {val}")
+        pinned.append({"pc":pc,"asm":val[0]+" "+val[1]})
+    def window(a,b,n=240):
+        return [{"pc":pc,"asm":op+" "+args}
+                for pc,op,args in rows if a<=pc<b][:n]
+    def calls(a,b):
+        return [{"pc":pc,"target":int(arg,16)}
+                for pc,op,arg in rows if a<=pc<b and op=="call"
+                and arg.startswith("0x")]
+    xrefs={}
+    for name,target in {
+       "res9_action_helper":0x1C4E4,
+       "res9_post_action":0x1EE80,
+       "event_dynamic_spawn_constructor":0x10,
+       "alternative_actor_constructor":0x1364C,
+       "event_action_display":0x29F54,
+    }.items():
+        sites=[{"pc":pc,"asm":op+" "+arg} for pc,op,arg in rows
+               if op in ("call","jmp") and arg==f"0x{target:x}"]
+        xrefs[name]={"target":target,"direct_branch_count":len(sites),
+                     "direct_branches":sites[:80]}
+    return {
+      "verified_original_CODE2_machine_witnesses":pinned,
+      "event_command_dispatch_code2":window(0x420,0x8B0,450),
+      "event_spawn_arm_exact_region":window(0x680,0x76F,115),
+      "res9_opcode02_display_action_complete":window(0x1C4E4,0x1C6A4,200),
+      "post_action_helper_0x1EE80":window(0x1EE80,0x1F030,260),
+      "event_system_neighbor_calls":calls(0x0,0x900),
+      "opcode02_helper_direct_callees":calls(0x1C4E4,0x1C6A4),
+      "post_action_direct_callees":calls(0x1EE80,0x1F030),
+      "direct_branch_reference_counts":xrefs,
+      "operand_source_to_effect":"0x1C4FF takes first operand; 0x1C507 takes second; 0x1C542 adds second to global text pointer 0x159A4 before 0x29F54",
+      "event_spawn_status":"0x70D directly invokes constructor 0x10, but RES9->event write provenance remains unverified",
+      "runtime_attack_execution":"NOT TESTED",
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root",type=Path,required=True)
@@ -737,6 +796,7 @@ def main():
        "original_direct_constructor_callsite_audit":direct_constructor_proof(rows),
        "original_level_event_opcode_13_spawn_audit":archived_event_spawn_opcode13(root/game["level"]),
        "res9_dynamic_creation_and_save_restore_exposure":res9_and_saved_work_level_reachability(rows,code,root,a.repo_root),
+       "res9_opcode02_action_to_event_spawn_probe":action_helper_generated_spawn_probe(rows),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
     }
     a.json.parent.mkdir(parents=True,exist_ok=True)
