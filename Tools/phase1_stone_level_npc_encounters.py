@@ -854,6 +854,102 @@ def timed_res9_and_event_opcode13_proof(rows):
         "boundary":"Timer execution can run other RES9 opcodes; it does not itself establish a new event command or NPC.",
     }
 
+
+# Bounded event-resource provenance: original CODE.2 consumers of the
+# allocated 0x514-byte event buffer. Track the HANDLE, not just textual
+# occurrences of event opcodes or RES9 numeric operands.
+EVENT_BUFFER_SOURCE_WITNESSES = {
+    0x002AF:("push","DWORD PTR ds:0x1dc2c"),
+    0x002B5:("call","0x3a6dc"),
+    0x002BA:("imul","edx,DWORD PTR [ebp+0x14],0x1a"),
+    0x002D0:("movzx","eax,BYTE PTR [eax]"),
+    0x00302:("mov","dl,BYTE PTR [esi+0x1]"),
+    0x00307:("cmp","dl,0xd"),
+    0x00708:("movzx","eax,BYTE PTR [esi+0x4]"),
+    0x0070D:("call","0x10"),
+    0x2221B:("push","DWORD PTR ds:0x1dc2c"),
+    0x23C4F:("cmp","DWORD PTR ds:0x1dc2c,0x0"),
+    0x23C58:("push","0x1dc2c"),
+    0x23C5D:("call","0x42bbc"),
+    0x23C62:("mov","DWORD PTR ds:0x1dc2c,0x0"),
+    0x2460C:("push","0x1dc2c"),
+    0x24611:("call","0x20e98"),
+    0x2461F:("push","DWORD PTR ds:0x1dc2c"),
+    0x24625:("call","0x3a6dc"),
+    0x2462E:("call","0x4340c"),
+}
+EVENT_BUFFER_DIRECT_HANDLE_XREFS={
+    0x002AF,0x2221B,0x23C4F,0x23C62,0x2461F
+}
+def event_buffer_resolved_pointer_provenance(rows):
+    bypc={pc:(op,arg) for pc,op,arg in rows}
+    checked=[]
+    for pc,(op,frag) in EVENT_BUFFER_SOURCE_WITNESSES.items():
+        actual=bypc.get(pc)
+        if not actual or actual[0]!=op or frag not in actual[1]:
+            raise ValueError(
+                f"Stone CODE.2 event buffer source witness drift @{pc:#x}: {actual}")
+        checked.append({"pc":pc,"asm":actual[0]+" "+actual[1]})
+    direct=[(pc,op,arg) for pc,op,arg in rows if "ds:0x1dc2c" in arg]
+    if {pc for pc,_,_ in direct}!=EVENT_BUFFER_DIRECT_HANDLE_XREFS:
+        raise ValueError(
+            f"Stone CODE.2 direct event handle xref census drift: {direct}")
+    # Within this routine, ESI is the current 5-byte event command after
+    # LEA/ADD at 0x2E7..0x2EC. Check that the executor itself does not
+    # overwrite its input command bytes before dispatching opcode 13.
+    memory_writers={
+        "mov","movzx","movsx","add","sub","or","and","xor","inc",
+        "dec","not","neg","xchg","shl","shr","sar","sal","rol","ror",
+    }
+    writes=[]
+    for pc,op,args in rows:
+        if not 0x2EC<=pc<0x727 or op not in memory_writers:
+            continue
+        dest=args.split(",",1)[0]
+        if dest.startswith(("BYTE PTR [esi", "WORD PTR [esi",
+                            "DWORD PTR [esi", "[esi")):
+            writes.append({"pc":pc,"asm":op+" "+args})
+    if writes:
+        raise ValueError(f"Stone event executor now writes command via ESI: {writes}")
+    def window(start,end,cap):
+        return [{"pc":pc,"asm":op+" "+args}
+                for pc,op,args in rows if start<=pc<end][:cap]
+    def xrefs(target):
+        return [{"pc":pc,"asm":op+" "+arg}
+                for pc,op,arg in rows if op in ("call","jmp")
+                and arg==f"0x{target:x}"]
+    event_exec_calls=xrefs(0x29C)
+    res9_range=(0x1C4E4,0x1EECF)
+    res9_to_event=[hit for hit in event_exec_calls
+                   if res9_range[0]<=hit["pc"]<res9_range[1]]
+    return {
+       "machine_instruction_witnesses":checked,
+       "global_handle_address":0x1DC2C,
+       "event_resource_size_bytes":0x514,
+       "event_direct_handle_xref_count":len(direct),
+       "all_direct_event_handle_references":[
+           {"pc":pc,"asm":op+" "+arg} for pc,op,arg in direct],
+       "only_direct_global_handle_write_at":0x23C62,
+       "only_direct_global_handle_write_value":0,
+       "resource_allocation_and_stream_read":window(0x24600,0x2463A,42),
+       "resource_release_and_clear":window(0x23C40,0x23C72,35),
+       "runtime_buffer_to_work_file_writer":window(0x221F0,0x22250,65),
+       "event_slot_dispatcher_core":window(0x29C,0x320,48),
+       "resource_resolver_callee":window(0x3A6DC,0x3A790,95),
+       "direct_calls_to_event_executor":event_exec_calls,
+       "direct_calls_to_event_executor_from_RES9_code_range":res9_to_event,
+       "event_command_pointer_store_in_executor_count":len(writes),
+       "event_command_pointer_store_in_executor":writes,
+       "conclusion":
+          "Global handle is allocated, resolved for execution and file I/O, "
+          "and released/cleared. No direct global-handle payload write or "
+          "in-place event command modification in the event executor was found.",
+       "limits":
+          "Resolved buffer can be passed through helpers; indirect pointer "
+          "writes, runtime-generated event records and save/work-file content "
+          "remain unproven without transitive alias/call analysis.",
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root",type=Path,required=True)
@@ -881,6 +977,7 @@ def main():
        "res9_dynamic_creation_and_save_restore_exposure":res9_and_saved_work_level_reachability(rows,code,root,a.repo_root),
        "res9_opcode02_action_to_event_spawn_probe":action_helper_generated_spawn_probe(rows),
        "timed_res9_execution_and_event_opcode_13_payload":timed_res9_and_event_opcode13_proof(rows),
+       "resolved_event_buffer_mutation_provenance":event_buffer_resolved_pointer_provenance(rows),
        "encounter_source_warning":"Raw field coincidences alone are not NPC spawns",
     }
     a.json.parent.mkdir(parents=True,exist_ok=True)
