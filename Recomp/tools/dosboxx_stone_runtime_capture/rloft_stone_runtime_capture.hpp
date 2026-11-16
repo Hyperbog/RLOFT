@@ -66,10 +66,7 @@ class Recorder {
                 if (bytes[at]!=13) continue;
                 ++spawn;
                 const unsigned id=bytes[at+3];
-                if (id==4 || id==24 || id==27) {
-                    ++target;
-                    emit("affected_event_command",cs,pc,slot,i,id,at);
-                }
+                if (id==4 || id==24 || id==27) ++target;
             }
         }
         if (malformed) {
@@ -80,6 +77,7 @@ class Recorder {
             std::memcpy(before_,bytes,kEventBytes);
             snapshot_=true;
             emit("event_baseline",cs,pc,spawn,target,event_offset_,data_base_);
+            if (target) emit("affected_event_commands_present",cs,pc,target,spawn);
             return;
         }
         unsigned changed=0, first=0;
@@ -93,6 +91,7 @@ class Recorder {
             emit("event_buffer_changed",cs,pc,first,
                  before_[first],bytes[first],changed);
             emit("event_buffer_opcode13_count",cs,pc,spawn,target,0,0);
+            if (target) emit("affected_event_commands_present",cs,pc,target,spawn);
             std::memcpy(before_,bytes,kEventBytes);
         }
     }
@@ -147,12 +146,14 @@ public:
         }
         if (pc==0x2462e || pc==0x2ba) {
             // eax is the resource manager's returned DS-relative pointer.
-            if (eax>=0x1000 && eax<0x2000000) {
-                event_offset_=eax;
-                data_base_=dsbase;
-                bound_=true;
-                snapshot_=false;
-                emit("event_buffer_bound",cs,pc,eax,dsbase);
+            if (eax>=0x1000 && eax<0x10000000u) {
+                if (!bound_ || data_base_!=dsbase || event_offset_!=eax) {
+                    event_offset_=eax;
+                    data_base_=dsbase;
+                    bound_=true;
+                    snapshot_=false;
+                    emit("event_buffer_bound",cs,pc,eax,dsbase);
+                }
                 if (pc==0x2ba) scan(cs,pc);
             }
         }
