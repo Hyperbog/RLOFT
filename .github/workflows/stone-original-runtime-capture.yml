@@ -30,3 +30,32 @@ jobs:
         run: |
           echo "Original Stone DOS game session: NOT RUN"
           echo "Full DOSBox-X Windows build: NOT RUN"
+
+  full-windows-emulator:
+    runs-on: windows-2022
+    needs: source-and-compiled-hook
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Authenticate, patch, and build the full DOSBox-X x64 SDL2 emulator
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'dosbox-x-Stone'
+          & "$env:GITHUB_WORKSPACE/Recomp/tools/dosboxx_stone_runtime_capture/build_windows_stone_capture.ps1" -RloftRoot $env:GITHUB_WORKSPACE -DosboxSourceRoot $root
+          if($LASTEXITCODE -and $LASTEXITCODE -ne 0){throw "Full emulator build script failed"}
+          $exe=Join-Path $root 'bin/x64/Release SDL2/dosbox-x.exe'
+          if(!(Test-Path -LiteralPath $exe -PathType Leaf)){throw "Built DOSBox-X missing"}
+          $sha=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "ORIGINAL_DOSBOXX_STONE_INSTRUMENTED_SHA256=$sha"
+          $release=Join-Path $env:GITHUB_WORKSPACE 'stone-dosboxx-build'
+          New-Item -ItemType Directory -Path $release -Force | Out-Null
+          Copy-Item -LiteralPath $exe -Destination (Join-Path $release 'dosbox-x.exe')
+          Set-Content -LiteralPath (Join-Path $release 'sha256.txt') -Value ($sha + "  dosbox-x.exe") -Encoding ASCII
+          Write-Host 'Original Stone DOS guest executed: NO'
+      - name: Upload instrumented DOSBox-X executable (no game media)
+        uses: actions/upload-artifact@v4
+        with:
+          name: stone-original-dosboxx-normal-core
+          path: stone-dosboxx-build/
+          if-no-files-found: error
