@@ -29,23 +29,34 @@ Copy-Item -Path (Join-Path $GameDir '*') -Destination $copy -Recurse -Force
 $trace=Join-Path $session 'stone-original.jsonl'
 $report=Join-Path $session 'stone-summary.json'
 $conf=Join-Path $session 'stone-original.conf'
+$log=Join-Path $session 'launcher.log'
 $cfg=@('[cpu]','core=normal','cycles=5000','',
        '[autoexec]','z:','mount -u c','mount -u d',
        ('mount c "'+$copy+'"'),
        ('mount d "'+$CdDir+'" -t cdrom'),
-       'c:','sp.exe','exit')
+       'c:','sp.exe',
+       'echo.',
+       'echo STONE CAPTURE: SP.EXE has returned to the DOS prompt.',
+       'echo Copy any error above before closing this window.',
+       'echo Type EXIT only after recording the message.')
 Set-Content -LiteralPath $conf -Value $cfg -Encoding ASCII
 $prior=$env:RLOFT_STONE_ORIGINAL_TRACE_JSONL
 $priorStrict=$env:RLOFT_STONE_TRACE_EVERY_INSTRUCTION
+Start-Transcript -LiteralPath $log -ErrorAction Stop | Out-Null
 try {
  $env:RLOFT_STONE_ORIGINAL_TRACE_JSONL=$trace
  $env:RLOFT_STONE_TRACE_EVERY_INSTRUCTION=if($EveryInstruction){'1'}else{'0'}
  Write-Host "Private isolated Stone C: and trace directory: $session"
- & $DosboxExe -conf $conf
- Write-Host "DOSBox-X exited with status $LASTEXITCODE"
+ Write-Host "Launcher transcript: $log"
+ Write-Host 'If SP.EXE fails, its DOS screen stays OPEN. Type EXIT to close it after recording the error.'
+ & $DosboxExe -console -conf $conf
+ $emulatorStatus=$LASTEXITCODE
+ Write-Host "DOSBox-X process exited with status $emulatorStatus"
+ if($emulatorStatus -ne 0) {Write-Warning "DOSBox-X startup/runtime error code: $emulatorStatus. Look for details in DOSBox-X console and launcher.log."}
 } finally {
  $env:RLOFT_STONE_ORIGINAL_TRACE_JSONL=$prior
  $env:RLOFT_STONE_TRACE_EVERY_INSTRUCTION=$priorStrict
+ Stop-Transcript | Out-Null
 }
 if (!(Test-Path -LiteralPath $trace -PathType Leaf)) {
  throw "No trace file created in $session"
