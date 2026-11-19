@@ -49,17 +49,31 @@ try {
  Write-Host "Private isolated Stone C: and trace directory: $session"
  Write-Host "Launcher transcript: $log"
  Write-Host 'If SP.EXE fails, its DOS screen stays OPEN. Type EXIT to close it after recording the error.'
- & $DosboxExe -console -conf $conf
- $emulatorStatus=$LASTEXITCODE
+ # DOSBox-X is a Windows GUI-subsystem application. Calling it directly
+ # with '&' can return immediately with an unset $LASTEXITCODE while the
+ # GUI is still running. Start-Process -Wait is the supported synchronous
+ # launch path: wait for the emulator and its process tree to exit before
+ # examining trace output. Preserve spaces in the generated config path.
+ $launchArgs='-console -conf "' + $conf + '"'
+ $process=Start-Process -FilePath $DosboxExe -ArgumentList $launchArgs `
+   -WorkingDirectory (Split-Path -Parent $DosboxExe) -PassThru -Wait -ErrorAction Stop
+ $emulatorStatus=$process.ExitCode
+ if($null -eq $emulatorStatus) {
+   throw "DOSBox-X returned no process exit code; see launcher transcript: $log"
+ }
  Write-Host "DOSBox-X process exited with status $emulatorStatus"
- if($emulatorStatus -ne 0) {Write-Warning "DOSBox-X startup/runtime error code: $emulatorStatus. Look for details in DOSBox-X console and launcher.log."}
+ if($emulatorStatus -ne 0) {
+   Write-Warning "DOSBox-X exited with code $emulatorStatus; read the DOSBox-X console and this launcher transcript."
+ }
 } finally {
  $env:RLOFT_STONE_ORIGINAL_TRACE_JSONL=$prior
  $env:RLOFT_STONE_TRACE_EVERY_INSTRUCTION=$priorStrict
  Stop-Transcript | Out-Null
 }
 if (!(Test-Path -LiteralPath $trace -PathType Leaf)) {
- throw "No trace file created in $session"
+ throw ("No original CODE.2 trace was created AFTER DOSBox-X terminated " +
+        "(exit code $emulatorStatus). Check the DOSBox-X guest screen " +
+        "and original-game startup configuration; session: $session")
 }
 & python (Join-Path $PSScriptRoot 'summarize_stone_runtime_trace.py') --trace $trace --report $report
 if ($LASTEXITCODE -ne 0) {
