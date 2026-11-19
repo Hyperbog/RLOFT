@@ -51,11 +51,40 @@ jobs:
           $release=Join-Path $env:GITHUB_WORKSPACE 'stone-dosboxx-build'
           New-Item -ItemType Directory -Path $release -Force | Out-Null
           Copy-Item -LiteralPath $exe -Destination (Join-Path $release 'dosbox-x.exe')
+          # The original artifact packaged ONLY the GUI-subsystem EXE. Ship
+          # the diagnostic launcher and its dependencies so startup errors
+          # remain visible and the owner can launch Stone without a repo clone.
+          $tools=Join-Path $env:GITHUB_WORKSPACE 'Recomp/tools/dosboxx_stone_runtime_capture'
+          foreach($name in @(
+            'START-STONE-HERE.cmd',
+            'Start-Stone-Capture.ps1',
+            'summarize_stone_runtime_trace.py',
+            'README.md'
+          )) {
+            $source=Join-Path $tools $name
+            if(!(Test-Path -LiteralPath $source -PathType Leaf)) {
+              throw "Missing runtime package component: $source"
+            }
+            Copy-Item -LiteralPath $source -Destination (Join-Path $release $name)
+          }
+          foreach($name in @('COPYING','dosbox-x.reference.conf')) {
+            $source=Join-Path $root $name
+            if(!(Test-Path -LiteralPath $source -PathType Leaf)) {
+              throw "Missing pinned DOSBox-X distribution resource: $source"
+            }
+            Copy-Item -LiteralPath $source -Destination (Join-Path $release $name)
+          }
+          # Include runtime DLLs actually produced beside the built EXE,
+          # if present. No third-party game media or system DLLs are bundled.
+          Get-ChildItem -LiteralPath (Split-Path $exe -Parent) -Filter '*.dll' -File |
+            ForEach-Object {
+              Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $release $_.Name)
+            }
           Set-Content -LiteralPath (Join-Path $release 'sha256.txt') -Value ($sha + "  dosbox-x.exe") -Encoding ASCII
           Write-Host 'Original Stone DOS guest executed: NO'
       - name: Upload instrumented DOSBox-X executable (no game media)
         uses: actions/upload-artifact@v4
         with:
-          name: stone-original-dosboxx-normal-core
+          name: stone-original-dosboxx-diagnostics-fixed
           path: stone-dosboxx-build/
           if-no-files-found: error
