@@ -4,6 +4,28 @@ This is an opt-in hook for the **original DOS game** running in DOSBox-X
 2026.10.01 **normal CPU core**. It does not patch guest executables,
 media or saves. Only a copied game directory is mounted writable.
 
+## Start here if the DOSBox window immediately closes
+
+The original runtime ZIP must include `dosbox-x.exe`,
+`START-STONE-HERE.cmd`, `Start-Stone-Capture.ps1`, and
+`summarize_stone_runtime_trace.py`. **Double-click `START-STONE-HERE.cmd`**,
+not `dosbox-x.exe`. Enter the original installed `PROPHET` and extracted
+`CD_Extracted` folders when prompted. The launcher copies installed game
+files to a private workspace, never overwriting the original saves.
+
+The old version of `Start-Stone-Capture.ps1` included a trailing DOS
+`exit` command, causing the DOSBox window to disappear whenever `SP.EXE`
+returned, including on startup failures. The command has been removed.
+The updated launcher starts DOSBox-X with `-console` and leaves the guest DOS
+prompt open after the game exits so the actual DOS error remains visible.
+
+After manually typing `EXIT` in DOSBox, the command launcher prints the
+PowerShell exit details, preserves `%TEMP%\\Stone-Original-Startup-*.log`,
+and waits for a keypress. The private game session also contains
+`launcher.log`. An immediate failure before the original CODE.2 is reached
+will not produce a validated gameplay summary; capture the startup log
+instead.
+
 ## Build on Windows (VS 2022 Developer PowerShell)
 
     & "C:\RLOFT\Recomp\tools\dosboxx_stone_runtime_capture\build_windows_stone_capture.ps1" -RloftRoot "C:\RLOFT" -DosboxSourceRoot "C:\dosbox-x-Stone"
